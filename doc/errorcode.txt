@@ -1,0 +1,29 @@
+1XXX: CertificateError
+    1000: Unknown
+    1001: ReadFailed
+    1002: DecodeFailed
+    1003: ParseFailed
+    1100: SelfSigned
+    12XX: VerifyFailed
+        121X: CertificateInvalid
+            1210: NotAuthorizedToSign
+            1211: Expired
+            1212: CANotAuthorizedForThisName
+            1213: TooManyIntermediates
+            1214: IncompatibleUsage
+        1220: UnknownAuthority
+2XXX: PrivatekeyError
+    2000: Unknown
+    2001: ReadFailed
+    2002: DecodeFailed
+    2003: ParseFailed
+    2100: Encrypted
+    2200: NotRSA
+    2300: KeyMismatch
+3XXX: IntermediatesError
+4XXX: RootError
+5XXX: PolicyError
+    5100: NoKeyUsages
+    5200: InvalidPolicy
+    5300: InvalidRequest
+

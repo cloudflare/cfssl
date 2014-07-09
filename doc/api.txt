@@ -1,0 +1,203 @@
+CF-SSL API
+
+1. OVERVIEW
+
+The CF-SSL API allows applications to access the functionality of
+CF-SSL over an unauthenticated HTTP connection. Due to the fact that
+the API is currently unauthenticated, it is important to understand
+that the CF-SSL API server must be running in a trusted environment.
+
+The API currently provides endpoints for the following functions:
+
+    1. signing (the CA will sign the certificate)
+    2. bundling (the CA will return a certificate bundle)
+    3. certificate validation
+    4. remote certificate validation
+
+
+2. ENDPOINTS
+
+The endpoints respond to JSON-encoded POST requests. Except where
+noted, the request body should be a dictionary of string keys to
+string values. For example:
+
+       {
+         "key": "value",
+         "key2": "value2"
+       }
+
+Responses take the form of the new CloudFlare API response format:
+
+       {
+         "result": {<certificate bundle JSON>},
+         "success": true,
+         "errors": [],
+         "messages": [],
+}
+
+Both the "messages" and "errors" fields have the same general format:
+a message or error has the form
+
+       {
+         "code:" 1234,
+         "message": "Informative message."
+       }
+
+2.1 SIGNING
+
+Endpoint: "/api/v1/cfssl/sign"
+Parameters:
+        * hostname: the SAN to use for the new certificate
+        * cert: the PEM-encoded certificate that should be signed
+        * profile (optional): the name of the signing profile to be
+          used. If empty, the server's default profile will be
+          selected.
+
+Result: { "certificate": "-----BEGIN CERTIFICATE..." }
+
+2.2 BUNDLING
+
+Endpoint: "/api/v1/cfssl/bundle"
+Required Parameters:
+
+        One of the following two parameters is required; if both are
+        present, the result is undefined.
+
+        * certificate: the PEM-encoded certificate to be bundled.
+        * domain: a domain name indicating a remote host to retrieve a
+          certificate for.
+
+        If the "certificate" parameter is present, the following two
+        parameters are valid:
+
+        * private_key: the PEM-encoded private key to be included with
+        the bundle. This is valid only if the server is not running in
+        "keyless" mode.
+        * flavor: one of "ubiquitous" or "optimal", with a default
+        value of "ubiquitous". A ubiquitous bundle is one that has a
+        higher probability of being verified everywhere, even by
+        clients using outdated or unusual trust stores.
+
+        If the "domain" parameter is present, the following parameter
+        is valid:
+
+        * ip: the IP address of the remote host as an alternative to
+        domain.
+
+Result:
+
+        A bundle has a number of components:
+
+        * bundle contains the concatenated list of PEM certificates
+        forming the certificate chain; this forms the actual
+        bundle. The remaining parameters are additional metadata
+        supporting the bundle.
+        * crl_support is true if CRL information is contained in the
+        certificate.
+        * crt contains the original certificate the bundle is built
+        from.
+        * expires contains the expiration date of the certificate.
+        * hostnames contains the SAN hostnames for the certificate.
+        * issuer contains the X.509 issuer information for the
+        certificate.
+        * key contains the private key for the certificate, if one
+        was presented.
+        * key_size contains the size of the key in bits for the
+        certificate. It will be present even if the private key wasn't
+        provided because this can be determined from the public key.
+        * key_type contains a textual description of the key type,
+        e.g. '2048-bit RSA'.
+        * ocsp contains the OCSP URLs for the certificate, if present.
+        * ocsp_support will be true if the certificate supports OCSP
+        revocation checking.
+        * signature contains the signature type used in the
+        certificate, e.g. 'SHA1WithRSA'.
+        * status contains a number of elements:
+          * expiring_SKIs contains the SKIs (subject key identifiers)
+          for any certificates that might expire soon (within 30
+          days).
+          * rebundled indicates whether the server had to rebundle the
+          certificate. The server will rebundle the uploaded
+          certificate as needed; for example, if the certificate
+          contains none of the required intermediates or a better set
+          of intermediates was found. In this case, the server will
+          mark rebundled as true.
+          * untrusted_root_stores contains the names of any new root
+          stores found while building a trust chain. New roots cannot
+          be trusted while the server is running, but this might be
+          useful in discovering new certificate authorities.
+        * subject contains the X.509 subject identifier from the
+        certificate.
+
+2.3 CERTIFICATE REQUESTS
+
+Endpoint: "/api/v1/cfssl/newkey"
+Required parameters:
+
+         * CN: the certificate's Common Name.
+         * hosts: a list of hostnames to be used for the certificate.
+         * key: should contain two parameters:
+           * algo: either 'rsa' or 'ecdsa'
+           * size: integer size in bits of key
+
+         * names: a list of subject name elements. A subject name
+         contains the following elements:
+
+           * 'C': the two-letter country identifier
+           * 'L': the locale (e.g. city)
+           * 'O': the organisation
+           * 'OU': the organisational unit
+           * 'ST': the state or province
+
+Result:
+        * key contains the PEM-encoded private key.
+        * csr contains a PEM-encoded certificate signature request.
+
+2.4. SIGNED CERTIFICATE REQUESTS
+
+Endpoint: "/api/v1/cfssl/newcert"
+Required parameters:
+
+         * CN: the certificate's Common Name.
+         * hosts: a list of hostnames to be used for the certificate.
+         * key: should contain two parameters:
+           * algo: either 'rsa' or 'ecdsa'
+           * size: integer size in bits of key
+
+         * names: a list of subject name elements. A subject name
+         contains the following elements:
+
+           * 'C': the two-letter country identifier
+           * 'L': the locale (e.g. city)
+           * 'O': the organisation
+           * 'OU': the organisational unit
+           * 'ST': the state or province
+
+Result:
+        * private_key contains the PEM-encoded private key.
+        * certificate contains the PEM-encoded certificate.
+
+2.5 REMOTE SIGNED CERTIFICATE REQUESTS
+
+Endpoint: "/api/v1/cfssl/remotecert"
+Required parameters:
+
+         * CN: the certificate's Common Name.
+         * hosts: a list of hostnames to be used for the certificate.
+         * key: should contain two parameters:
+           * algo: either 'rsa' or 'ecdsa'
+           * size: integer size in bits of key
+
+         * names: a list of subject name elements. A subject name
+         contains the following elements:
+
+           * 'C': the two-letter country identifier
+           * 'L': the locale (e.g. city)
+           * 'O': the organisation
+           * 'OU': the organisational unit
+           * 'ST': the state or province
+
+Result:
+        * private_key contains the PEM-encoded private key.
+        * certificate contains the PEM-encoded certificate.
+

@@ -1,0 +1,258 @@
+package bundler
+
+// This test file contains tests on checking the correctness of BundleFromPEM
+import (
+	"testing"
+)
+
+// A helper structure that defines a BundleFromPEM test case.
+type pemTest struct {
+	// PEM cert to be bundled
+	cert []byte
+	// PEM private key to be bundled
+	key []byte
+	// PEM intermediate certificates to be considered when bundling
+	inters []byte
+	// Bundler creation function
+	bundlerConstructor func(*testing.T) (b *Bundler)
+	// Error checking function
+	errorCallback func(*testing.T, error)
+	// Bundle checking function
+	bundleChecking func(*testing.T, *Bundle)
+}
+
+// BundleFromPEM test cases.
+var pemTests = []pemTest{
+	{
+		cert:               validRootCert,
+		bundlerConstructor: newBundler,
+		errorCallback:      nil,
+		bundleChecking:     ExpectBundleLength(1),
+	},
+	{
+		cert:               []byte(""),
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessage("\"code\":1002"),
+	},
+	{
+		cert:               corruptCert,
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessage("\"code\":1002"),
+	},
+	{
+		cert:               garbageCert,
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessage("\"code\":1003"),
+	},
+	{
+		cert:               selfSignedCert,
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessage("\"code\":1100"),
+	},
+	// 121X errors are X509.CertificateInvalidError. This test
+	// covers the code path leads to all 121X errors.
+	{
+		cert:               expiredCert,
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessage("\"code\":1211"),
+	},
+	// With a empty root cert pool, the valid root cert
+	// is seen as issued by an unknown authority.
+	{
+		cert:               validRootCert,
+		bundlerConstructor: newBundlerWithoutRoots,
+		errorCallback:      ExpectErrorMessage("\"code\":1220"),
+	},
+}
+
+// TestBundleFromPEM goes through the test cases defined in pemTests and run them through. See below for test case definitions.
+func TestBundleFromPEM(t *testing.T) {
+	for _, test := range pemTests {
+		b := test.bundlerConstructor(t)
+		bundle, err := b.BundleFromPEM(test.cert, test.key, Optimal)
+		if test.errorCallback != nil {
+			test.errorCallback(t, err)
+		} else {
+			if err != nil {
+				t.Errorf("expected no error. but an error occurred: %s", err.Error())
+			}
+			if test.bundleChecking != nil {
+				test.bundleChecking(t, bundle)
+			}
+		}
+	}
+}
+
+// GoDaddy root cert valid until year 2026
+var validRootCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIE3jCCA8agAwIBAgICAwEwDQYJKoZIhvcNAQEFBQAwYzELMAkGA1UEBhMCVVMx
+ITAfBgNVBAoTGFRoZSBHbyBEYWRkeSBHcm91cCwgSW5jLjExMC8GA1UECxMoR28g
+RGFkZHkgQ2xhc3MgMiBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTAeFw0wNjExMTYw
+MTU0MzdaFw0yNjExMTYwMTU0MzdaMIHKMQswCQYDVQQGEwJVUzEQMA4GA1UECBMH
+QXJpem9uYTETMBEGA1UEBxMKU2NvdHRzZGFsZTEaMBgGA1UEChMRR29EYWRkeS5j
+b20sIEluYy4xMzAxBgNVBAsTKmh0dHA6Ly9jZXJ0aWZpY2F0ZXMuZ29kYWRkeS5j
+b20vcmVwb3NpdG9yeTEwMC4GA1UEAxMnR28gRGFkZHkgU2VjdXJlIENlcnRpZmlj
+YXRpb24gQXV0aG9yaXR5MREwDwYDVQQFEwgwNzk2OTI4NzCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAMQt1RWMnCZM7DI161+4WQFapmGBWTtwY6vj3D3H
+KrjJM9N55DrtPDAjhI6zMBS2sofDPZVUBJ7fmd0LJR4h3mUpfjWoqVTr9vcyOdQm
+VZWt7/v+WIbXnvQAjYwqDL1CBM6nPwT27oDyqu9SoWlm2r4arV3aLGbqGmu75RpR
+SgAvSMeYddi5Kcju+GZtCpyz8/x4fKL4o/K1w/O5epHBp+YlLpyo7RJlbmr2EkRT
+cDCVw5wrWCs9CHRK8r5RsL+H0EwnWGu1NcWdrxcx+AuP7q2BNgWJCJjPOq8lh8BJ
+6qf9Z/dFjpfMFDniNoW1fho3/Rb2cRGadDAW/hOUoz+EDU8CAwEAAaOCATIwggEu
+MB0GA1UdDgQWBBT9rGEyk2xF1uLuhV+auud2mWjM5zAfBgNVHSMEGDAWgBTSxLDS
+kdRMEXGzYcs9of7dqGrU4zASBgNVHRMBAf8ECDAGAQH/AgEAMDMGCCsGAQUFBwEB
+BCcwJTAjBggrBgEFBQcwAYYXaHR0cDovL29jc3AuZ29kYWRkeS5jb20wRgYDVR0f
+BD8wPTA7oDmgN4Y1aHR0cDovL2NlcnRpZmljYXRlcy5nb2RhZGR5LmNvbS9yZXBv
+c2l0b3J5L2dkcm9vdC5jcmwwSwYDVR0gBEQwQjBABgRVHSAAMDgwNgYIKwYBBQUH
+AgEWKmh0dHA6Ly9jZXJ0aWZpY2F0ZXMuZ29kYWRkeS5jb20vcmVwb3NpdG9yeTAO
+BgNVHQ8BAf8EBAMCAQYwDQYJKoZIhvcNAQEFBQADggEBANKGwOy9+aG2Z+5mC6IG
+OgRQjhVyrEp0lVPLN8tESe8HkGsz2ZbwlFalEzAFPIUyIXvJxwqoJKSQ3kbTJSMU
+A2fCENZvD117esyfxVgqwcSeIaha86ykRvOe5GPLL5CkKSkB2XIsKd83ASe8T+5o
+0yGPwLPk9Qnt0hCqU7S+8MxZC9Y7lhyVJEnfzuz9p0iRFEUOOjZv2kWzRaJBydTX
+RE4+uXR21aITVSzGh6O1mawGhId/dQb8vxRMDsxuxN89txJx9OjxUUAiKEngHUuH
+qDTMBqLdElrRhjZkAzVvb3du6/KFUJheqwNTrZEjYx8WnM25sgVjOuH0aBsXBTWV
+U+4=
+-----END CERTIFICATE-----`)
+
+// This is the same GoDaddy cert above except the last line is corrupted.
+var corruptCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIE3jCCA8agAwIBAgICAwEwDQYJKoZIhvcNAQEFBQAwYzELMAkGA1UEBhMCVVMx
+ITAfBgNVBAoTGFRoZSBHbyBEYWRkeSBHcm91cCwgSW5jLjExMC8GA1UECxMoR28g
+RGFkZHkgQ2xhc3MgMiBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTAeFw0wNjExMTYw
+MTU0MzdaFw0yNjExMTYwMTU0MzdaMIHKMQswCQYDVQQGEwJVUzEQMA4GA1UECBMH
+QXJpem9uYTETMBEGA1UEBxMKU2NvdHRzZGFsZTEaMBgGA1UEChMRR29EYWRkeS5j
+b20sIEluYy4xMzAxBgNVBAsTKmh0dHA6Ly9jZXJ0aWZpY2F0ZXMuZ29kYWRkeS5j
+b20vcmVwb3NpdG9yeTEwMC4GA1UEAxMnR28gRGFkZHkgU2VjdXJlIENlcnRpZmlj
+YXRpb24gQXV0aG9yaXR5MREwDwYDVQQFEwgwNzk2OTI4NzCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAMQt1RWMnCZM7DI161+4WQFapmGBWTtwY6vj3D3H
+KrjJM9N55DrtPDAjhI6zMBS2sofDPZVUBJ7fmd0LJR4h3mUpfjWoqVTr9vcyOdQm
+VZWt7/v+WIbXnvQAjYwqDL1CBM6nPwT27oDyqu9SoWlm2r4arV3aLGbqGmu75RpR
+SgAvSMeYddi5Kcju+GZtCpyz8/x4fKL4o/K1w/O5epHBp+YlLpyo7RJlbmr2EkRT
+cDCVw5wrWCs9CHRK8r5RsL+H0EwnWGu1NcWdrxcx+AuP7q2BNgWJCJjPOq8lh8BJ
+6qf9Z/dFjpfMFDniNoW1fho3/Rb2cRGadDAW/hOUoz+EDU8CAwEAAaOCATIwggEu
+MB0GA1UdDgQWBBT9rGEyk2xF1uLuhV+auud2mWjM5zAfBgNVHSMEGDAWgBTSxLDS
+kdRMEXGzYcs9of7dqGrU4zASBgNVHRMBAf8ECDAGAQH/AgEAMDMGCCsGAQUFBwEB
+BCcwJTAjBggrBgEFBQcwAYYXaHR0cDovL29jc3AuZ29kYWRkeS5jb20wRgYDVR0f
+BD8wPTA7oDmgN4Y1aHR0cDovL2NlcnRpZmljYXRlcy5nb2RhZGR5LmNvbS9yZXBv
+c2l0b3J5L2dkcm9vdC5jcmwwSwYDVR0gBEQwQjBABgRVHSAAMDgwNgYIKwYBBQUH
+AgEWKmh0dHA6Ly9jZXJ0aWZpY2F0ZXMuZ29kYWRkeS5jb20vcmVwb3NpdG9yeTAO
+BgNVHQ8BAf8EBAMCAQYwDQYJKoZIhvcNAQEFBQADggEBANKGwOy9+aG2Z+5mC6IG
+OgRQjhVyrEp0lVPLN8tESe8HkGsz2ZbwlFalEzAFPIUyIXvJxwqoJKSQ3kbTJSMU
+A2fCENZvD117esyfxVgqwcSeIaha86ykRvOe5GPLL5CkKSkB2XIsKd83ASe8T+5o
+0yGPwLPk9Qnt0hCqU7S+8MxZC9Y7lhyVJEnfzuz9p0iRFEUOOjZv2kWzRaJBydTX
+RE4+uXR21aITVSzGh6O1mawGhId/dQb8vxRMDsxuxN89txJx9OjxUUAiKEngHUuH
+qDTMBqLdElrRhjZkAzVvb3du6/KFUJheqwNTrZEjYx8WnM25sgVjOuH0aBsXBTWV
+CORRUPTED
+-----END CERTIFICATE-----`)
+
+// A garbage cert, which can be decoded into ill-formed cert
+var garbageCert = []byte(`-----BEGIN CERTIFICATE-----
+MIICATCCAWoCCQDidF+uNJR6czANBgkqhkiG9w0BAQUFADBFMQswCQYDVQQGEwJB
+cyBQdHkgTHRkMB4XDTEyMDUwMTIyNTUxN1oXDTEzMDUwMTIyNTUxN1owRTELMAkG
+A1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0
+nodhz31kLEJoeLSkRmrv8l7exkGtO0REtIbirj9BBy64ZXVBE7khKGO2cnM8U7yj
+w7Ntfh+IvCjZVA3d2XqHS3Pjrt4HmU/cGCONE8+NEXoqdzLUDPOix1qDDRBvXs81
+IFdpZGdpdHMgUHR5IEx0ZDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEAtpjl
+KAV2qh6CYHZbdqixhDerjvJcD4Nsd7kExEZfHuECAwEAATANBgkqhkiG9w0BAQUF
+AAOBgQCyOqs7+qpMrYCgL6OamDeCVojLoEp036PsnaYWf2NPmsVXdpYW40Foyyjp
+VTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0
+iv5otkxO5rxtGPv7o2J1eMBpCuSkydvoz3Ey/QwGqbBwEXQ4xYCgra336gqW2KQt
++LnDCkE8f5oBhCIisExc2i8PDvsRsY70g/2gs983ImJjVR8sDw==
+-----END CERTIFICATE-----`)
+
+// A expired cert
+var expiredCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIB7jCCAVmgAwIBAgIBADALBgkqhkiG9w0BAQUwJjEQMA4GA1UEChMHQWNtZSBD
+bzESMBAGA1UEAxMJMTI3LjAuMC4xMB4XDTEyMDkwNzIyMDAwNFoXDTEzMDkwNzIy
+MDUwNFowJjEQMA4GA1UEChMHQWNtZSBDbzESMBAGA1UEAxMJMTI3LjAuMC4xMIGd
+MAsGCSqGSIb3DQEBAQOBjQAwgYkCgYEAm6f+jkP2t5q/vM0YAUZZkhq/EAYD+L1C
+MS59jJOLomfDnKUWOGKi/k7URBg1HNL3vm7/ESDazZWFy9l/nibWxNkSUPkQIrvr
+GsNivkRUzXkwgNX8IN8LOYAQ3BWxAqitXTpLjf4FeCTB6G59v9eYlAX3kicXRdY+
+cqhEvLFbu3MCAwEAAaMyMDAwDgYDVR0PAQH/BAQDAgCgMA0GA1UdDgQGBAQBAgME
+MA8GA1UdIwQIMAaABAECAwQwCwYJKoZIhvcNAQEFA4GBABndWRIcfi+QB9Sakr+m
+dYnXTgYCnFio53L2Z+6EHTGG+rEhWtUEGhL4p4pzXX4siAnjWvwcgXTo92cafcfi
+uB7wRfK+NL9CTJdpN6cdL+fiNHzH8hsl3bj1nL0CSmdn2hkUWVLbLhSgWlib/I8O
+aq+K7aVrgHkPnWeRiG6tl+ZA
+-----END CERTIFICATE-----`)
+
+// A self-signed cert
+var selfSignedCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIERTCCAy2gAwIBAgIJAORAsvx6MZO7MA0GCSqGSIb3DQEBBQUAMHQxCzAJBgNV
+BAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEXMBUG
+A1UEChMOQ2xvdWRGbGFyZSBMTEMxETAPBgNVBAsTCFNlY3VyaXR5MRQwEgYDVQQD
+Ewt0ZXN0c3NsLmxvbDAeFw0xNDA0MDQyMjM4MzhaFw0yNDA0MDEyMjM4MzhaMHQx
+CzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNj
+bzEXMBUGA1UEChMOQ2xvdWRGbGFyZSBMTEMxETAPBgNVBAsTCFNlY3VyaXR5MRQw
+EgYDVQQDEwt0ZXN0c3NsLmxvbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAMKNLxpsnT37jSYkP9LVjw050Nmt1YMcEPwLe8zGUr8QzTWQ194Z9Ik/qYS0
+UpQlx7+8UBoCanDTYuNKarHhmj4nZp+gc3mWWlaJKRnCJZ+Ru18x2lg9BzG4MwPQ
+63ve0WxZ69/6J3lx53ertDgcD7S4v71BaeE10miBeJLK3JkV6fgGGfGRAGwU9vfm
+OBbPTAw2SRdB1AaYTHaT4ANwUI7vvkIPrNuneTjOqlN9DAroUNIkXhV+fSmncRxi
+RCAfP8/4BZdZ9C4TTKUpdAVUe1LUcHygK2f3YtOx8qJLCRMTRMYccSI1Y1idhX1s
+SKIDDrOuELb+pGgno5PCe6i6MWcCAwEAAaOB2TCB1jAdBgNVHQ4EFgQUCkxuIVbR
++I8Z0A547Xj1R57ceXUwgaYGA1UdIwSBnjCBm4AUCkxuIVbR+I8Z0A547Xj1R57c
+eXWheKR2MHQxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2Fu
+IEZyYW5jaXNjbzEXMBUGA1UEChMOQ2xvdWRGbGFyZSBMTEMxETAPBgNVBAsTCFNl
+Y3VyaXR5MRQwEgYDVQQDEwt0ZXN0c3NsLmxvbIIJAORAsvx6MZO7MAwGA1UdEwQF
+MAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAKFaOjVRXCNsOznpZe0478mIFK6mNwwi
+ZrLcrEUZ0FIOcPwsnQXd/HmrR4MVj3z3U62mE6qFo+07yJnnXdKBJ9ThjmNu6c4S
+dk2xPbKTuACF7UhMgPlac0tEp/KSJTaMcjl23H+ol80LZ/t1113XSAZYHWsAgTjC
+905kp66Gcq7c+GBgrBqR4e6Z2GYCeAk5aMy5f5s90teW2bIZE0hG1mFz1e25l9lI
+SkAp0gZusX4yxqoSBqKmKXBkjrW5vkKJZjP51c7fuhfuAyNfxZF4Cz9SS0YSG8eh
+H5kVbpLP+eSYMqF110qqjAo4tkgBquF6IppA+HQ66DN64+TeiXb3f2Y=
+-----END CERTIFICATE-----`)
+
+// An expired bundle
+var expiredBundlePEM = []byte(`-----BEGIN CERTIFICATE-----
+MIIEczCCAl2gAwIBAgIIDARj8BWNsscwCwYJKoZIhvcNAQELMIGMMQswCQYDVQQG
+EwJVUzETMBEGA1UEChMKQ2xvdWRGbGFyZTEcMBoGA1UECxMTU3lzdGVtcyBFbmdp
+bmVlcmluZzEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzETMBEGA1UECBMKQ2FsaWZv
+cm5pYTEdMBsGA1UEAxMUY2xvdWRmbGFyZS1pbnRlci5jb20wHhcNMTQwMzAyMDAw
+MDAwWhcNMTkwNDAxMDAwMDAwWjCBjDELMAkGA1UEBhMCVVMxEzARBgNVBAoTCkNs
+b3VkRmxhcmUxHDAaBgNVBAsTE1N5c3RlbXMgRW5naW5lZXJpbmcxFjAUBgNVBAcT
+DVNhbiBGcmFuY2lzY28xEzARBgNVBAgTCkNhbGlmb3JuaWExHTAbBgNVBAMTFGNs
+b3VkZmxhcmUtaW50ZXIuY29tMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEIVkjNJGw
+f3F0XWJH7yQSVtxuoBidi5JNsQ7FhxEQcZEl3b+/1iF60TBY2Yi6KwJuA6nIE73P
+IXGyfNhThw4D8CiZbackQ/ufgz2DyvxyWFDPzLr7TXeM/0wSp/imoxWeo4GIMIGF
+MA4GA1UdDwEB/wQEAwIApDASBgNVHRMBAf8ECDAGAQH/AgEBMB0GA1UdDgQWBBRB
++YoiUjIm34/wBwHdJGE4Wufs/DAfBgNVHSMEGDAWgBTXXUgpaSwO9HOrQBxGqOOS
+FHsHEDAfBgNVHREEGDAWghRjbG91ZGZsYXJlLWludGVyLmNvbTALBgkqhkiG9w0B
+AQsDggIBACRqAC5EJEe+8ihv1WzCUMEMb7KtS0BqoNbdXE32ia66PgJSQmHcmeJd
+FI1UjL0DlljTM2tc+8KxR/1/qnKiI+W/D4wFTWOY/JWFOd15q7lXuKGl+8PMkAHF
+A145JCr6oZoO9G9wUwVUrbmXAbyPCOfzsEQ2+mD9F1ZpoEjzVhtGf0R+vnYrRw8j
+4WCv5AIcYRAf7HZxbhMILF1bccNlqyUtdH+/MTHXpjkjJjA5KbsHBrAEfjAXkD7c
+WWOay6m7mVWb3PPFmGorP6t29baEETK9ZTZSrfD9rnExjjUCftWJEn0M4Pp98DvT
+br6+bg8jwtq73qdyOfNsC/Sod18UuHH7MTQA22yqAF5jIlcYtAHGlNnl+sDPZACs
+369/Z9rOL9vPFL+Z3F/uJtqZzvN1QiCkj8jWzR0u9fh3eQwZADM2RwgwS4Gs2Ygh
+PsypDo33sFOwfX93KqKBsTHssn8SSDDaSnZ8bu1ATEdshbVieecuQx40UadPuJpw
+EPVqTR5AhviXQ9bKrTnU5T7EgkW9vNydkpLQQlMg3QE8hsndv4loGZbZGfNtqQHS
+/mg1t07S+7OEa4YaMW+wVOBOqTdW7OXlZFLfCcF5SYLM0SnlTMklRMxiqI4JqZXH
+0thnUGD0JjfLX4rTaZUzT3lrXXWzpS2jzutXQkjGv4nhGGprIDuT
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIEkDCCA/ugAwIBAgIIWnP9jF/2nogwCwYJKoZIhvcNAQELMH0xCzAJBgNVBAYT
+AlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRYwFAYDVQQHDA1TYW4gRnJhbmNpc2Nv
+MRMwEQYDVQQKDApDbG91ZEZsYXJlMRQwEgYDVQQLDAtERVZfVEVTVElORzEWMBQG
+A1UEAwwNQ0ZTU0xfVEVTVF9DQTAeFw0xNDAzMDEwMDAwMDBaFw0xNDA0MTUwMDAw
+MDBaMIGMMQswCQYDVQQGEwJVUzETMBEGA1UEChMKQ2xvdWRGbGFyZTEcMBoGA1UE
+CxMTU3lzdGVtcyBFbmdpbmVlcmluZzEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzET
+MBEGA1UECBMKQ2FsaWZvcm5pYTEdMBsGA1UEAxMUY2xvdWRmbGFyZS1pbnRlci5j
+b20wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDlCnV+vj0sVPy8SqHL
+AlI+xwnPhWgzj2VevD6Nz1Zu1BeQ5m5y4CWCf+GmRGTP7+a/C510Fw6rpmInB0Ng
+xxwQ2rC08fJtCnijlGH/VjEPIHY5lRaAomcM8Rgx6JOuv9BpZJKpr9pyUMV53JeW
+RbWuLH5nEMdyk9NpetS2gWxt4/D20QlhK/tHkROrcLmEUddwIGdwE8JzI88c77Fu
+u6pgMtHKvl4GGH0yvb4T7PvCdH8V2tCH7bt8roXd9MSyFVy7uORkfouip7EsVREU
+mlcY5EvpR141KXbZqiOQiusJ+u76mEUQNk8wCR1/CW/ii9v1BKOVjXwCfEtIXjg0
+APJx1VNSSH6XoDpUETL+eQ4J0FL9XNbsDuYar7+zD0N1/5vSo3HLNRQR9f0lbsys
+sWBEN+CxK19xyPumr21Z0bU0f1B5H52VSF0q3I1Ju9wRo994a7YipdGcmZ2lChmT
+7r3mzlBTYl3poU26q34v8wG9U7Jv4fsZJ+RGebDI+TR3QG6Yod06l9oEYZxWXBY7
+STOs8wuTu3huSnan/IpWnV017Vsc61D5G+QrqcxZdXckt3anZKCF75JpUnJ7vuow
+TmmHlb8KIMa9mOvcuGX4P6mz8gTi2arl/aL27kj9Q0Jgv/y1ebe2Bx2P9TF6+VND
+DL3J/vSVlFeqLt2reAIBKnytLwIDAQABo4GIMIGFMA4GA1UdDwEB/wQEAwIApDAS
+BgNVHRMBAf8ECDAGAQH/AgEBMB0GA1UdDgQWBBTXXUgpaSwO9HOrQBxGqOOSFHsH
+EDAfBgNVHSMEGDAWgBS4Xu+uZ1C31vMH5Wq+VbNnOg2SPjAfBgNVHREEGDAWghRj
+bG91ZGZsYXJlLWludGVyLmNvbTALBgkqhkiG9w0BAQsDgYEAfPLKCAHnPzgMYLX/
+fWznVvOEFAAYZByPFx4QdMBbDZUtxHyvJIBs6PdxrdSuDwSiMqE7qQIi+jzzwGl9
+fC7vf45B2zCX0OW51QL2oWNBdKlGgB+b2pwyME82lX/Pr7V1GY10u+ep1xdZDnch
+DaMsXjQQTJu0iuG3qKEuCmUwOmc=
+-----END CERTIFICATE-----`)

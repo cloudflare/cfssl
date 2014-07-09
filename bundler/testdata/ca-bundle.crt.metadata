@@ -1,0 +1,16 @@
+[
+{
+	"name":"Mozilla",
+	"weight": 99,
+	"hash_algo": "SHA2",
+	"key_algo": "ECDSA256",
+	"keystore": "testdata/nss.pem"
+},
+{
+	"name":"Android 2.2 Froyo",
+	"weight": 1,
+	"hash_algo": "SHA2",
+	"key_algo": "RSA",
+	"keystore": "testdata/froyo.pem"
+}
+]
