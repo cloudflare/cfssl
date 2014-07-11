@@ -78,7 +78,7 @@ func registerFlags() {
 	cfsslFlagSet.StringVar(&Config.certFile, "cert", "", "Client certificate that contains the public key")
 	cfsslFlagSet.StringVar(&Config.csrFile, "csr", "", "Certificate signature request file for new public key")
 	cfsslFlagSet.StringVar(&Config.caFile, "ca", "ca.pem", "CA used to sign the new certificate")
-	cfsslFlagSet.StringVar(&Config.caKeyFile, "ca-key", "ca_key.pem", "CA private key")
+	cfsslFlagSet.StringVar(&Config.caKeyFile, "ca-key", "ca-key.pem", "CA private key")
 	cfsslFlagSet.StringVar(&Config.keyFile, "key", "", "private key for the certificate")
 	cfsslFlagSet.StringVar(&Config.intermediatesFile, "intermediates", "", "intermediate certs")
 	cfsslFlagSet.StringVar(&Config.caBundleFile, "ca-bundle", "/etc/cfssl/ca-bundle.crt", "Bundle to be used for root certificates pool")
