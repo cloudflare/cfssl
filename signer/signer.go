@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/big"
+	"net"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -299,6 +300,10 @@ func (s *Signer) Sign(hostName string, in []byte, profileName string) (cert []by
 		return
 	}
 
-	template.DNSNames = []string{hostName}
+	if ip := net.ParseIP(hostName); ip != nil {
+		template.IPAddresses = []net.IP{ip}
+	} else {
+		template.DNSNames = []string{hostName}
+	}
 	return s.sign(template, profile)
 }
