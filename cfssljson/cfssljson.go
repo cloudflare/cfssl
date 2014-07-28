@@ -37,7 +37,7 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
-	var input map[string]string
+	var input map[string]interface{}
 	fileData, err := readFile(*inFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read input: %v\n", err)
@@ -51,24 +51,24 @@ func main() {
 	}
 
 	if contents, ok := input["cert"]; ok {
-		writeFile(baseName+".pem", contents, 0644)
+		writeFile(baseName+".pem", contents.(string), 0644)
 	} else if contents, ok = input["certificate"]; ok {
-		writeFile(baseName+".pem", contents, 0644)
+		writeFile(baseName+".pem", contents.(string), 0644)
 	}
 
 	if contents, ok := input["key"]; ok {
-		writeFile(baseName+"-key.pem", contents, 0600)
+		writeFile(baseName+"-key.pem", contents.(string), 0600)
 	} else if contents, ok = input["private_key"]; ok {
-		writeFile(baseName+"-key.pem", contents, 0600)
+		writeFile(baseName+"-key.pem", contents.(string), 0600)
 	}
 
 	if contents, ok := input["csr"]; ok {
-		writeFile(baseName+".csr", contents, 0644)
+		writeFile(baseName+".csr", contents.(string), 0644)
 	} else if contents, ok = input["certificate_request"]; ok {
-		writeFile(baseName+".csr", contents, 0644)
+		writeFile(baseName+".csr", contents.(string), 0644)
 	}
 
 	if contents, ok := input["bundle"]; ok {
-		writeFile(baseName+"-bundle.pem", contents, 0644)
+		writeFile(baseName+"-bundle.pem", contents.(string), 0644)
 	}
 }
