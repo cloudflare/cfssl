@@ -48,7 +48,7 @@ a message or error has the form
 Endpoint: "/api/v1/cfssl/sign"
 Parameters:
         * hostname: the SAN to use for the new certificate
-        * cert: the PEM-encoded certificate that should be signed
+        * certficate: the PEM-encoded certificate that should be signed
         * profile (optional): the name of the signing profile to be
           used. If empty, the server's default profile will be
           selected.
