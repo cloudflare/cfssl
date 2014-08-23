@@ -170,8 +170,8 @@ func (b *Bundler) BundleFromPEM(certsPEM, keyPEM []byte, flavor BundleFlavor) (*
 	var err error
 	if len(keyPEM) != 0 {
 		key, err = helpers.ParsePrivateKeyPEM(keyPEM)
-		log.Debugf("failed to parse private key: %v", err)
 		if err != nil {
+			log.Debugf("failed to parse private key: %v", err)
 			return nil, err
 		}
 	}
@@ -189,11 +189,11 @@ func (b *Bundler) BundleFromPEM(certsPEM, keyPEM []byte, flavor BundleFlavor) (*
 	return b.Bundle(certs, key, flavor)
 }
 
-// BundleFromRemote fetches the certificate chain served by the server at
-// serverName (or ip, if the ip argument is not the empty string). It
+// BundleFromRemote fetches the certificate served by the server at
+// serverName (or ip, if the ip argument is not the empty string). IT
 // is expected that the method will be able to make a connection at
-// port 443. The chain used by the server in this connection is
-// used to rebuild the bundle.
+// port 443. The certificate used by the server in this connection is
+// used to build the bundle, which will necessarily be keyless.
 func (b *Bundler) BundleFromRemote(serverName, ip string) (*Bundle, error) {
 	config := &tls.Config{
 		RootCAs:    b.RootPool,
@@ -212,10 +212,10 @@ func (b *Bundler) BundleFromRemote(serverName, ip string) (*Bundle, error) {
 	conn, err := tls.Dial("tcp", dialName, config)
 	var dialError string
 	// If there's an error in tls.Dial, try again with
-	// InsecureSkipVerify to fetch the remote bundle to (re-)bundle with.
-	// If the bundle is indeed not usable (expired, mismatched hostnames, etc.),
-	// report the error.
-	// Otherwise, create a working bundle and insert the tls error in the bundle.Status.
+	// InsecureSkipVerify to fetch the remote bundle to (re-)bundle
+	// with. If the bundle is indeed not usable (expired, mismatched
+	// hostnames, etc.), report the error.  Otherwise, create a
+	// working bundle and insert the tls error in the bundle.Status.
 	if err != nil {
 		log.Debugf("dial failed: %v", err)
 		// record the error msg
@@ -292,6 +292,33 @@ func fetchRemoteCertificate(certURL string) (fi *fetchedIntermediate, err error)
 	log.Debugf("certificate fetch succeeds")
 	fi = &fetchedIntermediate{crt, filepath.Base(certURL)}
 	return
+}
+
+func reverse(certs []*x509.Certificate) []*x509.Certificate {
+	n := len(certs)
+	if n == 0 {
+		return certs
+	}
+	rcerts := []*x509.Certificate{}
+	for i := n - 1; i >= 0; i-- {
+		rcerts = append(rcerts, certs[i])
+	}
+	return rcerts
+}
+
+// Check if the certs form a partial cert chain: every cert verifies
+// the signature of the one in front of it.
+func partialVerify(certs []*x509.Certificate) bool {
+	n := len(certs)
+	if n == 0 {
+		return false
+	}
+	for i := 0; i < n-1; i++ {
+		if certs[i].CheckSignatureFrom(certs[i+1]) != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func isSelfSigned(cert *x509.Certificate) bool {
@@ -387,7 +414,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 			name = strings.Replace(name, " ", "", -1)
 			name += ".crt"
 		}
-		chain = append([]*fetchedIntermediate{{cert, name}}, chain...)
+		chain = append([]*fetchedIntermediate{&fetchedIntermediate{cert, name}}, chain...)
 		seen[string(cert.Signature)] = true
 	}
 
@@ -445,6 +472,15 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	if len(certs) == 0 {
 		return nil, nil
 	}
+
+	// Detect reverse ordering of the cert chain.
+	if len(certs) > 1 && !partialVerify(certs) {
+		rcerts := reverse(certs)
+		if partialVerify(rcerts) {
+			certs = rcerts
+		}
+	}
+
 	var ok bool
 	cert := certs[0]
 	if key != nil {
@@ -526,8 +562,15 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	default:
 		matchingChains = ubiquitousChains(chains)
 	}
-	// don't include the root in the chain
-	bundle.Chain = matchingChains[0][:len(matchingChains[0])-1]
+
+	bundle.Chain = matchingChains[0]
+	// Include at least one intermediate if the leaf has enabled OCSP and is not CA.
+	if bundle.Cert.OCSPServer != nil && !bundle.Cert.IsCA && len(bundle.Chain) <= 2 {
+		// No op. Return one intermediate if there is one.
+	} else {
+		// do not include the root.
+		bundle.Chain = bundle.Chain[:len(bundle.Chain)-1]
+	}
 
 	statusCode := int(errors.Success)
 	var messages []string
@@ -545,6 +588,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	}
 	// Add root store presence info
 	root := matchingChains[0][len(matchingChains[0])-1]
+	log.Infof("the anchoring root is %v", root.Subject)
 	// Check if there is any platform that doesn't trust the chain.
 	untrusted := ubiquity.UntrustedPlatforms(root)
 	if len(untrusted) > 0 {

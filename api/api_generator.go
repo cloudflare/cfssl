@@ -54,7 +54,7 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 		return errors.NewBadRequest(err)
 	}
 
-	key, csr, err := g.generator.ProcessRequest(req)
+	csr, key, err := g.generator.ProcessRequest(req)
 	if err != nil {
 		log.Warningf("failed to process CSR: %v", err)
 		// The validator returns a *cfssl/errors.HttpError
@@ -74,7 +74,7 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 // sending the CSR to the server.
 type CertGeneratorHandler struct {
 	generator *csr.Generator
-	signer    *signer.Signer
+	signer    signer.Signer
 }
 
 // NewGeneratorHandler builds a new GeneratorHandler from the
@@ -89,6 +89,18 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string) (htt
 	cg.generator = &csr.Generator{validator}
 
 	return HttpHandler{cg, "POST"}, nil
+}
+
+// NewCertGeneratorHandlerFromSigner returns a handler directly from
+// the signer and validation function.
+func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer) http.Handler {
+	return HttpHandler{
+		Handler: &CertGeneratorHandler{
+			generator: &csr.Generator{validator},
+			signer:    signer,
+		},
+		Method: "POST",
+	}
 }
 
 type genSignRequest struct {
@@ -116,7 +128,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return errors.NewBadRequest(err)
 	}
 
-	key, csr, err := cg.generator.ProcessRequest(req.Request)
+	csr, key, err := cg.generator.ProcessRequest(req.Request)
 	if err != nil {
 		log.Warningf("failed to process CSR: %v", err)
 		// The validator returns a *cfssl/errors.HttpError
@@ -136,11 +148,15 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	return sendResponse(w, result)
 }
 
+// A RemoteCertGeneratorHandler accepts CSR requests and submits the
+// certificate to a remote CFSSL instance.
 type RemoteCertGeneratorHandler struct {
 	generator *csr.Generator
 	remote    *client.Server
 }
 
+// NewRemoteCertGenerator builds a remote certificate generator from a
+// CSR validator and the server string.
 func NewRemoteCertGenerator(validator Validator, remote string) (http.Handler, error) {
 	log.Info("setting up a new remote certificate generator")
 	cg := new(RemoteCertGeneratorHandler)
@@ -153,6 +169,9 @@ func NewRemoteCertGenerator(validator Validator, remote string) (http.Handler, e
 	return HttpHandler{cg, "POST"}, nil
 }
 
+// Handle listens for certificate signature requests and submits the
+// generated CSR to a remote CFSSL instance to sign the CSR and build
+// a certificate.
 func (rcg *RemoteCertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	req := new(genSignRequest)
 	body, err := ioutil.ReadAll(r.Body)
@@ -165,6 +184,9 @@ func (rcg *RemoteCertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		log.Warningf("failed to unmarshal request: %v", err)
 		return errors.NewBadRequest(err)
+	} else if req == nil || req.Request == nil {
+		log.Warningf("invalid request received")
+		return errors.NewBadRequestString("invalid request")
 	}
 
 	csrPEM, key, err := rcg.generator.ProcessRequest(req.Request)

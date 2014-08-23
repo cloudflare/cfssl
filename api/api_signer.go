@@ -12,7 +12,7 @@ import (
 // parameter (which should be PEM-encoded) and returns a new signed
 // certificate.
 type SignHandler struct {
-	signer *signer.Signer
+	signer signer.Signer
 }
 
 // NewSignHandler generates a new SignHandler using the certificate
@@ -26,6 +26,17 @@ func NewSignHandler(caFile, cakeyFile string) (http.Handler, error) {
 		return nil, err
 	}
 	return HttpHandler{s, "POST"}, nil
+}
+
+// NewSignHandlerFromSigner generates a new SignHandler directly from
+// an existing signer.
+func NewSignHandlerFromSigner(signer signer.Signer) HttpHandler {
+	return HttpHandler{
+		&SignHandler{
+			signer: signer,
+		},
+		"POST",
+	}
 }
 
 // Handle responds to requests for the CA to sign the certificate

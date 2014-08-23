@@ -47,13 +47,12 @@ func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
 		return
 	}
 
-	s := &signer.Signer{
-		Priv:   priv,
-		Policy: CAPolicy,
-	}
+	s := signer.NewStandardSigner(priv, nil, signer.DefaultSigAlgo(priv))
+	s.SetPolicy(CAPolicy)
 
 	cert, err = s.Sign("", csr, "")
 	return
+
 }
 
 // CAPolicy contains the CA issuing policy as default policy.

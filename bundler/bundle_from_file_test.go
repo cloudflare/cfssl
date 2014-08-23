@@ -78,8 +78,9 @@ const (
 	leafECDSA521v2  = "testdata/cfssl-leaf-ecdsa521-v2.pem"
 
 	interL2Direct = "testdata/inter-L2-direct.pem"
-	partialBundle = "testdata/partial-bundle.pem" // partialBundle is a partial cert chain {leaf-ecds256,  inter-L2}
-	badBundle     = "testdata/bad-bundle.pem"     // badBundle is a non-verifying partial bundle {leaf-ecdsa256, leaf-ecdsa384}
+	partialBundle = "testdata/partial-bundle.pem"         // partialBundle is a partial cert chain {leaf-ecds256,  inter-L2}
+	rpBundle      = "testdata/reverse-partial-bundle.pem" // partialBundle is a partial cert chain in the reverse order {inter-L2, leaf-ecdsa256}
+	badBundle     = "testdata/bad-bundle.pem"             // badBundle is a non-verifying partial bundle {leaf-ecdsa256, leaf-ecdsa384}
 	interL2CSR    = "testdata/inter-L2.csr"
 	certDSA2048   = "testdata/dsa2048.pem"
 	keyDSA2048    = "testdata/dsa2048.key"
@@ -308,6 +309,7 @@ var fileTests = []fileTest{
 		errorCallback:  nil,
 		bundleChecking: ExpectBundleLength(3),
 	},
+
 	// Bundle with a partial bundle such that the intermediate provided in the
 	// partial bundle is verify by an intermediate. Yet itself is not in the intermediate
 	// pool. In such cases, the bundling should be able to store the new intermediate
@@ -319,6 +321,17 @@ var fileTests = []fileTest{
 		errorCallback:  nil,
 		bundleChecking: ExpectBundleLength(3),
 	},
+
+	// Bundle with a reverse-ordered partial bundle.
+	// Bundler should be able to detect it and return a correct bundle.
+	{
+		cert:           rpBundle,
+		caBundleFile:   testCFSSLRootBundle,
+		intBundleFile:  interL1,
+		errorCallback:  nil,
+		bundleChecking: ExpectBundleLength(3),
+	},
+
 	// Bundle with a L2 cert direct signed by root, expect a shorter chain of length 2.
 	{
 		cert:               leafECDSA256,

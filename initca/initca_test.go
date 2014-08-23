@@ -131,7 +131,8 @@ func TestInitCA(t *testing.T) {
 				CA:           true,
 			},
 		}
-		s := &signer.Signer{cert, key, CAPolicy, signer.DefaultSigAlgo(key)}
+		s := signer.NewStandardSigner(key, cert, signer.DefaultSigAlgo(key))
+		s.SetPolicy(CAPolicy)
 
 		// Sign RSA and ECDSA customer CSRs.
 		for _, csrFile := range csrFiles {
@@ -144,7 +145,7 @@ func TestInitCA(t *testing.T) {
 				t.Fatal(err)
 			}
 			customerCert, _ := helpers.ParseCertificatePEM(bytes)
-			if customerCert.SignatureAlgorithm != s.SigAlgo {
+			if customerCert.SignatureAlgorithm != s.SigAlgo() {
 				t.Fatal("Signature Algorithm mismatch")
 			}
 			err = customerCert.CheckSignatureFrom(cert)

@@ -26,6 +26,18 @@ func writeFile(filespec, contents string, perms os.FileMode) {
 	}
 }
 
+type ResponseMessage struct {
+	Code    int    `json:"int"`
+	Message string `json:"message"`
+}
+
+type Response struct {
+	Success  bool                   `json:"success"`
+	Result   map[string]interface{} `json:"result"`
+	Errors   []ResponseMessage      `json:"errors"`
+	Messages []ResponseMessage      `json:"messages"`
+}
+
 func main() {
 	inFile := flag.String("f", "-", "JSON input")
 	flag.Parse()
@@ -37,19 +49,28 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
-	var input map[string]interface{}
+	var response Response
 	fileData, err := readFile(*inFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read input: %v\n", err)
 		return
 	}
 
-	err = json.Unmarshal(fileData, &input)
+	err = json.Unmarshal(fileData, &response)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
 		return
 	}
 
+	if !response.Success {
+		fmt.Fprintf(os.Stderr, "Request failed:\n")
+		for _, msg := range response.Errors {
+			fmt.Fprintf(os.Stderr, "\t%s\n", msg.Message)
+		}
+		return
+	}
+
+	input := response.Result
 	if contents, ok := input["cert"]; ok {
 		writeFile(baseName+".pem", contents.(string), 0644)
 	} else if contents, ok = input["certificate"]; ok {
