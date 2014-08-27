@@ -38,7 +38,29 @@ func TestNewBundler(t *testing.T) {
 	newBundler(t)
 }
 
+// JSON object of a bundle
+type bundleObject struct {
+	Bundle      string   `json:"bundle"`
+	Cert        string   `json:"crt"`
+	Key         string   `json:"key"`
+	KeyType     string   `json:"key_type"`
+	KeySize     int      `json:"key_size"`
+	Issuer      string   `json:"issuer"`
+	Subject     string   `json:"subject"`
+	Expires     string   `json:"expires"`
+	Hostnames   []string `json:"hostnames"`
+	OCSPSupport bool     `json:"ocsp_support"`
+	CRLSupport  bool     `json:"crl_support"`
+	OCSP        []string `json:"ocsp"`
+	Signature   string   `json:"signature"`
+	Status      BundleStatus
+}
+
+var godaddyIssuerString = `/Country=US/Organization=The Go Daddy Group, Inc./OrganizationalUnit=Go Daddy Class 2 Certification Authority`
+var godaddySubjectString = `/Country=US/Province=Arizona/Locality=Scottsdale/Organization=GoDaddy.com, Inc./OrganizationalUnit=http://certificates.godaddy.com/repository/CommonName=Go Daddy Secure Certification Authority/SerialNumber=07969287`
+
 // Test marshal to JSON
+// Also serves as a JSON format regression test.
 func TestBundleMarshalJSON(t *testing.T) {
 	b := newBundler(t)
 	bundle, _ := b.BundleFromPEM(validRootCert, nil, Optimal)
@@ -48,26 +70,65 @@ func TestBundleMarshalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var obj map[string]interface{}
+	var obj bundleObject
 	err = json.Unmarshal(bytes, &obj)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	key := obj["key"].(string)
-	if key != "" {
-		t.Fatal("key is not empty:", key)
+	if obj.Bundle == "" {
+		t.Fatal("bundle is empty.")
+	}
+	if obj.Bundle != string(validRootCert) {
+		t.Fatal("bundle is incorrect:", obj.Bundle)
 	}
 
-	cert := obj["crt"].(string)
+	if obj.Key != "" {
+		t.Fatal("key is not empty:", obj.Key)
+	}
 
-	if cert != string(validRootCert) {
+	if obj.Cert != string(validRootCert) {
 		t.Fatal("Cert is not recovered")
 	}
 
-	keyType := obj["key_type"]
-	if keyType != "2048-bit RSA" {
-		t.Fatal("Incorrect key type:", keyType)
+	if obj.KeyType != "2048-bit RSA" {
+		t.Fatal("Incorrect key type:", obj.KeyType)
+	}
+
+	if obj.KeySize != 2048 {
+		t.Fatal("Incorrect key size:", obj.KeySize)
+	}
+
+	if obj.Issuer != godaddyIssuerString {
+		t.Fatal("Incorrect issuer:", obj.Issuer)
+	}
+
+	if obj.Subject != godaddySubjectString {
+		t.Fatal("Incorrect subject:", obj.Subject)
+	}
+
+	if obj.Expires != "2026-11-16T01:54:37Z" {
+		t.Fatal("Incorrect expiration time:", obj.Expires)
+	}
+
+	if len(obj.Hostnames) != 1 || obj.Hostnames[0] != "Go Daddy Secure Certification Authority" {
+		t.Fatal("Incorrect hostnames:", obj.Hostnames)
+	}
+
+	if obj.OCSPSupport != true {
+		t.Fatal("Incorrect OCSP support flag:", obj.OCSPSupport)
+	}
+
+	if obj.CRLSupport != true {
+		t.Fatal("Incorrect CRL support flag:", obj.CRLSupport)
+	}
+
+	if len(obj.OCSP) != 1 || obj.OCSP[0] != `http://ocsp.godaddy.com` {
+		t.Fatal("Incorrect ocsp server list:", obj.OCSP)
+	}
+
+	if obj.Signature != "SHA1WithRSA" {
+		t.Fatal("Incorrect cert signature method:", obj.Signature)
 	}
 }
 
@@ -165,7 +226,7 @@ func TestRebundleExpiring(t *testing.T) {
 	expiry := 1 * time.Hour
 	policy := &config.Signing{
 		Profiles: map[string]*config.SigningProfile{
-			"expireIn1Hour": {
+			"expireIn1Hour": &config.SigningProfile{
 				Usage:  []string{"cert sign"},
 				Expiry: expiry,
 				CA:     true,

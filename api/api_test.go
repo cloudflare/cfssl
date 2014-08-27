@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	testCaFile        = "testdata/ca.pem"
-	testCaKeyFile     = "testdata/ca_key.pem"
-	testCSRFile       = "testdata/csr.pem"
-	testBrokenCSRFile = "testdata/broken_csr.pem"
+	testCaFile         = "testdata/ca.pem"
+	testCaKeyFile      = "testdata/ca_key.pem"
+	testCSRFile        = "testdata/csr.pem"
+	testBrokenCertFile = "testdata/broken.pem"
+	testBrokenCSRFile  = "testdata/broken_csr.pem"
 )
 
 func newTestSignHandler(t *testing.T) (h http.Handler) {
@@ -258,6 +259,13 @@ var bundleTests = []bundleTest{
 	{
 		"",
 		"",
+		"",
+		"",
+		http.StatusBadRequest,
+	},
+	{
+		"",
+		testBrokenCertFile,
 		"",
 		"",
 		http.StatusBadRequest,

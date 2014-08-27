@@ -84,6 +84,11 @@ Required Parameters:
         * ip: the IP address of the remote host as an alternative to
         domain.
 
+Example:
+        curl -XPOST -H "Content-Type: application/json" \
+             -d '{"domain": "cloudflare.com"}'          \
+             127.0.0.1:8888/api/v1/cfssl/bundle
+
 Result:
 
         A bundle has a number of components:
@@ -134,7 +139,6 @@ Result:
 Endpoint: "/api/v1/cfssl/newkey"
 Required parameters:
 
-         * CN: the certificate's Common Name.
          * hosts: a list of hostnames to be used for the certificate.
          * key: should contain two parameters:
            * algo: either 'rsa' or 'ecdsa'
@@ -148,6 +152,36 @@ Required parameters:
            * 'O': the organisation
            * 'OU': the organisational unit
            * 'ST': the state or province
+
+Optional parameters:
+
+         * CN: the certificate's Common Name.
+
+Example:
+
+    csr.json:
+    {
+        "hosts": [
+            "example.com",
+            "www.example.com"
+        ],
+        "key": {
+            "algo": "rsa",
+            "size": 2048
+        },
+        "names": [
+            {
+                "C": "US",
+                "L": "San Francisco",
+                "O": "Example Organisation",
+                "ST": "California"
+            }
+        ]
+    }
+
+    cURL call:
+    curl -XPOST -H "Content-Type: application/json" -d @csr.json \
+         127.0.0.1:8888/api/v1/cfssl/newkey
 
 Result:
         * key contains the PEM-encoded private key.
@@ -158,46 +192,198 @@ Result:
 Endpoint: "/api/v1/cfssl/newcert"
 Required parameters:
 
-         * CN: the certificate's Common Name.
-         * hosts: a list of hostnames to be used for the certificate.
-         * key: should contain two parameters:
-           * algo: either 'rsa' or 'ecdsa'
-           * size: integer size in bits of key
+         * hostname: the hostname for the certificate
+         * request: contains a newkey request (see section 2.3)
 
-         * names: a list of subject name elements. A subject name
-         contains the following elements:
+Optional parameters:
 
-           * 'C': the two-letter country identifier
-           * 'L': the locale (e.g. city)
-           * 'O': the organisation
-           * 'OU': the organisational unit
-           * 'ST': the state or province
+         * profile: names the profile that should be used for the
+           the new certificate.
 
-Result:
-        * private_key contains the PEM-encoded private key.
-        * certificate contains the PEM-encoded certificate.
+Example:
 
+    csr.json:
+    {
+        "hostname": "example.com",
+        "request": {
+            "hosts": [
+                "example.com",
+                "www.example.com"
+            ],
+            "key": {
+                "algo": "rsa",
+                "size": 2048
+            },
+            "names": [
+                {
+                    "C": "US",
+                    "L": "San Francisco",
+                    "O": "Example Organisation",
+                    "ST": "California"
+                }
+            ]
+        }
+    }
+
+    cURL call:
+    curl -XPOST -H "Content-Type: application/json" -d @csr.json \
+         127.0.0.1:8888/api/v1/cfssl/newcert
+ 
 2.5 REMOTE SIGNED CERTIFICATE REQUESTS
+
+The remote endpoint used for signatures here is defined when cfssl
+starts up, and clients do not provide address information for the remote
+CFSSL server. It is identical in use to newcert; it generates a key and
+CSR locally, and submits the CSR to the remote cfssl for signing.
 
 Endpoint: "/api/v1/cfssl/remotecert"
 Required parameters:
 
-         * CN: the certificate's Common Name.
-         * hosts: a list of hostnames to be used for the certificate.
-         * key: should contain two parameters:
-           * algo: either 'rsa' or 'ecdsa'
-           * size: integer size in bits of key
+         * hostname: the hostname for the certificate
+         * request: contains a newkey request (see section 2.3)
+         * profile: names the profile that should be used for the
+           the new certificate.
 
-         * names: a list of subject name elements. A subject name
-         contains the following elements:
+Example:
 
-           * 'C': the two-letter country identifier
-           * 'L': the locale (e.g. city)
-           * 'O': the organisation
-           * 'OU': the organisational unit
-           * 'ST': the state or province
+    csr.json:
+    {
+        "hostname": "example.com",
+        "request": {
+            "hosts": [
+                "example.com",
+                "www.example.com"
+            ],
+            "key": {
+                "algo": "rsa",
+                "size": 2048
+            },
+            "names": [
+                {
+                    "C": "US",
+                    "L": "San Francisco",
+                    "O": "Example Organisation",
+                    "ST": "California"
+                }
+            ]
+        }
+    }
 
-Result:
-        * private_key contains the PEM-encoded private key.
-        * certificate contains the PEM-encoded certificate.
+    cURL call:
+    curl -XPOST -H "Content-Type: application/json" -d @csr.json \
+         127.0.0.1:8888/api/v1/cfssl/newcert
+
+3. CONFIGURATION
+
+`cfssl` takes an optional configuration file; this is currently used to
+define profiles for new certificates. The configuration is JSON-encoded,
+and currently have only one field:
+
+        * signing: an object with two fields:
+          * default: the default profile to use for requests that do
+            not explicitly set a profile.
+          * profiles: a dictionary of signing profiles.
+
+The following is an example of a valid configuration that defines a
+default expiry of one week, and a configuration that is applicable for a
+web server:
+
+{
+    "signing": {
+        "default": {
+            "expiry": "168h"
+        },
+        "profiles": {
+            "www": {
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ]
+            }
+        }
+    }
+}
+
+3.1 CERTIFICATE SIGNING CONFIGURATION
+
+The "signing" field has two members:
+
+          * default: the default profile to use for requests that do
+            not explicitly set a profile.
+          * profiles: a dictionary of signing profiles.
+
+
+If no default is provided, the following default is used:
+
+{
+        "usages": [
+            "signing",
+            "key encipherment",
+            "server auth",
+            "client auth"
+        ],
+        "expiry": "8760h"
+}
+
+This specifies a set of default usages that are appropriate for most end
+certificates, and a default expiry of one year.
+
+Valid key uses are:
+        signing / digital signature
+        content committment
+        key encipherment / data encipherment
+        cert sign
+        crl sign
+        encipher only
+        decipher only
+        server auth
+        client auth
+        code signing
+        email protection / s/mime
+        ipsec end system
+        ipsec tunnel
+        ipsec user
+        timestamping
+        ocsp signing
+        microsoft sgc
+        netscape sgc
+        any
+
+Here is an example of a configuration file that defines three profiles,
+one for web servers, one for client certificates (i.e. for mutual
+authentication), and one for intermediate certificates:
+
+{
+        "signing": {
+                "default": {
+                        "expiry": "168h"
+                },
+                "profiles": {
+                        "www": {
+                                "usages": [
+                                        "signing",
+                                        "key encipherment",
+                                        "server auth"
+                                ]
+                        },
+                        "client": {
+                                "usages": [
+                                        "signing",
+                                        "key encipherment",
+                                        "client auth"
+                        },
+                        "intermediate": {
+                                "usages": [
+                                        "signing",
+                                        "key encipherment",
+                                        "cert sign",
+                                        "crl sign",
+                                ],
+                                "expiry": "720h"
+                        }
+                }
+
+        }
+}
 

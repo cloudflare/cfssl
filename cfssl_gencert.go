@@ -90,7 +90,7 @@ func gencertMain(args []string) (err error) {
 			return
 		}
 
-		var sign *signer.Signer
+		var sign signer.Signer
 		sign, err = signer.NewSigner(Config.caFile, Config.caKeyFile, policy)
 		if err != nil {
 			return

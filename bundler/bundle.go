@@ -163,7 +163,7 @@ func (bundle *Bundle) buildHostnames() {
 	// convert hset to an array of hostnames
 	bundle.Hostnames = make([]string, len(hset))
 	i := 0
-	for h := range hset {
+	for h, _ := range hset {
 		bundle.Hostnames[i] = h
 		i++
 	}

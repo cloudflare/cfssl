@@ -25,7 +25,7 @@ const (
 var expiry = 1 * time.Minute
 
 // Start a signer with the testing RSA CA cert and key.
-func newTestSigner(t *testing.T) (s *Signer) {
+func newTestSigner(t *testing.T) (s Signer) {
 	s, err := NewSigner(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +37,7 @@ func TestNewSignerPolicy(t *testing.T) {
 	var CAConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
-				"signature": {
+				"signature": &config.SigningProfile{
 					Usage:  []string{"digital signature"},
 					Expiry: expiry,
 				},
@@ -60,11 +60,11 @@ func TestNewSignerInvalidPolicy(t *testing.T) {
 	var invalidConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
-				"invalid": {
+				"invalid": &config.SigningProfile{
 					Usage:  []string{"wiretapping"},
 					Expiry: expiry,
 				},
-				"empty": {},
+				"empty": &config.SigningProfile{},
 			},
 			Default: &config.SigningProfile{
 				Usage:  []string{"digital signature"},
@@ -79,7 +79,7 @@ func TestNewSignerInvalidPolicy(t *testing.T) {
 
 }
 
-func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s *Signer) {
+func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s Signer) {
 	s, err := NewSigner(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -115,7 +115,7 @@ func TestSign(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := cert.CheckSignatureFrom(signer.CA); err != nil {
+	if err := cert.CheckSignatureFrom(signer.(*StandardSigner).ca); err != nil {
 		t.Fatal(err)
 	}
 	if err := cert.VerifyHostname(testHostName); err != nil {
@@ -216,7 +216,7 @@ func TestSignCSRs(t *testing.T) {
 		// It is possible to use different SHA2 algorithm with RSA CA key.
 		rsaSigAlgos := []x509.SignatureAlgorithm{x509.SHA1WithRSA, x509.SHA256WithRSA, x509.SHA384WithRSA, x509.SHA512WithRSA}
 		for _, sigAlgo := range rsaSigAlgos {
-			signer.SigAlgo = sigAlgo
+			signer.(*StandardSigner).sigAlgo = sigAlgo
 			certBytes, err := signer.Sign(hostname, csr, "")
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
@@ -225,7 +225,7 @@ func TestSignCSRs(t *testing.T) {
 					t.Fatalf("Expected no error. Got %s. Param %s %d", err.Error(), test.keyAlgo, test.keyLen)
 				}
 				cert, _ := helpers.ParseCertificatePEM(certBytes)
-				if cert.SignatureAlgorithm != signer.SigAlgo {
+				if cert.SignatureAlgorithm != signer.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
 				}
 			}
@@ -244,7 +244,7 @@ func TestECDSASigner(t *testing.T) {
 		// Try all ECDSA SignatureAlgorithm
 		SigAlgos := []x509.SignatureAlgorithm{x509.ECDSAWithSHA1, x509.ECDSAWithSHA256, x509.ECDSAWithSHA384, x509.ECDSAWithSHA512}
 		for _, sigAlgo := range SigAlgos {
-			signer.SigAlgo = sigAlgo
+			signer.(*StandardSigner).sigAlgo = sigAlgo
 			certBytes, err := signer.Sign(hostname, csr, "")
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
@@ -253,7 +253,7 @@ func TestECDSASigner(t *testing.T) {
 					t.Fatalf("Expected no error. Got %s. Param %s %d", err.Error(), test.keyAlgo, test.keyLen)
 				}
 				cert, _ := helpers.ParseCertificatePEM(certBytes)
-				if cert.SignatureAlgorithm != signer.SigAlgo {
+				if cert.SignatureAlgorithm != signer.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
 				}
 			}
@@ -287,7 +287,7 @@ func TestCAIssuing(t *testing.T) {
 	for i, caFile := range caCerts {
 		caKeyFile := caKeys[i]
 		signer := newCustomSigner(t, caFile, caKeyFile)
-		signer.Policy = CAPolicy
+		signer.(*StandardSigner).policy = CAPolicy
 		for j, csr := range interCSRs {
 			csrBytes, _ := ioutil.ReadFile(csr)
 			certBytes, err := signer.Sign(hostname, csrBytes, "")
@@ -300,7 +300,7 @@ func TestCAIssuing(t *testing.T) {
 			}
 			keyBytes, _ := ioutil.ReadFile(interKeys[j])
 			interKey, _ := helpers.ParsePrivateKeyPEM(keyBytes)
-			interSigner := &Signer{interCert, interKey, CAPolicy, DefaultSigAlgo(interKey)}
+			interSigner := &StandardSigner{interCert, interKey, CAPolicy, DefaultSigAlgo(interKey)}
 			for _, anotherCSR := range interCSRs {
 				anotherCSRBytes, _ := ioutil.ReadFile(anotherCSR)
 				bytes, err := interSigner.Sign(hostname, anotherCSRBytes, "")
@@ -311,7 +311,7 @@ func TestCAIssuing(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if cert.SignatureAlgorithm != interSigner.SigAlgo {
+				if cert.SignatureAlgorithm != interSigner.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
 				}
 			}

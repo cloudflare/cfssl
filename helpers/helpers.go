@@ -153,11 +153,15 @@ func ParsePrivateKeyPEM(keyPEM []byte) (key interface{}, err error) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted, nil)
 		}
 	}
-	key, err = x509.ParsePKCS8PrivateKey(keyDER.Bytes)
+	return ParsePrivateKeyDER(keyDER.Bytes)
+}
+
+func ParsePrivateKeyDER(keyDER []byte) (key interface{}, err error) {
+	key, err = x509.ParsePKCS8PrivateKey(keyDER)
 	if err != nil {
-		key, err = x509.ParsePKCS1PrivateKey(keyDER.Bytes)
+		key, err = x509.ParsePKCS1PrivateKey(keyDER)
 		if err != nil {
-			key, err = x509.ParseECPrivateKey(keyDER.Bytes)
+			key, err = x509.ParseECPrivateKey(keyDER)
 			if err != nil {
 				// We don't include the actual error into the final error.
 				// The reason might be we don't want to leak any info about
