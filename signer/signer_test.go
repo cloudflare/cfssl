@@ -3,8 +3,6 @@ package signer
 import (
 	"crypto/x509"
 	"io/ioutil"
-	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,13 +11,10 @@ import (
 )
 
 const (
-	testCaFile            = "testdata/ca.pem"
-	testCaKeyFile         = "testdata/ca_key.pem"
-	testECDSACaFile       = "testdata/ecdsa256_ca.pem"
-	testECDSACaKeyFile    = "testdata/ecdsa256_ca_key.pem"
-	testClientCertFile    = "testdata/cert.pem"
-	testBrokenCertFile    = "testdata/broken.pem"
-	testNotSelfSignedFile = "testdata/notselfsigned.pem"
+	testCaFile         = "testdata/ca.pem"
+	testCaKeyFile      = "testdata/ca_key.pem"
+	testECDSACaFile    = "testdata/ecdsa256_ca.pem"
+	testECDSACaKeyFile = "testdata/ecdsa256_ca_key.pem"
 )
 
 var expiry = 1 * time.Minute
@@ -95,37 +90,6 @@ const (
 	testHostName = "localhost"
 )
 
-func TestSign(t *testing.T) {
-	signer := newTestSigner(t)
-
-	clientCertPEM, err := ioutil.ReadFile(testClientCertFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	clientCert, err := helpers.ParseCertificatePEM(clientCertPEM)
-	if err != nil {
-		t.Fatal(err)
-	}
-	certPEM, err := signer.Sign(testHostName, clientCertPEM, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cert, err := helpers.ParseCertificatePEM(certPEM)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := cert.CheckSignatureFrom(signer.(*StandardSigner).ca); err != nil {
-		t.Fatal(err)
-	}
-	if err := cert.VerifyHostname(testHostName); err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(cert.PublicKey, clientCert.PublicKey) {
-		t.Fatal("Cert public key does not match clientCert", cert.PublicKey, clientCert.PublicKey)
-	}
-}
-
 func testSignFile(t *testing.T, certFile string) ([]byte, error) {
 	signer := newTestSigner(t)
 
@@ -135,18 +99,6 @@ func testSignFile(t *testing.T, certFile string) ([]byte, error) {
 	}
 
 	return signer.Sign(testHostName, pem, "")
-}
-
-func TestBrokenCert(t *testing.T) {
-	if _, err := testSignFile(t, testBrokenCertFile); err == nil {
-		t.Fatal("Broken Certificate did not fail")
-	}
-}
-
-func TestNotSelfSignedCert(t *testing.T) {
-	if _, err := testSignFile(t, testNotSelfSignedFile); !strings.Contains(err.Error(), "\"code\":1200") {
-		t.Fatal(err)
-	}
 }
 
 type csrTest struct {
