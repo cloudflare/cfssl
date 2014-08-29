@@ -458,7 +458,8 @@ func newCustomizedBundlerFromFile(t *testing.T, caBundle, intBundle, adhocInters
 	if adhocInters != "" {
 		moreIntersPEM, err := ioutil.ReadFile(adhocInters)
 		if err != nil {
-			t.Fatal("Read additional intermediates failed. %s", err.Error())
+			t.Fatalf("Read additional intermediates failed. %v",
+				err)
 		}
 		intermediates, err := helpers.ParseCertificatesPEM(moreIntersPEM)
 		if err != nil {
@@ -525,9 +526,11 @@ func ExpectErrorMessages(expectedContents []string) func(*testing.T, error) {
 func ExpectBundleLength(expectedLen int) func(*testing.T, *Bundle) {
 	return func(t *testing.T, bundle *Bundle) {
 		if bundle == nil {
-			t.Fatalf("Cert bundle should have a chain of length %d. Got nil.")
+			t.Fatalf("Cert bundle should have a chain of length %d. Got nil.",
+				expectedLen)
 		} else if len(bundle.Chain) != expectedLen {
-			t.Fatalf("Cert bundle should have a chain of length %d. Got chain length %d.", expectedLen, len(bundle.Chain))
+			t.Fatalf("Cert bundle should have a chain of length %d. Got chain length %d.",
+				expectedLen, len(bundle.Chain))
 		}
 	}
 }

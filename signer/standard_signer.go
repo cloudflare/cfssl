@@ -4,8 +4,6 @@ package signer
 import (
 	"crypto/rand"
 	"crypto/sha1"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -21,7 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// SoftwareSigner contains a signer that uses the standard library to
+// StandardSigner contains a signer that uses the standard library to
 // support both ECDSA and RSA CA keys.
 type StandardSigner struct {
 	ca      *x509.Certificate
@@ -199,7 +197,8 @@ func (s *StandardSigner) Sign(hostName string, in []byte, profileName string) (c
 	}
 
 	if block.Type != "CERTIFICATE REQUEST" {
-		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, errors.New("Not a certificate or csr."))
+		return nil, cferr.New(cferr.CertificateError,
+			cferr.ParseFailed, errors.New("not a certificate or csr"))
 	}
 
 	template, err := ParseCertificateRequest(s, block.Bytes)

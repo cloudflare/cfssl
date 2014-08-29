@@ -1,4 +1,4 @@
-// initca contains code to initialise a certificate authority,
+// Package initca contains code to initialise a certificate authority,
 // generating a new root key and certificate.
 package initca
 
@@ -33,7 +33,7 @@ func validator(req *csr.CertificateRequest) error {
 // New creates a new root certificate from the certificate request.
 func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
 	log.Infof("creating root certificate from CSR")
-	g := &csr.Generator{validator}
+	g := &csr.Generator{Validator: validator}
 	csr, key, err := g.ProcessRequest(req)
 	if err != nil {
 		log.Errorf("failed to process request: %v", err)

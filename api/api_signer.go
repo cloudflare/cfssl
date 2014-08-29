@@ -25,13 +25,13 @@ func NewSignHandler(caFile, cakeyFile string) (http.Handler, error) {
 		log.Errorf("setting up signer failed: %v", err)
 		return nil, err
 	}
-	return HttpHandler{s, "POST"}, nil
+	return HTTPHandler{s, "POST"}, nil
 }
 
 // NewSignHandlerFromSigner generates a new SignHandler directly from
 // an existing signer.
-func NewSignHandlerFromSigner(signer signer.Signer) HttpHandler {
-	return HttpHandler{
+func NewSignHandlerFromSigner(signer signer.Signer) HTTPHandler {
+	return HTTPHandler{
 		&SignHandler{
 			signer: signer,
 		},

@@ -15,6 +15,7 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 )
 
+// OneYear is a time.Duration representing a year's worth of seconds.
 const OneYear = 8760 * time.Hour
 
 // KeyLength returns the bit size of ECDSA or RSA PublicKey
@@ -156,6 +157,8 @@ func ParsePrivateKeyPEM(keyPEM []byte) (key interface{}, err error) {
 	return ParsePrivateKeyDER(keyDER.Bytes)
 }
 
+// ParsePrivateKeyDER parses a PKCS #1, PKCS #8, or elliptic curve
+// DER-encoded private key. The key must not be in PEM format.
 func ParsePrivateKeyDER(keyDER []byte) (key interface{}, err error) {
 	key, err = x509.ParsePKCS8PrivateKey(keyDER)
 	if err != nil {
@@ -163,10 +166,12 @@ func ParsePrivateKeyDER(keyDER []byte) (key interface{}, err error) {
 		if err != nil {
 			key, err = x509.ParseECPrivateKey(keyDER)
 			if err != nil {
-				// We don't include the actual error into the final error.
-				// The reason might be we don't want to leak any info about
+				// We don't include the actual error into
+				// the final error. The reason might be
+				// we don't want to leak any info about
 				// the private key.
-				return nil, cferr.New(cferr.PrivateKeyError, cferr.ParseFailed, nil)
+				return nil, cferr.New(cferr.PrivateKeyError,
+					cferr.ParseFailed, nil)
 			}
 		}
 	}

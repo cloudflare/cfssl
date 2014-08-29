@@ -134,7 +134,7 @@ func LoadPlatforms(filename string) {
 	for _, platform := range rawPlatforms {
 		ok := platform.ParseAndLoad()
 		if !ok {
-			log.Errorf("fail to finalize the parsing of platform metadata:", err)
+			log.Errorf("fail to finalize the parsing of platform metadata (err = %v)", err)
 		} else {
 			log.Infof("Platform metadata is loaded: %v %v", platform.Name, len(platform.KeyStore))
 			Platforms = append(Platforms, platform)

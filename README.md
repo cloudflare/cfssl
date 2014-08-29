@@ -24,16 +24,16 @@ The version command takes no arguments.
 #### Signing
 
 ```
-cfssl sign [-ca cert] [-ca-key key] hostname clientcert
+cfssl sign [-ca cert] [-ca-key key] hostname csr
 ```
 
-The hostname and clientcert are the client's host name and client
-certificate. The `-ca` and `-ca-key` flags are the CA's certificate
-and private key, respectively. By default, they are "ca.pem" and "ca_key.pem".
-For example, assuming the CA's private key is in
-`/etc/ssl/private/cfssl_key.pem` and the CA's certificate is
-in `/etc/ssl/certs/cfssl.pem`, to sign the `cloudflare.pem` certificate for
-cloudflare.com:
+The hostname and csr are the client's host name and certificate
+request. The `-ca` and `-ca-key` flags are the CA's certificate
+and private key, respectively. By default, they are "ca.pem" and
+"ca_key.pem".  For example, assuming the CA's private key is in
+`/etc/ssl/private/cfssl_key.pem` and the CA's certificate is in
+`/etc/ssl/certs/cfssl.pem`, to sign the `cloudflare.pem` certificate
+for cloudflare.com:
 
 ```
 cfssl sign -ca /etc/ssl/certs/cfssl.pem \
