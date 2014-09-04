@@ -16,16 +16,17 @@ type Handler interface {
 	Handle(w http.ResponseWriter, r *http.Request) error
 }
 
-// HttpHandler is a wrapper that encapsulates Handler interface as http.Handler.
+// HTTPHandler is a wrapper that encapsulates Handler interface as http.Handler.
 // HttpHandler also enforces that the Handler only responds to requests with registered HTTP method.
-type HttpHandler struct {
+type HTTPHandler struct {
 	Handler        // CFSSL handler
 	Method  string // The assoicated HTTP method
 }
 
-// Similar to http.HandlerFunc, HandlerFunc type is an adapter to allow the use of
-// ordinary functions as Handlers. If f is a function
-// with the appropriate signature, HandlerFunc(f) is a Handler object that calls f.
+// HandlerFunc is similar to the http.HandlerFunc type; it serves as
+// an adapter allowing the use of ordinary functions as Handlers. If
+// f is a function with the appropriate signature, HandlerFunc(f) is a
+// Handler object that calls f.
 type HandlerFunc func(http.ResponseWriter, *http.Request) error
 
 // Handle calls f(w, r)
@@ -42,7 +43,7 @@ func handleError(w http.ResponseWriter, err error) (code int) {
 	code = http.StatusInternalServerError
 	// If it is recognized as HttpError emitted from cf-ssl,
 	// we rewrite the status code accordingly.
-	if err, ok := err.(*errors.HttpError); ok && err.StatusCode != 0 {
+	if err, ok := err.(*errors.HTTPError); ok && err.StatusCode != 0 {
 		code = err.StatusCode
 	}
 
@@ -59,7 +60,7 @@ func handleError(w http.ResponseWriter, err error) (code int) {
 
 // ServeHTTP encapsulates the call to underlying Handler to handle the request
 // and return the response with proper HTTP status code
-func (h HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
 	// Throw 405 when requested with an unsupported verb.
 	if r.Method != h.Method {

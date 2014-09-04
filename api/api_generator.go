@@ -12,6 +12,8 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 )
 
+// Validator is a type of function that contains the logic for validating
+// a certificate request.
 type Validator func(*csr.CertificateRequest) error
 
 // A CertRequest stores a PEM-encoded private key and corresponding
@@ -31,8 +33,8 @@ type GeneratorHandler struct {
 // validation function provided.
 func NewGeneratorHandler(validator Validator) (http.Handler, error) {
 	log.Info("setting up key / CSR generator")
-	return HttpHandler{&GeneratorHandler{
-		generator: &csr.Generator{validator},
+	return HTTPHandler{&GeneratorHandler{
+		generator: &csr.Generator{Validator: validator},
 	}, "POST"}, nil
 }
 
@@ -77,8 +79,10 @@ type CertGeneratorHandler struct {
 	signer    signer.Signer
 }
 
-// NewGeneratorHandler builds a new GeneratorHandler from the
-// validation function provided.
+// NewCertGeneratorHandler builds a new handler for generating
+// certificates directly from certificate requests; the validator covers
+// the certificate request and the CA's key and certificate are used to
+// sign the generated request.
 func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string) (http.Handler, error) {
 	var err error
 	log.Info("setting up new generator / signer")
@@ -86,17 +90,17 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string) (htt
 	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, nil); err != nil {
 		return nil, err
 	}
-	cg.generator = &csr.Generator{validator}
+	cg.generator = &csr.Generator{Validator: validator}
 
-	return HttpHandler{cg, "POST"}, nil
+	return HTTPHandler{cg, "POST"}, nil
 }
 
 // NewCertGeneratorHandlerFromSigner returns a handler directly from
 // the signer and validation function.
 func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer) http.Handler {
-	return HttpHandler{
+	return HTTPHandler{
 		Handler: &CertGeneratorHandler{
-			generator: &csr.Generator{validator},
+			generator: &csr.Generator{Validator: validator},
 			signer:    signer,
 		},
 		Method: "POST",
@@ -165,8 +169,8 @@ func NewRemoteCertGenerator(validator Validator, remote string) (http.Handler, e
 		return nil, errors.New(errors.DialError, errors.Unknown, nil)
 	}
 
-	cg.generator = &csr.Generator{validator}
-	return HttpHandler{cg, "POST"}, nil
+	cg.generator = &csr.Generator{Validator: validator}
+	return HTTPHandler{cg, "POST"}, nil
 }
 
 // Handle listens for certificate signature requests and submits the

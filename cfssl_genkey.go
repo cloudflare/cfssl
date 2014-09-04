@@ -62,7 +62,7 @@ func genkeyMain(args []string) (err error) {
 
 	} else {
 		var key, csrPEM []byte
-		g := &csr.Generator{validator}
+		g := &csr.Generator{Validator: validator}
 		csrPEM, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
@@ -91,4 +91,6 @@ func validator(req *csr.CertificateRequest) error {
 	return nil
 }
 
+// CLIGenKey is a subcommand for generating a new key and CSR from a
+// JSON CSR request file.
 var CLIGenKey = &Command{genkeyUsageText, genkeyFlags, genkeyMain}

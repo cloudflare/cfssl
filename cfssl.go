@@ -102,10 +102,12 @@ const usage = `Usage:
 Available commands:
 `
 
-// printDefaultValue is a helper function to print out a user friendly usage message of a flag.
-// It's useful since we want to write customized usage message on selected subsets of the global flag set.
-// It is borrowed from standard library source code. Since flag value type is not exported, default string flag values
-// are printed without quotes. The only exception is the empty string, which is printed as "".
+// printDefaultValue is a helper function to print out a user friendly
+// usage message of a flag. It's useful since we want to write customized
+// usage message on selected subsets of the global flag set. It is
+// borrowed from standard library source code. Since flag value type is
+// not exported, default string flag values are printed without
+// quotes. The only exception is the empty string, which is printed as "".
 func printDefaultValue(f *flag.Flag) {
 	format := "  -%s=%s: %s\n"
 	if f.DefValue == "" {
@@ -114,16 +116,15 @@ func printDefaultValue(f *flag.Flag) {
 	fmt.Fprintf(os.Stderr, format, f.Name, f.DefValue, f.Usage)
 }
 
-// popFirstArgument returns the first element
-// and the rest of a string slice and return error if failed to do so.
-// It is a helper function to parse non-flag arguments previously used in cfssl commands.
+// popFirstArgument returns the first element and the rest of a string
+// slice and return error if failed to do so. It is a helper function
+// to parse non-flag arguments previously used in cfssl commands.
 func popFirstArgument(args []string) (string, []string, error) {
 	if len(args) < 1 {
 		cfsslFlagSet.Usage()
-		return "", nil, errors.New("Not enough arguments are supplied. Please refer to the usage above.")
-	} else {
-		return args[0], args[1:], nil
+		return "", nil, errors.New("not enough arguments are supplied --- please refer to the usage")
 	}
+	return args[0], args[1:], nil
 }
 
 // init defines the cfssl usage and registers all defined commands and flags.
@@ -163,37 +164,36 @@ func main() {
 	// Clip out the command name and args for the command
 	cmdName = flag.Arg(0)
 	args := flag.Args()[1:]
-	if cmd, found := cmds[cmdName]; !found {
+	cmd, found := cmds[cmdName]
+	if !found {
 		fmt.Fprintf(os.Stderr, "Command %s is not defined.\n", cmdName)
 		flag.Usage()
 		return
-	} else {
-		// The usage of each individual command is re-written to mention
-		// flags defined and referenced only in that command.
-		cfsslFlagSet.Usage = func() {
-			fmt.Fprintf(os.Stderr, "%s", cmd.UsageText)
-			for _, name := range cmd.Flags {
-				if f := cfsslFlagSet.Lookup(name); f != nil {
-					printDefaultValue(f)
-				}
+	}
+	// The usage of each individual command is re-written to mention
+	// flags defined and referenced only in that command.
+	cfsslFlagSet.Usage = func() {
+		fmt.Fprintf(os.Stderr, "%s", cmd.UsageText)
+		for _, name := range cmd.Flags {
+			if f := cfsslFlagSet.Lookup(name); f != nil {
+				printDefaultValue(f)
 			}
 		}
-		// Parse all flags and take the rest as argument lists for the command
-		cfsslFlagSet.Parse(args)
-		args = cfsslFlagSet.Args()
+	}
+	// Parse all flags and take the rest as argument lists for the command
+	cfsslFlagSet.Parse(args)
+	args = cfsslFlagSet.Args()
 
-		Config.cfg = config.LoadFile(Config.configFile)
+	Config.cfg = config.LoadFile(Config.configFile)
 
-		if err := cmd.Main(args); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
+	if err := cmd.Main(args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
 func readStdin(filename string) ([]byte, error) {
 	if filename == "-" {
 		return ioutil.ReadAll(os.Stdin)
-	} else {
-		return ioutil.ReadFile(filename)
 	}
+	return ioutil.ReadFile(filename)
 }

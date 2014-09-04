@@ -145,26 +145,26 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 // buildHostnames sets bundle.Hostnames by the x509 cert's subject CN and DNS names
 // Since the subject CN may overlap with one of the DNS names, it needs to handle
 // the duplication by a set.
-func (bundle *Bundle) buildHostnames() {
-	if bundle.Cert == nil {
+func (b *Bundle) buildHostnames() {
+	if b.Cert == nil {
 		return
 	}
 	// hset keeps a set of unique hostnames.
 	hset := make(map[string]bool)
 	// insert CN into hset
-	if bundle.Cert.Subject.CommonName != "" {
-		hset[bundle.Cert.Subject.CommonName] = true
+	if b.Cert.Subject.CommonName != "" {
+		hset[b.Cert.Subject.CommonName] = true
 	}
 	// insert all DNS names into hset
-	for _, h := range bundle.Cert.DNSNames {
+	for _, h := range b.Cert.DNSNames {
 		hset[h] = true
 	}
 
 	// convert hset to an array of hostnames
-	bundle.Hostnames = make([]string, len(hset))
+	b.Hostnames = make([]string, len(hset))
 	i := 0
-	for h, _ := range hset {
-		bundle.Hostnames[i] = h
+	for h := range hset {
+		b.Hostnames[i] = h
 		i++
 	}
 }

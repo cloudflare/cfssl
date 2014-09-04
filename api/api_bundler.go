@@ -16,6 +16,8 @@ type BundlerHandler struct {
 	bundler *bundler.Bundler
 }
 
+// NewBundleHandler creates a new bundler that uses the root bundle and
+// intermediate bundle in the trust chain.
 func NewBundleHandler(caBundleFile, intBundleFile string) (http.Handler, error) {
 	var err error
 
@@ -25,9 +27,10 @@ func NewBundleHandler(caBundleFile, intBundleFile string) (http.Handler, error) 
 	}
 
 	log.Info("bundler API ready")
-	return HttpHandler{b, "POST"}, nil
+	return HTTPHandler{b, "POST"}, nil
 }
 
+// Handle implements an http.Handler interface for the bundle handler.
 func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	blob, matched, err := processRequestOneOf(r,
 		[][]string{
@@ -50,7 +53,7 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		result = bundle
 	case "certificate":
 		flavor := blob["flavor"]
-		var bf bundler.BundleFlavor = bundler.Ubiquitous
+		bf := bundler.Ubiquitous
 		if flavor != "" {
 			bf = bundler.BundleFlavor(flavor)
 		}

@@ -6,8 +6,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
 	"crypto/x509"
 	"encoding/asn1"
 	"errors"
@@ -27,8 +25,8 @@ type Signer interface {
 	Sign(string, []byte, string) (cert []byte, err error)
 }
 
-// DefaultSigAlgo returns an appropriate X.509 signature algorithm given the
-// CA's private key.
+// DefaultSigAlgo returns an appropriate X.509 signature algorithm given
+// the CA's private key.
 func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 	switch priv := priv.(type) {
 	case *rsa.PrivateKey:

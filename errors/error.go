@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 // Error is the error type usually returned by functions in CF SSL package.
@@ -15,23 +16,37 @@ type Error struct {
 	Message   string `json:"message"`
 }
 
-// The error category as the most significant digit of the error code
+// Category is the most significant digit of the error code.
 type Category int
 
-// The error reason as the last 3 digits of the error code.
+// Reason is the last 3 digits of the error code.
 type Reason int
 
 const (
-	Success            Category = 1000 * iota // 0XXX
-	CertificateError                          // 1XXX
-	PrivateKeyError                           // 2XXX
-	IntermediatesError                        // 3XXX
-	RootError                                 // 4XXX
-	PolicyError                               // 5XXX
-	DialError                                 // 6XXX
+	// Success indicates no error occurred.
+	Success Category = 1000 * iota // 0XXX
+
+	// CertificateError indicates a fault in a certificate.
+	CertificateError // 1XXX
+
+	// PrivateKeyError indicates a fault in a private key.
+	PrivateKeyError // 2XXX
+
+	// IntermediatesError indicates a fault in an intermediate.
+	IntermediatesError // 3XXX
+
+	// RootError indicates a fault in a root.
+	RootError // 4XXX
+
+	// PolicyError indicates an error arising from a malformed or
+	// non-existent policy, or a breach of policy.
+	PolicyError // 5XXX
+
+	// DialError indicates a network fault.
+	DialError // 6XXX
 )
 
-// Non-specified error
+// None is a non-specified error.
 const (
 	None Reason = iota
 )
@@ -50,15 +65,20 @@ const (
 	ParseFailed                // X003
 )
 
-// Certificate non-parsing errors, must be specified along with CertificateError
+// The following represent certificate non-parsing errors, and must be
+// specified along with CertificateError.
 const (
-	// Code 11XX
-	SelfSigned Reason = 100 * (iota + 1)
-	// Code 12XX
-	// The least two significant digits of 12XX is determined as the actual x509 error is examined.
-	VerifyFailed
-	// Returned on bad certificate request
-	BadRequest
+	// SelfSigned indicates that a certificate is self-signed and
+	// cannot be used in the manner being attempted.
+	SelfSigned Reason = 100 * (iota + 1) // Code 11XX
+
+	// VerifyFailed is an X.509 verification failure. The least two
+	// significant digits of 12XX is determined as the actual x509
+	// error is examined.
+	VerifyFailed // Code 12XX
+
+	// BadRequest indicates that the certificate request is invalid.
+	BadRequest // Code 13XX
 )
 
 const (
@@ -66,19 +86,42 @@ const (
 	unknownAuthority                     //122x
 )
 
-// Private key non-parsing errors, must be specified with PrivateKeyError
+// The following represent private-key non-parsing errors, and must be
+// specified with PrivateKeyError.
 const (
-	Encrypted        Reason = 100 * (iota + 1) //21XX
-	NotRSAOrECC                                //22XX
-	KeyMismatch                                //23XX
-	GenerationFailed                           //24XX
+	// Encrypted indicates that the private key is a PKCS #8 encrypted
+	// private key. At this time, CFSSL does not support decrypting
+	// these keys.
+	Encrypted Reason = 100 * (iota + 1) //21XX
+
+	// NotRSAOrECC indicates that they key is not an RSA or ECC
+	// private key; these are the only two private key types supported
+	// at this time by CFSSL.
+	NotRSAOrECC //22XX
+
+	// KeyMismatch indicates that the private key does not match
+	// the public key or certificate being presented with the key.
+	KeyMismatch //23XX
+
+	// GenerationFailed indicates that a private key could not
+	// be generated.
+	GenerationFailed //24XX
 )
 
-// Policy non-parsing errors, must be specified along with PolicyError.
+// The following are policy-related non-parsing errors, and must be
+// specified along with PolicyError.
 const (
-	NoKeyUsages    Reason = 100 * (iota + 1) // 51XX
-	InvalidPolicy                            // 52XX
-	InvalidRequest                           // 53XX
+	// NoKeyUsages indicates that the profile does not permit any
+	// key usages for the certificate.
+	NoKeyUsages Reason = 100 * (iota + 1) // 51XX
+
+	// InvalidPolicy indicates that policy being requested is not
+	// a valid policy or does not exist.
+	InvalidPolicy // 52XX
+
+	// InvalidRequest indicates a certificate request violated the
+	// constraints of the policy being applied to the request.
+	InvalidRequest // 53XX
 )
 
 // The error interface implementation, which formats to a JSON object string.
@@ -136,10 +179,11 @@ func New(category Category, reason Reason, err error) *Error {
 			err = errors.New(msg)
 		}
 	case IntermediatesError, RootError:
-		// Right now, these two types of errors should come from a standard error during
-		// parsing. So if there is no passed-in error, panic.
+		// Right now, these two types of errors should come from
+		// a standard error during parsing. So if there is no
+		// passed-in error, panic.
 		if err == nil {
-			panic(errors.New("IntermediatesError/RootError needs a supplied error to initialize."))
+			panic("IntermediatesError/RootError needs a supplied error to initialize.")
 		}
 
 	case PolicyError:
@@ -148,10 +192,11 @@ func New(category Category, reason Reason, err error) *Error {
 		}
 	case DialError:
 		if err == nil {
-			err = errors.New("Failed dialing remote server.")
+			err = errors.New("dialing remote server failed")
 		}
-	default: // Got a different Category? panic.
-		panic(errors.New("Unsupported CF-SSL Error Type"))
+	default:
+		panic(fmt.Sprintf("Unsupported CF-SSL error type: %d.",
+			category))
 	}
 
 	return &Error{ErrorCode: errorCode, Message: err.Error()}

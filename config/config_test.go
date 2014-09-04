@@ -90,7 +90,7 @@ func TestValidConfig(t *testing.T) {
 		t.Fatal("Valid config is not valid")
 	}
 	bytes, _ := json.Marshal(validConfig)
-	fmt.Println("%v", string(bytes))
+	fmt.Printf("%v", string(bytes))
 }
 func TestDefaultConfig(t *testing.T) {
 	if !DefaultConfig().validProfile(false) {

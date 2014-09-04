@@ -64,12 +64,12 @@ func registerHandlers() error {
 
 	if Config.remote != "" {
 		log.Info("Remote CFSSL endpoint given, setting up remote certificate generator")
-		if rcg, err := api.NewRemoteCertGenerator(api.CSRValidate, Config.remote); err != nil {
+		rcg, err := api.NewRemoteCertGenerator(api.CSRValidate, Config.remote)
+		if err != nil {
 			log.Errorf("Failed to set up remote certificate generator: %v", err)
 			return err
-		} else {
-			http.Handle("/api/v1/cfssl/remotecert", rcg)
 		}
+		http.Handle("/api/v1/cfssl/remotecert", rcg)
 	}
 
 	log.Info("Handler set up complete.")
@@ -81,7 +81,7 @@ func registerHandlers() error {
 func serverMain(args []string) error {
 	// serve doesn't support arguments.
 	if len(args) > 0 {
-		return errors.New("Arguments is provided but not defined. Please refer to the usage by flag -h.")
+		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
 	}
 
 	bundler.IntermediateStash = Config.intDir

@@ -358,7 +358,7 @@ func TestBundleFromFile(t *testing.T) {
 			test.errorCallback(t, err)
 		} else {
 			if err != nil {
-				t.Fatal("expected no error. but an error occurred: %s", err.Error())
+				t.Fatalf("expected no error. but an error occurred: %v", err)
 			}
 			if test.bundleChecking != nil {
 				test.bundleChecking(t, bundle)

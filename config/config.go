@@ -37,14 +37,17 @@ func (p *SigningProfile) parse() bool {
 	} else if p.ExpiryString == "" {
 		log.Debugf("failed: empty expiry string")
 		return false
-	} else if dur, err := time.ParseDuration(p.ExpiryString); err != nil {
+	}
+
+	dur, err := time.ParseDuration(p.ExpiryString)
+	if err != nil {
 		log.Debugf("failed to parse expiry: %v", err)
 		return false
-	} else {
-		log.Debugf("expiry is valid")
-		p.Expiry = dur
-		return true
 	}
+
+	log.Debugf("expiry is valid")
+	p.Expiry = dur
+	return true
 }
 
 // Usages parses the list of key uses in the profile, translating them
@@ -102,18 +105,21 @@ func (c *Config) Valid() bool {
 	return c.Signing.Valid()
 }
 
-// Signing specifically validates the signature policies.
+// Valid checks the signature policies, ensuring they are valid
+// policies. A policy is valid if it has defined at least key usages
+// to be used, and a valid default profile has defined at least a
+// default expiration.
 func (s *Signing) Valid() bool {
 	log.Debugf("validating configuration")
 	if !s.Default.validProfile(true) {
 		log.Debugf("default profile is invalid")
 		return false
-	} else {
-		for _, p := range s.Profiles {
-			if !p.validProfile(false) {
-				log.Debugf("invalid profile")
-				return false
-			}
+	}
+
+	for _, p := range s.Profiles {
+		if !p.validProfile(false) {
+			log.Debugf("invalid profile")
+			return false
 		}
 	}
 	return true
@@ -194,11 +200,11 @@ func LoadFile(path string) *Config {
 
 	if !cfg.Valid() {
 		return nil
-	} else {
-		for k := range cfg.Signing.Profiles {
-			if !cfg.Signing.Profiles[k].parse() {
-				return nil
-			}
+	}
+
+	for k := range cfg.Signing.Profiles {
+		if !cfg.Signing.Profiles[k].parse() {
+			return nil
 		}
 	}
 

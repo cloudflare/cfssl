@@ -83,7 +83,7 @@ func gencertMain(args []string) (err error) {
 		}
 
 		var key, csrPEM []byte
-		g := &csr.Generator{validator}
+		g := &csr.Generator{Validator: validator}
 		csrPEM, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
@@ -126,7 +126,7 @@ func printCert(key, csrPEM, cert []byte) {
 func gencertRemotely(req csr.CertificateRequest) error {
 	srv := client.NewServer(Config.remote)
 
-	g := &csr.Generator{validator}
+	g := &csr.Generator{Validator: validator}
 	csrPEM, key, err := g.ProcessRequest(&req)
 	if err != nil {
 		key = nil
@@ -143,4 +143,6 @@ func gencertRemotely(req csr.CertificateRequest) error {
 	return nil
 }
 
+// CLIGenCert is a subcommand that generates a new certificate from a
+// JSON CSR request file.
 var CLIGenCert = &Command{gencertUsageText, gencertFlags, gencertMain}

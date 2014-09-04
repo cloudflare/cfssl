@@ -9,7 +9,14 @@ import (
 	"math"
 )
 
+// HashUbiquity represents a score for how ubiquitous a given hash
+// algorithm is; the higher the score, the more preferable the algorithm
+// is.
 type HashUbiquity int
+
+// KeyAlgoUbiquity represents a score for how ubiquitous a given
+// public-key algorithm is; the higher the score, the more preferable
+// the algorithm is.
 type KeyAlgoUbiquity int
 
 // SHA1 is ubiquitous. SHA2 is not supported on some legacy platforms.
@@ -22,10 +29,10 @@ const (
 	MD2Ubiquity         HashUbiquity = 0
 )
 
-// RSA and DSA are considered ubiquitous.
-// ECDSA256 and ECDSA384 should be supported by TLS 1.2 and have limited support
-// from TLS 1.0 and 1.1, based on RFC6460.  And ECDSA521 are relatively less supported
-// as a standard.
+// RSA and DSA are considered ubiquitous. ECDSA256 and ECDSA384 should be
+// supported by TLS 1.2 and have limited support from TLS 1.0 and
+// 1.1, based on RFC6460, but ECDSA521 is less well-supported as
+// a standard.
 const (
 	RSAUbiquity         KeyAlgoUbiquity = 100
 	DSAUbiquity         KeyAlgoUbiquity = 100
@@ -71,9 +78,8 @@ func keyAlgoUbiquity(cert *x509.Certificate) KeyAlgoUbiquity {
 	case x509.RSA:
 		if cert.PublicKey.(*rsa.PublicKey).N.BitLen() >= 1024 {
 			return RSAUbiquity
-		} else {
-			return UnknownAlgoUbiquity
 		}
+		return UnknownAlgoUbiquity
 	case x509.DSA:
 		return DSAUbiquity
 	default:
@@ -81,7 +87,8 @@ func keyAlgoUbiquity(cert *x509.Certificate) KeyAlgoUbiquity {
 	}
 }
 
-// Hash ubiquity of a chain is the lowest hash ubiquity among certs in it.
+// ChainHashUbiquity scores a chain based on the hash algorithms used
+// by the certificates in the chain.
 func ChainHashUbiquity(chain []*x509.Certificate) HashUbiquity {
 	ret := math.MaxInt32
 	for _, cert := range chain {
@@ -93,7 +100,8 @@ func ChainHashUbiquity(chain []*x509.Certificate) HashUbiquity {
 	return HashUbiquity(ret)
 }
 
-// Key algorithm ubiquity of a chain is the lowest key algorithm ubiquity among certs in it.
+// ChainKeyAlgoUbiquity scores a chain based on the public-key algorithms
+// used by the certificates in the chain.
 func ChainKeyAlgoUbiquity(chain []*x509.Certificate) KeyAlgoUbiquity {
 	ret := math.MaxInt32
 	for _, cert := range chain {
@@ -105,16 +113,18 @@ func ChainKeyAlgoUbiquity(chain []*x509.Certificate) KeyAlgoUbiquity {
 	return KeyAlgoUbiquity(ret)
 }
 
-// Return positive value if hash function ubiquity of chain1 is greater than that of chain2,
-// negative value if ubiquity rank of chain1 is lower than that of chain2, 0 if they are ranked equal.
+// CompareChainHashUbiquity returns a positive, zero, or negative value
+// if the hash ubiquity of the first chain is greater, equal, or less
+// than the second chain.
 func CompareChainHashUbiquity(chain1, chain2 []*x509.Certificate) int {
 	hu1 := ChainHashUbiquity(chain1)
 	hu2 := ChainHashUbiquity(chain2)
 	return int(hu1) - int(hu2)
 }
 
-// Return positive value if key algorithm ubiquity of chain1 is greater than that of chain2,
-// negative value if ubiquity rank of chain1 is lower than that of chain2, 0 if they are ranked equal.
+// CompareChainKeyAlgoUbiquity returns a positive, zero, or negative value
+// if the public-key ubiquity of the first chain is greater, equal,
+// or less than the second chain.
 func CompareChainKeyAlgoUbiquity(chain1, chain2 []*x509.Certificate) int {
 	kau1 := ChainKeyAlgoUbiquity(chain1)
 	kau2 := ChainKeyAlgoUbiquity(chain2)

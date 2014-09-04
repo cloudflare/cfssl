@@ -17,13 +17,16 @@ import (
 )
 
 // HardFail determines whether the failure to check the revocation
-// status of a certificate (i.e. due to network failure) causes verification to fail (a hard failure).
-var HardFail bool = false
+// status of a certificate (i.e. due to network failure) causes
+// verification to fail (a hard failure).
+var HardFail = false
 
 // TODO (kyle): figure out a good mechanism for OCSP; this requires
 // presenting both the certificate and the issuer, and we don't have a
 // good way at this time of getting the issuer.
 
+// CRLSet associates a PKIX certificate list with the URL the CRL is
+// fetched from.
 var CRLSet = map[string]*pkix.CertificateList{}
 
 // We can't handle LDAP certificates, so this checks to see if the

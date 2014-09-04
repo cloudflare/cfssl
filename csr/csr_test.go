@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
-	_ "crypto/sha512"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"

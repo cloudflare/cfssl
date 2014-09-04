@@ -1,12 +1,11 @@
-// package bundler implements certificate bundling functionality for CF-SSL.
+// Package bundler implements certificate bundling functionality for
+// CF-SSL.
 package bundler
 
 import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -33,8 +32,13 @@ var IntermediateStash = "intermediates"
 type BundleFlavor string
 
 const (
-	Optimal    BundleFlavor = "optimal"    // Optimal means the shortest chain with newest intermediates and the most advanced crypto.
-	Ubiquitous BundleFlavor = "ubiquitous" // Ubiquitous is aimed to provide the chain which is accepted by the most platforms.
+	// Optimal means the shortest chain with newest intermediates and
+	// the most advanced crypto.
+	Optimal BundleFlavor = "optimal"
+
+	// Ubiquitous is aimed to provide the chain which is accepted
+	// by the most platforms.
+	Ubiquitous BundleFlavor = "ubiquitous"
 )
 
 const (
@@ -74,7 +78,8 @@ func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
 		log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
 		err = os.MkdirAll(IntermediateStash, 0755)
 		if err != nil {
-			log.Errorf("failed to create intermediate stash directory %s: %v", err)
+			log.Errorf("failed to create intermediate stash directory %s: %v",
+				IntermediateStash, err)
 			return nil, err
 		}
 		log.Infof("intermediate stash directory %s created", IntermediateStash)
@@ -144,7 +149,7 @@ func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor
 		return nil, errors.New(errors.CertificateError, errors.ReadFailed, err)
 	}
 
-	var keyPEM []byte = nil
+	var keyPEM []byte
 	// Load private key PEM only if a file is given
 	if keyFile != "" {
 		log.Debug("Loading private key: ", keyFile)
@@ -392,7 +397,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 		log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
 		err = os.MkdirAll(IntermediateStash, 0755)
 		if err != nil {
-			log.Errorf("failed to create intermediate stash directory %s: %v", err)
+			log.Errorf("failed to create intermediate stash directory %s: %v", IntermediateStash, err)
 			return err
 		}
 		log.Infof("intermediate stash directory %s created", IntermediateStash)
