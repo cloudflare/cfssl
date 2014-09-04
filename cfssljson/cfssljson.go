@@ -39,6 +39,7 @@ type Response struct {
 }
 
 func main() {
+	bare := flag.Bool("bare", false, "the response from CFSSL is not wrapped in the API standard response")
 	inFile := flag.String("f", "-", "JSON input")
 	flag.Parse()
 
@@ -49,28 +50,39 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
-	var response Response
+	var input = map[string]interface{}{}
+
 	fileData, err := readFile(*inFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read input: %v\n", err)
 		return
 	}
 
-	err = json.Unmarshal(fileData, &response)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
-		return
-	}
-
-	if !response.Success {
-		fmt.Fprintf(os.Stderr, "Request failed:\n")
-		for _, msg := range response.Errors {
-			fmt.Fprintf(os.Stderr, "\t%s\n", msg.Message)
+	if *bare {
+		err = json.Unmarshal(fileData, &input)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
+			return
 		}
-		return
+	} else {
+		var response Response
+		err = json.Unmarshal(fileData, &response)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
+			return
+		}
+
+		if !response.Success {
+			fmt.Fprintf(os.Stderr, "Request failed:\n")
+			for _, msg := range response.Errors {
+				fmt.Fprintf(os.Stderr, "\t%s\n", msg.Message)
+			}
+			return
+		}
+
+		input = response.Result
 	}
 
-	input := response.Result
 	if contents, ok := input["cert"]; ok {
 		writeFile(baseName+".pem", contents.(string), 0644)
 	} else if contents, ok = input["certificate"]; ok {

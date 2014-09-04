@@ -74,7 +74,7 @@ following (perhaps in `ca.json`):
 Then, initialise the CA:
 
 ```
-cfssl genkey -initca ca.json | cfssljson ca
+cfssl genkey -initca ca.json | cfssljson -bare ca
 ```
 
 When `cfssl` starts up, it will look by default for a CA key named

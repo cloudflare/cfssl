@@ -61,6 +61,11 @@ func genkeyMain(args []string) (err error) {
 		fmt.Printf("%s\n", string(jsonOut))
 
 	} else {
+		if req.CA != nil {
+			err = errors.New("ca section only permitted in initca")
+			return
+		}
+
 		var key, csrPEM []byte
 		g := &csr.Generator{Validator: validator}
 		csrPEM, key, err = g.ProcessRequest(&req)
