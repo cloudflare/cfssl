@@ -5,6 +5,26 @@ CF-SSL is CloudFlare's SSL swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling SSL
 certificates. It requires Go 1.3 to build.
 
+### Installation
+
+Installation requires a [working Go
+installation](http://golang.org/doc/install) and a properly set `GOPATH`.
+
+```
+$ go get github.com/cloudflare/cfssl
+```
+
+will download and build the CFSSL tool, installing it in
+`$GOPATH/bin/cfssl`. To install the other utility programs that are in
+this repo:
+
+```
+$ go get github.com/cloudflare/cfssl/...
+```
+
+This will download, build, and install `cfssl`, `cfssljson`, and
+`mkbundle` into `$GOPATH/bin/`.
+
 
 ### Using the Command Line Tool
 
