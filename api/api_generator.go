@@ -56,6 +56,11 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 		return errors.NewBadRequest(err)
 	}
 
+	if req.CA != nil {
+		log.Warningf("request received with CA section")
+		return errors.NewBadRequestString("ca section only permitted in initca")
+	}
+
 	csr, key, err := g.generator.ProcessRequest(req)
 	if err != nil {
 		log.Warningf("failed to process CSR: %v", err)
@@ -132,6 +137,16 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return errors.NewBadRequest(err)
 	}
 
+	if req.Request == nil {
+		log.Warning("empty request received")
+		return errors.NewBadRequestString("missing request section")
+	}
+
+	if req.Request.CA != nil {
+		log.Warningf("request received with CA section")
+		return errors.NewBadRequestString("ca section only permitted in initca")
+	}
+
 	csr, key, err := cg.generator.ProcessRequest(req.Request)
 	if err != nil {
 		log.Warningf("failed to process CSR: %v", err)
@@ -191,6 +206,16 @@ func (rcg *RemoteCertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Req
 	} else if req == nil || req.Request == nil {
 		log.Warningf("invalid request received")
 		return errors.NewBadRequestString("invalid request")
+	}
+
+	if req.Request == nil {
+		log.Warning("empty request received")
+		return errors.NewBadRequestString("missing request section")
+	}
+
+	if req.Request.CA != nil {
+		log.Warningf("request received with CA section")
+		return errors.NewBadRequestString("ca section only permitted in initca")
 	}
 
 	csrPEM, key, err := rcg.generator.ProcessRequest(req.Request)

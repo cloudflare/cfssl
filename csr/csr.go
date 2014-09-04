@@ -103,6 +103,12 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 	}
 }
 
+// CAConfig is a section used in the requests initialising a new CA.
+type CAConfig struct {
+	PathLength int    `json:"pathlen"`
+	Expiry     string `json:"expiry"`
+}
+
 // A CertificateRequest encapsulates the API interface to the
 // certificate request functionality.
 type CertificateRequest struct {
@@ -110,6 +116,7 @@ type CertificateRequest struct {
 	Names      []Name      `json:"names"`
 	Hosts      []string    `json:"hosts"`
 	KeyRequest *KeyRequest `json:"key,omitempty"`
+	CA         *CAConfig   `json:"ca,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.

@@ -19,6 +19,9 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
+// MaxPathLen is the default path length for a new CA certificate.
+var MaxPathLen = 2
+
 // StandardSigner contains a signer that uses the standard library to
 // support both ECDSA and RSA CA keys.
 type StandardSigner struct {
@@ -164,7 +167,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 		template.DNSNames = nil
 		s.ca = template
 		initRoot = true
-		template.MaxPathLen = 2
+		template.MaxPathLen = MaxPathLen
 	} else if template.IsCA {
 		template.MaxPathLen = 1
 		template.DNSNames = nil

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/cloudflare/cfssl/api/client"
@@ -55,11 +56,19 @@ func gencertMain(args []string) (err error) {
 
 	if Config.isCA {
 		var key, cert []byte
-		cert, key, err = initca.New(&req)
-		if err != nil {
-			return
+		if Config.caKeyFile == "" {
+			cert, key, err = initca.New(&req)
+			if err != nil {
+				return
+			}
+			printCert(key, nil, cert)
+		} else {
+			cert, err = initca.NewFromPEM(&req, Config.caKeyFile)
+			if err != nil {
+				return
+			}
+			printCert(nil, nil, cert)
 		}
-		printCert(key, nil, cert)
 	} else {
 		if Config.remote != "" {
 			return gencertRemotely(req)
@@ -80,6 +89,11 @@ func gencertMain(args []string) (err error) {
 		// and NewSigner will use DefaultConfig().
 		if Config.cfg != nil {
 			policy = Config.cfg.Signing
+		}
+
+		if req.CA != nil {
+			err = errors.New("ca section only permitted in initca")
+			return
 		}
 
 		var key, csrPEM []byte
@@ -110,8 +124,12 @@ func gencertMain(args []string) (err error) {
 func printCert(key, csrPEM, cert []byte) {
 	out := map[string]string{
 		"cert": string(cert),
-		"key":  string(key),
 	}
+
+	if key != nil {
+		out["key"] = string(key)
+	}
+
 	if csrPEM != nil {
 		out["csr"] = string(csrPEM)
 	}
