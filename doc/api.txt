@@ -17,9 +17,9 @@ The API currently provides endpoints for the following functions:
 
 2. ENDPOINTS
 
-The endpoints respond to JSON-encoded POST requests. Except where
-noted, the request body should be a dictionary of string keys to
-string values. For example:
+Endpoints return JSON-encoded responses in the standard format described
+below. Except where noted, the request body should be a dictionary of
+string keys to string values. For example:
 
        {
          "key": "value",
@@ -46,6 +46,7 @@ a message or error has the form
 2.1 SIGNING
 
 Endpoint: "/api/v1/cfssl/sign"
+Method: POST
 Parameters:
         * hostname: the SAN to use for the new certificate
         * cert: the PEM-encoded certificate that should be signed
@@ -58,6 +59,7 @@ Result: { "certificate": "-----BEGIN CERTIFICATE..." }
 2.2 BUNDLING
 
 Endpoint: "/api/v1/cfssl/bundle"
+Method: POST
 Required Parameters:
 
         One of the following two parameters is required; if both are
@@ -137,6 +139,7 @@ Result:
 2.3 CERTIFICATE REQUESTS
 
 Endpoint: "/api/v1/cfssl/newkey"
+Method: POST
 Required parameters:
 
          * hosts: a list of hostnames to be used for the certificate.
@@ -190,6 +193,7 @@ Result:
 2.4. SIGNED CERTIFICATE REQUESTS
 
 Endpoint: "/api/v1/cfssl/newcert"
+Method: POST
 Required parameters:
 
          * hostname: the hostname for the certificate
@@ -237,6 +241,7 @@ CFSSL server. It is identical in use to newcert; it generates a key and
 CSR locally, and submits the CSR to the remote cfssl for signing.
 
 Endpoint: "/api/v1/cfssl/remotecert"
+Method: POST
 Required parameters:
 
          * hostname: the hostname for the certificate
@@ -272,6 +277,19 @@ Example:
     cURL call:
     curl -XPOST -H "Content-Type: application/json" -d @csr.json \
          127.0.0.1:8888/api/v1/cfssl/newcert
+
+2.6 INFO
+
+The info endpoint returns a list of information on all the CA's
+certificates (those corresponding to the CA's private keys).
+
+Endpoint: "/api/v1/cfssl/remotecert"
+Method: GET
+
+Example:
+
+    cURL call:
+    curl 127.0.0.1:8888/api/v1/cfssl/info | python -m json.tool
 
 3. CONFIGURATION
 

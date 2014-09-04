@@ -24,8 +24,16 @@ Flags:
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "f"}
 
-// registerHandlers instantiates various handlers and assoicate them to corresponding endpoints.
+// registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() error {
+	log.Info("Setting up info endpoint")
+	infoHandler, err := api.NewInfoHandlerFromPEM([]string{Config.caFile})
+	if err != nil {
+		log.Warningf("endpoint '/api/v1/cfssl/info' is disabled: %v", err)
+	} else {
+		http.Handle("/api/v1/cfssl/info", infoHandler)
+	}
+
 	log.Info("Setting up signer endpoint")
 	signHandler, err := api.NewSignHandler(Config.caFile, Config.caKeyFile)
 	if err != nil {
