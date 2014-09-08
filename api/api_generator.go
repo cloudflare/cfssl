@@ -154,7 +154,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	certPEM, err := cg.signer.Sign(req.Hostname, csr, req.Profile)
+	certPEM, err := cg.signer.Sign(req.Hostname, csr, nil, req.Profile)
 	if err != nil {
 		log.Warningf("failed to sign certificate: %v", err)
 		return errors.NewBadRequest(err)

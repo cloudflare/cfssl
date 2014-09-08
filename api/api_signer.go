@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -39,18 +42,40 @@ func NewSignHandlerFromSigner(signer signer.Signer) HTTPHandler {
 	}
 }
 
+type SignRequest struct {
+	Hostname string                  `json:"hostname"`
+	Request  string                  `json:"certificate_request"`
+	Subject  *csr.CertificateRequest `json:"subject,omitempty"`
+	Profile  string                  `json:"profile"`
+}
+
 // Handle responds to requests for the CA to sign the certificate
 // present in the "cert" parameter for the host named in the "hostname"
 // parameter. The certificate should be PEM-encoded.
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("signature request received")
-	blob, err := processRequestRequired(r, []string{"hostname", "certificate_request"})
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	r.Body.Close()
+
+	var req SignRequest
+	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return err
 	}
 
-	certificate := []byte(blob["certificate_request"])
-	cert, err := h.signer.Sign(blob["hostname"], certificate, blob["profile"])
+	if req.Hostname == "" {
+		return errors.NewBadRequestString("missing hostname parameter")
+	}
+
+	if req.Request == "" {
+		return errors.NewBadRequestString("missing certificate_request parameter")
+	}
+
+	cert, err := h.signer.Sign(req.Hostname, []byte(req.Request), req.Subject, req.Profile)
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
 		return errors.NewBadRequest(err)

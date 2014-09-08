@@ -111,7 +111,7 @@ func gencertMain(args []string) (err error) {
 		}
 
 		var cert []byte
-		cert, err = sign.Sign(Config.hostname, csrPEM, Config.profile)
+		cert, err = sign.Sign(Config.hostname, csrPEM, nil, Config.profile)
 		if err != nil {
 			return
 		}
