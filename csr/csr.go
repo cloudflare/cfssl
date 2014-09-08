@@ -224,7 +224,7 @@ func (g *Generator) ProcessRequest(req *CertificateRequest) (csr, key []byte, er
 	log.Info("generate received request")
 	err = g.Validator(req)
 	if err != nil {
-		log.Warning("invalid request: %v", err)
+		log.Warningf("invalid request: %v", err)
 		return
 	}
 
