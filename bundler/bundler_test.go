@@ -433,7 +433,7 @@ func createInterCert(t *testing.T, csrFile string, policy *config.Signing, profi
 	if err != nil {
 		t.Fatal(err)
 	}
-	certPEM, err = signer.Sign("cloudflare-inter.com", csr, profileName)
+	certPEM, err = signer.Sign("cloudflare-inter.com", csr, nil, profileName)
 	if err != nil {
 		t.Fatal(err)
 	}

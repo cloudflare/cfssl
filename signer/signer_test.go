@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/log"
 )
 
 const (
@@ -98,7 +100,7 @@ func testSignFile(t *testing.T, certFile string) ([]byte, error) {
 		t.Fatal(err)
 	}
 
-	return signer.Sign(testHostName, pem, "")
+	return signer.Sign(testHostName, pem, nil, "")
 }
 
 type csrTest struct {
@@ -169,7 +171,7 @@ func TestSignCSRs(t *testing.T) {
 		rsaSigAlgos := []x509.SignatureAlgorithm{x509.SHA1WithRSA, x509.SHA256WithRSA, x509.SHA384WithRSA, x509.SHA512WithRSA}
 		for _, sigAlgo := range rsaSigAlgos {
 			signer.(*StandardSigner).sigAlgo = sigAlgo
-			certBytes, err := signer.Sign(hostname, csr, "")
+			certBytes, err := signer.Sign(hostname, csr, nil, "")
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -197,7 +199,7 @@ func TestECDSASigner(t *testing.T) {
 		SigAlgos := []x509.SignatureAlgorithm{x509.ECDSAWithSHA1, x509.ECDSAWithSHA256, x509.ECDSAWithSHA384, x509.ECDSAWithSHA512}
 		for _, sigAlgo := range SigAlgos {
 			signer.(*StandardSigner).sigAlgo = sigAlgo
-			certBytes, err := signer.Sign(hostname, csr, "")
+			certBytes, err := signer.Sign(hostname, csr, nil, "")
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -242,7 +244,7 @@ func TestCAIssuing(t *testing.T) {
 		signer.(*StandardSigner).policy = CAPolicy
 		for j, csr := range interCSRs {
 			csrBytes, _ := ioutil.ReadFile(csr)
-			certBytes, err := signer.Sign(hostname, csrBytes, "")
+			certBytes, err := signer.Sign(hostname, csrBytes, nil, "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -255,7 +257,7 @@ func TestCAIssuing(t *testing.T) {
 			interSigner := &StandardSigner{interCert, interKey, CAPolicy, DefaultSigAlgo(interKey)}
 			for _, anotherCSR := range interCSRs {
 				anotherCSRBytes, _ := ioutil.ReadFile(anotherCSR)
-				bytes, err := interSigner.Sign(hostname, anotherCSRBytes, "")
+				bytes, err := interSigner.Sign(hostname, anotherCSRBytes, nil, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -270,4 +272,38 @@ func TestCAIssuing(t *testing.T) {
 		}
 	}
 
+}
+
+const testCSR = "testdata/ecdsa256.csr"
+
+func TestOverrideSubject(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(testCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	req := &csr.CertificateRequest{
+		Hosts: []string{"127.0.0.1"},
+		Names: []csr.Name{
+			{O: "example.net"},
+		},
+	}
+
+	signer := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	certPEM, err := signer.Sign("localhost", csrPEM, req, "")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if cert.Subject.Organization[0] != "example.net" {
+		t.Fatalf("Failed to override subject: want example.net but have %s", cert.Subject.Organization[0])
+	}
+
+	log.Info("Overrode subject info")
 }

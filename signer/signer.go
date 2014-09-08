@@ -10,8 +10,10 @@ import (
 	"encoding/asn1"
 	"errors"
 	"math/big"
+	"net"
 
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 )
 
@@ -22,7 +24,7 @@ type Signer interface {
 	Policy() *config.Signing
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
-	Sign(string, []byte, string) (cert []byte, err error)
+	Sign(string, []byte, *csr.CertificateRequest, string) (cert []byte, err error)
 }
 
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
@@ -59,7 +61,7 @@ func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
-func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certificate, err error) {
+func ParseCertificateRequest(s Signer, csrBytes []byte, req *csr.CertificateRequest) (template *x509.Certificate, err error) {
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.New(cferr.CertificateError, cferr.ParseFailed, err)
@@ -77,6 +79,17 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,
 		SignatureAlgorithm: s.SigAlgo(),
+	}
+
+	if req != nil {
+		template.Subject = req.Name()
+		for i := range req.Hosts {
+			if ip := net.ParseIP(req.Hosts[i]); ip != nil {
+				template.IPAddresses = append(template.IPAddresses, ip)
+			} else {
+				template.DNSNames = append(template.DNSNames, req.Hosts[i])
+			}
+		}
 	}
 
 	return

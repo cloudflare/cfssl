@@ -91,29 +91,6 @@ func readRequestBlob(r *http.Request) (map[string]string, error) {
 	return blob, nil
 }
 
-// processRequestRequired reads a JSON blob from the request, and
-// checks to make sure that it has all the required keywords present.
-func processRequestRequired(r *http.Request, required []string) (map[string]string, error) {
-	blob, err := readRequestBlob(r)
-	if err != nil {
-		return nil, err
-	}
-
-	var missing []string
-	for _, k := range required {
-		if _, ok := blob[k]; !ok {
-			missing = append(missing, k)
-		}
-	}
-
-	if len(missing) > 0 {
-		err = missingParamsError(missing)
-		return nil, err
-	}
-
-	return blob, nil
-}
-
 // processRequestOneOf reads a JSON blob for the request and makes
 // sure it contains one of a set of keywords. For example, a request
 // might have the ('foo' && 'bar') keys, OR it might have the 'baz'

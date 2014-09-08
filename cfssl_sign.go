@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -44,6 +46,27 @@ func signerMain(args []string) (err error) {
 		}
 	}
 
+	var subjectData *csr.CertificateRequest
+	if len(args) > 0 {
+		var subjectFile string
+		subjectFile, args, err = popFirstArgument(args)
+		if err != nil {
+			return
+		}
+
+		var subjectJSON []byte
+		subjectJSON, err = ioutil.ReadFile(subjectFile)
+		if err != nil {
+			return
+		}
+
+		subjectData = new(csr.CertificateRequest)
+		err = json.Unmarshal(subjectJSON, subjectData)
+		if err != nil {
+			return
+		}
+	}
+
 	// Read the certificate and sign it with CA files
 	log.Debug("Loading Client certificate: ", Config.certFile)
 	clientCert, err := ioutil.ReadFile(Config.certFile)
@@ -62,7 +85,7 @@ func signerMain(args []string) (err error) {
 	if err != nil {
 		return
 	}
-	cert, err := signer.Sign(Config.hostname, clientCert, Config.profile)
+	cert, err := signer.Sign(Config.hostname, clientCert, subjectData, Config.profile)
 	if err != nil {
 		return
 	}

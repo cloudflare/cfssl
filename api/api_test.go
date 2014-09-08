@@ -118,9 +118,10 @@ var signTests = []signTest{
 }
 
 func TestSign(t *testing.T) {
-	for _, test := range signTests {
+	for i, test := range signTests {
 		resp, body := testSignFile(t, test.Hostname, test.CSRFile)
 		if resp.StatusCode != test.ExpectedStatus {
+			t.Fatalf("Test %d: expected: %d, have %d", i, test.ExpectedStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedStatus, string(body))
 		}
 
