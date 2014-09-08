@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
 	"math/big"
@@ -17,6 +18,36 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 )
 
+// Subject contains the information that should be used to override the
+// subject information when signing a certificate.
+type Subject struct {
+	CN    string
+	Names []csr.Name `json:"names"`
+	Hosts []string   `json:"hosts"`
+}
+
+// appendIf appends to a if s is not an empty string.
+func appendIf(s string, a *[]string) {
+	if s != "" {
+		*a = append(*a, s)
+	}
+}
+
+// Name returns the PKIX name for the subject.
+func (s *Subject) Name() pkix.Name {
+	var name pkix.Name
+	name.CommonName = s.CN
+
+	for _, n := range s.Names {
+		appendIf(n.C, &name.Country)
+		appendIf(n.ST, &name.Province)
+		appendIf(n.L, &name.Locality)
+		appendIf(n.O, &name.Organization)
+		appendIf(n.OU, &name.OrganizationalUnit)
+	}
+	return name
+}
+
 // A Signer contains a CA's certificate and private key for signing
 // certificates, a Signing policy to refer to and a SignatureAlgorithm.
 type Signer interface {
@@ -24,7 +55,7 @@ type Signer interface {
 	Policy() *config.Signing
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
-	Sign(string, []byte, *csr.CertificateRequest, string) (cert []byte, err error)
+	Sign(string, []byte, *Subject, string) (cert []byte, err error)
 }
 
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
@@ -60,8 +91,10 @@ func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 }
 
 // ParseCertificateRequest takes an incoming certificate request and
-// builds a certificate template from it.
-func ParseCertificateRequest(s Signer, csrBytes []byte, req *csr.CertificateRequest) (template *x509.Certificate, err error) {
+// builds a certificate template from it. If not nil, the subject
+// information from subject will be used in place of the information in
+// the CSR.
+func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject) (template *x509.Certificate, err error) {
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.New(cferr.CertificateError, cferr.ParseFailed, err)

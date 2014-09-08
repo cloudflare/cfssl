@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -190,9 +189,11 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 }
 
 // Sign signs a new certificate based on the PEM-encoded client
-// certificate or certificate request with the signing profile, specified by profileName.
-// The certificate will be valid for the host named in  the hostName parameter.
-func (s *StandardSigner) Sign(hostName string, in []byte, req *csr.CertificateRequest, profileName string) (cert []byte, err error) {
+// certificate or certificate request with the signing profile, specified
+// by profileName. The certificate will be valid for the host named in
+// the hostName parameter. If not nil, the subject information contained
+// in subject will be used in place of the subject information in the CSR.
+func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, profileName string) (cert []byte, err error) {
 	profile := s.policy.Profiles[profileName]
 
 	block, _ := pem.Decode(in)
@@ -205,12 +206,12 @@ func (s *StandardSigner) Sign(hostName string, in []byte, req *csr.CertificateRe
 			cferr.ParseFailed, errors.New("not a certificate or csr"))
 	}
 
-	template, err := ParseCertificateRequest(s, block.Bytes, req)
+	template, err := ParseCertificateRequest(s, block.Bytes, subject)
 	if err != nil {
 		return
 	}
 
-	if req == nil {
+	if subject == nil {
 		if ip := net.ParseIP(hostName); ip != nil {
 			template.IPAddresses = []net.IP{ip}
 		} else {

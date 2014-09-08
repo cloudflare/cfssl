@@ -44,7 +44,7 @@ The version command takes no arguments.
 #### Signing
 
 ```
-cfssl sign [-ca cert] [-ca-key key] hostname csr
+cfssl sign [-ca cert] [-ca-key key] hostname csr [subject]
 ```
 
 The hostname and csr are the client's host name and certificate
@@ -65,6 +65,27 @@ It is also possible to specify hostname and clientcert through '-hostname'
 and '-cert' flags. By doing so, flag values take precedence and will
 overwrite the arguments.
 
+The subject is an optional file that contains subject information that
+should be used in place of the information from the CSR. It should be
+a JSON file with the type:
+
+{
+    "hosts": [
+        "example.com",
+        "www.example.com"
+    ],
+    "CN": "example.com",
+    "names": [
+        {
+            "C": "US",
+            "L": "San Francisco",
+            "O": "Internet Widgets, Inc.",
+            "OU": "WWW",
+            "ST": "California"
+        }
+    ]
+
+}
 
 #### Bundling
 

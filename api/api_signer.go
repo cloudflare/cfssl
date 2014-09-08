@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -42,16 +41,20 @@ func NewSignHandlerFromSigner(signer signer.Signer) HTTPHandler {
 	}
 }
 
+// SignRequest stores a signature request, which contains the hostname,
+// the CSR, optional subject information, and the signature profile.
 type SignRequest struct {
-	Hostname string                  `json:"hostname"`
-	Request  string                  `json:"certificate_request"`
-	Subject  *csr.CertificateRequest `json:"subject,omitempty"`
-	Profile  string                  `json:"profile"`
+	Hostname string          `json:"hostname"`
+	Request  string          `json:"certificate_request"`
+	Subject  *signer.Subject `json:"subject,omitempty"`
+	Profile  string          `json:"profile"`
 }
 
-// Handle responds to requests for the CA to sign the certificate
-// present in the "cert" parameter for the host named in the "hostname"
-// parameter. The certificate should be PEM-encoded.
+// Handle responds to requests for the CA to sign the certificate request
+// present in the "certificate_requeset" parameter for the host named
+// in the "hostname" parameter. The certificate should be PEM-encoded. If
+// provided, subject information from the "subject" parameter will be used
+// in place of the subject information from the CSR.
 func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("signature request received")
 

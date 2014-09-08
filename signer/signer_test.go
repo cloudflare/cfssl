@@ -282,7 +282,7 @@ func TestOverrideSubject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	req := &csr.CertificateRequest{
+	req := &Subject{
 		Hosts: []string{"127.0.0.1"},
 		Names: []csr.Name{
 			{O: "example.net"},
