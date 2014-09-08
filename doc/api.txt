@@ -48,11 +48,29 @@ a message or error has the form
 Endpoint: "/api/v1/cfssl/sign"
 Method: POST
 Parameters:
-        * hostname: the SAN to use for the new certificate
-        * cert: the PEM-encoded certificate that should be signed
-        * profile (optional): the name of the signing profile to be
-          used. If empty, the server's default profile will be
-          selected.
+         * hostname: the SAN to use for the new certificate
+         * certificate_request: the PEM-encoded certificate request that
+         should be signed
+         * profile (optional): the name of the signing profile to be
+         used. If empty, the server's default profile will be
+         selected.
+	 * subject (optional): subject information to use for the
+	 certificate instead of the information contained in the
+	 CSR.
+
+The subject contains:
+
+	 * hosts: an array of strings containing DNS names and IP
+	 addresses that should be used as the Subject Alternative Names
+	 for the certificate.
+         * names: a list of subject name elements. A subject name
+         contains the following elements:
+           * 'C': the two-letter country identifier
+           * 'L': the locale (e.g. city)
+           * 'O': the organisation
+           * 'OU': the organisational unit
+           * 'ST': the state or province
+         * CN: the certificate's Common Name.
 
 Result: { "certificate": "-----BEGIN CERTIFICATE..." }
 
@@ -146,10 +164,8 @@ Required parameters:
          * key: should contain two parameters:
            * algo: either 'rsa' or 'ecdsa'
            * size: integer size in bits of key
-
          * names: a list of subject name elements. A subject name
          contains the following elements:
-
            * 'C': the two-letter country identifier
            * 'L': the locale (e.g. city)
            * 'O': the organisation

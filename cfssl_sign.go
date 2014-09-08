@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -15,13 +14,15 @@ import (
 var signerUsageText = `cfssl sign -- signs a client cert with a host name by a given CA and CA key
 
 Usage of sign:
-        cfssl sign [-ca cert] [-ca-key key] HOSTNAME CSR
+        cfssl sign [-ca cert] [-ca-key key] HOSTNAME CSR [SUBJECT]
 
 Arguments:
         HOSTNAME:   Hostname for the cert
         CSR:        Certificate request.
 
-Note: HOSTNAME, CERT can also be supplied as flag value. But flag value will take precedence, overwriting the argument.
+Note: HOSTNAME and CSR can also be supplied via flag values; flag values will take precedence over the argument.
+
+SUBJECT is an optional file containing subject information to use for the certificate instead of the subject information in the CSR.
 
 Flags:
 `
@@ -46,7 +47,7 @@ func signerMain(args []string) (err error) {
 		}
 	}
 
-	var subjectData *csr.CertificateRequest
+	var subjectData *signer.Subject
 	if len(args) > 0 {
 		var subjectFile string
 		subjectFile, args, err = popFirstArgument(args)
@@ -60,7 +61,7 @@ func signerMain(args []string) (err error) {
 			return
 		}
 
-		subjectData = new(csr.CertificateRequest)
+		subjectData = new(signer.Subject)
 		err = json.Unmarshal(subjectJSON, subjectData)
 		if err != nil {
 			return
