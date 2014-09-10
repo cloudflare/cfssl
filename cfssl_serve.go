@@ -35,7 +35,7 @@ func registerHandlers() error {
 	}
 
 	log.Info("Setting up signer endpoint")
-	signHandler, err := api.NewSignHandler(Config.caFile, Config.caKeyFile)
+	signHandler, err := api.NewSignHandler(Config.caFile, Config.caKeyFile, Config.remote)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
 	} else {
@@ -60,7 +60,7 @@ func registerHandlers() error {
 
 	log.Info("Setting up new cert endpoint")
 	newCertGenerator, err := api.NewCertGeneratorHandler(api.CSRValidate,
-		Config.caFile, Config.caKeyFile)
+		Config.caFile, Config.caKeyFile, Config.remote)
 	if err != nil {
 		log.Errorf("endpoint '/api/v1/cfssl/newcert' is disabled")
 	} else {
@@ -69,16 +69,6 @@ func registerHandlers() error {
 
 	log.Info("Setting up initial CA endpoint")
 	http.Handle("/api/v1/cfssl/init_ca", api.NewInitCAHandler())
-
-	if Config.remote != "" {
-		log.Info("Remote CFSSL endpoint given, setting up remote certificate generator")
-		rcg, err := api.NewRemoteCertGenerator(api.CSRValidate, Config.remote)
-		if err != nil {
-			log.Errorf("Failed to set up remote certificate generator: %v", err)
-			return err
-		}
-		http.Handle("/api/v1/cfssl/remotecert", rcg)
-	}
 
 	log.Info("Handler set up complete.")
 	return nil

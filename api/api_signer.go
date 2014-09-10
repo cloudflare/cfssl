@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -15,17 +16,27 @@ import (
 // certificate.
 type SignHandler struct {
 	signer signer.Signer
+	server *client.Server
 }
 
 // NewSignHandler generates a new SignHandler using the certificate
-// authority private key and certficate to sign certificates.
-func NewSignHandler(caFile, cakeyFile string) (http.Handler, error) {
+// authority private key and certficate to sign certificates. If remote
+// is not an empty string, the handler will send signature requests to
+// the CFSSL instance contained in remote.
+
+func NewSignHandler(caFile, cakeyFile, remote string) (http.Handler, error) {
 	var err error
 	s := new(SignHandler)
 	// TODO(kyle): add profile loading to API server
 	if s.signer, err = signer.NewSigner(caFile, cakeyFile, nil); err != nil {
 		log.Errorf("setting up signer failed: %v", err)
 		return nil, err
+	}
+	if remote != "" {
+		s.server = client.NewServer(remote)
+		if s.server == nil {
+			return nil, errors.New(errors.DialError, errors.None, nil)
+		}
 	}
 	return HTTPHandler{s, "POST"}, nil
 }
@@ -48,6 +59,7 @@ type SignRequest struct {
 	Request  string          `json:"certificate_request"`
 	Subject  *signer.Subject `json:"subject,omitempty"`
 	Profile  string          `json:"profile"`
+	Remote   string          `json:"remote"`
 }
 
 // Handle responds to requests for the CA to sign the certificate request
@@ -78,7 +90,16 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("missing certificate_request parameter")
 	}
 
-	cert, err := h.signer.Sign(req.Hostname, []byte(req.Request), req.Subject, req.Profile)
+	var cert []byte
+	if req.Remote != "" {
+		log.Info("sending signature request to remote", req.Remote)
+		srv := client.NewServer(req.Remote)
+		cert, err = srv.Sign(req.Hostname, []byte(req.Request), req.Profile)
+	} else if h.server != nil {
+		cert, err = h.server.Sign(req.Hostname, []byte(req.Request), req.Profile)
+	} else {
+		cert, err = h.signer.Sign(req.Hostname, []byte(req.Request), req.Subject, req.Profile)
+	}
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
 		return errors.NewBadRequest(err)

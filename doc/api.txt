@@ -59,7 +59,6 @@ Parameters:
         CSR.
 
 The subject contains:
-
         * hosts: an array of strings containing DNS names and IP
         addresses that should be used as the Subject Alternative Names
         for the certificate.
@@ -218,7 +217,11 @@ Required parameters:
 Optional parameters:
 
          * profile: names the profile that should be used for the
-           the new certificate.
+         the new certificate.
+         * remote (optional): the remote CFSSL that should perform the
+         signing. This might be used, for example, to generate the key
+         on a local CFSSL instance, but use another CFSSL instance for
+         signatures.
 
 Example:
 

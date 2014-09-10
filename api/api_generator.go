@@ -82,13 +82,16 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 type CertGeneratorHandler struct {
 	generator *csr.Generator
 	signer    signer.Signer
+	server    *client.Server
 }
 
 // NewCertGeneratorHandler builds a new handler for generating
 // certificates directly from certificate requests; the validator covers
 // the certificate request and the CA's key and certificate are used to
-// sign the generated request.
-func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string) (http.Handler, error) {
+// sign the generated request. If remote is not an empty string, the
+// handler will send signature requests to the CFSSL instance contained
+// in remote.
+func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote string) (http.Handler, error) {
 	var err error
 	log.Info("setting up new generator / signer")
 	cg := new(CertGeneratorHandler)
@@ -96,6 +99,12 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string) (htt
 		return nil, err
 	}
 	cg.generator = &csr.Generator{Validator: validator}
+	if remote != "" {
+		cg.server = client.NewServer(remote)
+		if cg.server == nil {
+			return nil, errors.New(errors.DialError, errors.None, nil)
+		}
+	}
 
 	return HTTPHandler{cg, "POST"}, nil
 }
@@ -116,6 +125,7 @@ type genSignRequest struct {
 	Hostname string                  `json:"hostname"`
 	Request  *csr.CertificateRequest `json:"request"`
 	Profile  string                  `json:"profile"`
+	Remote   string                  `json:"remote"`
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -154,81 +164,23 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	certPEM, err := cg.signer.Sign(req.Hostname, csr, nil, req.Profile)
+	var certPEM []byte
+
+	if req.Remote != "" {
+		log.Info("sending signature request to remote", req.Remote)
+		srv := client.NewServer(req.Remote)
+		certPEM, err = srv.Sign(req.Hostname, csr, req.Profile)
+	} else if cg.server != nil {
+		log.Info("sending signature request to remote")
+		certPEM, err = cg.server.Sign(req.Hostname, csr, req.Profile)
+	} else {
+		log.Info("signing new certificate locally")
+		certPEM, err = cg.signer.Sign(req.Hostname, csr, nil, req.Profile)
+	}
+
 	if err != nil {
 		log.Warningf("failed to sign certificate: %v", err)
 		return errors.NewBadRequest(err)
-	}
-
-	result := map[string]string{
-		"private_key": string(key),
-		"certificate": string(certPEM),
-	}
-	return sendResponse(w, result)
-}
-
-// A RemoteCertGeneratorHandler accepts CSR requests and submits the
-// certificate to a remote CFSSL instance.
-type RemoteCertGeneratorHandler struct {
-	generator *csr.Generator
-	remote    *client.Server
-}
-
-// NewRemoteCertGenerator builds a remote certificate generator from a
-// CSR validator and the server string.
-func NewRemoteCertGenerator(validator Validator, remote string) (http.Handler, error) {
-	log.Info("setting up a new remote certificate generator")
-	cg := new(RemoteCertGeneratorHandler)
-	if cg.remote = client.NewServer(remote); cg.remote == nil {
-		log.Errorf("invalid address for remote server")
-		return nil, errors.New(errors.DialError, errors.Unknown, nil)
-	}
-
-	cg.generator = &csr.Generator{Validator: validator}
-	return HTTPHandler{cg, "POST"}, nil
-}
-
-// Handle listens for certificate signature requests and submits the
-// generated CSR to a remote CFSSL instance to sign the CSR and build
-// a certificate.
-func (rcg *RemoteCertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	req := new(genSignRequest)
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Warningf("failed to read request body: %v", err)
-		return errors.NewBadRequest(err)
-	}
-
-	err = json.Unmarshal(body, req)
-	if err != nil {
-		log.Warningf("failed to unmarshal request: %v", err)
-		return errors.NewBadRequest(err)
-	} else if req == nil || req.Request == nil {
-		log.Warningf("invalid request received")
-		return errors.NewBadRequestString("invalid request")
-	}
-
-	if req.Request == nil {
-		log.Warning("empty request received")
-		return errors.NewBadRequestString("missing request section")
-	}
-
-	if req.Request.CA != nil {
-		log.Warningf("request received with CA section")
-		return errors.NewBadRequestString("ca section only permitted in initca")
-	}
-
-	csrPEM, key, err := rcg.generator.ProcessRequest(req.Request)
-	if err != nil {
-		log.Warningf("failed to process CSR: %v", err)
-		// The validator returns a *cfssl/errors.HttpError
-		return err
-	}
-
-	certPEM, err := rcg.remote.Sign(req.Hostname, csrPEM, req.Profile)
-	if err != nil {
-		log.Warningf("failed to send CSR to remote signer: %v", err)
-		return err
 	}
 
 	result := map[string]string{
