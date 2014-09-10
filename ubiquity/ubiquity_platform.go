@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path"
+	"path/filepath"
 
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -117,6 +119,7 @@ var Platforms []Platform
 // LoadPlatforms reads the file content as a json object array and convert it
 // to Platforms.
 func LoadPlatforms(filename string) {
+	relativePath := filepath.Dir(filename)
 	// Attempt to load root certificate metadata
 	log.Debug("Loading platform metadata: ", filename)
 	bytes, err := ioutil.ReadFile(filename)
@@ -132,9 +135,10 @@ func LoadPlatforms(filename string) {
 	}
 
 	for _, platform := range rawPlatforms {
+		platform.KeyStoreFile = path.Join(relativePath, platform.KeyStoreFile)
 		ok := platform.ParseAndLoad()
 		if !ok {
-			log.Errorf("fail to finalize the parsing of platform metadata (err = %v)", err)
+			log.Errorf("fail to finalize the parsing of platform metadata: %s", platform.KeyStoreFile)
 		} else {
 			log.Infof("Platform metadata is loaded: %v %v", platform.Name, len(platform.KeyStore))
 			Platforms = append(Platforms, platform)
