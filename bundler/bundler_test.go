@@ -249,11 +249,11 @@ func TestRebundleExpiring(t *testing.T) {
 	if len(newChain) != 2 {
 		t.Fatalf("Expected bundle chain length is 2. Got %d.", len(newChain))
 	}
-	// The status must be {Code: ExpiringBit is set, IsRebundled:true, ExpiringSKIs:{"D75D4829692C0EF473AB401C46A8E392147B0710"}}
+	// The status must be {Code: ExpiringBit is set, IsRebundled:true, ExpiringSKIs:{"8860BA18A477B841041BD5EF7751C25B14BA203F"}}
 	if len(newBundle.Status.ExpiringSKIs) != 1 || !newBundle.Status.IsRebundled || newBundle.Status.Code&errors.BundleExpiringBit == 0 {
 		t.Fatal("Rebundle Status is incorrect.")
 	}
-	expectedSKI := "D75D4829692C0EF473AB401C46A8E392147B0710"
+	expectedSKI := "8860BA18A477B841041BD5EF7751C25B14BA203F"
 	if newBundle.Status.ExpiringSKIs[0] != expectedSKI {
 		t.Fatalf("Expected expiring cert SKI is %s, got %s\n", expectedSKI, newBundle.Status.ExpiringSKIs[0])
 	}

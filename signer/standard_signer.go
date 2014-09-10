@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
@@ -87,14 +89,26 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 	return &StandardSigner{parsedCa, priv, policy, DefaultSigAlgo(priv)}, nil
 }
 
+//
+type subjectPublicKeyInfo struct {
+	Algorithm        pkix.AlgorithmIdentifier
+	SubjectPublicKey asn1.BitString
+}
+
 func (s *StandardSigner) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
 	pub := template.PublicKey
 	encodedpub, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return
 	}
+	var subPKI subjectPublicKeyInfo
+	_, err = asn1.Unmarshal(encodedpub, &subPKI)
+	if err != nil {
+		return
+	}
+
 	pubhash := sha1.New()
-	pubhash.Write(encodedpub)
+	pubhash.Write(subPKI.SubjectPublicKey.Bytes)
 
 	if profile == nil {
 		profile = s.policy.Default
