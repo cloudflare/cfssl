@@ -2,7 +2,6 @@ package errors
 
 import (
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -126,11 +125,7 @@ const (
 
 // The error interface implementation, which formats to a JSON object string.
 func (e *Error) Error() string {
-	marshaled, err := json.Marshal(e)
-	if err != nil {
-		panic(err)
-	}
-	return string(marshaled)
+	return fmt.Sprintf("%d - %s", e.ErrorCode, e.Message)
 
 }
 

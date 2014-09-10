@@ -32,36 +32,36 @@ var pemTests = []pemTest{
 	{
 		cert:               []byte(""),
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessage("\"code\":1002"),
+		errorCallback:      ExpectErrorMessage("1002 - "),
 	},
 	{
 		cert:               corruptCert,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessage("\"code\":1002"),
+		errorCallback:      ExpectErrorMessage("1002 - "),
 	},
 	{
 		cert:               garbageCert,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessage("\"code\":1003"),
+		errorCallback:      ExpectErrorMessage("1003 - "),
 	},
 	{
 		cert:               selfSignedCert,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessage("\"code\":1100"),
+		errorCallback:      ExpectErrorMessage("1100 - "),
 	},
 	// 121X errors are X509.CertificateInvalidError. This test
 	// covers the code path leads to all 121X errors.
 	{
 		cert:               expiredCert,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessage("\"code\":1211"),
+		errorCallback:      ExpectErrorMessage("1211 - "),
 	},
 	// With a empty root cert pool, the valid root cert
 	// is seen as issued by an unknown authority.
 	{
 		cert:               validRootCert,
 		bundlerConstructor: newBundlerWithoutRoots,
-		errorCallback:      ExpectErrorMessage("\"code\":1220"),
+		errorCallback:      ExpectErrorMessage("1220 - "),
 	},
 }
 

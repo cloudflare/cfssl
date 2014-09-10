@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/bundler"
@@ -66,8 +65,5 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		result = bundle
 	}
 	response := newSuccessResponse(result)
-	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	err = enc.Encode(response)
-	return err
+	return sendResponse(w, response)
 }
