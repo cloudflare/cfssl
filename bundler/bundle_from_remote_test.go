@@ -62,22 +62,22 @@ var remoteTests = []remoteTest{
 	{
 		hostname:           SelfSignedSSLSite,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessages([]string{`"code":1220`, "x509: certificate signed by unknown authority"}),
+		errorCallback:      ExpectErrorMessages([]string{"1220 - x509: certificate signed by unknown authority"}),
 	},
 	{
 		hostname:           MismatchedHostnameSite,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessages([]string{`"code":1200`, "x509: certificate is valid for"}),
+		errorCallback:      ExpectErrorMessages([]string{"1200 - x509: certificate is valid for"}),
 	},
 	{
 		hostname:           ExpiredCertSite,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessages([]string{`"code":1211`, "x509: certificate has expired or is not yet valid"}),
+		errorCallback:      ExpectErrorMessages([]string{"1211 - x509: certificate has expired or is not yet valid"}),
 	},
 	{
 		hostname:           InvalidSite,
 		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessages([]string{`"code":6000`, "dial tcp: lookup cloudflare1337.com: no such host"}),
+		errorCallback:      ExpectErrorMessages([]string{"6000 - dial tcp: lookup cloudflare1337.com: no such host"}),
 	},
 	{
 		hostname:           ValidSNI,

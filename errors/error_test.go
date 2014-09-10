@@ -38,7 +38,7 @@ func TestErrorString(t *testing.T) {
 	msg := "Arbitrary error message"
 	err := New(CertificateError, Unknown, errors.New(msg))
 	str := err.Error()
-	if str != `{"code":1000,"message":"`+msg+`"}` {
+	if str != `1000 - `+msg {
 		t.Fatal("Incorrect Error():", str)
 	}
 }

@@ -93,13 +93,13 @@ var fileTests = []fileTest{
 		cert:          "not_such_cert.pem",
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":1001"),
+		errorCallback: ExpectErrorMessage("1001 - "),
 	},
 	{
 		cert:          emptyPEM,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":1002"),
+		errorCallback: ExpectErrorMessage("1002 - "),
 	},
 
 	// Normal Keyless bundling for all supported public key types
@@ -228,7 +228,7 @@ var fileTests = []fileTest{
 		cert:          leafletRSA4096,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":1220"),
+		errorCallback: ExpectErrorMessage("1220 - "),
 	},
 	// Expect TooManyIntermediates error because max path length is 1 for
 	// inter-L1 but the leaflet cert is 2 CA away from inter-L1.
@@ -237,7 +237,7 @@ var fileTests = []fileTest{
 		extraIntermediates: leafRSA4096,
 		caBundleFile:       testCFSSLRootBundle,
 		intBundleFile:      testCFSSLIntBundle,
-		errorCallback:      ExpectErrorMessage("\"code\":1213"),
+		errorCallback:      ExpectErrorMessage("1213 - "),
 	},
 	// Bundle with expired inter-L1 intermediate cert only, expect error 1211 VerifyFailed:Expired.
 	{
@@ -245,7 +245,7 @@ var fileTests = []fileTest{
 		extraIntermediates: interL1Expired,
 		caBundleFile:       testCFSSLRootBundle,
 		intBundleFile:      emptyPEM,
-		errorCallback:      ExpectErrorMessage("\"code\":1211"),
+		errorCallback:      ExpectErrorMessage("1211 - "),
 	},
 
 	// Bundle with bad partial bundle, expected error 1220: UnknownAuthority
@@ -256,7 +256,7 @@ var fileTests = []fileTest{
 		key:           leafKeyECDSA256,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":2300"),
+		errorCallback: ExpectErrorMessage("2300 - "),
 	},
 	// ECC cert, RSA private key
 	{
@@ -264,7 +264,7 @@ var fileTests = []fileTest{
 		key:           leafKeyRSA4096,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":2300"),
+		errorCallback: ExpectErrorMessage("2300 - "),
 	},
 	// RSA 2048 cert, RSA 4096  private key
 	{
@@ -272,7 +272,7 @@ var fileTests = []fileTest{
 		key:           leafKeyRSA4096,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":2300"),
+		errorCallback: ExpectErrorMessage("2300 - "),
 	},
 	// ECDSA 256 cert, ECDSA 384  private key
 	{
@@ -280,7 +280,7 @@ var fileTests = []fileTest{
 		key:           leafKeyECDSA384,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":2300"),
+		errorCallback: ExpectErrorMessage("2300 - "),
 	},
 
 	// DSA is NOT supported.
@@ -289,7 +289,7 @@ var fileTests = []fileTest{
 		cert:          certDSA2048,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":2200"),
+		errorCallback: ExpectErrorMessage("2200 - "),
 	},
 	// Bundling with DSA private key, expect error "Unknown private key"
 	{
@@ -297,7 +297,7 @@ var fileTests = []fileTest{
 		key:           keyDSA2048,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessage("\"code\":2003"),
+		errorCallback: ExpectErrorMessage("2003 - "),
 	},
 
 	// Smart Bundling
@@ -345,7 +345,7 @@ var fileTests = []fileTest{
 		cert:          badBundle,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: interL1,
-		errorCallback: ExpectErrorMessage("\"code\":1220"),
+		errorCallback: ExpectErrorMessage("1220 - "),
 	},
 }
 
