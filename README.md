@@ -172,7 +172,8 @@ command:
 
 ```
 cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
-            [-ca-key key] [-int-bundle bundle] [-port port]
+            [-ca-key key] [-int-bundle bundle] [-port port]   \
+            [-remote remote_server]
 ```
 
 Address and port default to "127.0.0.1:8888". The `-ca` and `-ca-key`
@@ -180,7 +181,8 @@ arguments should be the PEM-encoded certificate and private key to use
 for signing; by default, they are "ca.pem" and "ca_key.pem". The
 `-ca-bundle` and `-int-bundle` should be the certificate bundles used
 for the root and intermediate certificate pools, respectively. These
-default to "ca-bundle.crt" and "int-bundle."
+default to "ca-bundle.crt" and "int-bundle." If the "remote" option is
+provided, all signature operations will be forwarded to the remote CFSSL.
 
 The amount of logging can be controlled with the `-loglevel` option. This
 comes *before* the serve command:
