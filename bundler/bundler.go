@@ -42,9 +42,10 @@ const (
 )
 
 const (
-	sha2Warning          = "The bundle contains certs signed with advanced hash functions such as SHA2,  which are problematic at certain operating systems, e.g. Windows XP SP2."
-	expiringWarningStub  = "The bundle is expiring within 30 days. "
-	untrustedWarningStub = "The bundle may not be trusted by the following platform(s):"
+	sha2Warning              = "The bundle contains certs signed with advanced hash functions such as SHA2,  which are problematic at certain operating systems, e.g. Windows XP SP2."
+	expiringWarningStub      = "The bundle is expiring within 30 days. "
+	untrustedWarningStub     = "The bundle may not be trusted by the following platform(s):"
+	deprecateSHA1WarningStub = "Due to SHA-1 deprecation, the bundle may not be trusted by the following platform(s):"
 )
 
 // A Bundler contains the certificate pools for producing certificate
@@ -597,8 +598,16 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	// Check if there is any platform that doesn't trust the chain.
 	untrusted := ubiquity.UntrustedPlatforms(root)
 	if len(untrusted) > 0 {
+		log.Debug("Populate untrusted platform warning.")
 		statusCode |= errors.BundleNotUbiquitousBit
 		messages = append(messages, untrustedPlatformsWarning(untrusted))
+	}
+	// Check if there is any platform that rejects the chain because of SHA1 deprecation.
+	deprecated := ubiquity.DeprecatedSHA1Platforms(matchingChains[0])
+	if len(deprecated) > 0 {
+		log.Debug("Populate SHA1 deprecation warning.")
+		statusCode |= errors.BundleNotUbiquitousBit
+		messages = append(messages, deprecateSHA1Warning(deprecated))
 	}
 
 	bundle.Status = &BundleStatus{ExpiringSKIs: getSKIs(bundle.Chain, expiringCerts), Code: statusCode, Messages: messages, Untrusted: untrusted}
@@ -667,6 +676,22 @@ func untrustedPlatformsWarning(platforms []string) string {
 		return ""
 	}
 	msg := untrustedWarningStub
+	for i, platform := range platforms {
+		if i > 0 {
+			msg += ","
+		}
+		msg += " " + platform
+	}
+	msg += "."
+	return msg
+}
+
+// deprecateSHA1Warning generates a warning message with platform names which deprecates SHA1.
+func deprecateSHA1Warning(platforms []string) string {
+	if len(platforms) == 0 {
+		return ""
+	}
+	msg := deprecateSHA1WarningStub
 	for i, platform := range platforms {
 		if i > 0 {
 			msg += ","
