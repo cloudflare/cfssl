@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api/client"
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -91,11 +92,11 @@ type CertGeneratorHandler struct {
 // sign the generated request. If remote is not an empty string, the
 // handler will send signature requests to the CFSSL instance contained
 // in remote.
-func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote string) (http.Handler, error) {
+func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote string, config *config.Signing) (http.Handler, error) {
 	var err error
 	log.Info("setting up new generator / signer")
 	cg := new(CertGeneratorHandler)
-	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, nil); err != nil {
+	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, config); err != nil {
 		return nil, err
 	}
 	cg.generator = &csr.Generator{Validator: validator}
