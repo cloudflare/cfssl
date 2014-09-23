@@ -185,6 +185,10 @@ func main() {
 	args = cfsslFlagSet.Args()
 
 	Config.cfg = config.LoadFile(Config.configFile)
+	if Config.configFile != "" && Config.cfg == nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config file\n")
+		os.Exit(1)
+	}
 
 	if err := cmd.Main(args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
