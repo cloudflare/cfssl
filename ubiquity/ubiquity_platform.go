@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -35,20 +36,67 @@ func (s CertSet) Add(cert *x509.Certificate) {
 	s[SHA1RawPublicKey(cert)] = true
 }
 
+// CryptoDeprecationPolicy encodes how a platform plans to deprecate the support of a crypto hash/key algorithm.
+type CryptoDeprecationPolicy struct {
+	// The name of target algorithm to be deprecated.
+	Target string `json:"target"`
+	// The date when the policy is effective.
+	EffectiveDate time.Time `json:"effective_date"`
+	// The expiry deadline indicates the latest date which a end-entity certificate with the deprecating
+	// algorithm can be valid through.
+	ExpiryDeadline time.Time `json:"expiry_deadline"`
+}
+
 // A Platform contains ubiquity information on supported crypto algorithms and root certificate store name.
 type Platform struct {
-	Name            string `json:"name"`
-	Weight          int    `json:"weight"`
-	HashAlgo        string `json:"hash_algo"`
-	KeyAlgo         string `json:"key_algo"`
-	KeyStoreFile    string `json:"keystore"`
+	Name            string                   `json:"name"`
+	Weight          int                      `json:"weight"`
+	HashAlgo        string                   `json:"hash_algo"`
+	KeyAlgo         string                   `json:"key_algo"`
+	KeyStoreFile    string                   `json:"keystore"`
+	HashDeprecation *CryptoDeprecationPolicy `json:"hash_algo_expiry"`
 	KeyStore        CertSet
 	HashUbiquity    HashUbiquity
 	KeyAlgoUbiquity KeyAlgoUbiquity
 }
 
+// Deprecate returns whether the platform rejects the cert chain due to ceased support of a crypto hash algorithm.
+func (p Platform) Deprecate(chain []*x509.Certificate) bool {
+	if p.HashDeprecation == nil {
+		return false
+	}
+	now := time.Now()
+	leaf := chain[0]
+
+	// Currently we implement the logic that Chrome browsers use to stop supporting SHA-1. To our understanding,
+	// Microsoft and Mozilla use basically the same logic to cease support of SHA-1 as well.
+
+	if now.After(p.HashDeprecation.EffectiveDate) {
+		if leaf.NotAfter.After(p.HashDeprecation.ExpiryDeadline) {
+			// Check hash algorithm of non-root cert.
+			for i, cert := range chain {
+				if i < len(chain)-1 {
+					if helpers.HashAlgoString(cert.SignatureAlgorithm) == p.HashDeprecation.Target {
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 // Trust returns whether the platform has the root cert in the trusted store.
 func (p Platform) Trust(root *x509.Certificate) bool {
+	// the key store is empty iff the platform doesn't carry a root store and trust whatever root store
+	// is supplied. An example is Chrome. Such platforms should not show up in the untrusted platform
+	// list. So always return true here. Also this won't hurt ubiquity scoring because such platforms give
+	// no differentiation on root cert selection.
+	if len(p.KeyStore) == 0 {
+		return true
+	}
+
 	return p.KeyStore.Lookup(root)
 }
 
@@ -84,30 +132,32 @@ func (p *Platform) ParseAndLoad() (ok bool) {
 	p.HashUbiquity = p.hashUbiquity()
 	p.KeyAlgoUbiquity = p.keyAlgoUbiquity()
 	p.KeyStore = map[string]bool{}
-	pemBytes, err := ioutil.ReadFile(p.KeyStoreFile)
-	if err != nil {
-		return false
-	}
-	// Best effort parsing the PEMs such that ignore all borken pem,
-	// since some of CA certs have negative serial number which trigger errors.
-	for len(pemBytes) > 0 {
-		var cert *x509.Certificate
-		cert, rest, err := helpers.ParseOneCertificateFromPEM(pemBytes)
-		// If one cert is parsed, record the raw SHA1 hash.
-		if err == nil && cert != nil {
-			p.KeyStore.Add(cert)
+	if p.KeyStoreFile != "" {
+		pemBytes, err := ioutil.ReadFile(p.KeyStoreFile)
+		if err != nil {
+			log.Error(err)
+			return false
 		}
+		// Best effort parsing the PEMs such that ignore all borken pem,
+		// since some of CA certs have negative serial number which trigger errors.
+		for len(pemBytes) > 0 {
+			var cert *x509.Certificate
+			cert, rest, err := helpers.ParseOneCertificateFromPEM(pemBytes)
+			// If one cert is parsed, record the raw SHA1 hash.
+			if err == nil && cert != nil {
+				p.KeyStore.Add(cert)
+			}
 
-		if len(rest) < len(pemBytes) {
-			pemBytes = rest
-		} else {
-			// No progress in bytes parsing, bail out.
-			break
+			if len(rest) < len(pemBytes) {
+				pemBytes = rest
+			} else {
+				// No progress in bytes parsing, bail out.
+				break
+			}
 		}
 	}
 	if p.HashUbiquity <= UnknownHashUbiquity ||
-		p.KeyAlgoUbiquity <= UnknownAlgoUbiquity ||
-		len(p.KeyStore) == 0 {
+		p.KeyAlgoUbiquity <= UnknownAlgoUbiquity {
 		return false
 	}
 	return true
@@ -135,10 +185,12 @@ func LoadPlatforms(filename string) {
 	}
 
 	for _, platform := range rawPlatforms {
-		platform.KeyStoreFile = path.Join(relativePath, platform.KeyStoreFile)
+		if platform.KeyStoreFile != "" {
+			platform.KeyStoreFile = path.Join(relativePath, platform.KeyStoreFile)
+		}
 		ok := platform.ParseAndLoad()
 		if !ok {
-			log.Errorf("fail to finalize the parsing of platform metadata: %s", platform.KeyStoreFile)
+			log.Errorf("fail to finalize the parsing of platform metadata: %v", platform)
 		} else {
 			log.Infof("Platform metadata is loaded: %v %v", platform.Name, len(platform.KeyStore))
 			Platforms = append(Platforms, platform)
@@ -151,6 +203,17 @@ func UntrustedPlatforms(root *x509.Certificate) []string {
 	ret := []string{}
 	for _, platform := range Platforms {
 		if !platform.Trust(root) {
+			ret = append(ret, platform.Name)
+		}
+	}
+	return ret
+}
+
+// DeprecatedSHA1Platforms returns a list of platforms which rejects the cert chain based on deprecation of SHA1.
+func DeprecatedSHA1Platforms(chain []*x509.Certificate) []string {
+	ret := []string{}
+	for _, platform := range Platforms {
+		if platform.Deprecate(chain) && platform.HashDeprecation.Target == "SHA1" {
 			ret = append(ret, platform.Name)
 		}
 	}
@@ -171,7 +234,7 @@ func CrossPlatformUbiquity(chain []*x509.Certificate) int {
 	//	2. the chain satisfy the minimal constraints on hash function and key algorithm.
 	root := chain[len(chain)-1]
 	for _, platform := range Platforms {
-		if platform.Trust(root) {
+		if platform.Trust(root) && !platform.Deprecate(chain) {
 			switch {
 			case platform.HashUbiquity <= ChainHashUbiquity(chain) && platform.KeyAlgoUbiquity <= ChainKeyAlgoUbiquity(chain):
 				totalWeight += platform.Weight

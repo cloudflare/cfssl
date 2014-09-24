@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/cloudflare/cfssl/helpers"
 )
@@ -187,7 +188,10 @@ func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	platformA := Platform{Name: "MacroSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformB := Platform{Name: "Godzilla", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/gozilla.pem"}
 	platformC := Platform{Name: "Pineapple", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/pineapple.pem"}
-	Platforms = append(Platforms, platformA, platformB, platformC)
+	platformA.ParseAndLoad()
+	platformB.ParseAndLoad()
+	platformC.ParseAndLoad()
+	Platforms = []Platform{platformA, platformB, platformC}
 	// chain1 with root cert1 (RSA1024, SHA1), has the largest platform coverage.
 	// chain2 with root cert2 (RSA2048, SHA2), has the second largest coverage.
 	// chain3 with root cert3 (ECDSA256, SHA2), has the least coverage.
@@ -211,7 +215,10 @@ func TestPlatformCryptoUbiquity(t *testing.T) {
 	platformA := Platform{Name: "TinySoft", Weight: 100, HashAlgo: "SHA1", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformB := Platform{Name: "SmallSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformC := Platform{Name: "LargeSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/macrosoft.pem"}
-	Platforms = append(Platforms, platformA, platformB, platformC)
+	platformA.ParseAndLoad()
+	platformB.ParseAndLoad()
+	platformC.ParseAndLoad()
+	Platforms = []Platform{platformA, platformB, platformC}
 	// chain1 with root cert1 (RSA1024, SHA1), has the largest platform coverage.
 	// chain2 with root cert2 (RSA2048, SHA2), has the second largest coverage.
 	// chain3 with root cert3 (ECDSA256, SHA2), has the least coverage.
@@ -223,5 +230,49 @@ func TestPlatformCryptoUbiquity(t *testing.T) {
 	}
 	if CrossPlatformUbiquity(chain2) < CrossPlatformUbiquity(chain3) {
 		t.Fatal("Incorrect cross platform ubiquity")
+	}
+}
+
+func TestPlatformCryptoDeprecation(t *testing.T) {
+	cert1 := rsa1024Cert
+	cert2 := rsa2048Cert
+	pweight1 := 1
+	pweight2 := 10
+	pweight3 := 100
+	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
+	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
+	DeprecationPolicy2014 := &CryptoDeprecationPolicy{Target: "SHA1", EffectiveDate: Jan1st2014, ExpiryDeadline: Jan1st2014}
+	DeprecationPolicy2100 := &CryptoDeprecationPolicy{Target: "SHA2", EffectiveDate: Jan1st2100, ExpiryDeadline: Jan1st2014}
+	// All platforms have the same trust store but are with various crypto suite and deprecation policy.
+	// platformA supports SHA1 only and has no deprecation plan of SHA1.
+	// platformB supports SHA1/SHA2 and will deprecate SHA1 at year 2100.
+	// platformC supports SHA1/SHA2 and will deprecate SHA1 at year 2014.
+	platformA := Platform{Name: "TinySoft", Weight: pweight1, HashAlgo: "SHA1", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
+	platformB := Platform{Name: "SmallSoft", Weight: pweight2, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem", HashDeprecation: DeprecationPolicy2100}
+	platformC := Platform{Name: "LargeSoft", Weight: pweight3, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem", HashDeprecation: DeprecationPolicy2014}
+	platformA.ParseAndLoad()
+	platformB.ParseAndLoad()
+	platformC.ParseAndLoad()
+	Platforms = []Platform{platformA, platformB, platformC}
+	// chain1 is accepted by platform A, B and C. It's not rejected by platFormC because root cert is not subject to SHA1 deprecation.
+	chain1 := []*x509.Certificate{cert1}
+	// chain2 is accepted by platform A, B. It's rejected by platFormC because leaf cert is subject to SHA1 deprecation.
+	chain2 := []*x509.Certificate{cert1, cert1}
+	// chain3 is accepted by platformB and platFormC. It's rejected by platformA due to A's inablity to support SHA2.
+	chain3 := []*x509.Certificate{cert2, cert1}
+
+	if CrossPlatformUbiquity(chain1) != pweight1+pweight2+pweight3 {
+		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain1))
+	}
+	if CrossPlatformUbiquity(chain2) != pweight1+pweight2 {
+		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain2))
+	}
+	if CrossPlatformUbiquity(chain3) != pweight2+pweight3 {
+		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain3))
+	}
+
+	dplatforms := DeprecatedSHA1Platforms(chain2)
+	if len(dplatforms) != 1 || dplatforms[0] != "LargeSoft" {
+		t.Fatal("Incorrect deprecation checking: ", dplatforms)
 	}
 }

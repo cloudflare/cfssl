@@ -79,6 +79,39 @@ func SignatureString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
+// HashAlgoString returns the hash algorithm name contains in the signature
+// method.
+func HashAlgoString(alg x509.SignatureAlgorithm) string {
+	switch alg {
+	case x509.MD2WithRSA:
+		return "MD2"
+	case x509.MD5WithRSA:
+		return "MD5"
+	case x509.SHA1WithRSA:
+		return "SHA1"
+	case x509.SHA256WithRSA:
+		return "SHA256"
+	case x509.SHA384WithRSA:
+		return "SHA384"
+	case x509.SHA512WithRSA:
+		return "SHA512"
+	case x509.DSAWithSHA1:
+		return "SHA1"
+	case x509.DSAWithSHA256:
+		return "SHA256"
+	case x509.ECDSAWithSHA1:
+		return "SHA1"
+	case x509.ECDSAWithSHA256:
+		return "SHA256"
+	case x509.ECDSAWithSHA384:
+		return "SHA384"
+	case x509.ECDSAWithSHA512:
+		return "SHA512"
+	default:
+		return "Unknown Hash Algorithm"
+	}
+}
+
 // ParseCertificatesPEM parses a sequence of PEM-encoded certificate and returns them.
 func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 	var certs []*x509.Certificate

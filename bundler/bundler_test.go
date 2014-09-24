@@ -272,7 +272,7 @@ func TestUbiquitousBundle(t *testing.T) {
 	platformB := ubiquity.Platform{Name: "Godzilla", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: testCFSSLRootBundle}
 	platformB.ParseAndLoad()
 	platformA.KeyStore.Add(L1Cert)
-	ubiquity.Platforms = append([]ubiquity.Platform{}, platformA, platformB)
+	ubiquity.Platforms = []ubiquity.Platform{platformA, platformB}
 
 	// Optimal bundle algorithm will picks up the new root and shorten the chain.
 	optimalBundle, err := b.BundleFromFile(leafECDSA256, "", Optimal)
@@ -284,7 +284,7 @@ func TestUbiquitousBundle(t *testing.T) {
 	}
 	// The only trust platform is "Macrosoft".
 	if len(optimalBundle.Status.Untrusted) != 1 {
-		t.Fatal("Optimal bundle status has incorrect untrusted platforms")
+		t.Fatal("Optimal bundle status has incorrect untrusted platforms", optimalBundle.Status.Untrusted)
 	}
 	checkUbiquityWarningAndCode(t, optimalBundle, true)
 
