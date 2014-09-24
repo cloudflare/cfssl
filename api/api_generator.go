@@ -1,7 +1,12 @@
 package api
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -20,8 +25,9 @@ type Validator func(*csr.CertificateRequest) error
 // A CertRequest stores a PEM-encoded private key and corresponding
 // CSR; this is returned from the CSR generation endpoint.
 type CertRequest struct {
-	Key string `json:"private_key"`
-	CSR string `json:"certificate_request"`
+	Key  string         `json:"private_key"`
+	CSR  string         `json:"certificate_request"`
+	Sums map[string]Sum `json:"sums"`
 }
 
 // A GeneratorHandler accepts JSON-encoded certificate requests and
@@ -37,6 +43,41 @@ func NewGeneratorHandler(validator Validator) (http.Handler, error) {
 	return HTTPHandler{&GeneratorHandler{
 		generator: &csr.Generator{Validator: validator},
 	}, "POST"}, nil
+}
+
+func computeSum(in []byte) (sum Sum, err error) {
+	var data []byte
+	p, _ := pem.Decode(in)
+	if p == nil {
+		err = errors.NewBadRequestString("not a CSR or certificate")
+		return
+	}
+
+	switch p.Type {
+	case "CERTIFICATE REQUEST":
+		var req *x509.CertificateRequest
+		req, err = x509.ParseCertificateRequest(p.Bytes)
+		if err != nil {
+			return
+		}
+		data = req.Raw
+	case "CERTIFICATE":
+		var cert *x509.Certificate
+		cert, err = x509.ParseCertificate(p.Bytes)
+		if err != nil {
+			return
+		}
+		data = cert.Raw
+	default:
+		err = errors.NewBadRequestString("not a CSR or certificate")
+		return
+	}
+
+	md5Sum := md5.Sum(data)
+	sha1Sum := sha1.Sum(data)
+	sum.MD5 = fmt.Sprintf("%X", md5Sum[:])
+	sum.SHA1 = fmt.Sprintf("%X", sha1Sum[:])
+	return
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -69,8 +110,17 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 
+	sum, err := computeSum(csr)
+	if err != nil {
+		return errors.NewBadRequest(err)
+	}
+
 	// Both key and csr are returned PEM-encoded.
-	response := newSuccessResponse(&CertRequest{string(key), string(csr)})
+	response := newSuccessResponse(&CertRequest{
+		Key:  string(key),
+		CSR:  string(csr),
+		Sums: map[string]Sum{"certificate_request": sum},
+	})
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	err = enc.Encode(response)
@@ -184,10 +234,24 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return errors.NewBadRequest(err)
 	}
 
-	result := map[string]string{
+	reqSum, err := computeSum(csr)
+	if err != nil {
+		return errors.NewBadRequest(err)
+	}
+
+	certSum, err := computeSum(certPEM)
+	if err != nil {
+		return errors.NewBadRequest(err)
+	}
+
+	result := map[string]interface{}{
 		"private_key":         string(key),
-		"certificate_request": string(certPEM),
+		"certificate_request": string(csr),
 		"certificate":         string(certPEM),
+		"sums": map[string]Sum{
+			"certificate_request": reqSum,
+			"certificate":         certSum,
+		},
 	}
 	return sendResponse(w, result)
 }
