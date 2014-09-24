@@ -20,8 +20,8 @@ type Validator func(*csr.CertificateRequest) error
 // A CertRequest stores a PEM-encoded private key and corresponding
 // CSR; this is returned from the CSR generation endpoint.
 type CertRequest struct {
-	Key string `json:"key"`
-	CSR string `json:"csr"`
+	Key string `json:"private_key"`
+	CSR string `json:"certificate_request"`
 }
 
 // A GeneratorHandler accepts JSON-encoded certificate requests and
@@ -185,8 +185,9 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	}
 
 	result := map[string]string{
-		"private_key": string(key),
-		"certificate": string(certPEM),
+		"private_key":         string(key),
+		"certificate_request": string(certPEM),
+		"certificate":         string(certPEM),
 	}
 	return sendResponse(w, result)
 }
