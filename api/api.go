@@ -23,6 +23,12 @@ type HTTPHandler struct {
 	Method  string // The assoicated HTTP method
 }
 
+// Sum contains digests for a certificate or certificate request.
+type Sum struct {
+	MD5  string `json:"md5"`
+	SHA1 string `json:"sha-1"`
+}
+
 // HandlerFunc is similar to the http.HandlerFunc type; it serves as
 // an adapter allowing the use of ordinary functions as Handlers. If
 // f is a function with the appropriate signature, HandlerFunc(f) is a
