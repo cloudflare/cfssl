@@ -199,6 +199,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 		}
 	}
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	log.Infof("Signed certificate with serial number %s", serialNumber)
 	return
 }
 
