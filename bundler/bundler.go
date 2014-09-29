@@ -43,6 +43,7 @@ const (
 
 const (
 	sha2Warning              = "The bundle contains certs signed with advanced hash functions such as SHA2,  which are problematic at certain operating systems, e.g. Windows XP SP2."
+	ecdsaWarning             = "The bundle contains ECDSA signatures, which are problematic at certain operating systems, e.g. Windows XP SP2, Android 2.2 and Android 2.3."
 	expiringWarningStub      = "The bundle is expiring within 30 days. "
 	untrustedWarningStub     = "The bundle may not be trusted by the following platform(s):"
 	deprecateSHA1WarningStub = "Due to SHA-1 deprecation, the bundle may not be trusted by the following platform(s):"
@@ -591,6 +592,11 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	if ubiquity.ChainHashUbiquity(matchingChains[0]) <= ubiquity.SHA2Ubiquity {
 		statusCode |= errors.BundleNotUbiquitousBit
 		messages = append(messages, sha2Warning)
+	}
+	// Check if bundle contains ECDSA signatures.
+	if ubiquity.ChainKeyAlgoUbiquity(matchingChains[0]) <= ubiquity.ECDSA256Ubiquity {
+		statusCode |= errors.BundleNotUbiquitousBit
+		messages = append(messages, ecdsaWarning)
 	}
 	// Add root store presence info
 	root := matchingChains[0][len(matchingChains[0])-1]
