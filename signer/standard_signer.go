@@ -89,7 +89,6 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 	return &StandardSigner{parsedCa, priv, policy, DefaultSigAlgo(priv)}, nil
 }
 
-//
 type subjectPublicKeyInfo struct {
 	Algorithm        pkix.AlgorithmIdentifier
 	SubjectPublicKey asn1.BitString
@@ -150,6 +149,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
 		err = cferr.New(cferr.CertificateError, cferr.Unknown, err)
+		return
 	}
 
 	template.SerialNumber = serialNumber
