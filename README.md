@@ -138,7 +138,7 @@ the key request as a JSON file. This file should follow the form
 #### Generating self-signed root CA certificate and private key
 
 ```
-cfssl gencert -initca csrjson
+cfssl genkey -initca csrjson | cfssljson -bare ca
 ```
 
 To generate a self-signed root CA certificate, specify the key request as

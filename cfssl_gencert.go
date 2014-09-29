@@ -56,19 +56,18 @@ func gencertMain(args []string) (err error) {
 
 	if Config.isCA {
 		var key, cert []byte
-		if Config.caKeyFile == "" {
+		cert, err = initca.NewFromPEM(&req, Config.caKeyFile)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+			fmt.Println("generating a new CA key and certificate from CSR")
 			cert, key, err = initca.New(&req)
 			if err != nil {
 				return
 			}
-			printCert(key, nil, cert)
-		} else {
-			cert, err = initca.NewFromPEM(&req, Config.caKeyFile)
-			if err != nil {
-				return
-			}
-			printCert(nil, nil, cert)
+
 		}
+		printCert(key, nil, cert)
+
 	} else {
 		if Config.remote != "" {
 			return gencertRemotely(req)
