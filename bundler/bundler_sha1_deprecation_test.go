@@ -34,7 +34,9 @@ func TestChromeWarning(t *testing.T) {
 		t.Fatal("Incorrect bundle status code. Bundle status:", bundle.Status)
 	}
 
-	if len(bundle.Status.Messages) != 1 || bundle.Status.Messages[0] != sha2Warning {
+	if len(bundle.Status.Messages) != 2 ||
+		bundle.Status.Messages[0] != sha2Warning ||
+		bundle.Status.Messages[1] != ecdsaWarning {
 		t.Fatal("Incorrect bundle status messages. Bundle status messages:", bundle.Status.Messages)
 	}
 
@@ -48,8 +50,10 @@ func TestChromeWarning(t *testing.T) {
 		t.Fatal("Incorrect bundle status code. Bundle status:", bundle.Status)
 	}
 
-	if len(bundle.Status.Messages) != 2 || bundle.Status.Messages[0] != sha2Warning ||
-		bundle.Status.Messages[1] != deprecateSHA1WarningStub+" Chrome Browser M41." {
+	if len(bundle.Status.Messages) != 3 ||
+		bundle.Status.Messages[0] != sha2Warning ||
+		bundle.Status.Messages[1] != ecdsaWarning ||
+		bundle.Status.Messages[2] != deprecateSHA1WarningStub+" Chrome Browser M41." {
 		t.Fatal("Incorrect bundle status messages. Bundle status messages:", bundle.Status.Messages)
 	}
 
@@ -63,8 +67,10 @@ func TestChromeWarning(t *testing.T) {
 		t.Fatal("Incorrect bundle status code. Bundle status:", bundle.Status)
 	}
 
-	if len(bundle.Status.Messages) != 2 || bundle.Status.Messages[0] != sha2Warning ||
-		bundle.Status.Messages[1] != deprecateSHA1WarningStub+" Chrome Browser M40, Chrome Browser M41." {
+	if len(bundle.Status.Messages) != 3 ||
+		bundle.Status.Messages[0] != sha2Warning ||
+		bundle.Status.Messages[1] != ecdsaWarning ||
+		bundle.Status.Messages[2] != deprecateSHA1WarningStub+" Chrome Browser M40, Chrome Browser M41." {
 		t.Fatal("Incorrect bundle status messages. Bundle status messages:", bundle.Status.Messages)
 	}
 
@@ -78,8 +84,10 @@ func TestChromeWarning(t *testing.T) {
 		t.Fatal("Incorrect bundle status code. Bundle status:", bundle.Status)
 	}
 
-	if len(bundle.Status.Messages) != 2 || bundle.Status.Messages[0] != sha2Warning ||
-		bundle.Status.Messages[1] != deprecateSHA1WarningStub+" Chrome Browser M39, Chrome Browser M40, Chrome Browser M41." {
+	if len(bundle.Status.Messages) != 3 ||
+		bundle.Status.Messages[0] != sha2Warning ||
+		bundle.Status.Messages[1] != ecdsaWarning ||
+		bundle.Status.Messages[2] != deprecateSHA1WarningStub+" Chrome Browser M39, Chrome Browser M40, Chrome Browser M41." {
 		t.Fatal("Incorrect bundle status messages. Bundle status messages:", bundle.Status.Messages)
 	}
 }

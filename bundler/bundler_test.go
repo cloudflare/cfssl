@@ -31,6 +31,8 @@ const (
 	testCAKeyFile       = "testdata/ca.key"
 	testCFSSLIntBundle  = "testdata/intermediates.crt"
 	emptyPEM            = "testdata/empty.pem"
+	interL1SHA1         = "testdata/inter-L1-sha1.pem"
+	interL2SHA1         = "testdata/inter-L2-sha1.pem"
 )
 
 // Simply create a bundler
@@ -316,9 +318,8 @@ func checkUbiquityWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 	}
 
 	// check status code
-	if (expected && bundle.Status.Code&errors.BundleNotUbiquitousBit == 0) ||
-		(!expected && bundle.Status.Code&errors.BundleNotUbiquitousBit == 1) {
-		t.Fatal("Bundle status code is incorrect:", bundle.Status.Code)
+	if expected && bundle.Status.Code&errors.BundleNotUbiquitousBit == 0 {
+		t.Fatal("Bundle status doesn't set BundleNotUbiquitousBit :", bundle.Status.Code)
 	}
 }
 
@@ -382,6 +383,22 @@ func checkSHA2WarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 	}
 }
 
+func checkECDSAWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
+	found := false
+	for _, msg := range bundle.Status.Messages {
+		if strings.Contains(msg, ecdsaWarning) {
+			found = true
+		}
+	}
+	if found != expected {
+		t.Fatal("Expected ubiquity warning: ", expected, " Found ubiquity warning:", found)
+	}
+	// check status code
+	if bundle.Status.Code&errors.BundleNotUbiquitousBit == 0 {
+		t.Fatal("Bundle status code is incorrect:", bundle.Status.Code)
+	}
+}
+
 // Regression test on SHA-2 Warning
 // Riot Games once bundle a cert issued by DigiCert SHA2 High Assurance Server CA. The resulting
 // bundle uses SHA-256 which is not supported in Windows XP SP2. We should present a warning
@@ -402,6 +419,19 @@ func TestSHA2Warning(t *testing.T) {
 
 	}
 	checkSHA2WarningAndCode(t, ubiquitousBundle, true)
+}
+
+// Regression test on ECDSA Warning
+// A test bundle that contains ECDSA384 but no SHA1. Expect ECDSA warning and no SHA-2 warning.
+func TestECDSAWarning(t *testing.T) {
+	b := newCustomizedBundlerFromFile(t, testCAFile, interL1SHA1, "")
+	// Optimal
+	optimalBundle, err := b.BundleFromFile(interL2SHA1, "", Optimal)
+	if err != nil {
+		t.Fatal("Optimal bundle failed:", err)
+	}
+	checkSHA2WarningAndCode(t, optimalBundle, false)
+	checkECDSAWarningAndCode(t, optimalBundle, true)
 }
 
 // === Helper function block ===
