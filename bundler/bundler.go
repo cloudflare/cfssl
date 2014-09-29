@@ -201,7 +201,7 @@ func (b *Bundler) BundleFromPEM(certsPEM, keyPEM []byte, flavor BundleFlavor) (*
 // is expected that the method will be able to make a connection at
 // port 443. The certificate used by the server in this connection is
 // used to build the bundle, which will necessarily be keyless.
-func (b *Bundler) BundleFromRemote(serverName, ip string) (*Bundle, error) {
+func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (*Bundle, error) {
 	config := &tls.Config{
 		RootCAs:    b.RootPool,
 		ServerName: serverName,
@@ -251,7 +251,7 @@ func (b *Bundler) BundleFromRemote(serverName, ip string) (*Bundle, error) {
 	b.fetchIntermediates(certs)
 
 	// Bundle with remote certs. Inject the initial dial error, if any, to the status reporting.
-	bundle, err := b.Bundle(certs, nil, Ubiquitous)
+	bundle, err := b.Bundle(certs, nil, flavor)
 	if err != nil {
 		return nil, err
 	} else if dialError != "" {

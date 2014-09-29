@@ -173,7 +173,7 @@ func TestBundleNonKeylessMarshalJSON(t *testing.T) {
 // Test marshal to JSON on hostnames
 func TestBundleHostnamesMarshalJSON(t *testing.T) {
 	b := newBundler(t)
-	bundle, _ := b.BundleFromRemote("cloudflare.com", "")
+	bundle, _ := b.BundleFromRemote("cloudflare.com", "", Ubiquitous)
 	hostnames, _ := json.Marshal(bundle.Hostnames)
 	expectedOne := []byte(`["www.cloudflare.com","cloudflare.com"]`)
 	expectedTheOther := []byte(`["cloudflare.com","www.cloudflare.com"]`)

@@ -57,7 +57,7 @@ func bundlerMain(args []string) (err error) {
 			return
 		}
 	} else if Config.domain != "" {
-		bundle, err = b.BundleFromRemote(Config.domain, Config.ip)
+		bundle, err = b.BundleFromRemote(Config.domain, Config.ip, flavor)
 		if err != nil {
 			return
 		}

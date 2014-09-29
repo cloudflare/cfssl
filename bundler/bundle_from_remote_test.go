@@ -112,18 +112,19 @@ func TestBundleFromRemote(t *testing.T) {
 	if !shouldTestSNI {
 		t.Skip()
 	}
-
-	for _, test := range remoteTests {
-		b := test.bundlerConstructor(t)
-		bundle, err := b.BundleFromRemote(test.hostname, test.ip)
-		if test.errorCallback != nil {
-			test.errorCallback(t, err)
-		} else {
-			if err != nil {
-				t.Errorf("expected no error. but an error occurred: %s", err.Error())
-			}
-			if test.bundleCallback != nil {
-				test.bundleCallback(t, bundle)
+	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
+		for _, test := range remoteTests {
+			b := test.bundlerConstructor(t)
+			bundle, err := b.BundleFromRemote(test.hostname, test.ip, bf)
+			if test.errorCallback != nil {
+				test.errorCallback(t, err)
+			} else {
+				if err != nil {
+					t.Errorf("expected no error. but an error occurred: %s", err.Error())
+				}
+				if test.bundleCallback != nil {
+					test.bundleCallback(t, bundle)
+				}
 			}
 		}
 	}

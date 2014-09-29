@@ -42,21 +42,22 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	flavor := blob["flavor"]
+	bf := bundler.Ubiquitous
+	if flavor != "" {
+		bf = bundler.BundleFlavor(flavor)
+	}
+
 	var result *bundler.Bundle
 	switch matched[0] {
 	case "domain":
-		bundle, err := h.bundler.BundleFromRemote(blob["domain"], blob["ip"])
+		bundle, err := h.bundler.BundleFromRemote(blob["domain"], blob["ip"], bf)
 		if err != nil {
 			log.Warningf("couldn't bundle from remote: %v", err)
 			return errors.NewBadRequest(err)
 		}
 		result = bundle
 	case "certificate":
-		flavor := blob["flavor"]
-		bf := bundler.Ubiquitous
-		if flavor != "" {
-			bf = bundler.BundleFlavor(flavor)
-		}
 		bundle, err := h.bundler.BundleFromPEM([]byte(blob["certificate"]), []byte(blob["private_key"]), bf)
 		if err != nil {
 			log.Warning("bad PEM certifcate or private key")
