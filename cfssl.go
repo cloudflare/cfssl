@@ -139,12 +139,13 @@ func init() {
 	}
 	// Register commands.
 	cmds = map[string]*Command{
-		"bundle":  CLIBundler,
-		"sign":    CLISigner,
-		"serve":   CLIServer,
-		"version": CLIVersioner,
-		"genkey":  CLIGenKey,
-		"gencert": CLIGenCert,
+		"bundle":   CLIBundler,
+		"sign":     CLISigner,
+		"serve":    CLIServer,
+		"version":  CLIVersioner,
+		"genkey":   CLIGenKey,
+		"gencert":  CLIGenCert,
+		"selfsign": CLISelfSign,
 	}
 	// Register all command flags.
 	registerFlags()
