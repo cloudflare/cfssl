@@ -4,6 +4,8 @@ package bundler
 import (
 	"flag"
 	"testing"
+
+	"github.com/cloudflare/cfssl/ubiquity"
 )
 
 var shouldTestSNI bool
@@ -28,6 +30,7 @@ const (
 	SelfSignedSSLSite      = "cacert.org"
 	MismatchedHostnameSite = "www.capitol.state.tx.us"
 	ExpiredCertSite        = "testssl-expire.disig.sk"
+	ECCCertSite            = "benflare.us"
 	InvalidSite            = "cloudflare1337.com"
 	ValidSNI               = "alice.sni.velox.ch"
 	ValidSNIWildcard       = "cloudflare.sni.velox.ch"
@@ -128,4 +131,30 @@ func TestBundleFromRemote(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestBundleFromRemoteFlavor(t *testing.T) {
+	b := newBundler(t)
+	ubiquity.Platforms = nil
+	ubiquity.LoadPlatforms(testMetadata)
+
+	bundle, err := b.BundleFromRemote(ECCCertSite, "", Ubiquitous)
+	if err != nil {
+		t.Errorf("expected no error. but an error occurred: %s", err.Error())
+	}
+	if len(bundle.Chain) != 3 {
+		t.Error("expected 3-cert bundle. Got ", len(bundle.Chain))
+	}
+	if len(bundle.Status.Untrusted) != 0 {
+		t.Error("expected no untrusted platforms. Got ", bundle.Status.Untrusted)
+	}
+
+	bundle, err = b.BundleFromRemote(ECCCertSite, "", Optimal)
+	if err != nil {
+		t.Errorf("expected no error. but an error occurred: %s", err.Error())
+	}
+	if len(bundle.Chain) != 2 {
+		t.Error("expected 2-cert bundle. Got ", len(bundle.Chain))
+	}
+
 }

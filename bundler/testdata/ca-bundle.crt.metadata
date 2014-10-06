@@ -40,6 +40,13 @@
 	"keystore": "nss.pem"
 },
 {
+	"name":"OSX",
+	"weight": 99,
+	"hash_algo": "SHA2",
+	"key_algo": "ECDSA256",
+	"keystore": "osx.pem"
+},
+{
 	"name":"Android 2.2 Froyo",
 	"weight": 1,
 	"hash_algo": "SHA2",

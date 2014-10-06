@@ -22,6 +22,7 @@ func TestChromeWarning(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, sha1CA, sha1Intermediate, "")
 	// The metadata contains Chrome M39, M40 and M41. The effective date for their SHA1 deprecation
 	// is pushed to 2014-09-01 to enable unit testing.
+	ubiquity.Platforms = nil
 	ubiquity.LoadPlatforms(testChromeMetadata)
 
 	// Bundle a leaf cert with expiration on 2015-06-02.
