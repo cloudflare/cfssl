@@ -402,25 +402,27 @@ authentication), and one for intermediate certificates:
                                         "signing",
                                         "key encipherment",
                                         "server auth"
-                                ]
+                                ],
+				                "expiry": "168h"
                         },
                         "client": {
                                 "usages": [
                                         "signing",
                                         "key encipherment",
                                         "client auth"
+				                ],
+				                "expiry": "168h"
                         },
                         "intermediate": {
                                 "usages": [
                                         "signing",
                                         "key encipherment",
                                         "cert sign",
-                                        "crl sign",
+                                        "crl sign"
                                 ],
                                 "expiry": "720h"
                         }
                 }
-
         }
 }
 
