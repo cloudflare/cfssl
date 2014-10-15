@@ -145,7 +145,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 // buildHostnames sets bundle.Hostnames by the x509 cert's subject CN and DNS names
 // Since the subject CN may overlap with one of the DNS names, it needs to handle
 // the duplication by a set.
-func (b *Bundle) buildHostnames() {
+func (b *Bundle) BuildHostnames() {
 	if b.Cert == nil {
 		return
 	}

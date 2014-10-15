@@ -530,7 +530,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	bundle.Issuer = &cert.Issuer
 	bundle.Subject = &cert.Subject
 
-	bundle.buildHostnames()
+	bundle.BuildHostnames()
 
 	chains, err := cert.Verify(b.VerifyOptions())
 	if err != nil {
