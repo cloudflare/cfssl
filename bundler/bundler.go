@@ -39,6 +39,9 @@ const (
 	// Ubiquitous is aimed to provide the chain which is accepted
 	// by the most platforms.
 	Ubiquitous BundleFlavor = "ubiquitous"
+
+	// Original means the bundler only verfiies the input as a valid bundle, not optimization is done.
+	Original BundleFlavor = "original"
 )
 
 const (
@@ -566,6 +569,8 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 		matchingChains = optimalChains(chains)
 	case Ubiquitous:
 		matchingChains = ubiquitousChains(chains)
+	case Original:
+		matchingChains = originalChains(certs, chains)
 	default:
 		matchingChains = ubiquitousChains(chains)
 	}
@@ -618,22 +623,8 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 
 	bundle.Status = &BundleStatus{ExpiringSKIs: getSKIs(bundle.Chain, expiringCerts), Code: statusCode, Messages: messages, Untrusted: untrusted}
 
-	// Check if bundled one is different from the input.
-	diff := false
-	if len(bundle.Chain) != len(certs) {
-		diff = true
-	} else {
-		for i, newIntermediate := range bundle.Chain {
-			// Use signature to differentiate.
-			if !bytes.Equal(certs[i].Signature, newIntermediate.Signature) {
-				diff = true
-				break
-			}
-		}
-	}
-
+	bundle.Status.IsRebundled = diff(bundle.Chain, certs)
 	log.Debugf("bundle complete")
-	bundle.Status.IsRebundled = diff
 	return bundle, nil
 }
 
@@ -734,4 +725,44 @@ func ubiquitousChains(chains [][]*x509.Certificate) [][]*x509.Certificate {
 	chains = ubiquity.Filter(chains, ubiquity.CompareExpiryUbiquity)
 	// Use the optimal strategy as final tie breaker.
 	return optimalChains(chains)
+}
+
+// Original chains returns the input bundle (plus one verified root CA)  as the highest ranked ones if possible.
+// If there doesn't exist such bundle, fall back to the most ubiquitous bundle.
+func originalChains(input []*x509.Certificate, chains [][]*x509.Certificate) [][]*x509.Certificate {
+	// Filter out chains that are the same as the input certs.
+	var candidateChains [][]*x509.Certificate
+
+	for _, chain := range chains {
+		if !diff(chain[:len(chain)-1], input) {
+			candidateChains = append(candidateChains, chain)
+		}
+	}
+
+	if len(candidateChains) == 0 {
+		candidateChains = chains
+	}
+
+	// Filter out chains with highest cross platform ubiquity.
+	return ubiquity.Filter(candidateChains, ubiquity.ComparePlatformUbiquity)
+}
+
+// diff checkes if two input cert chains are not identical
+func diff(chain1, chain2 []*x509.Certificate) bool {
+	// Check if bundled one is different from the input.
+	diff := false
+	if len(chain1) != len(chain2) {
+		diff = true
+	} else {
+		for i := 0; i < len(chain1); i++ {
+			cert1 := chain1[i]
+			cert2 := chain2[i]
+			// Use signature to differentiate.
+			if !bytes.Equal(cert1.Signature, cert2.Signature) {
+				diff = true
+				break
+			}
+		}
+	}
+	return diff
 }
