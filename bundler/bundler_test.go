@@ -22,6 +22,7 @@ const (
 	testIntCaBundle     = "testdata/int-bundle.pem"
 	testNSSRootBundle   = "testdata/nss.pem"
 	testMetadata        = "testdata/ca-bundle.crt.metadata"
+	firstdataPEM        = "testdata/firstdata.pem"
 	sgizmoPEM           = "testdata/sgizmo.pem"
 	draftkingsPEM       = "testdata/draftkings.pem"
 	lazadaPEM           = "testdata/lazada.pem"
@@ -364,6 +365,64 @@ func TestAndroidUbiquitousBundle(t *testing.T) {
 			t.Fatal("Regression: Ubiquitous bundle has untrusted platforms: ", ubiquitousBundle.Status.Untrusted)
 		}
 		checkUbiquityWarningAndCode(t, ubiquitousBundle, false)
+	}
+}
+
+// Regression test on bundle with flavor 'Original'.
+// Compare to ubiquitous bundle which will optimize bundle length given the platform ubiquity is the same, original bundle
+// with return the same bundle as long as the input bundle is verified.
+func TestOriginalBundle(t *testing.T) {
+	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
+	ubiquity.Platforms = nil
+	ubiquity.LoadPlatforms(testMetadata)
+	bundle, err := b.BundleFromFile(firstdataPEM, "", Ubiquitous)
+	if err != nil {
+		t.Fatal("ubiquitous bundling failed.", err)
+	}
+
+	if len(bundle.Chain) != 2 {
+		t.Fatal("ubiquitous bundling failed. Bundle length:", len(bundle.Chain))
+	}
+
+	if bundle.Status.IsRebundled == false {
+		t.Fatal("original bundling failed, incorrect bundle.Status", bundle.Status)
+	}
+
+	bundle, err = b.BundleFromFile(firstdataPEM, "", Original)
+	if err != nil {
+		t.Fatal("original bundling failed.", err)
+	}
+
+	if len(bundle.Chain) != 3 {
+		t.Fatal("original bundling failed. Bundle length:", len(bundle.Chain))
+	}
+
+	if bundle.Status.IsRebundled == true {
+		t.Fatal("original bundling failed, incorrect bundle.Status", bundle.Status)
+	}
+}
+
+func TestOriginalBundleFallback(t *testing.T) {
+	leafs := []string{sgizmoPEM, draftkingsPEM, lazadaPEM}
+	for _, leaf := range leafs {
+		b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
+		ubiquity.Platforms = nil
+		ubiquity.LoadPlatforms(testMetadata)
+
+		originalBundle, err := b.BundleFromFile(leaf, "", Original)
+		if err != nil {
+			t.Fatal("Original bundle failed:", err)
+		}
+
+		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous)
+		if err != nil {
+			t.Fatal("Ubiquitous bundle failed")
+
+		}
+
+		if diff(ubiquitousBundle.Chain, originalBundle.Chain) {
+			t.Fatal("Original bundle fallback failed.")
+		}
 	}
 }
 
