@@ -116,6 +116,9 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		keyBytes, _ = x509.MarshalECPrivateKey(ecdsaKey)
 		typeString = "EC PRIVATE KEY"
 	}
+	if len(b.Hostnames) == 0 {
+		b.buildHostNames()
+	}
 	var ocspSupport = false
 	if b.Cert.OCSPServer != nil {
 		ocspSupport = true
