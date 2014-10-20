@@ -116,7 +116,7 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// Both key and csr are returned PEM-encoded.
-	response := newSuccessResponse(&CertRequest{
+	response := NewSuccessResponse(&CertRequest{
 		Key:  string(key),
 		CSR:  string(csr),
 		Sums: map[string]Sum{"certificate_request": sum},
