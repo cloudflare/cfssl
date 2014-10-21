@@ -368,10 +368,10 @@ func TestAndroidUbiquitousBundle(t *testing.T) {
 	}
 }
 
-// Regression test on bundle with flavor 'Original'.
-// Compare to ubiquitous bundle which will optimize bundle length given the platform ubiquity is the same, original bundle
+// Regression test on bundle with flavor 'Force'.
+// Compare to ubiquitous bundle which will optimize bundle length given the platform ubiquity is the same, force bundle
 // with return the same bundle as long as the input bundle is verified.
-func TestOriginalBundle(t *testing.T) {
+func TestForceBundle(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
 	ubiquity.Platforms = nil
 	ubiquity.LoadPlatforms(testMetadata)
@@ -385,33 +385,33 @@ func TestOriginalBundle(t *testing.T) {
 	}
 
 	if bundle.Status.IsRebundled == false {
-		t.Fatal("original bundling failed, incorrect bundle.Status", bundle.Status)
+		t.Fatal("force bundling failed, incorrect bundle.Status", bundle.Status)
 	}
 
-	bundle, err = b.BundleFromFile(firstdataPEM, "", Original)
+	bundle, err = b.BundleFromFile(firstdataPEM, "", Force)
 	if err != nil {
-		t.Fatal("original bundling failed.", err)
+		t.Fatal("force bundling failed.", err)
 	}
 
 	if len(bundle.Chain) != 3 {
-		t.Fatal("original bundling failed. Bundle length:", len(bundle.Chain))
+		t.Fatal("force bundling failed. Bundle length:", len(bundle.Chain))
 	}
 
 	if bundle.Status.IsRebundled == true {
-		t.Fatal("original bundling failed, incorrect bundle.Status", bundle.Status)
+		t.Fatal("force bundling failed, incorrect bundle.Status", bundle.Status)
 	}
 }
 
-func TestOriginalBundleFallback(t *testing.T) {
+func TestForceBundleFallback(t *testing.T) {
 	leafs := []string{sgizmoPEM, draftkingsPEM, lazadaPEM}
 	for _, leaf := range leafs {
 		b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
 		ubiquity.Platforms = nil
 		ubiquity.LoadPlatforms(testMetadata)
 
-		originalBundle, err := b.BundleFromFile(leaf, "", Original)
+		forceBundle, err := b.BundleFromFile(leaf, "", Force)
 		if err != nil {
-			t.Fatal("Original bundle failed:", err)
+			t.Fatal("Force bundle failed:", err)
 		}
 
 		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous)
@@ -420,8 +420,8 @@ func TestOriginalBundleFallback(t *testing.T) {
 
 		}
 
-		if diff(ubiquitousBundle.Chain, originalBundle.Chain) {
-			t.Fatal("Original bundle fallback failed.")
+		if diff(ubiquitousBundle.Chain, forceBundle.Chain) {
+			t.Fatal("Force bundle fallback failed.")
 		}
 	}
 }

@@ -89,7 +89,7 @@ func registerFlags() {
 	cfsslFlagSet.StringVar(&Config.profile, "profile", "", "signing profile to use")
 	cfsslFlagSet.BoolVar(&Config.isCA, "initca", false, "initialise new CA")
 	cfsslFlagSet.StringVar(&Config.intDir, "int-dir", "/etc/cfssl/intermediates", "specify intermediates directory")
-	cfsslFlagSet.StringVar(&Config.flavor, "flavor", "ubiquitous", "Bundle Flavor: ubiquitous, optimal.")
+	cfsslFlagSet.StringVar(&Config.flavor, "flavor", "ubiquitous", "Bundle Flavor: ubiquitous, optimal and force.")
 	cfsslFlagSet.StringVar(&Config.metadata, "metadata", "/etc/cfssl/ca-bundle.crt.metadata", "Metadata file for root certificate presence. The content of the file is a json dictionary (k,v): each key k is SHA-1 digest of a root certificate while value v is a list of key store filenames.")
 	cfsslFlagSet.StringVar(&Config.domain, "domain", "", "remote server domain name")
 	cfsslFlagSet.StringVar(&Config.ip, "ip", "", "remote server ip")
