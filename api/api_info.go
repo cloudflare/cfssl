@@ -69,7 +69,7 @@ func (h *InfoHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		})
 	}
 
-	response := newSuccessResponse(bundles)
+	response := NewSuccessResponse(bundles)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	return enc.Encode(response)

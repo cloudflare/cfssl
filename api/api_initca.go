@@ -43,7 +43,7 @@ func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(err)
 	}
 
-	response := newSuccessResponse(&NewCA{string(key), string(cert)})
+	response := NewSuccessResponse(&NewCA{string(key), string(cert)})
 
 	enc := json.NewEncoder(w)
 	err = enc.Encode(response)

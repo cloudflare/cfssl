@@ -53,7 +53,7 @@ func handleError(w http.ResponseWriter, err error) (code int) {
 		code = err.StatusCode
 	}
 
-	response := newErrorResponse(msg, code)
+	response := NewErrorResponse(msg, code)
 	jsonMessage, err := json.Marshal(response)
 	if err != nil {
 		log.Errorf("Failed to marshal JSON: %v", err)
@@ -97,13 +97,13 @@ func readRequestBlob(r *http.Request) (map[string]string, error) {
 	return blob, nil
 }
 
-// processRequestOneOf reads a JSON blob for the request and makes
+// ProcessRequestOneOf reads a JSON blob for the request and makes
 // sure it contains one of a set of keywords. For example, a request
 // might have the ('foo' && 'bar') keys, OR it might have the 'baz'
 // key.  In either case, we want to accept the request; however, if
 // none of these sets shows up, the request is a bad request, and it
 // should be returned.
-func processRequestOneOf(r *http.Request, keywordSets [][]string) (map[string]string, []string, error) {
+func ProcessRequestOneOf(r *http.Request, keywordSets [][]string) (map[string]string, []string, error) {
 	blob, err := readRequestBlob(r)
 	if err != nil {
 		return nil, nil, err
@@ -163,7 +163,7 @@ type Response struct {
 // newResponseSuccess is a shortcut for creating new successul API
 // responses. CFSSL does not use the messages field, but it is
 // provided to conform to the CloudFlare standard.
-func newSuccessResponse(result interface{}) Response {
+func NewSuccessResponse(result interface{}) Response {
 	return Response{
 		Success:  true,
 		Result:   result,
@@ -172,9 +172,9 @@ func newSuccessResponse(result interface{}) Response {
 	}
 }
 
-// newErrorResponse is a shortcut for creating an error response for a
+// NewErrorResponse is a shortcut for creating an error response for a
 // single error.
-func newErrorResponse(message string, code int) Response {
+func NewErrorResponse(message string, code int) Response {
 	return Response{
 		Success:  false,
 		Result:   nil,
@@ -186,7 +186,7 @@ func newErrorResponse(message string, code int) Response {
 // sendResponse builds a response from the result, sets the JSON
 // header, and writes to the http.ResponseWriter.
 func sendResponse(w http.ResponseWriter, result interface{}) error {
-	response := newSuccessResponse(result)
+	response := NewSuccessResponse(result)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	err := enc.Encode(response)

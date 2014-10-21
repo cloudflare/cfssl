@@ -32,7 +32,7 @@ func NewBundleHandler(caBundleFile, intBundleFile string) (http.Handler, error) 
 
 // Handle implements an http.Handler interface for the bundle handler.
 func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	blob, matched, err := processRequestOneOf(r,
+	blob, matched, err := ProcessRequestOneOf(r,
 		[][]string{
 			[]string{"domain"},
 			[]string{"certificate"},
@@ -66,7 +66,7 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		log.Infof("request for flavour %v", flavor)
 		result = bundle
 	}
-	response := newSuccessResponse(result)
+	response := NewSuccessResponse(result)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	err = enc.Encode(response)
