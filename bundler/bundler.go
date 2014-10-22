@@ -40,8 +40,8 @@ const (
 	// by the most platforms.
 	Ubiquitous BundleFlavor = "ubiquitous"
 
-	// Original means the bundler only verfiies the input as a valid bundle, not optimization is done.
-	Original BundleFlavor = "original"
+	// Force means the bundler only verfiies the input as a valid bundle, not optimization is done.
+	Force BundleFlavor = "force"
 )
 
 const (
@@ -569,8 +569,8 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 		matchingChains = optimalChains(chains)
 	case Ubiquitous:
 		matchingChains = ubiquitousChains(chains)
-	case Original:
-		matchingChains = originalChains(certs, chains)
+	case Force:
+		matchingChains = forceChains(certs, chains)
 	default:
 		matchingChains = ubiquitousChains(chains)
 	}
@@ -727,9 +727,9 @@ func ubiquitousChains(chains [][]*x509.Certificate) [][]*x509.Certificate {
 	return optimalChains(chains)
 }
 
-// Original chains returns the input bundle (plus one verified root CA)  as the highest ranked ones if possible.
+// Force chains returns the input bundle (plus one verified root CA)  as the highest ranked ones if possible.
 // If there doesn't exist such bundle, fall back to the most ubiquitous bundle.
-func originalChains(input []*x509.Certificate, chains [][]*x509.Certificate) [][]*x509.Certificate {
+func forceChains(input []*x509.Certificate, chains [][]*x509.Certificate) [][]*x509.Certificate {
 	// Filter out chains that are the same as the input certs.
 	var candidateChains [][]*x509.Certificate
 
