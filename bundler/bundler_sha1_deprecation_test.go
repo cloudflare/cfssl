@@ -12,6 +12,7 @@ const (
 	sha1CA                = "testdata/ca.pem"
 	testChromeMetadata    = "testdata/ca.pem.metadata"
 	sha1Intermediate      = "testdata/inter-L1-sha1.pem"
+	sha2Intermediate      = "testdata/inter-L1.pem"
 	sha2LeafExp2015Jun2nd = "testdata/inter-L2-1.pem"
 	sha2LeafExp2016Jan2nd = "testdata/inter-L2-2.pem"
 	sha2LeafExp2016Jun2nd = "testdata/inter-L2-3.pem"
@@ -91,4 +92,24 @@ func TestChromeWarning(t *testing.T) {
 		bundle.Status.Messages[2] != deprecateSHA1WarningStub+" Chrome Browser M39, Chrome Browser M40, Chrome Browser M41." {
 		t.Fatal("Incorrect bundle status messages. Bundle status messages:", bundle.Status.Messages)
 	}
+}
+
+func TestUbiquitySHA2Preference(t *testing.T) {
+	// Add a SHA-2 L1 cert to the intermediate pool.
+	b := newCustomizedBundlerFromFile(t, sha1CA, sha1Intermediate, sha2Intermediate)
+	ubiquity.Platforms = nil
+	ubiquity.LoadPlatforms(testChromeMetadata)
+
+	bundle, err := b.BundleFromFile(sha2LeafExp2017Jan2nd, "", Ubiquitous)
+	if err != nil {
+		t.Fatal("bundling failed: ", err)
+	}
+
+	// With same ubiquity score, the chain with SHA2 L1 will be chosen. And so there is no Chrome warning.
+	if len(bundle.Status.Messages) != 2 ||
+		bundle.Status.Messages[0] != sha2Warning ||
+		bundle.Status.Messages[1] != ecdsaWarning {
+		t.Fatal("Incorrect bundle status messages. Bundle status messages:", bundle.Status.Messages)
+	}
+
 }

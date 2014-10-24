@@ -713,10 +713,10 @@ func optimalChains(chains [][]*x509.Certificate) [][]*x509.Certificate {
 
 // Ubiquitous chains are the chains with highest platform coverage and break ties with the optimal strategy.
 func ubiquitousChains(chains [][]*x509.Certificate) [][]*x509.Certificate {
-	// Prefer that all intermediates are SHA-2 certs if the leaf is a SHA-2 cert, in order to improve ubiquity.
-	chains = ubiquity.Filter(chains, ubiquity.CompareSHA2Homogeneity)
 	// Filter out chains with highest cross platform ubiquity.
 	chains = ubiquity.Filter(chains, ubiquity.ComparePlatformUbiquity)
+	// Prefer that all intermediates are SHA-2 certs if the leaf is a SHA-2 cert, in order to improve ubiquity.
+	chains = ubiquity.Filter(chains, ubiquity.CompareSHA2Homogeneity)
 	// Filter shortest chains
 	chains = ubiquity.Filter(chains, ubiquity.CompareChainLength)
 	// Filter chains with highest signature hash ubiquity.
