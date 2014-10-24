@@ -250,3 +250,20 @@ func ComparePlatformUbiquity(chain1, chain2 []*x509.Certificate) int {
 	w2 := CrossPlatformUbiquity(chain2)
 	return w1 - w2
 }
+
+// SHA2Homogeneity returns 1 if the chain contains only SHA-2 certs (excluding root). Otherwise it returns 0.
+func SHA2Homogeneity(chain []*x509.Certificate) int {
+	for i := 0; i < len(chain)-1; i++ {
+		if hashUbiquity(chain[i]) != SHA2Ubiquity {
+			return 0
+		}
+	}
+	return 1
+}
+
+// CompareSHA2Homogeneity compares the chains based on SHA2 homogeneity. Full SHA-2 chain (excluding root) is rated higher that the rest.
+func CompareSHA2Homogeneity(chain1, chain2 []*x509.Certificate) int {
+	w1 := SHA2Homogeneity(chain1)
+	w2 := SHA2Homogeneity(chain2)
+	return w1 - w2
+}

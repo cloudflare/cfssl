@@ -186,7 +186,7 @@ func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	// "Pinapple" has cert1.
 	// All platforms support the same crypto suite.
 	platformA := Platform{Name: "MacroSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/macrosoft.pem"}
-	platformB := Platform{Name: "Godzilla", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/gozilla.pem"}
+	platformB := Platform{Name: "Godzilla", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/godzilla.pem"}
 	platformC := Platform{Name: "Pineapple", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/pineapple.pem"}
 	platformA.ParseAndLoad()
 	platformB.ParseAndLoad()
@@ -274,5 +274,55 @@ func TestPlatformCryptoDeprecation(t *testing.T) {
 	dplatforms := DeprecatedSHA1Platforms(chain2)
 	if len(dplatforms) != 1 || dplatforms[0] != "LargeSoft" {
 		t.Fatal("Incorrect deprecation checking: ", dplatforms)
+	}
+}
+
+func TestSHA2Homogeneity(t *testing.T) {
+	// root-only chain is always SHA2-Homogeneous.
+	chain0 := []*x509.Certificate{rsa1024Cert}
+	if SHA2Homogeneity(chain0) != 1 {
+		t.Fatal("SHA2Homogeneity(chain0) != 1")
+	}
+
+	chain1 := []*x509.Certificate{rsa1024Cert, rsa2048Cert, rsa1024Cert}
+	if SHA2Homogeneity(chain1) != 0 {
+		t.Fatal("SHA2Homogeneity(chain1) != 0")
+	}
+
+	chain2 := []*x509.Certificate{rsa2048Cert, rsa2048Cert, rsa1024Cert}
+	if SHA2Homogeneity(chain2) != 1 {
+		t.Fatal("SHA2Homogeneity(chain2) != 1")
+	}
+
+	chain3 := []*x509.Certificate{ecdsa256Cert, rsa2048Cert, rsa1024Cert}
+	if SHA2Homogeneity(chain3) != 1 {
+		t.Fatal("SHA2Homogeneity(chain3) != 1")
+	}
+
+	chain4 := []*x509.Certificate{ecdsa256Cert, ecdsa384Cert, rsa1024Cert}
+	if SHA2Homogeneity(chain4) != 1 {
+		t.Fatal("SHA2Homogeneity(chain4) != 1")
+	}
+}
+
+func TestCompareSHA2Homogeneity(t *testing.T) {
+	chain1 := []*x509.Certificate{rsa1024Cert, rsa2048Cert, rsa1024Cert}
+	chain2 := []*x509.Certificate{rsa2048Cert, rsa2048Cert, rsa1024Cert}
+	chain3 := []*x509.Certificate{ecdsa256Cert, rsa2048Cert, rsa1024Cert}
+	chain4 := []*x509.Certificate{ecdsa256Cert, ecdsa384Cert, rsa1024Cert}
+	if CompareSHA2Homogeneity(chain1, chain2) >= 0 {
+		t.Fatal("CompareSHA2Homogeneity(chain1, chain2) >= 0")
+	}
+
+	if CompareSHA2Homogeneity(chain1, chain3) >= 0 {
+		t.Fatal("CompareSHA2Homogeneity(chain1, chain3) >= 0")
+	}
+
+	if CompareSHA2Homogeneity(chain1, chain4) >= 0 {
+		t.Fatal("CompareSHA2Homogeneity(chain1, chain4) >= 0")
+	}
+
+	if CompareSHA2Homogeneity(chain2, chain3) != 0 || CompareSHA2Homogeneity(chain3, chain4) != 0 {
+		t.Fatal("CompareSHA2Homogeneity failed.")
 	}
 }
