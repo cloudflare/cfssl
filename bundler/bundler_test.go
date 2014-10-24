@@ -27,6 +27,7 @@ const (
 	draftkingsPEM       = "testdata/draftkings.pem"
 	lazadaPEM           = "testdata/lazada.pem"
 	riotPEM             = "testdata/riot.pem"
+	bunningsPEM         = "testdata/bunnings.pem"
 	testCFSSLRootBundle = "testdata/ca.pem"
 	testCAFile          = "testdata/ca.pem"
 	testCAKeyFile       = "testdata/ca.key"
@@ -424,6 +425,51 @@ func TestForceBundleFallback(t *testing.T) {
 			t.Fatal("Force bundle fallback failed.")
 		}
 	}
+}
+
+// Regression test: ubiquity bundle test with SHA2-homogeneous preference should not override root ubiquity.
+func TestSHA2Homogeneity(t *testing.T) {
+	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
+	ubiquity.Platforms = nil
+	ubiquity.LoadPlatforms(testMetadata)
+	// The input PEM bundle is 3-cert chain with a cross-signed GeoTrust certificate,
+	// aimed to provide cert ubiquity to Android 2.2
+	bundle, err := b.BundleFromFile(bunningsPEM, "", Force)
+	if err != nil {
+		t.Fatal("Force bundle failed:", err)
+	}
+	if len(bundle.Chain) != 3 {
+		t.Fatal("Force bundle failed:")
+	}
+	if len(bundle.Status.Untrusted) != 0 {
+		t.Fatal("Force bundle failed:")
+	}
+
+	// With ubiquity flavor, we should not sacrifice Android 2.2 and rebundle with a shorter chain.
+	bundle, err = b.BundleFromFile(bunningsPEM, "", Ubiquitous)
+	if err != nil {
+		t.Fatal("Ubiquitous bundle failed:", err)
+	}
+	if len(bundle.Chain) != 3 {
+		t.Fatal("Ubiquitous bundle failed:")
+	}
+	if len(bundle.Status.Untrusted) != 0 {
+		t.Fatal("Ubiquitous bundle failed:")
+	}
+
+	// With optimal flavor, we should have a shorter chain with only SHA-2 intermediates. But Android 2.2
+	// is untrusted.
+	bundle, err = b.BundleFromFile(bunningsPEM, "", Optimal)
+	if err != nil {
+		t.Fatal("Optimal bundle failed:", err)
+	}
+	if len(bundle.Chain) != 2 {
+		t.Fatal("Optimal bundle failed:")
+	}
+	if len(bundle.Status.Untrusted) == 0 {
+		t.Fatal("Optimal bundle failed:")
+	}
+
 }
 
 func checkSHA2WarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
