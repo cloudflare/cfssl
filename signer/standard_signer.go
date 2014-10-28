@@ -228,9 +228,19 @@ func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, prof
 
 	if subject == nil {
 		if ip := net.ParseIP(hostName); ip != nil {
-			template.IPAddresses = []net.IP{ip}
+			template.IPAddresses = append(template.IPAddresses, ip)
 		} else {
-			template.DNSNames = []string{hostName}
+			template.DNSNames = append(template.DNSNames, hostName)
+		}
+	} else {
+		template.DNSNames = []string{}
+		template.IPAddresses = []net.IP{}
+		for _, host := range subject.Hosts {
+			if ip := net.ParseIP(host); ip != nil {
+				template.IPAddresses = append(template.IPAddresses, ip)
+			} else {
+				template.DNSNames = append(template.DNSNames, host)
+			}
 		}
 	}
 	return s.sign(template, profile)
