@@ -131,7 +131,7 @@ func scanFiles(paths chan string) {
 	for _, path := range flag.Args() {
 		err := filepath.Walk(path, walker)
 		if err != nil {
-			log.Errorf("Walk failed: %vf", err)
+			log.Errorf("Walk failed: %v", err)
 		}
 	}
 	close(paths)
