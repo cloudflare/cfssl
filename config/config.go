@@ -96,7 +96,8 @@ type Signing struct {
 
 // Config stores configuration information for the CA.
 type Config struct {
-	Signing *Signing `json:"signing"`
+	Signing  *Signing           `json:"signing"`
+	AuthKeys map[string]AuthKey `json:"auth_key,omitempty"`
 }
 
 // Valid ensures that Config is a valid configuration. It should be
@@ -154,6 +155,18 @@ var ExtKeyUsage = map[string]x509.ExtKeyUsage{
 	"ocsp signing":     x509.ExtKeyUsageOCSPSigning,
 	"microsoft sgc":    x509.ExtKeyUsageMicrosoftServerGatedCrypto,
 	"netscape sgc":     x509.ExtKeyUsageNetscapeServerGatedCrypto,
+}
+
+// An AuthKey contains an entry for a key used for authentication.
+type AuthKey struct {
+	// Type contains information needed to select the appropriate
+	// constructor. For example, "standard" for HMAC-SHA-256,
+	// "standard-ip" for HMAC-SHA-256 incorporating the client's
+	// IP.
+	Type string
+	// Key contains the key information, such as a hex-encoded
+	// HMAC key.
+	Key string
 }
 
 // DefaultConfig returns a default configuration specifying basic key
