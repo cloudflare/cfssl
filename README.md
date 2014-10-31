@@ -69,6 +69,7 @@ The subject is an optional file that contains subject information that
 should be used in place of the information from the CSR. It should be
 a JSON file with the type:
 
+```
 {
     "hosts": [
         "example.com",
@@ -84,8 +85,8 @@ a JSON file with the type:
             "ST": "California"
         }
     ]
-
 }
+```
 
 #### Bundling
 
