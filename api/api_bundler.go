@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/bundler"
-	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -54,14 +53,14 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		bundle, err := h.bundler.BundleFromRemote(blob["domain"], blob["ip"], bf)
 		if err != nil {
 			log.Warningf("couldn't bundle from remote: %v", err)
-			return errors.NewBadRequest(err)
+			return err
 		}
 		result = bundle
 	case "certificate":
 		bundle, err := h.bundler.BundleFromPEM([]byte(blob["certificate"]), []byte(blob["private_key"]), bf)
 		if err != nil {
 			log.Warning("bad PEM certifcate or private key")
-			return errors.NewBadRequest(err)
+			return err
 		}
 		log.Infof("request for flavour %v", flavor)
 		result = bundle

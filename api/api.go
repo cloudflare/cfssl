@@ -46,11 +46,19 @@ func handleError(w http.ResponseWriter, err error) (code int) {
 		return http.StatusOK
 	}
 	msg := err.Error()
-	code = http.StatusInternalServerError
+	httpCode := http.StatusInternalServerError
+
 	// If it is recognized as HttpError emitted from cf-ssl,
-	// we rewrite the status code accordingly.
-	if err, ok := err.(*errors.HTTPError); ok && err.StatusCode != 0 {
+	// we rewrite the status code accordingly. If it is a
+	// cf-ssl error, set the http status to StatusBadRequest
+	switch err := err.(type) {
+	case *errors.HTTPError:
+		httpCode = err.StatusCode
 		code = err.StatusCode
+	case *errors.Error:
+		httpCode = http.StatusBadRequest
+		code = err.ErrorCode
+		msg = err.Message
 	}
 
 	response := NewErrorResponse(msg, code)
@@ -60,7 +68,7 @@ func handleError(w http.ResponseWriter, err error) (code int) {
 	} else {
 		msg = string(jsonMessage)
 	}
-	http.Error(w, msg, code)
+	http.Error(w, msg, httpCode)
 	return code
 }
 
@@ -146,7 +154,7 @@ func matchKeywords(blob map[string]string, keywords []string) bool {
 // ResponseMessage implements the standard for response errors and
 // messages. A message has a code and a string message.
 type ResponseMessage struct {
-	Code    int    `json:"int"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 

@@ -84,9 +84,11 @@ const (
 )
 
 type signTest struct {
-	Hostname       string
-	CSRFile        string
-	ExpectedStatus int
+	Hostname           string
+	CSRFile            string
+	ExpectedHTTPStatus int
+	ExpectedSuccess    bool
+	ExpectedErrorCode  int
 }
 
 var signTests = []signTest{
@@ -94,35 +96,65 @@ var signTests = []signTest{
 		testHostName,
 		testCSRFile,
 		http.StatusOK,
+		true,
+		0,
 	},
 	{
 		testDomainName,
 		testCSRFile,
 		http.StatusOK,
+		true,
+		0,
 	},
 	{
 		"",
 		testCSRFile,
 		http.StatusBadRequest,
+		false,
+		http.StatusBadRequest,
 	},
 	{
 		testDomainName,
 		"",
+		http.StatusBadRequest,
+		false,
 		http.StatusBadRequest,
 	},
 	{
 		testDomainName,
 		testBrokenCSRFile,
 		http.StatusBadRequest,
+		false,
+		1002,
 	},
 }
 
 func TestSign(t *testing.T) {
 	for i, test := range signTests {
 		resp, body := testSignFile(t, test.Hostname, test.CSRFile)
-		if resp.StatusCode != test.ExpectedStatus {
-			t.Fatalf("Test %d: expected: %d, have %d", i, test.ExpectedStatus, resp.StatusCode)
-			t.Fatal(resp.Status, test.ExpectedStatus, string(body))
+		if resp.StatusCode != test.ExpectedHTTPStatus {
+			t.Fatalf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))
+		}
+
+		message := new(Response)
+		err := json.Unmarshal(body, message)
+		if err != nil {
+			t.Fatalf("failed to read response body: %v", err)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
+		}
+
+		if test.ExpectedSuccess != message.Success {
+			t.Fatalf("Test %d: expected: %v, have %v", i, test.ExpectedSuccess, message.Success)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
+		}
+		if test.ExpectedSuccess == true {
+			continue
+		}
+
+		if test.ExpectedErrorCode != message.Errors[0].Code {
+			t.Fatalf("Test %d: expected: %v, have %v", i, test.ExpectedErrorCode, message.Errors[0].Code)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
 		}
 
 	}
@@ -201,11 +233,13 @@ func TestNewBundleHandler(t *testing.T) {
 }
 
 type bundleTest struct {
-	Domain         string
-	CertFile       string
-	KeyFile        string
-	Flavor         string
-	ExpectedStatus int
+	Domain             string
+	CertFile           string
+	KeyFile            string
+	Flavor             string
+	ExpectedHTTPStatus int
+	ExpectedSuccess    bool
+	ExpectedErrorCode  int
 }
 
 var bundleTests = []bundleTest{
@@ -216,6 +250,8 @@ var bundleTests = []bundleTest{
 		"",
 		"",
 		http.StatusOK,
+		true,
+		0,
 	},
 	{
 		"",
@@ -223,6 +259,8 @@ var bundleTests = []bundleTest{
 		"",
 		"ubiquitous",
 		http.StatusOK,
+		true,
+		0,
 	},
 	{
 		"",
@@ -230,6 +268,8 @@ var bundleTests = []bundleTest{
 		"",
 		"optimal",
 		http.StatusOK,
+		true,
+		0,
 	},
 	{
 		"",
@@ -237,17 +277,19 @@ var bundleTests = []bundleTest{
 		testLeafKeyFile,
 		"",
 		http.StatusOK,
+		true,
+		0,
 	},
 	// Test bundling with remote domain
 
-	// Since we are using test CA and intermediates, it's expected
-	// to receive 400 bad request because bundling is not possible.
 	{
 		"google.com",
 		"",
 		"",
 		"",
 		http.StatusBadRequest,
+		false,
+		1220,
 	},
 	// Error testing.
 	{
@@ -256,12 +298,16 @@ var bundleTests = []bundleTest{
 		testLeafWrongKeyFile,
 		"",
 		http.StatusBadRequest,
+		false,
+		2300,
 	},
 	{
 		"",
 		"",
 		"",
 		"",
+		http.StatusBadRequest,
+		false,
 		http.StatusBadRequest,
 	},
 	{
@@ -270,16 +316,41 @@ var bundleTests = []bundleTest{
 		"",
 		"",
 		http.StatusBadRequest,
+		false,
+		1003,
 	},
 }
 
 func TestBundle(t *testing.T) {
-	for _, test := range bundleTests {
+	for i, test := range bundleTests {
 		resp, body := testBundleFile(t, test.Domain, test.CertFile, test.KeyFile, test.Flavor)
-		if resp.StatusCode != test.ExpectedStatus {
-			t.Fatal(resp.Status, test.ExpectedStatus, string(body))
+		if resp.StatusCode != test.ExpectedHTTPStatus {
+			t.Fatalf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))
+		}
+		if test.ExpectedHTTPStatus != http.StatusOK {
+			continue
 		}
 
+		message := new(Response)
+		err := json.Unmarshal(body, message)
+		if err != nil {
+			t.Fatalf("failed to read response body: %v", err)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
+		}
+
+		if test.ExpectedSuccess != message.Success {
+			t.Fatalf("Test %d: expected: %v, have %v", i, test.ExpectedSuccess, message.Success)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
+		}
+		if test.ExpectedSuccess == true {
+			continue
+		}
+
+		if test.ExpectedErrorCode != message.Errors[0].Code {
+			t.Fatalf("Test %d: expected: %v, have %v", i, test.ExpectedErrorCode, message.Errors[0].Code)
+			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
+		}
 	}
 }
 

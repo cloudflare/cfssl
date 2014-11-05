@@ -3,7 +3,7 @@ package client
 // ResponseMessage implements the standard for response errors and
 // messages. A message has a code and a string message.
 type ResponseMessage struct {
-	Code    int    `json:"int"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
