@@ -102,7 +102,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
-		return errors.NewBadRequest(err)
+		return err
 	}
 
 	result := map[string]string{"certificate": string(cert)}
