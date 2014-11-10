@@ -2,7 +2,7 @@ language: go
 go:
         - tip
         - 1.3
-script: go get code.google.com/p/go.tools/cmd/vet && go get github.com/cloudflare/cfssl && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/...
+script: go get golang.org/x/tools/cmd/vet && go get github.com/cloudflare/cfssl && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/...
 notifications:
         email:
                 recipients:
