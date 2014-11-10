@@ -58,8 +58,8 @@ func gencertMain(args []string) (err error) {
 		var key, cert []byte
 		cert, err = initca.NewFromPEM(&req, Config.caKeyFile)
 		if err != nil {
-			fmt.Printf("%v\n", err)
-			fmt.Println("generating a new CA key and certificate from CSR")
+			log.Errorf("%v\n", err)
+			log.Infof("generating a new CA key and certificate from CSR")
 			cert, key, err = initca.New(&req)
 			if err != nil {
 				return
