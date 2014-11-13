@@ -444,26 +444,25 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 		var advanced bool
 		if b.verifyChain(chain) {
 			foundChains++
-		} else {
-			log.Debugf("walk AIA issuers")
-			for _, url := range current.Cert.IssuingCertificateURL {
-				if seen[url] {
-					log.Debugf("url %s has been seen", url)
-					continue
-				}
-				crt, err := fetchRemoteCertificate(url)
-				if err != nil {
-					continue
-				} else if seen[string(crt.Cert.Signature)] {
-					log.Debugf("fetched certificate is known")
-					continue
-				}
-				seen[url] = true
-				seen[string(crt.Cert.Signature)] = true
-				chain = append([]*fetchedIntermediate{crt}, chain...)
-				advanced = true
-				break
+		}
+		log.Debugf("walk AIA issuers")
+		for _, url := range current.Cert.IssuingCertificateURL {
+			if seen[url] {
+				log.Debugf("url %s has been seen", url)
+				continue
 			}
+			crt, err := fetchRemoteCertificate(url)
+			if err != nil {
+				continue
+			} else if seen[string(crt.Cert.Signature)] {
+				log.Debugf("fetched certificate is known")
+				continue
+			}
+			seen[url] = true
+			seen[string(crt.Cert.Signature)] = true
+			chain = append([]*fetchedIntermediate{crt}, chain...)
+			advanced = true
+			break
 		}
 
 		if !advanced {
