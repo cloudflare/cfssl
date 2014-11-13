@@ -249,9 +249,6 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 		log.Debugf("failed to verify hostname: %v", err)
 		return nil, errors.New(errors.CertificateError, errors.VerifyFailed, err)
 	}
-	// verify peer intermediates and store them if there is any missing from the bundle.
-	// Don't care if there is error, will throw it any way in Bundle() call.
-	b.fetchIntermediates(certs)
 
 	// Bundle with remote certs. Inject the initial dial error, if any, to the status reporting.
 	bundle, err := b.Bundle(certs, nil, flavor)
@@ -535,6 +532,10 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	bundle.Subject = &cert.Subject
 
 	bundle.buildHostnames()
+
+	// verify and store input intermediates to the intermediate pool.
+	// Ignore the returned error here, will treat it in the second call.
+	b.fetchIntermediates(certs)
 
 	chains, err := cert.Verify(b.VerifyOptions())
 	if err != nil {

@@ -23,6 +23,7 @@ const (
 	testNSSRootBundle   = "testdata/nss.pem"
 	testMetadata        = "testdata/ca-bundle.crt.metadata"
 	firstdataPEM        = "testdata/firstdata.pem"
+	forcebundlePEM      = "testdata/forcebundle.pem"
 	sgizmoPEM           = "testdata/sgizmo.pem"
 	draftkingsPEM       = "testdata/draftkings.pem"
 	lazadaPEM           = "testdata/lazada.pem"
@@ -400,6 +401,43 @@ func TestForceBundle(t *testing.T) {
 
 	if bundle.Status.IsRebundled == true {
 		t.Fatal("force bundling failed, incorrect bundle.Status", bundle.Status)
+	}
+
+}
+
+func TestUpdateIntermediate(t *testing.T) {
+	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
+	ubiquity.Platforms = nil
+	ubiquity.LoadPlatforms(testMetadata)
+	// forcebundle.pem contains a newer intermediate, which should be used when bundling.
+	ub, err := b.BundleFromFile(forcebundlePEM, "", Ubiquitous)
+
+	if err != nil {
+		t.Fatal("ubiquitous bundling failed.", err)
+	}
+
+	// Ubiquitous bundle should use the intermediate from NSS since it will score higher.
+	if len(ub.Chain) != 2 {
+		t.Fatal("force bundling failed. Bundle length:", len(ub.Chain))
+	}
+
+	if ub.Status.IsRebundled == false {
+		t.Fatal("force bundling failed, incorrect bundle.Status", ub.Status)
+	}
+
+	fb, err := b.BundleFromFile(forcebundlePEM, "", Force)
+
+	if err != nil {
+		t.Fatal("force bundling failed.", err)
+	}
+
+	// Force bundle should use the intermediate from input, indicating intermediate pool is updated.
+	if len(fb.Chain) != 2 {
+		t.Fatal("force bundling failed. Bundle length:", len(fb.Chain))
+	}
+
+	if fb.Status.IsRebundled == true {
+		t.Fatal("force bundling failed, incorrect bundle.Status", fb.Status)
 	}
 }
 
