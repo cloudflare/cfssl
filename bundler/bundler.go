@@ -364,15 +364,17 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 			continue
 		}
 
-		log.Debugf("add certificate to intermediate pool")
-		b.IntermediatePool.AddCert(cert.Cert)
+		// leaf cert has an empty name, don't store leaf cert.
 		if cert.Name == "" {
 			continue
 		}
+
+		log.Debug("add certificate to intermediate pool:", cert.Name)
+		b.IntermediatePool.AddCert(cert.Cert)
+		b.KnownIssuers[string(cert.Cert.Signature)] = true
+
 		fileName := filepath.Join(IntermediateStash, cert.Name)
 		fileName += fmt.Sprintf(".%d", time.Now().UnixNano())
-
-		b.KnownIssuers[string(cert.Cert.Signature)] = true
 
 		var block = pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
 
