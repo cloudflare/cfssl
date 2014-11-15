@@ -249,9 +249,6 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 		log.Debugf("failed to verify hostname: %v", err)
 		return nil, errors.New(errors.CertificateError, errors.VerifyFailed, err)
 	}
-	// verify peer intermediates and store them if there is any missing from the bundle.
-	// Don't care if there is error, will throw it any way in Bundle() call.
-	b.fetchIntermediates(certs)
 
 	// Bundle with remote certs. Inject the initial dial error, if any, to the status reporting.
 	bundle, err := b.Bundle(certs, nil, flavor)
@@ -364,15 +361,17 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 			continue
 		}
 
-		log.Debugf("add certificate to intermediate pool")
-		b.IntermediatePool.AddCert(cert.Cert)
+		// leaf cert has an empty name, don't store leaf cert.
 		if cert.Name == "" {
 			continue
 		}
+
+		log.Debug("add certificate to intermediate pool:", cert.Name)
+		b.IntermediatePool.AddCert(cert.Cert)
+		b.KnownIssuers[string(cert.Cert.Signature)] = true
+
 		fileName := filepath.Join(IntermediateStash, cert.Name)
 		fileName += fmt.Sprintf(".%d", time.Now().UnixNano())
-
-		b.KnownIssuers[string(cert.Cert.Signature)] = true
 
 		var block = pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
 
@@ -444,26 +443,25 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 		var advanced bool
 		if b.verifyChain(chain) {
 			foundChains++
-		} else {
-			log.Debugf("walk AIA issuers")
-			for _, url := range current.Cert.IssuingCertificateURL {
-				if seen[url] {
-					log.Debugf("url %s has been seen", url)
-					continue
-				}
-				crt, err := fetchRemoteCertificate(url)
-				if err != nil {
-					continue
-				} else if seen[string(crt.Cert.Signature)] {
-					log.Debugf("fetched certificate is known")
-					continue
-				}
-				seen[url] = true
-				seen[string(crt.Cert.Signature)] = true
-				chain = append([]*fetchedIntermediate{crt}, chain...)
-				advanced = true
-				break
+		}
+		log.Debugf("walk AIA issuers")
+		for _, url := range current.Cert.IssuingCertificateURL {
+			if seen[url] {
+				log.Debugf("url %s has been seen", url)
+				continue
 			}
+			crt, err := fetchRemoteCertificate(url)
+			if err != nil {
+				continue
+			} else if seen[string(crt.Cert.Signature)] {
+				log.Debugf("fetched certificate is known")
+				continue
+			}
+			seen[url] = true
+			seen[string(crt.Cert.Signature)] = true
+			chain = append([]*fetchedIntermediate{crt}, chain...)
+			advanced = true
+			break
 		}
 
 		if !advanced {
@@ -534,6 +532,10 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	bundle.Subject = &cert.Subject
 
 	bundle.buildHostnames()
+
+	// verify and store input intermediates to the intermediate pool.
+	// Ignore the returned error here, will treat it in the second call.
+	b.fetchIntermediates(certs)
 
 	chains, err := cert.Verify(b.VerifyOptions())
 	if err != nil {
