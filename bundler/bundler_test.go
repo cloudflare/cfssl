@@ -24,9 +24,7 @@ const (
 	testMetadata        = "testdata/ca-bundle.crt.metadata"
 	firstdataPEM        = "testdata/firstdata.pem"
 	forcebundlePEM      = "testdata/forcebundle.pem"
-	sgizmoPEM           = "testdata/sgizmo.pem"
-	draftkingsPEM       = "testdata/draftkings.pem"
-	lazadaPEM           = "testdata/lazada.pem"
+	draftkingsPEM       = "testdata/draftkings.pem" // expires in July 2015
 	riotPEM             = "testdata/riot.pem"
 	bunningsPEM         = "testdata/bunnings.pem"
 	testCFSSLRootBundle = "testdata/ca.pem"
@@ -326,19 +324,19 @@ func checkUbiquityWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 	}
 }
 
+// FIXME: test case expires in July 2015
 // Regression test on ubiquity.
 // It is to make sure ubiquitous bundles are generated so they can be trusted by Android 2.2
 // and its variants.
 //
-// Leaf certs from SurveyGizmo.com and DraftKings.com are issued by a GoDaddy intermediate cert,
+// Leaf cert from DraftKings.com is issued by a GoDaddy intermediate cert,
 // which in turn is issued by a GoDaddy Root Certificate (CN: Go Daddy Root Certificate Authority
 // G2). The NSS library includes this root cert. So optimal bundle should only have two certs.
 // However,  that root cert is not present in trust stores of Android <= 2.2. Ubiquitous bundling
 // should be able to recognize this scenario and produces a bundle that includes the GoDaddy Root
 // cert as an intermediate, which is verified by older trust roots.
-// Also, lazada.com.ph (mentioned in CFSSL-48) is having a similar problem with GeoTrust CA.
 func TestAndroidUbiquitousBundle(t *testing.T) {
-	leafs := []string{sgizmoPEM, draftkingsPEM, lazadaPEM}
+	leafs := []string{draftkingsPEM}
 	for _, leaf := range leafs {
 		b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
 		ubiquity.Platforms = nil
@@ -441,8 +439,9 @@ func TestUpdateIntermediate(t *testing.T) {
 	}
 }
 
+// FIXME: test case expires in July 2015
 func TestForceBundleFallback(t *testing.T) {
-	leafs := []string{sgizmoPEM, draftkingsPEM, lazadaPEM}
+	leafs := []string{draftkingsPEM}
 	for _, leaf := range leafs {
 		b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
 		ubiquity.Platforms = nil
