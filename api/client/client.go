@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+
+	"github.com/cloudflare/cfssl/auth"
 )
 
 // A Server points to a remote CFSSL instance.
@@ -41,6 +43,14 @@ func NewServer(addr string) *Server {
 
 func (srv *Server) getURL(endpoint string) string {
 	return fmt.Sprintf("http://%s:%d/api/v1/cfssl/%s", srv.Address, srv.Port, endpoint)
+}
+
+func (srv *Server) AuthSign(hostname string, csr []byte, profileName string, provider auth.Provider) ([]byte, error) {
+	req, err := srv.Sign(hostname, csr, profileName)
+	if err != nil {
+		return nil, err
+	}
+	return provider.Token(req)
 }
 
 // Sign sends a signature request to the remote CFSSL server,

@@ -82,7 +82,6 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 
 	priv, err := helpers.ParsePrivateKeyPEM(cakey)
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -210,6 +209,19 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 // in subject will be used in place of the subject information in the CSR.
 func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, profileName string) (cert []byte, err error) {
 	profile := s.policy.Profiles[profileName]
+	if profile != nil {
+		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed,
+			errors.New("unknown profile"))
+	}
+
+	// If there is a remote for this profile, send the request there
+	if profile.Remote != nil {
+		if profile.Provider != nil {
+			return profile.Remote.AuthSign(hostName, in, profileName, profile.Provider)
+		} else {
+			return profile.Remote.Sign(hostName, in, profileName)
+		}
+	}
 
 	block, _ := pem.Decode(in)
 	if block == nil {
@@ -223,7 +235,8 @@ func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, prof
 
 	template, err := ParseCertificateRequest(s, block.Bytes, subject)
 	if err != nil {
-		return
+		return nil, cferr.New(cferr.CertificateError,
+			cferr.DecodeFailed, errors.New("not a certificate or csr"))
 	}
 
 	if subject == nil {

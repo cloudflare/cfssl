@@ -92,6 +92,7 @@ func TestValidConfig(t *testing.T) {
 	bytes, _ := json.Marshal(validConfig)
 	fmt.Printf("%v", string(bytes))
 }
+
 func TestDefaultConfig(t *testing.T) {
 	if !DefaultConfig().validProfile(false) {
 		t.Fatal("global default signing profile should be a valid profile.")
@@ -132,13 +133,13 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, p := range validProfiles {
-		if !p.parse() {
+		if !p.populate(nil) {
 			t.Fatalf("Failed to parse ExpiryString=%s", p.ExpiryString)
 		}
 	}
 
 	for _, p := range invalidProfiles {
-		if p.parse() {
+		if p.populate(nil) {
 			if p != nil {
 				t.Fatalf("ExpiryString=%s should not be parseable", p.ExpiryString)
 			}
@@ -148,7 +149,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestLoadFile(t *testing.T) {
-	validConfigFiles := []string{"testdata/valid_config.json", "testdata/valid_config_no_default.json"}
+	validConfigFiles := []string{"testdata/valid_config.json", "testdata/valid_config_auth.json", "testdata/valid_config_no_default.json"}
 	for _, configFile := range validConfigFiles {
 		config := LoadFile(configFile)
 		if config == nil {
@@ -162,7 +163,9 @@ func TestLoadInvalidConfigFile(t *testing.T) {
 		"testdata/invalid_default.json",
 		"testdata/invalid_profiles.json",
 		"testdata/invalid_usage.json",
-		"testdata/invalid_config.json"}
+		"testdata/invalid_config.json",
+		"testdata/invalid_auth.json",
+		"testdata/invalid_remote.json"}
 	for _, configFile := range invalidConfigFiles {
 		config := LoadFile(configFile)
 		if config != nil {
