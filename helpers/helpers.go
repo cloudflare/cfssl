@@ -13,6 +13,7 @@ import (
 	"time"
 
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/log"
 )
 
 // OneYear is a time.Duration representing a year's worth of seconds.
@@ -121,7 +122,7 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 		var cert *x509.Certificate
 		cert, certsPEM, err = ParseOneCertificateFromPEM(certsPEM)
 		if err != nil {
-			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, err)
+			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, nil)
 		} else if cert == nil {
 			break
 		}
@@ -151,7 +152,9 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	certPEM = bytes.TrimSpace(certPEM)
 	cert, rest, err := ParseOneCertificateFromPEM(certPEM)
 	if err != nil {
-		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, err)
+		// Log the actual parsing error but throw a default parse error message.
+		log.Debugf("Certificate parsing error: %v", err)
+		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, nil)
 	} else if cert == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed, nil)
 	} else if len(rest) > 0 {

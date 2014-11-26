@@ -319,6 +319,26 @@ var bundleTests = []bundleTest{
 		false,
 		1003,
 	},
+
+	{
+		"",
+		testLeafKeyFile,
+		testLeafKeyFile,
+		"",
+		http.StatusBadRequest,
+		false,
+		1003,
+	},
+
+	{
+		"",
+		testLeafCertFile,
+		testLeafCertFile,
+		"",
+		http.StatusBadRequest,
+		false,
+		2003,
+	},
 }
 
 func TestBundle(t *testing.T) {
@@ -327,9 +347,6 @@ func TestBundle(t *testing.T) {
 		if resp.StatusCode != test.ExpectedHTTPStatus {
 			t.Fatalf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))
-		}
-		if test.ExpectedHTTPStatus != http.StatusOK {
-			continue
 		}
 
 		message := new(Response)

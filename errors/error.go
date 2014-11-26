@@ -156,6 +156,8 @@ func New(category Category, reason Reason, err error) *Error {
 			switch reason {
 			case DecodeFailed:
 				msg = "Failed to decode certificate"
+			case ParseFailed:
+				msg = "Failed to parse certificate"
 			case SelfSigned:
 				msg = "Certificate is self signed"
 			}
@@ -169,6 +171,8 @@ func New(category Category, reason Reason, err error) *Error {
 			switch reason {
 			case DecodeFailed:
 				msg = "Failed to decode private key"
+			case ParseFailed:
+				msg = "Failed to parse private key"
 			case Encrypted:
 				msg = "Private key is encrypted"
 			case NotRSAOrECC:
