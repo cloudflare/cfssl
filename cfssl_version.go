@@ -6,12 +6,12 @@ import (
 )
 
 // Version stores the semantic versioning information for CFSSL.
-var version struct {
+var version = struct {
 	Major    int
 	Minor    int
 	Patch    int
 	Revision string
-}
+}{1, 0, 1, "release"}
 
 func versionString() string {
 	return fmt.Sprintf("%d.%d.%d", version.Major, version.Minor, version.Patch)
