@@ -42,9 +42,34 @@ func TestNewBundler(t *testing.T) {
 	newBundler(t)
 }
 
+func TestNewBundlerMissingCA(t *testing.T) {
+	badFile := "testdata/no_such_file.pem"
+	_, err := NewBundler(badFile, testIntCaBundle)
+	if err == nil {
+		t.Fatal("Should fail with error code 4001")
+	}
+
+	// generate a function checking error content
+	errorCheck := ExpectErrorMessage(`"code":4001`)
+	errorCheck(t, err)
+}
+
+func TestNewBundlerMissingIntermediate(t *testing.T) {
+	badFile := "testdata/no_such_file.pem"
+	_, err := NewBundler(testCaBundle, badFile)
+	if err == nil {
+		t.Fatal("Should fail with error code 3001")
+	}
+
+	// generate a function checking error content
+	errorCheck := ExpectErrorMessage(`"code":3001`)
+	errorCheck(t, err)
+}
+
 // JSON object of a bundle
 type bundleObject struct {
 	Bundle      string   `json:"bundle"`
+	Root        string   `json:"root"`
 	Cert        string   `json:"crt"`
 	Key         string   `json:"key"`
 	KeyType     string   `json:"key_type"`
@@ -67,7 +92,7 @@ var godaddySubjectString = `/Country=US/Province=Arizona/Locality=Scottsdale/Org
 // Also serves as a JSON format regression test.
 func TestBundleMarshalJSON(t *testing.T) {
 	b := newBundler(t)
-	bundle, _ := b.BundleFromPEM(validRootCert, nil, Optimal)
+	bundle, _ := b.BundleFromPEM(GoDaddyIntermediateCert, nil, Optimal)
 	bytes, err := json.Marshal(bundle)
 
 	if err != nil {
@@ -83,7 +108,7 @@ func TestBundleMarshalJSON(t *testing.T) {
 	if obj.Bundle == "" {
 		t.Fatal("bundle is empty.")
 	}
-	if obj.Bundle != string(validRootCert) {
+	if obj.Bundle != string(GoDaddyIntermediateCert) {
 		t.Fatal("bundle is incorrect:", obj.Bundle)
 	}
 
@@ -91,7 +116,11 @@ func TestBundleMarshalJSON(t *testing.T) {
 		t.Fatal("key is not empty:", obj.Key)
 	}
 
-	if obj.Cert != string(validRootCert) {
+	if obj.Root != string(GoDaddyRootCert) {
+		t.Fatal("Root is not recovered")
+	}
+
+	if obj.Cert != string(GoDaddyIntermediateCert) {
 		t.Fatal("Cert is not recovered")
 	}
 
@@ -136,7 +165,7 @@ func TestBundleMarshalJSON(t *testing.T) {
 	}
 }
 
-func TestBundleNonKeylessMarshalJSON(t *testing.T) {
+func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
 	bundle, _ := b.BundleFromFile(leafECDSA256, leafKeyECDSA256, Optimal)
 	jsonBytes, err := json.Marshal(bundle)
@@ -172,6 +201,44 @@ func TestBundleNonKeylessMarshalJSON(t *testing.T) {
 
 }
 
+func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
+	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
+	bundle, _ := b.BundleFromFile(leafRSA2048, leafKeyRSA2048, Optimal)
+	jsonBytes, err := json.Marshal(bundle)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var obj map[string]interface{}
+	err = json.Unmarshal(jsonBytes, &obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	key := obj["key"].(string)
+	keyBytes, _ := ioutil.ReadFile(leafKeyRSA2048)
+	keyBytes = bytes.Trim(keyBytes, " \n")
+	if key != string(keyBytes) {
+		t.Error("key is", key)
+		t.Error("keyBytes is", string(keyBytes))
+		t.Fatal("key is not recovered.")
+	}
+
+	cert := obj["crt"].(string)
+	certBytes, _ := ioutil.ReadFile(leafRSA2048)
+	certBytes = bytes.Trim(certBytes, " \n")
+	if cert != string(certBytes) {
+		t.Fatal("cert is not recovered.")
+	}
+
+	keyType := obj["key_type"]
+	if keyType != "2048-bit RSA" {
+		t.Fatal("Incorrect key type:", keyType)
+	}
+
+}
+
 // Test marshal to JSON on hostnames
 func TestBundleHostnamesMarshalJSON(t *testing.T) {
 	b := newBundler(t)
@@ -183,7 +250,7 @@ func TestBundleHostnamesMarshalJSON(t *testing.T) {
 		t.Fatal("Hostnames construction failed for cloudflare.com.", string(hostnames))
 	}
 
-	bundle, _ = b.BundleFromPEM(validRootCert, nil, Optimal)
+	bundle, _ = b.BundleFromPEM(GoDaddyIntermediateCert, nil, Optimal)
 	expected := []byte(`["Go Daddy Secure Certification Authority"]`)
 	hostnames, _ = json.Marshal(bundle.Hostnames)
 	if !bytes.Equal(hostnames, expected) {

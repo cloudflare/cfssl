@@ -21,6 +21,7 @@ import (
 type Bundle struct {
 	Chain     []*x509.Certificate
 	Cert      *x509.Certificate
+	Root      *x509.Certificate
 	Key       interface{}
 	Issuer    *pkix.Name
 	Subject   *pkix.Name
@@ -111,7 +112,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	}
 	if rsaKey, ok := b.Key.(*rsa.PrivateKey); ok {
 		keyBytes = x509.MarshalPKCS1PrivateKey(rsaKey)
-		typeString = "PRIVATE KEY"
+		typeString = "RSA PRIVATE KEY"
 	} else if ecdsaKey, ok := b.Key.(*ecdsa.PrivateKey); ok {
 		keyBytes, _ = x509.MarshalECPrivateKey(ecdsaKey)
 		typeString = "EC PRIVATE KEY"
@@ -129,6 +130,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(map[string]interface{}{
 		"bundle":       chain(b.Chain),
+		"root":         pemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Root.Raw}),
 		"crt":          pemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Cert.Raw}),
 		"key":          pemBlockToString(&pem.Block{Type: typeString, Bytes: keyBytes}),
 		"key_type":     keyType,

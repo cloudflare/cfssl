@@ -612,6 +612,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	}
 	// Add root store presence info
 	root := matchingChains[0][len(matchingChains[0])-1]
+	bundle.Root = root
 	log.Infof("the anchoring root is %v", root.Subject)
 	// Check if there is any platform that doesn't trust the chain.
 	untrusted := ubiquity.UntrustedPlatforms(root)
