@@ -5,14 +5,21 @@
 package revoke
 
 import (
+	"bytes"
+	"crypto"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
 	"time"
 
+	"code.google.com/p/go.crypto/ocsp"
+
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -70,6 +77,17 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool) {
 			return false, false
 		} else if revoked {
 			log.Info("certificate is revoked via CRL")
+			return true, true
+		}
+
+		if revoked, ok := certIsRevokedOCSP(cert, HardFail); !ok {
+			log.Warning("error checking revocation via OCSP")
+			if HardFail {
+				return true, false
+			}
+			return false, false
+		} else if revoked {
+			log.Info("certificate is revoked via OCSP")
 			return true, true
 		}
 	}
@@ -143,4 +161,118 @@ func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 	}
 
 	return revCheck(cert)
+}
+
+func fetchRemote(url string) (*x509.Certificate, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	in, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	resp.Body.Close()
+
+	p, _ := pem.Decode(in)
+	if p != nil {
+		return helpers.ParseCertificatePEM(in)
+	}
+
+	return x509.ParseCertificate(in)
+}
+
+var ocspOpts = ocsp.RequestOptions{
+	Hash: crypto.SHA1,
+}
+
+func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
+	var err error
+
+	ocspURLs := leaf.OCSPServer
+	if len(ocspURLs) == 0 {
+		// OCSP not enabled for this certificate.
+		return false, true
+	}
+
+	var issuer *x509.Certificate
+	for _, issuingCert := range leaf.IssuingCertificateURL {
+		issuer, err = fetchRemote(issuingCert)
+		if err != nil {
+			continue
+		}
+		break
+	}
+
+	if issuer == nil {
+		return
+	}
+
+	ocspRequest, err := ocsp.CreateRequest(leaf, issuer, &ocspOpts)
+	if err != nil {
+		return
+	}
+
+	for _, server := range ocspURLs {
+		resp, err := sendOCSPRequest(server, ocspRequest, issuer)
+		if err != nil {
+			if strict {
+				return
+			}
+			continue
+		}
+
+		// There wasn't an error fetching the OCSP status.
+		ok = true
+
+		if resp.Status != ocsp.Good {
+			// The certificate was revoked.
+			revoked = true
+		}
+
+		return
+	}
+	return
+}
+
+var ocspUnauthorised = []byte{0x30, 0x03, 0x0a, 0x01, 0x06}
+var ocspMalformed = []byte{0x30, 0x03, 0x0a, 0x01, 0x01}
+
+// sendOCSPRequest attempts to request an OCSP response from the
+// server. The error only indicates a failure to *fetch* the
+// certificate, and *does not* mean the certificate is valid.
+func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (ocspResponse *ocsp.Response, err error) {
+	var resp *http.Response
+	if len(req) > 256 {
+		buf := bytes.NewBuffer(req)
+		resp, err = http.Post(server, "application/ocsp-request", buf)
+	} else {
+		reqURL := server + "/" + base64.StdEncoding.EncodeToString(req)
+		resp, err = http.Get(reqURL)
+	}
+
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	resp.Body.Close()
+
+	if bytes.Equal(body, ocspUnauthorised) {
+		return
+	}
+
+	if bytes.Equal(body, ocspMalformed) {
+		return
+	}
+
+	return ocsp.ParseResponse(body, issuer)
 }
