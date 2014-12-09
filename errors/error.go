@@ -3,7 +3,6 @@ package errors
 import (
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -158,81 +157,159 @@ func (e *Error) Error() string {
 
 }
 
+// New returns an error that contains  an error code and message derived from
+// the given category, reason. Currently, to avoid confusion, it is not
+// allowed to create an error of category Success
+func New(category Category, reason Reason) *Error {
+	errorCode := int(category) + int(reason)
+	var msg string
+	switch category {
+	case CertificateError:
+		switch reason {
+		case Unknown:
+			msg = "Unknown certificate error"
+		case ReadFailed:
+			msg = "Failed to read certificate"
+		case DecodeFailed:
+			msg = "Failed to decode certificate"
+		case ParseFailed:
+			msg = "Failed to parse certificate"
+		case SelfSigned:
+			msg = "Certificate is self signed"
+		case VerifyFailed:
+			msg = "Unable to verify certificate"
+		case BadRequest:
+			msg = "Invalid certificate request"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CertificateError.",
+				reason))
+
+		}
+	case PrivateKeyError:
+		switch reason {
+		case Unknown:
+			msg = "Unknown private key error"
+		case ReadFailed:
+			msg = "Failed to read private key"
+		case DecodeFailed:
+			msg = "Failed to decode private key"
+		case ParseFailed:
+			msg = "Failed to parse private key"
+		case Encrypted:
+			msg = "Private key is encrypted."
+		case NotRSAOrECC:
+			msg = "Private key algorithm is not RSA or ECC"
+		case KeyMismatch:
+			msg = "Private key does not match public key"
+		case GenerationFailed:
+			msg = "Failed to new private key"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category PrivateKeyError.",
+				reason))
+		}
+	case IntermediatesError:
+		switch reason {
+		case Unknown:
+			msg = "Unknown intermediate certificate error"
+		case ReadFailed:
+			msg = "Failed to read intermediate certificate"
+		case DecodeFailed:
+			msg = "Failed to decode intermediate certificate"
+		case ParseFailed:
+			msg = "Failed to parse intermediate certificate"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category IntermediatesError.",
+				reason))
+		}
+	case RootError:
+		switch reason {
+		case Unknown:
+			msg = "Unknown root certificate error"
+		case ReadFailed:
+			msg = "Failed to read root certificate"
+		case DecodeFailed:
+			msg = "Failed to decode root certificate"
+		case ParseFailed:
+			msg = "Failed to parse root certificate"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category RootError.",
+				reason))
+		}
+	case PolicyError:
+		switch reason {
+		case Unknown:
+			msg = "Unknown policy error"
+		case NoKeyUsages:
+			msg = "Invalid policy: no key usage available"
+		case InvalidPolicy:
+			msg = "Invalid or unknown policy"
+		case InvalidRequest:
+			msg = "Policy violation request"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category PolicyError.",
+				reason))
+		}
+	case DialError:
+		switch reason {
+		case Unknown:
+			msg = "Failed to dial remote server"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category DialError.",
+				reason))
+		}
+	case APIClientError:
+		switch reason {
+		case AuthenticationFailure:
+			msg = "API client authentication failure"
+		case JSONError:
+			msg = "API client JSON config error"
+		case ClientHTTPError:
+			msg = "API client HTTP error"
+		case IOError:
+			msg = "API client IO error"
+		case ServerRequestFailed:
+			msg = "API client error: Server request failed"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category APIClientError.",
+				reason))
+		}
+
+	default:
+		panic(fmt.Sprintf("Unsupported CF-SSL error type: %d.",
+			category))
+	}
+	return &Error{ErrorCode: errorCode, Message: msg}
+}
+
 // New returns an error that contains the given error and an error code derived from
 // the given category, reason and the error. Currently, to avoid confusion, it is not
 // allowed to create an error of category Success
-func New(category Category, reason Reason, err error) *Error {
+func Wrap(category Category, reason Reason, err error) *Error {
 	errorCode := int(category) + int(reason)
+	if err == nil {
+		panic("Wrap needs a supplied error to initialize.")
+	}
+
+	// do not double wrap a error
+	switch err.(type) {
+	case *Error:
+		panic("Unable to wrap a wrapped error.")
+	}
+
 	switch category {
 	case CertificateError:
-		// With an error given, report the status with more detailed status code
+		// given VerifyFailed , report the status with more detailed status code
 		// for some certificate errors we care.
-		if err != nil {
+		if reason == VerifyFailed {
 			switch errorType := err.(type) {
 			case x509.CertificateInvalidError:
 				errorCode += certificateInvalid + int(errorType.Reason)
 			case x509.UnknownAuthorityError:
 				errorCode += unknownAuthority
 			}
-		} else {
-			// Without a given error, customize an error message.
-			msg := "Unknown certificate error"
-			switch reason {
-			case DecodeFailed:
-				msg = "Failed to decode certificate"
-			case ParseFailed:
-				msg = "Failed to parse certificate"
-			case SelfSigned:
-				msg = "Certificate is self signed"
-			}
-			err = errors.New(msg)
 		}
-	case PrivateKeyError:
-		// If there isn't a given error,
-		// customize one.
-		if err == nil {
-			msg := "Unknown private key error"
-			switch reason {
-			case DecodeFailed:
-				msg = "Failed to decode private key"
-			case ParseFailed:
-				msg = "Failed to parse private key"
-			case Encrypted:
-				msg = "Private key is encrypted"
-			case NotRSAOrECC:
-				msg = "Private key algorithm is not RSA or ECC"
-			case KeyMismatch:
-				msg = "Private key does not match public key"
-			}
-			err = errors.New(msg)
-		}
-	case IntermediatesError, RootError:
-		// Right now, these two types of errors should come from
-		// a standard error during parsing. So if there is no
-		// passed-in error, panic.
-		if err == nil {
-			panic("IntermediatesError/RootError needs a supplied error to initialize.")
-		}
-
-	case PolicyError:
-		if err == nil {
-			err = errors.New("invalid policy")
-		}
-	case DialError:
-		if err == nil {
-			err = errors.New("dialing remote server failed")
-		}
-	case APIClientError:
-		msg := "API client error"
-		switch reason {
-		case AuthenticationFailure:
-			msg = "Authentication failure"
-		case JSONError, ClientHTTPError, IOError:
-			msg = err.Error()
-		case ServerRequestFailed:
-			msg = "Server request failed"
-		}
-		err = errors.New(msg)
+	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError:
+		// no-op, just use the error
 	default:
 		panic(fmt.Sprintf("Unsupported CF-SSL error type: %d.",
 			category))

@@ -122,7 +122,7 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 		var cert *x509.Certificate
 		cert, certsPEM, err = ParseOneCertificateFromPEM(certsPEM)
 		if err != nil {
-			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, nil)
+			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed)
 		} else if cert == nil {
 			break
 		}
@@ -130,7 +130,7 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 		certs = append(certs, cert)
 	}
 	if len(certsPEM) > 0 {
-		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed, nil)
+		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	}
 	return certs, nil
 }
@@ -142,7 +142,7 @@ func ParseSelfSignedCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 		return nil, err
 	}
 	if err := cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature); err != nil {
-		return nil, cferr.New(cferr.CertificateError, cferr.VerifyFailed, err)
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.VerifyFailed, err)
 	}
 	return cert, nil
 }
@@ -154,11 +154,11 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	if err != nil {
 		// Log the actual parsing error but throw a default parse error message.
 		log.Debugf("Certificate parsing error: %v", err)
-		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, nil)
+		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed)
 	} else if cert == nil {
-		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed, nil)
+		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	} else if len(rest) > 0 {
-		return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed, errors.New("The PEM file should contain only one certificate."))
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("The PEM file should contain only one certificate."))
 	}
 	return cert, nil
 }
@@ -183,11 +183,11 @@ func ParseOneCertificateFromPEM(certsPEM []byte) (cert *x509.Certificate, rest [
 func ParsePrivateKeyPEM(keyPEM []byte) (key interface{}, err error) {
 	keyDER, _ := pem.Decode(keyPEM)
 	if keyDER == nil {
-		return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed, nil)
+		return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
 	}
 	if procType, ok := keyDER.Headers["Proc-Type"]; ok {
 		if strings.Contains(procType, "ENCRYPTED") {
-			return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted, nil)
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted)
 		}
 	}
 	return ParsePrivateKeyDER(keyDER.Bytes)
@@ -207,7 +207,7 @@ func ParsePrivateKeyDER(keyDER []byte) (key interface{}, err error) {
 				// we don't want to leak any info about
 				// the private key.
 				return nil, cferr.New(cferr.PrivateKeyError,
-					cferr.ParseFailed, nil)
+					cferr.ParseFailed)
 			}
 		}
 	}

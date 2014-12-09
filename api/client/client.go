@@ -57,7 +57,7 @@ func (srv *Server) AuthSign(req, ID []byte, profileName string, provider auth.Pr
 
 	token, err := provider.Token(req)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.AuthenticationFailure, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.AuthenticationFailure, err)
 	}
 
 	aReq := &auth.AuthenticatedRequest{
@@ -69,31 +69,31 @@ func (srv *Server) AuthSign(req, ID []byte, profileName string, provider auth.Pr
 
 	jsonData, err := json.Marshal(aReq)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.JSONError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
 	buf := bytes.NewBuffer(jsonData)
 	resp, err := http.Post(url, "application/json", buf)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.ClientHTTPError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.IOError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
 	}
 	resp.Body.Close()
 
 	var response Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.JSONError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
 	if !response.Success || response.Result == nil {
 		if len(response.Errors) > 0 {
-			return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
+			return nil, errors.Wrap(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
 		}
-		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed, nil)
+		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed)
 	}
 	result := response.Result.(map[string]interface{})
 	cert := result["certificate"].(string)
@@ -116,31 +116,31 @@ func (srv *Server) Sign(hostname string, csr []byte, profileName, label string) 
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.JSONError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
 	buf := bytes.NewBuffer(jsonData)
 	resp, err := http.Post(url, "application/json", buf)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.ClientHTTPError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.IOError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
 	}
 	resp.Body.Close()
 
 	var response Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, errors.New(errors.APIClientError, errors.JSONError, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
 	if !response.Success || response.Result == nil {
 		if len(response.Errors) > 0 {
-			return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
+			return nil, errors.Wrap(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
 		}
-		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed, nil)
+		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed)
 	}
 	result := response.Result.(map[string]interface{})
 	cert := result["certificate"].(string)

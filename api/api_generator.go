@@ -168,7 +168,7 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote stri
 	if remote != "" {
 		cg.server = client.NewServer(remote)
 		if cg.server == nil {
-			return nil, errors.New(errors.DialError, errors.None, nil)
+			return nil, errors.New(errors.DialError, errors.None)
 		}
 	}
 

@@ -61,7 +61,7 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 	}
 
 	if !policy.Valid() {
-		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid policy"))
+		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
 	}
 
 	log.Debug("Loading CA: ", caFile)
@@ -129,7 +129,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 	}
 
 	if ku == 0 && len(eku) == 0 {
-		err = cferr.New(cferr.PolicyError, cferr.NoKeyUsages, errors.New("no key usage available"))
+		err = cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
 		return
 	}
 
@@ -147,7 +147,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 	now := time.Now()
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
-		err = cferr.New(cferr.CertificateError, cferr.Unknown, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 		return
 	}
 
@@ -174,7 +174,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {
-			err = cferr.New(cferr.PolicyError, cferr.InvalidRequest, nil)
+			err = cferr.New(cferr.PolicyError, cferr.InvalidRequest)
 			return
 		}
 		template.DNSNames = nil
@@ -193,7 +193,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 	if initRoot {
 		s.ca, err = x509.ParseCertificate(derBytes)
 		if err != nil {
-			err = cferr.New(cferr.CertificateError, cferr.ParseFailed, err)
+			err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 			return
 		}
 	}
@@ -215,11 +215,11 @@ func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, prof
 
 	block, _ := pem.Decode(in)
 	if block == nil {
-		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed, err)
+		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	}
 
 	if block.Type != "CERTIFICATE REQUEST" {
-		return nil, cferr.New(cferr.CertificateError,
+		return nil, cferr.Wrap(cferr.CertificateError,
 			cferr.ParseFailed, errors.New("not a certificate or csr"))
 	}
 

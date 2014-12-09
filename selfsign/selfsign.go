@@ -27,13 +27,13 @@ func parseCertificateRequest(priv interface{}, csrBytes []byte) (template *x509.
 
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
-		err = cferr.New(cferr.CertificateError, cferr.ParseFailed, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		return
 	}
 
 	err = signer.CheckSignature(csr, csr.SignatureAlgorithm, csr.RawTBSCertificateRequest, csr.Signature)
 	if err != nil {
-		err = cferr.New(cferr.CertificateError, cferr.KeyMismatch, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.KeyMismatch, err)
 		return
 	}
 
@@ -55,12 +55,12 @@ type subjectPublicKeyInfo struct {
 // Sign creates a new self-signed certificate.
 func Sign(priv interface{}, csrPEM []byte, profile *config.SigningProfile) ([]byte, error) {
 	if profile == nil {
-		return nil, cferr.New(cferr.PolicyError, cferr.None, errors.New("no profile for self-signing"))
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("no profile for self-signing"))
 	}
 
 	p, _ := pem.Decode(csrPEM)
 	if p == nil || p.Type != "CERTIFICATE REQUEST" {
-		return nil, cferr.New(cferr.CertificateError, cferr.BadRequest, errors.New("invalid certificate request"))
+		return nil, cferr.New(cferr.CertificateError, cferr.BadRequest)
 	}
 
 	template, err := parseCertificateRequest(priv, p.Bytes)
@@ -96,7 +96,7 @@ func Sign(priv interface{}, csrPEM []byte, profile *config.SigningProfile) ([]by
 	expiry = profile.Expiry
 
 	if ku == 0 && len(eku) == 0 {
-		err = cferr.New(cferr.PolicyError, cferr.NoKeyUsages, errors.New("no key usage available"))
+		err = cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
 		return nil, err
 	}
 
@@ -107,7 +107,7 @@ func Sign(priv interface{}, csrPEM []byte, profile *config.SigningProfile) ([]by
 	now := time.Now()
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
-		err = cferr.New(cferr.CertificateError, cferr.Unknown, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 		return nil, err
 	}
 
