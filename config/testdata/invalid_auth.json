@@ -4,8 +4,8 @@
 			"CA": {
 				"usages": ["cert sign"],
 				"expiry": "720h",
-				"auth_key": "garbage"
 				"remote": "localhost",
+				"auth_key": "garbage"
 			},
 			"email": {
 				"usages": ["s/mime"],

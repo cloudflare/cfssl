@@ -40,7 +40,7 @@ type SigningProfile struct {
 // This function is also used to create references to the auth key
 // and default remote for the profile.
 // It returns true if ExpiryString is a valid representation of a
-// time.Duration, and the AuthKeyString and hkoteName point to
+// time.Duration, and the AuthKeyString and RemoteName point to
 // valid objects. It returns false otherwise.
 func (p *SigningProfile) populate(cfg *Config) bool {
 	log.Debugf("parse expiry in profile")

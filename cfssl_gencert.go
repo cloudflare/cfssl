@@ -151,7 +151,7 @@ func gencertRemotely(req csr.CertificateRequest) error {
 	}
 
 	var cert []byte
-	cert, err = srv.Sign(Config.hostname, csrPEM, Config.profile)
+	cert, err = srv.Sign(Config.hostname, csrPEM, Config.profile, "")
 	if err != nil {
 		return err
 	}

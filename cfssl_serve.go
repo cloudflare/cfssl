@@ -40,7 +40,7 @@ func registerHandlers() error {
 	if Config.cfg != nil {
 		signConfig = Config.cfg.Signing
 	}
-	signHandler, err := api.NewSignHandler(Config.caFile, Config.caKeyFile, signConfig)
+	signHandler, err := api.NewSignHandler(Config.caFile, Config.caKeyFile, Config.remote, signConfig)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
 	} else {
