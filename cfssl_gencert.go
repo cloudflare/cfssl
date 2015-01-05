@@ -22,7 +22,7 @@ Usage of gencert:
 
 Arguments:
         HOSTNAME:   Hostname for the cert
-        CSRJSON:    JSON file containing the request
+        CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
 
 	HOSTNAME should not be included when initalising a new CA.
 Flags:

@@ -26,7 +26,7 @@ risk.
 
 Arguments:
         HOSTNAME:   Hostname for the cert
-        CSRJSON:    JSON file containing the request
+        CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
 
 Flags:
 `
