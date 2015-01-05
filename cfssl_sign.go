@@ -18,7 +18,7 @@ Usage of sign:
 
 Arguments:
         HOSTNAME:   Hostname for the cert
-        CSR:        Certificate request.
+        CSR:        PEM file for certificate request, use '-' for reading PEM from stdin.
 
 Note: HOSTNAME and CSR can also be supplied via flag values; flag values will take precedence over the argument.
 
@@ -70,7 +70,7 @@ func signerMain(args []string) (err error) {
 
 	// Read the certificate and sign it with CA files
 	log.Debug("Loading Client certificate: ", Config.certFile)
-	clientCert, err := ioutil.ReadFile(Config.certFile)
+	clientCert, err := readStdin(Config.certFile)
 	if err != nil {
 		return
 	}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -17,7 +16,7 @@ Usage of genkey:
         cfssl genkey CSRJSON
 
 Arguments:
-        CSRJSON:	JSON file containing the request
+        CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
 
 Flags:
 `
@@ -30,7 +29,7 @@ func genkeyMain(args []string) (err error) {
 		return
 	}
 
-	csrFileBytes, err := ioutil.ReadFile(csrFile)
+	csrFileBytes, err := readStdin(csrFile)
 	if err != nil {
 		return
 	}
