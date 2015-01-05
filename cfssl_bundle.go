@@ -17,7 +17,7 @@ Usage of bundle:
         cfssl bundle -domain domain_name [-ip ip_address] [-ca-bundle file] [-int-bundle file] [-metadata file]
 
 Arguments:
-	CERT:          Client certificate that contains the public key, possible followed by intermediates to form a partial chain.
+	CERT:    Client certificate, possible followed by intermediates to form a (partial) chain, use '-' to read from stdin.
 
 Note:
 	CERT can be specified as flag value. But flag value will take precedence, overwriting the argument.
@@ -51,10 +51,28 @@ func bundlerMain(args []string) (err error) {
 
 	var bundle *bundler.Bundle
 	if Config.certFile != "" {
-		// Bundle the client cert
-		bundle, err = b.BundleFromFile(Config.certFile, Config.keyFile, flavor)
-		if err != nil {
-			return
+		if Config.certFile == "-" {
+			var certPEM, keyPEM []byte
+			certPEM, err = readStdin(Config.certFile)
+			if err != nil {
+				return
+			}
+			if Config.keyFile != "" {
+				keyPEM, err = readStdin(Config.keyFile)
+				if err != nil {
+					return
+				}
+			}
+			bundle, err = b.BundleFromPEM(certPEM, keyPEM, flavor)
+			if err != nil {
+				return
+			}
+		} else {
+			// Bundle the client cert
+			bundle, err = b.BundleFromFile(Config.certFile, Config.keyFile, flavor)
+			if err != nil {
+				return
+			}
 		}
 	} else if Config.domain != "" {
 		bundle, err = b.BundleFromRemote(Config.domain, Config.ip, flavor)
