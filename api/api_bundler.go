@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/bundler"
+	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -31,10 +32,10 @@ func NewBundleHandler(caBundleFile, intBundleFile string) (http.Handler, error) 
 
 // Handle implements an http.Handler interface for the bundle handler.
 func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	blob, matched, err := ProcessRequestOneOf(r,
+	blob, matched, err := ProcessRequestFirstMatchOf(r,
 		[][]string{
-			[]string{"domain"},
 			[]string{"certificate"},
+			[]string{"domain"},
 		})
 	if err != nil {
 		log.Warningf("invalid request: %v", err)
@@ -46,6 +47,7 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	if flavor != "" {
 		bf = bundler.BundleFlavor(flavor)
 	}
+	log.Infof("request for flavor %v", bf)
 
 	var result *bundler.Bundle
 	switch matched[0] {
@@ -62,7 +64,25 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			log.Warning("bad PEM certifcate or private key")
 			return err
 		}
-		log.Infof("request for flavour %v", flavor)
+
+		serverName := blob["domain"]
+		ip := blob["ip"]
+
+		if serverName != "" {
+			err := bundle.Cert.VerifyHostname(serverName)
+			if err != nil {
+				return errors.New(errors.CertificateError, errors.VerifyFailed, err)
+			}
+
+		}
+
+		if ip != "" {
+			err := bundle.Cert.VerifyHostname(ip)
+			if err != nil {
+				return errors.New(errors.CertificateError, errors.VerifyFailed, err)
+			}
+		}
+
 		result = bundle
 	}
 	response := NewSuccessResponse(result)

@@ -132,6 +132,25 @@ func ProcessRequestOneOf(r *http.Request, keywordSets [][]string) (map[string]st
 	return blob, matched, nil
 }
 
+// ProcessRequestFirstMatchOf reads a JSON blob for the request and returns
+// the first match of a set of keywords. For example, a request
+// might have one of the following combinations: (foo=1, bar=2), (foo=1), and (bar=2)
+// By giving a specific ordering of those combinations, we could decide how to accept
+// the request.
+func ProcessRequestFirstMatchOf(r *http.Request, keywordSets [][]string) (map[string]string, []string, error) {
+	blob, err := readRequestBlob(r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, set := range keywordSets {
+		if matchKeywords(blob, set) {
+			return blob, set, nil
+		}
+	}
+	return nil, nil, errors.NewBadRequestString("no valid parameter sets found")
+}
+
 func missingParamsError(missing []string) error {
 	s := "Missing parameter"
 	if len(missing) > 1 {

@@ -36,6 +36,7 @@ const (
 	ValidSNIWildcard       = "cloudflare.sni.velox.ch"
 	SNISANWildcard         = "*.sni.velox.ch"
 	ValidSNIIP             = "85.25.46.13"
+	InvalidIP              = "300.300.300.300"
 )
 
 func getBundleHostnameChecker(hostname string) func(*testing.T, *Bundle) {
@@ -83,6 +84,39 @@ var remoteTests = []remoteTest{
 		errorCallback:      ExpectErrorMessages([]string{`"code":6000`, "dial tcp: lookup cloudflare1337.com: no such host"}),
 	},
 	{
+		hostname:           InvalidIP,
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessages([]string{`"code":6000`, "dial tcp: lookup 300.300.300.300: no such host"}),
+	},
+	{
+		ip:                 InvalidIP,
+		bundlerConstructor: newBundler,
+		errorCallback:      ExpectErrorMessages([]string{`"code":6000`, "dial tcp: lookup 300.300.300.300: no such host"}),
+	},
+}
+
+// TestBundleFromRemote goes through the test cases defined in remoteTests and run them through. See above for test case definitions.
+func TestBundleFromRemote(t *testing.T) {
+	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
+		for _, test := range remoteTests {
+			b := test.bundlerConstructor(t)
+			bundle, err := b.BundleFromRemote(test.hostname, test.ip, bf)
+			if test.errorCallback != nil {
+				test.errorCallback(t, err)
+			} else {
+				if err != nil {
+					t.Errorf("expected no error. but an error occurred: %s", err.Error())
+				}
+				if test.bundleCallback != nil {
+					test.bundleCallback(t, bundle)
+				}
+			}
+		}
+	}
+}
+
+var remoteSNITests = []remoteTest{
+	{
 		hostname:           ValidSNI,
 		bundlerConstructor: newBundler,
 		errorCallback:      nil,
@@ -110,13 +144,13 @@ var remoteTests = []remoteTest{
 	},
 }
 
-// TestBundleFromRemote goes through the test cases defined in remoteTests and run them through. See above for test case definitions.
-func TestBundleFromRemote(t *testing.T) {
+// TestBundleFromRemoteSNI goes through the test cases defined in remoteSNITests and run them through. See above for test case definitions.
+func TestBundleFromRemoteSNI(t *testing.T) {
 	if !shouldTestSNI {
 		t.Skip()
 	}
 	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
-		for _, test := range remoteTests {
+		for _, test := range remoteSNITests {
 			b := test.bundlerConstructor(t)
 			bundle, err := b.BundleFromRemote(test.hostname, test.ip, bf)
 			if test.errorCallback != nil {

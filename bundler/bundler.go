@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -200,7 +201,7 @@ func (b *Bundler) BundleFromPEM(certsPEM, keyPEM []byte, flavor BundleFlavor) (*
 }
 
 // BundleFromRemote fetches the certificate served by the server at
-// serverName (or ip, if the ip argument is not the empty string). IT
+// serverName (or ip, if the ip argument is not the empty string). It
 // is expected that the method will be able to make a connection at
 // port 443. The certificate used by the server in this connection is
 // used to build the bundle, which will necessarily be keyless.
@@ -219,7 +220,9 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 	}
 
 	log.Debugf("bundling from remote %s", dialName)
-	conn, err := tls.Dial("tcp", dialName, config)
+
+	dialer := &net.Dialer{Timeout: time.Duration(5) * time.Second}
+	conn, err := tls.DialWithDialer(dialer, "tcp", dialName, config)
 	var dialError string
 	// If there's an error in tls.Dial, try again with
 	// InsecureSkipVerify to fetch the remote bundle to (re-)bundle
@@ -233,7 +236,7 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 		// dial again with InsecureSkipVerify
 		log.Debugf("try again with InsecureSkipVerify.")
 		config.InsecureSkipVerify = true
-		conn, err = tls.Dial("tcp", dialName, config)
+		conn, err = tls.DialWithDialer(dialer, "tcp", dialName, config)
 		if err != nil {
 			log.Debugf("dial with InsecureSkipVerify failed: %v", err)
 			return nil, errors.New(errors.DialError, errors.Unknown, err)
