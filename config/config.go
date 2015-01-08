@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/cloudflare/cfssl/api/client"
+	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
@@ -18,18 +20,29 @@ type SigningProfile struct {
 	IssuerURL    []string `json:"issuer_urls"`
 	OCSP         string   `json:"ocsp_url"`
 	CRL          string   `json:"crl_url"`
-	ExpiryString string   `json:"expiry"`
 	CA           bool     `json:"is_ca"`
-	Expiry       time.Duration
+	ExpiryString string   `json:"expiry"`
+	AuthKeyName  string   `json:"auth_key"`
+	RemoteName   string   `json:"remote"`
+
+	Expiry   time.Duration
+	Provider auth.Provider
+	Remote   *client.Server
 }
 
-// parse, and the ExpiryString parameter, are needed to parse
+// populate is used to fill in the fields that are not in JSON
+//
+// First, the ExpiryString parameter is needed to parse
 // expiration timestamps from JSON. The JSON decoder is not able to
 // decode a string time duration to a time.Duration, so this is called
 // when loading the configuration to properly parse and fill out the
-// Expiry parameter. It returns true if there was a valid string
-// representation of a time.Duration, and false if an error occurred.
-func (p *SigningProfile) parse() bool {
+// Expiry parameter.
+// This function is also used to create references to the auth key
+// and default remote for the profile.
+// It returns true if ExpiryString is a valid representation of a
+// time.Duration, and the AuthKeyString and RemoteName point to
+// valid objects. It returns false otherwise.
+func (p *SigningProfile) populate(cfg *Config) bool {
 	log.Debugf("parse expiry in profile")
 	if p == nil {
 		log.Debugf("failed: no timestamp in profile")
@@ -47,6 +60,38 @@ func (p *SigningProfile) parse() bool {
 
 	log.Debugf("expiry is valid")
 	p.Expiry = dur
+
+	if p.AuthKeyName != "" {
+		if key, ok := cfg.AuthKeys[p.AuthKeyName]; ok == true {
+			if key.Type == "standard" {
+				p.Provider, err = auth.New(key.Key, nil)
+				if err != nil {
+					log.Debugf("failed to create new stanard auth provider: %v", err)
+					return false
+				}
+			} else {
+				log.Debugf("unknown authentication type %v", key.Type)
+				return false
+			}
+		} else {
+			log.Debugf("failed to find auth_key %v in auth_keys section", p.AuthKeyName)
+			return false
+		}
+	}
+
+	if p.RemoteName != "" {
+		if remote := cfg.Remotes[p.RemoteName]; remote != "" {
+			p.Remote = client.NewServer(remote)
+			if p.Remote == nil {
+				log.Debugf("failed to connect to remote %v", remote)
+				return false
+			}
+		} else {
+			log.Debugf("failed to find remote %v in remotes section %v", p.RemoteName, cfg)
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -97,7 +142,8 @@ type Signing struct {
 // Config stores configuration information for the CA.
 type Config struct {
 	Signing  *Signing           `json:"signing"`
-	AuthKeys map[string]AuthKey `json:"auth_key,omitempty"`
+	AuthKeys map[string]AuthKey `json:"auth_keys,omitempty"`
+	Remotes  map[string]string  `json:"remotes,omitempty"`
 }
 
 // Valid ensures that Config is a valid configuration. It should be
@@ -163,10 +209,10 @@ type AuthKey struct {
 	// constructor. For example, "standard" for HMAC-SHA-256,
 	// "standard-ip" for HMAC-SHA-256 incorporating the client's
 	// IP.
-	Type string
+	Type string `json:"type"`
 	// Key contains the key information, such as a hex-encoded
 	// HMAC key.
-	Key string
+	Key string `json:"key"`
 }
 
 // DefaultConfig returns a default configuration specifying basic key
@@ -206,7 +252,7 @@ func LoadFile(path string) *Config {
 		log.Debugf("no default given: using default config")
 		cfg.Signing.Default = DefaultConfig()
 	} else {
-		if !cfg.Signing.Default.parse() {
+		if !cfg.Signing.Default.populate(cfg) {
 			return nil
 		}
 	}
@@ -216,7 +262,7 @@ func LoadFile(path string) *Config {
 	}
 
 	for k := range cfg.Signing.Profiles {
-		if !cfg.Signing.Profiles[k].parse() {
+		if !cfg.Signing.Profiles[k].populate(cfg) {
 			return nil
 		}
 	}

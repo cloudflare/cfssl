@@ -3,7 +3,9 @@
 		"profiles": {
 			"CA": {
 				"usages": ["cert sign"],
-				"expiry": "720h"
+				"expiry": "720h",
+				"remote": "localhost",
+				"auth_key": "garbage"
 			},
 			"email": {
 				"usages": ["s/mime"],
@@ -15,10 +17,13 @@
 			"expiry": "8000h"
 		}
 	},
-	"auth_key": {
+	"auth_keys": {
 		"garbage": {
-			"type":"standard",
+			"type":"stadardo",
 			"key":"0123456789ABCDEF0123456789ABCDEF"
 		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
 	}
 }

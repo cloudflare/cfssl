@@ -44,6 +44,9 @@ const (
 
 	// DialError indicates a network fault.
 	DialError // 6XXX
+
+	// APIClientError indicates a problem with the API client.
+	APIClientError // 7XXX
 )
 
 // None is a non-specified error.
@@ -124,6 +127,27 @@ const (
 	InvalidRequest // 53XX
 )
 
+// The following are API client related errors, and should be
+// specified with APIClientError.
+const (
+	// An AuthenticationFailure occurs when the client is unable
+	// to obtain an authentication token for the request.
+	AuthenticationFailure = 100 * (iota + 1)
+
+	// A JSONError wraps an encoding/json error.
+	JSONError
+
+	// An IOError wraps an io/ioutil error.
+	IOError
+
+	// HTTPError wraps a net/http error.
+	ClientHTTPError
+
+	// ServerRequestFailed covers any other failures from the API
+	// client.
+	ServerRequestFailed
+)
+
 // The error interface implementation, which formats to a JSON object string.
 func (e *Error) Error() string {
 	marshaled, err := json.Marshal(e)
@@ -198,6 +222,17 @@ func New(category Category, reason Reason, err error) *Error {
 		if err == nil {
 			err = errors.New("dialing remote server failed")
 		}
+	case APIClientError:
+		msg := "API client error"
+		switch reason {
+		case AuthenticationFailure:
+			msg = "Authentication failure"
+		case JSONError, ClientHTTPError, IOError:
+			msg = err.Error()
+		case ServerRequestFailed:
+			msg = "Server request failed"
+		}
+		err = errors.New(msg)
 	default:
 		panic(fmt.Sprintf("Unsupported CF-SSL error type: %d.",
 			category))

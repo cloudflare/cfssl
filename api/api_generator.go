@@ -134,6 +134,7 @@ type CertGeneratorHandler struct {
 	generator *csr.Generator
 	signer    signer.Signer
 	server    *client.Server
+	policy    *config.Signing
 }
 
 // NewCertGeneratorHandler builds a new handler for generating
@@ -142,13 +143,27 @@ type CertGeneratorHandler struct {
 // sign the generated request. If remote is not an empty string, the
 // handler will send signature requests to the CFSSL instance contained
 // in remote.
-func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote string, config *config.Signing) (http.Handler, error) {
+func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote string, cfg *config.Signing) (http.Handler, error) {
 	var err error
 	log.Info("setting up new generator / signer")
 	cg := new(CertGeneratorHandler)
-	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, config); err != nil {
-		return nil, err
+
+	if cfg == nil {
+		cfg = &config.Signing{
+			Default:  config.DefaultConfig(),
+			Profiles: nil,
+		}
 	}
+
+	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, cfg); err != nil {
+		if remote == "" {
+			return nil, err
+		}
+		log.Infof("remote cert generator activated")
+		cg.signer = nil
+	}
+
+	cg.policy = cfg
 	cg.generator = &csr.Generator{Validator: validator}
 	if remote != "" {
 		cg.server = client.NewServer(remote)
@@ -176,7 +191,7 @@ type genSignRequest struct {
 	Hostname string                  `json:"hostname"`
 	Request  *csr.CertificateRequest `json:"request"`
 	Profile  string                  `json:"profile"`
-	Remote   string                  `json:"remote"`
+	Label    string                  `json:"label"`
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -216,22 +231,47 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	}
 
 	var certPEM []byte
+	profile := cg.policy.Default
+	if cg.policy.Profiles != nil {
+		profile = cg.policy.Profiles[req.Profile]
+	}
 
-	if req.Remote != "" {
-		log.Info("sending signature request to remote", req.Remote)
-		srv := client.NewServer(req.Remote)
-		certPEM, err = srv.Sign(req.Hostname, csr, req.Profile)
-	} else if cg.server != nil {
-		log.Info("sending signature request to remote")
-		certPEM, err = cg.server.Sign(req.Hostname, csr, req.Profile)
+	if profile == nil {
+		log.Critical("invalid profile ", req.Profile)
+		return errors.NewBadRequestString("invalid profile")
+	}
+
+	if cg.server != nil {
+		if profile.Provider != nil {
+			authSign := authSign{
+				CSR:     csr,
+				Profile: profile,
+				Server:  cg.server,
+				Request: req,
+			}
+			certPEM, err = cg.handleAuthSign(w, &authSign)
+		} else {
+			certPEM, err = cg.server.Sign(req.Hostname, csr, req.Profile, req.Label)
+		}
+	} else if profile.Remote != nil {
+		if profile.Provider != nil {
+			authSign := authSign{
+				CSR:     csr,
+				Profile: profile,
+				Server:  profile.Remote,
+				Request: req,
+			}
+			certPEM, err = cg.handleAuthSign(w, &authSign)
+		} else {
+			certPEM, err = profile.Remote.Sign(req.Hostname, csr, req.Profile, req.Label)
+		}
 	} else {
-		log.Info("signing new certificate locally")
 		certPEM, err = cg.signer.Sign(req.Hostname, csr, nil, req.Profile)
 	}
 
 	if err != nil {
-		log.Warningf("failed to sign certificate: %v", err)
-		return errors.NewBadRequest(err)
+		log.Warningf("failed to sign request: %v", err)
+		return err
 	}
 
 	reqSum, err := computeSum(csr)
@@ -254,6 +294,38 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		},
 	}
 	return sendResponse(w, result)
+}
+
+type authSign struct {
+	CSR     []byte
+	Profile *config.SigningProfile
+	Server  *client.Server
+	Request *genSignRequest
+}
+
+// handleAuthSign takes care of packaging the request and sending it
+// off to the authenticated signing endpoint.
+func (cg *CertGeneratorHandler) handleAuthSign(w http.ResponseWriter, authSign *authSign) ([]byte, error) {
+	if authSign.CSR == nil || authSign.Profile == nil {
+		return nil, errors.NewBadRequestString("invalid parameters to authsign")
+	}
+
+	if authSign.Server == nil {
+		return nil, errors.NewBadRequestString("no remote server could be used")
+	}
+
+	request := SignRequest{
+		Hostname: authSign.Request.Hostname,
+		Request:  string(authSign.CSR),
+		Profile:  authSign.Request.Profile,
+	}
+
+	jsonOut, err := json.Marshal(request)
+	if err != nil {
+		return nil, errors.NewBadRequest(err)
+	}
+
+	return authSign.Server.AuthSign(jsonOut, nil, request.Profile, authSign.Profile.Provider)
 }
 
 // CSRValidate contains the default validation logic for certificate requests to

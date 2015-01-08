@@ -52,7 +52,7 @@ func New(key string, ad []byte) (*Standard, error) {
 }
 
 // Token generates a new authentication token from the request.
-func (p *Standard) Token(req []byte) (token []byte, err error) {
+func (p Standard) Token(req []byte) (token []byte, err error) {
 	h := hmac.New(sha256.New, p.key)
 	h.Write(req)
 	h.Write(p.ad)
@@ -60,7 +60,7 @@ func (p *Standard) Token(req []byte) (token []byte, err error) {
 }
 
 // Verify determines whether an authenticated request is valid.
-func (p *Standard) Verify(ad *AuthenticatedRequest) bool {
+func (p Standard) Verify(ad *AuthenticatedRequest) bool {
 	if ad == nil {
 		return false
 	}

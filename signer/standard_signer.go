@@ -82,7 +82,6 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 
 	priv, err := helpers.ParsePrivateKeyPEM(cakey)
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -199,7 +198,7 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 		}
 	}
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	log.Infof("Signed certificate with serial number %s", serialNumber)
+	log.Infof("signed certificate with serial number %s", serialNumber)
 	return
 }
 
@@ -210,6 +209,9 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 // in subject will be used in place of the subject information in the CSR.
 func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, profileName string) (cert []byte, err error) {
 	profile := s.policy.Profiles[profileName]
+	if profile == nil {
+		profile = s.policy.Default
+	}
 
 	block, _ := pem.Decode(in)
 	if block == nil {
@@ -223,7 +225,7 @@ func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, prof
 
 	template, err := ParseCertificateRequest(s, block.Bytes, subject)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if subject == nil {
