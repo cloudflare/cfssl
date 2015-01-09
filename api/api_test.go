@@ -182,7 +182,7 @@ func newBundleServer(t *testing.T) *httptest.Server {
 	return ts
 }
 
-func testBundleFile(t *testing.T, domain, certFile, keyFile, flavor string) (resp *http.Response, body []byte) {
+func testBundleFile(t *testing.T, domain, ip, certFile, keyFile, flavor string) (resp *http.Response, body []byte) {
 	ts := newBundleServer(t)
 	defer ts.Close()
 	var certPEM, keyPEM []byte
@@ -204,6 +204,9 @@ func testBundleFile(t *testing.T, domain, certFile, keyFile, flavor string) (res
 	obj := map[string]string{"flavor": flavor}
 	if len(domain) > 0 {
 		obj["domain"] = domain
+	}
+	if len(ip) > 0 {
+		obj["ip"] = ip
 	}
 	if len(certPEM) > 0 {
 		obj["certificate"] = string(certPEM)
@@ -234,6 +237,7 @@ func TestNewBundleHandler(t *testing.T) {
 
 type bundleTest struct {
 	Domain             string
+	IP                 string
 	CertFile           string
 	KeyFile            string
 	Flavor             string
@@ -245,119 +249,106 @@ type bundleTest struct {
 var bundleTests = []bundleTest{
 	// Test bundling with certificate
 	{
-		"",
-		testLeafCertFile,
-		"",
-		"",
-		http.StatusOK,
-		true,
-		0,
+		CertFile:           testLeafCertFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		"",
-		testLeafCertFile,
-		"",
-		"ubiquitous",
-		http.StatusOK,
-		true,
-		0,
+		CertFile:           testLeafCertFile,
+		Flavor:             "ubiquitous",
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		"",
-		testLeafCertFile,
-		"",
-		"optimal",
-		http.StatusOK,
-		true,
-		0,
+		CertFile:           testLeafCertFile,
+		Flavor:             "optimal",
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		"",
-		testLeafCertFile,
-		testLeafKeyFile,
-		"",
-		http.StatusOK,
-		true,
-		0,
+		CertFile:           testLeafCertFile,
+		KeyFile:            testLeafKeyFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
+	},
+	{
+		CertFile:           testLeafCertFile,
+		Domain:             "cfssl-leaf.com",
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	// Test bundling with remote domain
-
 	{
-		"google.com",
-		"",
-		"",
-		"",
-		http.StatusBadRequest,
-		false,
-		1220,
+		Domain:             "google.com",
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  1220,
 	},
 	// Error testing.
 	{
-		"",
-		testLeafCertFile,
-		testLeafWrongKeyFile,
-		"",
-		http.StatusBadRequest,
-		false,
-		2300,
+		CertFile:           testLeafCertFile,
+		KeyFile:            testLeafWrongKeyFile,
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  2300,
 	},
 	{
-		"",
-		"",
-		"",
-		"",
-		http.StatusBadRequest,
-		false,
-		http.StatusBadRequest,
+		// no input parameter is specified
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  http.StatusBadRequest,
 	},
 	{
-		"",
-		testBrokenCertFile,
-		"",
-		"",
-		http.StatusBadRequest,
-		false,
-		1003,
+		CertFile:           testBrokenCertFile,
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  1003,
 	},
-
 	{
-		"",
-		testLeafKeyFile,
-		testLeafKeyFile,
-		"",
-		http.StatusBadRequest,
-		false,
-		1003,
+		CertFile:           testLeafKeyFile,
+		KeyFile:            testLeafKeyFile,
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  1003,
 	},
-
 	{
-		"",
-		testLeafCertFile,
-		testLeafCertFile,
-		"",
-		http.StatusBadRequest,
-		false,
-		2003,
+		CertFile:           testLeafCertFile,
+		KeyFile:            testLeafCertFile,
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  2003,
+	},
+	{
+		CertFile:           testLeafCertFile,
+		Domain:             "cloudflare-leaf.com",
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  1200,
 	},
 }
 
 func TestBundle(t *testing.T) {
 	for i, test := range bundleTests {
-		resp, body := testBundleFile(t, test.Domain, test.CertFile, test.KeyFile, test.Flavor)
+		resp, body := testBundleFile(t, test.Domain, test.IP, test.CertFile, test.KeyFile, test.Flavor)
 		if resp.StatusCode != test.ExpectedHTTPStatus {
-			t.Fatalf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
+			t.Errorf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))
 		}
 
 		message := new(Response)
 		err := json.Unmarshal(body, message)
 		if err != nil {
-			t.Fatalf("failed to read response body: %v", err)
+			t.Errorf("failed to read response body: %v", err)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
 		}
 
 		if test.ExpectedSuccess != message.Success {
-			t.Fatalf("Test %d: expected: %v, have %v", i, test.ExpectedSuccess, message.Success)
+			t.Errorf("Test %d: expected: %v, have %v", i, test.ExpectedSuccess, message.Success)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
 		}
 		if test.ExpectedSuccess == true {
@@ -365,7 +356,7 @@ func TestBundle(t *testing.T) {
 		}
 
 		if test.ExpectedErrorCode != message.Errors[0].Code {
-			t.Fatalf("Test %d: expected: %v, have %v", i, test.ExpectedErrorCode, message.Errors[0].Code)
+			t.Errorf("Test %d: expected: %v, have %v", i, test.ExpectedErrorCode, message.Errors[0].Code)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
 		}
 	}

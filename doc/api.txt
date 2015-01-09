@@ -79,14 +79,15 @@ Endpoint: "/api/v1/cfssl/bundle"
 Method: POST
 Required Parameters:
 
-        One of the following two parameters is required; if both are
-        present, the result is undefined.
+        One of the following two parameters is required; If both are
+        present, "domain" becomes one of optional parameters with
+        "certificate", read on for details.
 
         * certificate: the PEM-encoded certificate to be bundled.
         * domain: a domain name indicating a remote host to retrieve a
           certificate for.
 
-        If the "certificate" parameter is present, the following two
+        If the "certificate" parameter is present, the following four
         parameters are valid:
 
         * private_key: the PEM-encoded private key to be included with
@@ -96,9 +97,12 @@ Required Parameters:
         value of "ubiquitous". A ubiquitous bundle is one that has a
         higher probability of being verified everywhere, even by
         clients using outdated or unusual trust stores.
+        * domain: the domain name to verify as the hostname of the
+        certificate.
+        * ip: the IP address to verify against the certificate IP SANs
 
-        If the "domain" parameter is present, the following parameter
-        is valid:
+        If only the "domain" parameter is present, the following
+        parameter is valid:
 
         * ip: the IP address of the remote host as an alternative to
         domain.
