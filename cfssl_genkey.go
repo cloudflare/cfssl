@@ -90,7 +90,7 @@ func genkeyMain(args []string) (err error) {
 
 func validator(req *csr.CertificateRequest) error {
 	if len(req.Hosts) == 0 {
-		return cferr.New(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
 	}
 	return nil
 }

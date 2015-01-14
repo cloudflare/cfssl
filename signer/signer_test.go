@@ -3,6 +3,7 @@ package signer
 import (
 	"crypto/x509"
 	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 
@@ -74,6 +75,35 @@ func TestNewSignerInvalidPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if !strings.Contains(err.Error(), `"code":5200`) {
+		t.Fatal(err)
+	}
+}
+
+func TestNewSignerNoUsageInPolicy(t *testing.T) {
+	var invalidConfig = &config.Config{
+		Signing: &config.Signing{
+			Profiles: map[string]*config.SigningProfile{
+				"invalid": &config.SigningProfile{
+					Usage:  []string{},
+					Expiry: expiry,
+				},
+				"empty": &config.SigningProfile{},
+			},
+			Default: &config.SigningProfile{
+				Usage:  []string{"digital signature"},
+				Expiry: expiry,
+			},
+		},
+	}
+	_, err := NewSigner(testCaFile, testCaKeyFile, invalidConfig.Signing)
+	if err == nil {
+		t.Fatal("expect InvalidPolicy error")
+	}
+
+	if !strings.Contains(err.Error(), `"code":5200`) {
+		t.Fatal(err)
+	}
 }
 
 func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s Signer) {

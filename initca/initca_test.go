@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 
@@ -180,6 +181,10 @@ func TestNoHostname(t *testing.T) {
 	if err == nil {
 		t.Fatal("InitCA should failed.")
 	}
+
+	if !strings.Contains(err.Error(), `"code":5300`) {
+		t.Fatal(err)
+	}
 }
 
 func TestInvalidCryptoParams(t *testing.T) {
@@ -206,6 +211,10 @@ func TestInvalidCryptoParams(t *testing.T) {
 		_, _, err := New(req)
 		if err == nil {
 			t.Fatal("InitCA with bad params should fail:", err)
+		}
+
+		if !strings.Contains(err.Error(), `"code":2400`) {
+			t.Fatal(err)
 		}
 	}
 }

@@ -97,13 +97,13 @@ func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject) (template *x509.Certificate, err error) {
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
-		err = cferr.New(cferr.CertificateError, cferr.ParseFailed, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		return
 	}
 
 	err = CheckSignature(csr, csr.SignatureAlgorithm, csr.RawTBSCertificateRequest, csr.Signature)
 	if err != nil {
-		err = cferr.New(cferr.CertificateError, cferr.KeyMismatch, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.KeyMismatch, err)
 		return
 	}
 

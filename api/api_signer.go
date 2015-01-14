@@ -36,11 +36,14 @@ func NewSignHandler(caFile, cakeyFile string, remote string, policy *config.Sign
 			return nil, err
 		}
 		s.signer = nil
-		log.Infof("remote signer activated")
 	}
 
 	if remote != "" {
 		s.server = client.NewServer(remote)
+		if s.server == nil {
+			return nil, errors.New(errors.DialError, errors.None)
+		}
+		log.Infof("remote signer activated")
 	}
 
 	return HTTPHandler{s, "POST"}, nil
@@ -182,11 +185,11 @@ type AuthSignHandler struct {
 func NewAuthSignHandler(signer signer.Signer) (http.Handler, error) {
 	policy := signer.Policy()
 	if policy == nil {
-		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy, nil)
+		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
 	}
 
 	if policy.Default == nil && policy.Profiles == nil {
-		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy, nil)
+		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
 	}
 
 	// If not every profile has an auth provider, the
@@ -200,7 +203,7 @@ func NewAuthSignHandler(signer signer.Signer) (http.Handler, error) {
 	}
 
 	if !hasProviders {
-		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy, nil)
+		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
 	}
 
 	return &HTTPHandler{

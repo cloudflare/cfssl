@@ -71,7 +71,7 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		if serverName != "" {
 			err := bundle.Cert.VerifyHostname(serverName)
 			if err != nil {
-				return errors.New(errors.CertificateError, errors.VerifyFailed, err)
+				return errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 			}
 
 		}
@@ -79,7 +79,7 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		if ip != "" {
 			err := bundle.Cert.VerifyHostname(ip)
 			if err != nil {
-				return errors.New(errors.CertificateError, errors.VerifyFailed, err)
+				return errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 			}
 		}
 

@@ -159,7 +159,7 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	log.Infof("generating key: %s-%d", req.KeyRequest.Algo, req.KeyRequest.Size)
 	priv, err := req.KeyRequest.Generate()
 	if err != nil {
-		err = cferr.New(cferr.PrivateKeyError, cferr.GenerationFailed, err)
+		err = cferr.Wrap(cferr.PrivateKeyError, cferr.GenerationFailed, err)
 		return
 	}
 
@@ -174,7 +174,7 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	case *ecdsa.PrivateKey:
 		key, err = x509.MarshalECPrivateKey(priv)
 		if err != nil {
-			err = cferr.New(cferr.PrivateKeyError, cferr.Unknown, err)
+			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
 			return
 		}
 		block := pem.Block{
@@ -194,12 +194,12 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
-		// The use of PrivateKeyError was a matter of some
+		// The use of CertificateError was a matter of some
 		// debate; it is the one edge case in which a new
 		// error category specifically for CSRs might be
 		// useful, but it was deemed that one edge case did
 		// not a new category justify.
-		err = cferr.New(cferr.PrivateKeyError, cferr.BadRequest, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.BadRequest, err)
 		return
 	}
 	block := pem.Block{
@@ -228,11 +228,9 @@ func (g *Generator) ProcessRequest(req *CertificateRequest) (csr, key []byte, er
 		return
 	}
 
-	csr, key, parseErr := ParseRequest(req)
-	if parseErr != nil {
-		err = cferr.New(cferr.PrivateKeyError, cferr.GenerationFailed, parseErr)
-		csr = nil
-		key = nil
+	csr, key, err = ParseRequest(req)
+	if err != nil {
+		return nil, nil, err
 	}
 	return
 }

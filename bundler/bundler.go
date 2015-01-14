@@ -70,14 +70,14 @@ func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
 	caBundlePEM, err := ioutil.ReadFile(caBundleFile)
 	if err != nil {
 		log.Errorf("root bundle failed to load: %v", err)
-		return nil, errors.New(errors.RootError, errors.None, err)
+		return nil, errors.Wrap(errors.RootError, errors.ReadFailed, err)
 	}
 
 	log.Debug("Loading Intermediate bundle: ", intBundleFile)
 	intBundlePEM, err := ioutil.ReadFile(intBundleFile)
 	if err != nil {
 		log.Errorf("intermediate bundle failed to load: %v", err)
-		return nil, errors.New(errors.IntermediatesError, errors.None, err)
+		return nil, errors.Wrap(errors.IntermediatesError, errors.ReadFailed, err)
 	}
 
 	if _, err := os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
@@ -106,14 +106,14 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 	roots, err := helpers.ParseCertificatesPEM(caBundlePEM)
 	if err != nil {
 		log.Errorf("failed to parse root bundle: %v", err)
-		return nil, errors.New(errors.RootError, errors.None, err)
+		return nil, errors.New(errors.RootError, errors.ParseFailed)
 	}
 
 	log.Debug("parse intermediate certificates from PEM")
 	var intermediates []*x509.Certificate
 	if intermediates, err = helpers.ParseCertificatesPEM(intBundlePEM); err != nil {
 		log.Errorf("failed to parse intermediate bundle: %v", err)
-		return nil, errors.New(errors.IntermediatesError, errors.None, err)
+		return nil, errors.New(errors.IntermediatesError, errors.ParseFailed)
 	}
 
 	log.Debug("building certificate pools")
@@ -152,7 +152,7 @@ func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor
 	log.Debug("Loading Certificate: ", bundleFile)
 	certsPEM, err := ioutil.ReadFile(bundleFile)
 	if err != nil {
-		return nil, errors.New(errors.CertificateError, errors.ReadFailed, err)
+		return nil, errors.Wrap(errors.CertificateError, errors.ReadFailed, err)
 	}
 
 	var keyPEM []byte
@@ -162,11 +162,11 @@ func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor
 		keyPEM, err = ioutil.ReadFile(keyFile)
 		if err != nil {
 			log.Debugf("failed to read private key: ", err)
-			return nil, errors.New(errors.PrivateKeyError, errors.ReadFailed, err)
+			return nil, errors.Wrap(errors.PrivateKeyError, errors.ReadFailed, err)
 		}
 		if len(keyPEM) == 0 {
 			log.Debug("key is empty")
-			return nil, errors.New(errors.PrivateKeyError, errors.DecodeFailed, err)
+			return nil, errors.Wrap(errors.PrivateKeyError, errors.DecodeFailed, err)
 		}
 	}
 
@@ -193,7 +193,7 @@ func (b *Bundler) BundleFromPEM(certsPEM, keyPEM []byte, flavor BundleFlavor) (*
 		return nil, err
 	} else if len(certs) == 0 {
 		log.Debugf("no certificates found")
-		return nil, errors.New(errors.CertificateError, errors.DecodeFailed, nil)
+		return nil, errors.New(errors.CertificateError, errors.DecodeFailed)
 	}
 
 	log.Debugf("bundle ready")
@@ -239,7 +239,7 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 		conn, err = tls.DialWithDialer(dialer, "tcp", dialName, config)
 		if err != nil {
 			log.Debugf("dial with InsecureSkipVerify failed: %v", err)
-			return nil, errors.New(errors.DialError, errors.Unknown, err)
+			return nil, errors.Wrap(errors.DialError, errors.Unknown, err)
 		}
 	}
 
@@ -250,7 +250,7 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 	err = conn.VerifyHostname(serverName)
 	if err != nil {
 		log.Debugf("failed to verify hostname: %v", err)
-		return nil, errors.New(errors.CertificateError, errors.VerifyFailed, err)
+		return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 	}
 
 	// Bundle with remote certs. Inject the initial dial error, if any, to the status reporting.
@@ -499,33 +499,33 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 		case cert.PublicKeyAlgorithm == x509.RSA:
 			var rsaKey *rsa.PrivateKey
 			if rsaKey, ok = key.(*rsa.PrivateKey); !ok {
-				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch, nil)
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 			if cert.PublicKey.(*rsa.PublicKey).N.Cmp(rsaKey.PublicKey.N) != 0 {
-				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch, nil)
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
 			var ecdsaKey *ecdsa.PrivateKey
 			if ecdsaKey, ok = key.(*ecdsa.PrivateKey); !ok {
-				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch, nil)
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 			if cert.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaKey.PublicKey.X) != 0 {
-				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch, nil)
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC, nil)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
 		}
 	} else {
 		switch {
 		case cert.PublicKeyAlgorithm == x509.RSA:
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC, nil)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
 		}
 	}
 
 	if cert.CheckSignatureFrom(cert) == nil {
-		return nil, errors.New(errors.CertificateError, errors.SelfSigned, nil)
+		return nil, errors.New(errors.CertificateError, errors.SelfSigned)
 	}
 
 	bundle := new(Bundle)
@@ -550,21 +550,21 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 		case x509.UnknownAuthorityError:
 			// Do nothing -- have the default case return out.
 		default:
-			return nil, errors.New(errors.CertificateError, errors.VerifyFailed, err)
+			return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 		}
 
 		log.Debugf("searching for intermediates via AIA issuer")
 		err = b.fetchIntermediates(certs)
 		if err != nil {
 			log.Debugf("search failed: %v", err)
-			return nil, errors.New(errors.CertificateError, errors.VerifyFailed, err)
+			return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 		}
 
 		log.Debugf("verifying new chain")
 		chains, err = cert.Verify(b.VerifyOptions())
 		if err != nil {
 			log.Debugf("failed to verify chain: %v", err)
-			return nil, errors.New(errors.CertificateError, errors.VerifyFailed, err)
+			return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 		}
 		log.Debugf("verify ok")
 	}

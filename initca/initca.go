@@ -33,7 +33,7 @@ import (
 // SubjectAltName extension."
 func validator(req *csr.CertificateRequest) error {
 	if len(req.Hosts) == 0 {
-		return cferr.New(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
 	}
 	return nil
 }
@@ -134,12 +134,12 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err e
 	certReq, err := x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
-		// The use of PrivateKeyError was a matter of some
+		// The use of CertificateError was a matter of some
 		// debate; it is the one edge case in which a new
 		// error category specifically for CSRs might be
 		// useful, but it was deemed that one edge case did
 		// not a new category justify.
-		err = cferr.New(cferr.PrivateKeyError, cferr.BadRequest, err)
+		err = cferr.Wrap(cferr.CertificateError, cferr.BadRequest, err)
 		return
 	}
 
