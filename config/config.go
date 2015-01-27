@@ -241,8 +241,14 @@ func LoadFile(path string) *Config {
 		return nil
 	}
 
+	return LoadConfig(body)
+}
+
+// LoadConfig attempts to load the configuration from a byte slice.
+// On error, it returns nil.
+func LoadConfig(config []byte) *Config {
 	var cfg = &Config{}
-	err = json.Unmarshal(body, &cfg)
+	err := json.Unmarshal(config, &cfg)
 	if err != nil {
 		log.Debugf("failed to unmarshal configuration: %v", err)
 		return nil
