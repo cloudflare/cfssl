@@ -23,7 +23,7 @@ Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "f"}
+var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config"}
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() error {

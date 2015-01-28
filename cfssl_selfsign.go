@@ -31,7 +31,7 @@ Arguments:
 Flags:
 `
 
-var selfSignFlags = []string{"f"}
+var selfSignFlags = []string{"config"}
 
 func selfSignMain(args []string) (err error) {
 	if Config.hostname == "" && !Config.isCA {
