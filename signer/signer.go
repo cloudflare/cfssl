@@ -60,6 +60,7 @@ type Signer interface {
 
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
 // the CA's private key.
+// TODO[bifurcation]: Change argument to crypto.Signer (and use Public())
 func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 	switch priv := priv.(type) {
 	case *rsa.PrivateKey:
@@ -85,6 +86,8 @@ func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case *Pkcs11Key:
+		return DefaultSigAlgo(priv.Public())
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}

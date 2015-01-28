@@ -88,7 +88,13 @@ func NewSigner(caFile string, keyConfig SigningKeyConfig, policy *config.Signing
 	}
 
 	var priv interface{}
-	if keyConfig.CaKeyFile != "" {
+	if keyConfig.Pkcs11Module != "" {
+		log.Debug("Configuring PKCS#11: ", keyConfig.Pkcs11Module)
+		priv, err = NewPkcs11Key(keyConfig.Pkcs11Module, keyConfig.Pkcs11Token, keyConfig.Pkcs11PIN, keyConfig.Pkcs11KeyLabel)
+		if err != nil {
+			return nil, err
+		}
+	} else {
 		log.Debug("Loading CA key: ", keyConfig.CaKeyFile)
 		cakey, err := ioutil.ReadFile(keyConfig.CaKeyFile)
 		if err != nil {
@@ -96,12 +102,6 @@ func NewSigner(caFile string, keyConfig SigningKeyConfig, policy *config.Signing
 		}
 
 		priv, err = helpers.ParsePrivateKeyPEM(cakey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		log.Debug("Configuring PKCS#11: ", keyConfig.Pkcs11Module)
-		priv, err = NewPkcs11Key(keyConfig.Pkcs11Module, keyConfig.Pkcs11Token, keyConfig.Pkcs11PIN, keyConfig.Pkcs11KeyLabel)
 		if err != nil {
 			return nil, err
 		}
