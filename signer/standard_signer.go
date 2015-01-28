@@ -47,12 +47,25 @@ func NewStandardSigner(priv interface{}, cert *x509.Certificate, sigAlgo x509.Si
 	}
 }
 
+// SigningKeyConfig is used in the configuration of a private key
+// for a new signer.  If a key is being provided from a PEM file,
+// then the CaKeyFile member must be populated.  If the key is
+// on a PKCS#11 token, then all of the "Pkcs11*" members must be
+// populated.
+type SigningKeyConfig struct {
+	CaKeyFile      string
+	Pkcs11Module   string
+	Pkcs11Token    string
+	Pkcs11PIN      string
+	Pkcs11KeyLabel string
+}
+
 // NewSigner generates a new standard library certificate signer using
 // the certificate authority certificate and private key and Signing
 // config for signing. caFile should contain the CA's certificate, and
 // the cakeyFile should contain the private key. Both must be
 // PEM-encoded.
-func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigner, error) {
+func NewSigner(caFile string, keyConfig SigningKeyConfig, policy *config.Signing) (*StandardSigner, error) {
 	if policy == nil {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
@@ -69,20 +82,29 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Loading CA key: ", cakeyFile)
-	cakey, err := ioutil.ReadFile(cakeyFile)
-	if err != nil {
-		return nil, err
-	}
-
 	parsedCa, err := helpers.ParseCertificatePEM(ca)
 	if err != nil {
 		return nil, err
 	}
 
-	priv, err := helpers.ParsePrivateKeyPEM(cakey)
-	if err != nil {
-		return nil, err
+	var priv interface{}
+	if keyConfig.CaKeyFile != "" {
+		log.Debug("Loading CA key: ", keyConfig.CaKeyFile)
+		cakey, err := ioutil.ReadFile(keyConfig.CaKeyFile)
+		if err != nil {
+			return nil, err
+		}
+
+		priv, err = helpers.ParsePrivateKeyPEM(cakey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debug("Configuring PKCS#11: ", keyConfig.Pkcs11Module)
+		priv, err = NewPkcs11Key(keyConfig.Pkcs11Module, keyConfig.Pkcs11Token, keyConfig.Pkcs11PIN, keyConfig.Pkcs11KeyLabel)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &StandardSigner{parsedCa, priv, policy, DefaultSigAlgo(priv)}, nil

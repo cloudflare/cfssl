@@ -67,6 +67,10 @@ var Config struct {
 	domain            string
 	ip                string
 	remote            string
+	pkcs11Module      string
+	pkcs11Token       string
+	pkcs11PIN         string
+	pkcs11KeyLabel    string
 }
 
 // Parsed command name
@@ -94,6 +98,11 @@ func registerFlags() {
 	cfsslFlagSet.StringVar(&Config.domain, "domain", "", "remote server domain name")
 	cfsslFlagSet.StringVar(&Config.ip, "ip", "", "remote server ip")
 	cfsslFlagSet.StringVar(&Config.remote, "remote", "", "remote CFSSL server")
+
+	cfsslFlagSet.StringVar(&Config.pkcs11Module, "pkcs11-module", "", "PKCS#11 module")
+	cfsslFlagSet.StringVar(&Config.pkcs11Token, "pkcs11-token", "", "Name of the PKCS#11 token to use for signing")
+	cfsslFlagSet.StringVar(&Config.pkcs11PIN, "pkcs11-pin", "", "PIN to log in to PKCS#11 token")
+	cfsslFlagSet.StringVar(&Config.pkcs11KeyLabel, "pkcs11-key-label", "", "Private key label for a key on a PKCS#11 token")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds

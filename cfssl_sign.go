@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 )
 
 // Usage text of 'cfssl sign'
@@ -28,7 +28,7 @@ Flags:
 `
 
 // Flags of 'cfssl sign'
-var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "f", "profile"}
+var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "f", "profile", "pkcs11-module", "pkcs11-token", "pkcs11-pin", "pkcs11-key-label"}
 
 // signerMain is the main CLI of signer functionality.
 // [TODO: zi] Decide whether to drop the argument list and only use flags to specify all the inputs.
@@ -82,10 +82,18 @@ func signerMain(args []string) (err error) {
 		policy = Config.cfg.Signing
 	}
 
-	signer, err := signer.NewSigner(Config.caFile, Config.caKeyFile, policy)
+	keyConfig := signer.SigningKeyConfig{
+		CaKeyFile:      Config.caKeyFile,
+		Pkcs11Module:   Config.pkcs11Module,
+		Pkcs11Token:    Config.pkcs11Token,
+		Pkcs11PIN:      Config.pkcs11PIN,
+		Pkcs11KeyLabel: Config.pkcs11KeyLabel,
+	}
+	signer, err := signer.NewSigner(Config.caFile, keyConfig, policy)
 	if err != nil {
 		return
 	}
+
 	cert, err := signer.Sign(Config.hostname, clientCert, subjectData, Config.profile)
 	if err != nil {
 		return
