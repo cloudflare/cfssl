@@ -28,7 +28,7 @@ Arguments:
 Flags:
 `
 
-var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "f"}
+var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config"}
 
 func gencertMain(args []string) (err error) {
 	if Config.hostname == "" && !Config.isCA {

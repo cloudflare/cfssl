@@ -11,7 +11,7 @@ var version = struct {
 	Minor    int
 	Patch    int
 	Revision string
-}{1, 0, 1, "release"}
+}{1, 1, 0, "release"}
 
 func versionString() string {
 	return fmt.Sprintf("%d.%d.%d", version.Major, version.Minor, version.Patch)

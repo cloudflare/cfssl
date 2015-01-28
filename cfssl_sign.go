@@ -28,7 +28,7 @@ Flags:
 `
 
 // Flags of 'cfssl sign'
-var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "f", "profile"}
+var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile"}
 
 // signerMain is the main CLI of signer functionality.
 // [TODO: zi] Decide whether to drop the argument list and only use flags to specify all the inputs.

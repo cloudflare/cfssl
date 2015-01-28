@@ -85,7 +85,7 @@ func registerFlags() {
 	cfsslFlagSet.StringVar(&Config.intBundleFile, "int-bundle", "/etc/cfssl/int-bundle.crt", "Bundle to be used for intermediate certificates pool")
 	cfsslFlagSet.StringVar(&Config.address, "address", "127.0.0.1", "Address to bind")
 	cfsslFlagSet.IntVar(&Config.port, "port", 8888, "Port to bind")
-	cfsslFlagSet.StringVar(&Config.configFile, "f", "", "path to configuration file")
+	cfsslFlagSet.StringVar(&Config.configFile, "config", "", "path to configuration file")
 	cfsslFlagSet.StringVar(&Config.profile, "profile", "", "signing profile to use")
 	cfsslFlagSet.BoolVar(&Config.isCA, "initca", false, "initialise new CA")
 	cfsslFlagSet.StringVar(&Config.intDir, "int-dir", "/etc/cfssl/intermediates", "specify intermediates directory")
