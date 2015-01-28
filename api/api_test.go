@@ -20,7 +20,7 @@ const (
 )
 
 func newTestSignHandler(t *testing.T) (h http.Handler) {
-	h, err := NewSignHandler(testCaFile, testCaKeyFile, "", nil)
+	h, err := NewSignHandler(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,8 @@ func TestNewSignHandler(t *testing.T) {
 }
 
 func TestNewSignHandlerError(t *testing.T) {
-	_, err := NewSignHandler(testCaFile, testBrokenCSRFile, "", nil)
+	// using testBrokenCSRFile as badly formed key
+	_, err := NewSignHandler(testCaFile, testBrokenCSRFile, nil)
 	if err == nil {
 		t.Fatal("Expect error when create a signer with broken file.")
 	}

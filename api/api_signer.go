@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
@@ -19,31 +18,19 @@ import (
 // profile name.
 type SignHandler struct {
 	signer signer.Signer
-	server *client.Server
 }
 
 // NewSignHandler generates a new SignHandler using the certificate
 // authority private key and certficate to sign certificates. If remote
 // is not an empty string, the handler will send signature requests to
 // the CFSSL instance contained in remote by default.
-func NewSignHandler(caFile, cakeyFile string, remote string, policy *config.Signing) (http.Handler, error) {
+func NewSignHandler(caFile, cakeyFile string, policy *config.Signing) (http.Handler, error) {
 	var err error
 	s := new(SignHandler)
 
-	if s.signer, err = signer.NewSigner(caFile, cakeyFile, policy); err != nil {
-		if remote == "" {
-			log.Errorf("setting up signer failed: %v", err)
-			return nil, err
-		}
-		s.signer = nil
-	}
-
-	if remote != "" {
-		s.server = client.NewServer(remote)
-		if s.server == nil {
-			return nil, errors.New(errors.DialError, errors.None)
-		}
-		log.Infof("remote signer activated")
+	if s.signer, err = signer.NewSigner(signer.Root{CertFile: caFile, KeyFile: cakeyFile}, policy); err != nil {
+		log.Errorf("setting up signer failed: %v", err)
+		return nil, err
 	}
 
 	return HTTPHandler{s, "POST"}, nil
@@ -60,18 +47,8 @@ func NewSignHandlerFromSigner(signer signer.Signer) HTTPHandler {
 	}
 }
 
-// SignRequest stores a signature request, which contains the hostname,
-// the CSR, optional subject information, and the signature profile.
-type SignRequest struct {
-	Hostname string          `json:"hostname"`
-	Request  string          `json:"certificate_request"`
-	Subject  *signer.Subject `json:"subject,omitempty"`
-	Profile  string          `json:"profile"`
-	Label    string          `json:"label"`
-}
-
 // Handle responds to requests for the CA to sign the certificate request
-// present in the "certificate_requeset" parameter for the host named
+// present in the "certificate_request" parameter for the host named
 // in the "hostname" parameter. The certificate should be PEM-encoded. If
 // provided, subject information from the "subject" parameter will be used
 // in place of the subject information from the CSR.
@@ -84,7 +61,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	r.Body.Close()
 
-	var req SignRequest
+	var req signer.SignRequest
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return err
@@ -110,28 +87,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		profile = policy.Default
 	}
 
-	// Signing priorities: the first match wins.
-	// 1. If the profile specifies a remote, that overrides any
-	// global remote.
-	// 2. If CFSSL was configured with a remote on the command line,
-	// CFSSL will make a remote signature request.
-	// 3. Finally, CFSSL will sign the certificate itself.
-	if profile != nil && profile.Remote != nil {
-		if profile.Provider != nil {
-			cert, err = h.handleAuthSign(w, &req, profile)
-		} else {
-			cert, err = profile.Remote.Sign(req.Hostname, []byte(req.Request), req.Profile, req.Label)
-		}
-	} else if h.server != nil {
-		if profile != nil && profile.Provider != nil {
-			cert, err = h.handleAuthSign(w, &req, profile)
-		} else {
-			cert, err = h.server.Sign(req.Hostname, []byte(req.Request), req.Profile, req.Label)
-		}
-	} else {
-		cert, err = h.signer.Sign(req.Hostname, []byte(req.Request), req.Subject, req.Profile)
-	}
-
+	cert, err = h.signer.Sign(req)
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
 		return err
@@ -140,39 +96,6 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	result := map[string]string{"certificate": string(cert)}
 	log.Info("wrote response")
 	return sendResponse(w, result)
-}
-
-// handleAuthSign takes care of packaging the request and sending it
-// off to the authenticated signing endpoint.
-func (h *SignHandler) handleAuthSign(w http.ResponseWriter, req *SignRequest, profile *config.SigningProfile) ([]byte, error) {
-	if req == nil || profile == nil {
-		return nil, errors.NewBadRequestString("invalid parameters to authsign")
-	}
-
-	server := profile.Remote
-	if server == nil {
-		server = h.server
-	}
-
-	if server == nil {
-		return nil, errors.NewBadRequestString("no remote server could be used")
-	}
-
-	request := map[string]string{
-		"certificate_request": req.Request,
-		"hostname":            req.Hostname,
-		"profile":             req.Profile,
-		"label":               req.Label,
-	}
-
-	jsonOut, err := json.Marshal(request)
-	if err != nil {
-		return nil, err
-	}
-
-	// AuthSign supports setting the ID, but this isn't used with
-	// most providers.
-	return server.AuthSign(jsonOut, nil, req.Profile, profile.Provider)
 }
 
 // An AuthSignHandler verifies and signs incoming signature requests.
@@ -232,7 +155,7 @@ func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(err)
 	}
 
-	var req SignRequest
+	var req signer.SignRequest
 	err = json.Unmarshal(aReq.Request, &req)
 	if err != nil {
 		log.Errorf("failed to unmarshal request from authenticated request: %v", err)
@@ -275,7 +198,7 @@ func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("missing certificate_request parameter")
 	}
 
-	cert, err := h.signer.Sign(req.Hostname, []byte(req.Request), req.Subject, req.Profile)
+	cert, err := h.signer.Sign(req)
 	if err != nil {
 		log.Errorf("signature failed: %v", err)
 		return err

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -47,18 +46,7 @@ func genkeyMain(args []string) (err error) {
 			return
 		}
 
-		var out = struct {
-			Key  string `json:"key"`
-			Cert string `json:"cert"`
-		}{string(key), string(cert)}
-
-		var jsonOut []byte
-		jsonOut, err = json.Marshal(out)
-		if err != nil {
-			return
-		}
-		fmt.Printf("%s\n", string(jsonOut))
-
+		printCert(key, nil, cert)
 	} else {
 		if req.CA != nil {
 			err = errors.New("ca section only permitted in initca")
@@ -73,17 +61,7 @@ func genkeyMain(args []string) (err error) {
 			return
 		}
 
-		var out = struct {
-			Key string `json:"key"`
-			CSR string `json:"csr"`
-		}{string(key), string(csrPEM)}
-
-		var jsonOut []byte
-		jsonOut, err = json.Marshal(out)
-		if err != nil {
-			return
-		}
-		fmt.Printf("%s\n", string(jsonOut))
+		printCert(key, csrPEM, nil)
 	}
 	return nil
 }

@@ -4,11 +4,13 @@ package config
 import (
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"time"
 
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/auth"
+	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
@@ -42,20 +44,17 @@ type SigningProfile struct {
 // It returns true if ExpiryString is a valid representation of a
 // time.Duration, and the AuthKeyString and RemoteName point to
 // valid objects. It returns false otherwise.
-func (p *SigningProfile) populate(cfg *Config) bool {
+func (p *SigningProfile) populate(cfg *Config) error {
 	log.Debugf("parse expiry in profile")
 	if p == nil {
-		log.Debugf("failed: no timestamp in profile")
-		return false
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("no timestamp in profile"))
 	} else if p.ExpiryString == "" {
-		log.Debugf("failed: empty expiry string")
-		return false
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("empty expiry string"))
 	}
 
 	dur, err := time.ParseDuration(p.ExpiryString)
 	if err != nil {
-		log.Debugf("failed to parse expiry: %v", err)
-		return false
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
 	}
 
 	log.Debugf("expiry is valid")
@@ -67,32 +66,92 @@ func (p *SigningProfile) populate(cfg *Config) bool {
 				p.Provider, err = auth.New(key.Key, nil)
 				if err != nil {
 					log.Debugf("failed to create new stanard auth provider: %v", err)
-					return false
+					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+						errors.New("failed to create new stanard auth provider"))
 				}
 			} else {
 				log.Debugf("unknown authentication type %v", key.Type)
-				return false
+				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+					errors.New("unknown authentication type"))
 			}
 		} else {
-			log.Debugf("failed to find auth_key %v in auth_keys section", p.AuthKeyName)
-			return false
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to find auth_key in auth_keys section"))
 		}
 	}
 
 	if p.RemoteName != "" {
 		if remote := cfg.Remotes[p.RemoteName]; remote != "" {
-			p.Remote = client.NewServer(remote)
-			if p.Remote == nil {
-				log.Debugf("failed to connect to remote %v", remote)
-				return false
+			if err := p.updateRemote(remote); err != nil {
+				return err
 			}
 		} else {
-			log.Debugf("failed to find remote %v in remotes section %v", p.RemoteName, cfg)
-			return false
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to find remote in remotes section"))
 		}
 	}
 
-	return true
+	return nil
+}
+
+// updateRemote takes a signing profile and initializes the remote server object
+// to the hostname:port combination sent by remote
+func (p *SigningProfile) updateRemote(remote string) error {
+	if remote != "" {
+		p.Remote = client.NewServer(remote)
+		if p.Remote == nil {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
+				errors.New("failed to connect to remote"))
+		}
+	}
+	return nil
+}
+
+// OverrideRemotes takes a signing configuration and updates the remote server object
+// to the hostname:port combination sent by remote
+func (p *Signing) OverrideRemotes(remote string) error {
+	if remote != "" {
+		var err error
+		for _, profile := range p.Profiles {
+			err = profile.updateRemote(remote)
+			if err != nil {
+				return err
+			}
+		}
+		err = p.Default.updateRemote(remote)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// NeedsRemoteSigner returns true if one of the profiles has a remote set
+func (p *Signing) NeedsRemoteSigner() bool {
+	for _, profile := range p.Profiles {
+		if profile.Remote != nil {
+			return true
+		}
+	}
+	if p.Default.Remote != nil {
+		return true
+	}
+
+	return false
+}
+
+// NeedsLocalSigner returns true if one of the profiles doe not have a remote set
+func (p *Signing) NeedsLocalSigner() bool {
+	for _, profile := range p.Profiles {
+		if profile.Remote == nil {
+			return true
+		}
+	}
+	if p.Default.Remote == nil {
+		return true
+	}
+
+	return false
 }
 
 // Usages parses the list of key uses in the profile, translating them
@@ -229,16 +288,15 @@ func DefaultConfig() *SigningProfile {
 
 // LoadFile attempts to load the configuration file stored at the path
 // and returns the configuration. On error, it returns nil.
-func LoadFile(path string) *Config {
+func LoadFile(path string) (*Config, error) {
 	log.Debugf("loading configuration file from %s", path)
 	if path == "" {
-		return nil
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid path"))
 	}
 
 	body, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Debugf("failed to read configuration file: %v", err)
-		return nil
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("could not read configuration file"))
 	}
 
 	return LoadConfig(body)
@@ -246,33 +304,32 @@ func LoadFile(path string) *Config {
 
 // LoadConfig attempts to load the configuration from a byte slice.
 // On error, it returns nil.
-func LoadConfig(config []byte) *Config {
+func LoadConfig(config []byte) (*Config, error) {
 	var cfg = &Config{}
 	err := json.Unmarshal(config, &cfg)
 	if err != nil {
-		log.Debugf("failed to unmarshal configuration: %v", err)
-		return nil
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("failed to unmarshal configuration"))
 	}
 
 	if cfg.Signing.Default == nil {
 		log.Debugf("no default given: using default config")
 		cfg.Signing.Default = DefaultConfig()
 	} else {
-		if !cfg.Signing.Default.populate(cfg) {
-			return nil
+		if err := cfg.Signing.Default.populate(cfg); err != nil {
+			return nil, err
 		}
 	}
 
 	if !cfg.Valid() {
-		return nil
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid configuration"))
 	}
 
 	for k := range cfg.Signing.Profiles {
-		if !cfg.Signing.Profiles[k].populate(cfg) {
-			return nil
+		if err := cfg.Signing.Profiles[k].populate(cfg); err != nil {
+			return nil, err
 		}
 	}
 
 	log.Debugf("configuration ok")
-	return cfg
+	return cfg, nil
 }

@@ -132,7 +132,10 @@ func TestInitCA(t *testing.T) {
 				CA:           true,
 			},
 		}
-		s := signer.NewStandardSigner(key, cert, signer.DefaultSigAlgo(key))
+		s, err := signer.NewLocalSigner(key, cert, signer.DefaultSigAlgo(key), nil)
+		if err != nil {
+			t.Fatal("Signer Creation error:", err)
+		}
 		s.SetPolicy(CAPolicy)
 
 		// Sign RSA and ECDSA customer CSRs.
@@ -141,7 +144,14 @@ func TestInitCA(t *testing.T) {
 			if err != nil {
 				t.Fatal("CSR loading error:", err)
 			}
-			bytes, err := s.Sign(hostname, csrBytes, nil, "")
+			req := signer.SignRequest{
+				Hostname: hostname,
+				Request:  string(csrBytes),
+				Subject:  nil,
+				Profile:  "",
+				Label:    ""}
+
+			bytes, err := s.Sign(req)
 			if err != nil {
 				t.Fatal(err)
 			}

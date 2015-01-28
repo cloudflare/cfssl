@@ -12,7 +12,7 @@
             1213: TooManyIntermediates
             1214: IncompatibleUsage
         1220: UnknownAuthority
-2XXX: PrivatekeyError
+2XXX: PrivateKeyError
     2000: Unknown
     2001: ReadFailed
     2002: DecodeFailed
