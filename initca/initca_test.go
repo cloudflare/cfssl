@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/signer"
 )
 
 type KeyRequest struct {

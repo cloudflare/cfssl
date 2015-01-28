@@ -82,19 +82,18 @@ func signerMain(args []string) (err error) {
 		policy = Config.cfg.Signing
 	}
 
-	keyConfig := signer.SigningKeyConfig{
-		CaKeyFile:      Config.caKeyFile,
-		Pkcs11Module:   Config.pkcs11Module,
-		Pkcs11Token:    Config.pkcs11Token,
-		Pkcs11PIN:      Config.pkcs11PIN,
-		Pkcs11KeyLabel: Config.pkcs11KeyLabel,
+	var certSigner *signer.StandardSigner
+	if Config.pkcs11Module != "" {
+		certSigner, err = signer.NewSignerPkcs11(Config.caFile, Config.pkcs11Module,
+			Config.pkcs11Token, Config.pkcs11PIN, Config.pkcs11KeyLabel, policy)
+	} else {
+		certSigner, err = signer.NewSignerFromFile(Config.caFile, Config.caKeyFile, policy)
 	}
-	signer, err := signer.NewSigner(Config.caFile, keyConfig, policy)
 	if err != nil {
 		return
 	}
 
-	cert, err := signer.Sign(Config.hostname, clientCert, subjectData, Config.profile)
+	cert, err := certSigner.Sign(Config.hostname, clientCert, subjectData, Config.profile)
 	if err != nil {
 		return
 	}

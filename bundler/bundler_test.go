@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/ubiquity"
 )
 
@@ -597,7 +597,7 @@ func newBundler(t *testing.T) (b *Bundler) {
 
 // create a test intermediate cert in PEM
 func createInterCert(t *testing.T, csrFile string, policy *config.Signing, profileName string) (certPEM []byte) {
-	signer, err := signer.NewSigner(testCAFile, testCAKeyFile, policy)
+	signer, err := signer.NewSignerFromFile(testCAFile, testCAKeyFile, policy)
 	if err != nil {
 		t.Fatal(err)
 	}

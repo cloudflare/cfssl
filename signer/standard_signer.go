@@ -60,12 +60,42 @@ type SigningKeyConfig struct {
 	Pkcs11KeyLabel string
 }
 
+// NewSignerFromFile generates a new standard library certificate
+// signer using a private key stored in a PEM file.
+func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*StandardSigner, error) {
+	log.Debug("Loading CA key: ", caKeyFile)
+	cakey, err := ioutil.ReadFile(caKeyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := helpers.ParsePrivateKeyPEM(cakey)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSigner(caFile, priv, policy)
+}
+
+// NewSignerPkcs11 generates a new standard library certificate
+// signer using a private key stored on a PKCS#11 token.
+// TODO
+func NewSignerPkcs11(caFile, module, token, pin, label string, policy *config.Signing) (*StandardSigner, error) {
+	log.Debug("Configuring PKCS#11: ", module)
+	priv, err := NewPkcs11Key(module, token, pin, label)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSigner(caFile, priv, policy)
+}
+
 // NewSigner generates a new standard library certificate signer using
 // the certificate authority certificate and private key and Signing
 // config for signing. caFile should contain the CA's certificate, and
 // the cakeyFile should contain the private key. Both must be
 // PEM-encoded.
-func NewSigner(caFile string, keyConfig SigningKeyConfig, policy *config.Signing) (*StandardSigner, error) {
+func NewSigner(caFile string, priv interface{}, policy *config.Signing) (*StandardSigner, error) {
 	if policy == nil {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
@@ -85,26 +115,6 @@ func NewSigner(caFile string, keyConfig SigningKeyConfig, policy *config.Signing
 	parsedCa, err := helpers.ParseCertificatePEM(ca)
 	if err != nil {
 		return nil, err
-	}
-
-	var priv interface{}
-	if keyConfig.Pkcs11Module != "" {
-		log.Debug("Configuring PKCS#11: ", keyConfig.Pkcs11Module)
-		priv, err = NewPkcs11Key(keyConfig.Pkcs11Module, keyConfig.Pkcs11Token, keyConfig.Pkcs11PIN, keyConfig.Pkcs11KeyLabel)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		log.Debug("Loading CA key: ", keyConfig.CaKeyFile)
-		cakey, err := ioutil.ReadFile(keyConfig.CaKeyFile)
-		if err != nil {
-			return nil, err
-		}
-
-		priv, err = helpers.ParsePrivateKeyPEM(cakey)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return &StandardSigner{parsedCa, priv, policy, DefaultSigAlgo(priv)}, nil

@@ -10,12 +10,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 )
 
 // Validator is a type of function that contains the logic for validating
@@ -155,7 +155,7 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote stri
 		}
 	}
 
-	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, cfg); err != nil {
+	if cg.signer, err = signer.NewSignerFromFile(caFile, caKeyFile, cfg); err != nil {
 		if remote == "" {
 			return nil, err
 		}

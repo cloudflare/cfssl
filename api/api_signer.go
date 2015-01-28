@@ -5,12 +5,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 )
 
 // A SignHandler accepts requests with a hostname and certficate
@@ -30,7 +30,7 @@ func NewSignHandler(caFile, cakeyFile string, remote string, policy *config.Sign
 	var err error
 	s := new(SignHandler)
 
-	if s.signer, err = signer.NewSigner(caFile, cakeyFile, policy); err != nil {
+	if s.signer, err = signer.NewSignerFromFile(caFile, cakeyFile, policy); err != nil {
 		if remote == "" {
 			log.Errorf("setting up signer failed: %v", err)
 			return nil, err

@@ -24,7 +24,7 @@ var expiry = 1 * time.Minute
 
 // Start a signer with the testing RSA CA cert and key.
 func newTestSigner(t *testing.T) (s Signer) {
-	s, err := NewSigner(testCaFile, testCaKeyFile, nil)
+	s, err := NewSignerFromFile(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestNewSignerPolicy(t *testing.T) {
 			},
 		},
 	}
-	_, err := NewSigner(testCaFile, testCaKeyFile, CAConfig.Signing)
+	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestNewSignerInvalidPolicy(t *testing.T) {
 			},
 		},
 	}
-	_, err := NewSigner(testCaFile, testCaKeyFile, invalidConfig.Signing)
+	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, invalidConfig.Signing)
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestNewSignerNoUsageInPolicy(t *testing.T) {
 			},
 		},
 	}
-	_, err := NewSigner(testCaFile, testCaKeyFile, invalidConfig.Signing)
+	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, invalidConfig.Signing)
 	if err == nil {
 		t.Fatal("expect InvalidPolicy error")
 	}
@@ -107,14 +107,14 @@ func TestNewSignerNoUsageInPolicy(t *testing.T) {
 }
 
 func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s Signer) {
-	s, err := NewSigner(testCaFile, testCaKeyFile, nil)
+	s, err := NewSignerFromFile(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return
 }
 
-func TestNewSigner(t *testing.T) {
+func TestNewSignerFromFile(t *testing.T) {
 	newTestSigner(t)
 }
 

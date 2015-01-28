@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 )
 
 var gencertUsageText = `cfssl gencert -- generate a new key and signed certificate
@@ -104,7 +104,7 @@ func gencertMain(args []string) (err error) {
 		}
 
 		var sign signer.Signer
-		sign, err = signer.NewSigner(Config.caFile, Config.caKeyFile, policy)
+		sign, err = signer.NewSignerFromFile(Config.caFile, Config.caKeyFile, policy)
 		if err != nil {
 			return
 		}

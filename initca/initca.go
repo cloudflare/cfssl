@@ -13,12 +13,12 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/bifurcation/cfssl/signer"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 )
 
 // validator contains the default validation logic for certificate
