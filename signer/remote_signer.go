@@ -18,11 +18,15 @@ type RemoteSigner struct {
 // signing policy.
 func NewRemoteSigner(policy *config.Signing) (*RemoteSigner, error) {
 	if policy != nil {
+		if !policy.Valid() {
+			return nil, cferr.New(cferr.PolicyError,
+				cferr.InvalidPolicy)
+		}
 		return &RemoteSigner{policy: policy}, nil
-	} else {
-		return nil, cferr.New(cferr.PolicyError,
-			cferr.InvalidPolicy)
 	}
+
+	return nil, cferr.New(cferr.PolicyError,
+		cferr.InvalidPolicy)
 }
 
 // Sign sends a signature request to the remote CFSSL server,
@@ -35,7 +39,7 @@ func (s *RemoteSigner) Sign(req SignRequest) (cert []byte, err error) {
 		return nil, cferr.Wrap(cferr.APIClientError, cferr.JSONError, err)
 	}
 
-	var profile *config.SigningProfile = nil
+	var profile *config.SigningProfile
 	if s.policy.Profiles != nil && req.Profile != "" {
 		profile = s.policy.Profiles[req.Profile]
 	}

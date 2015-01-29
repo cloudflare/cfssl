@@ -13,8 +13,8 @@ import (
 var signerUsageText = `cfssl sign -- signs a client cert with a host name by a given CA and CA key
 
 Usage of sign:
-        cfssl sign -ca cert -ca-key key [-f config] [-profile profile] HOSTNAME CSR [SUBJECT]
-        cfssl sign -remote remote_host [-f config] [-profile profile] [-label label] HOSTNAME CSR [SUBJECT]
+        cfssl sign -ca cert -ca-key key [-config config] [-profile profile] HOSTNAME CSR [SUBJECT]
+        cfssl sign -remote remote_host [-config config] [-profile profile] [-label label] HOSTNAME CSR [SUBJECT]
 
 Arguments:
         HOSTNAME:   Hostname for the cert
@@ -28,7 +28,7 @@ Flags:
 `
 
 // Flags of 'cfssl sign'
-var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "f", "profile", "label", "remote"}
+var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote"}
 
 func signingPolicyFromConfig() (*config.Signing, error) {
 	// If there is a config, use its signing policy. Otherwise create a default policy.
@@ -117,7 +117,8 @@ func signerMain(args []string) (err error) {
 	root := signer.Root{
 		CertFile:    Config.caFile,
 		KeyFile:     Config.caKeyFile,
-		ForceRemote: Config.remote == ""}
+		ForceRemote: Config.remote == "",
+	}
 	s, err := signer.NewSigner(root, policy)
 	if err != nil {
 		return
@@ -128,8 +129,8 @@ func signerMain(args []string) (err error) {
 		Request:  string(csr),
 		Subject:  subjectData,
 		Profile:  Config.profile,
-		Label:    Config.label}
-
+		Label:    Config.label,
+	}
 	cert, err := s.Sign(req)
 	if err != nil {
 		return

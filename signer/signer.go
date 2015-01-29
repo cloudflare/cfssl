@@ -191,12 +191,13 @@ func CheckSignature(csr *x509.CertificateRequest, algo x509.SignatureAlgorithm, 
 	return x509.ErrUnsupportedAlgorithm
 }
 
-// NewSigner generates a new certificate signer from a Root structure
-// If the root structure specifies a force remote, then a remote signer
-// is created, otherwise either a remote or local signer is generated
-// based on the policy. For a local signer, the CertFile and KeyFile
-// need to be defined.
-func NewSigner(root Root, policy *config.Signing) (s Signer, err error) {
+// NewSigner generates a new certificate signer from a Root structure.
+// This is one of two standard signers: local or remote. If the root
+// structure specifies a force remote, then a remote signer is created,
+// otherwise either a remote or local signer is generated based on the
+// policy. For a local signer, the CertFile and KeyFile need to be
+// defined in Root.
+func NewSigner(root Root, policy *config.Signing) (Signer, error) {
 	if policy == nil {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
@@ -208,6 +209,8 @@ func NewSigner(root Root, policy *config.Signing) (s Signer, err error) {
 		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
 	}
 
+	var s Signer
+	var err error
 	if root.ForceRemote {
 		s, err = NewRemoteSigner(policy)
 	} else {
@@ -225,5 +228,5 @@ func NewSigner(root Root, policy *config.Signing) (s Signer, err error) {
 		}
 	}
 
-	return
+	return s, err
 }

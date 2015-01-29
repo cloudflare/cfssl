@@ -610,7 +610,8 @@ func createInterCert(t *testing.T, csrFile string, policy *config.Signing, profi
 		Request:  string(csr),
 		Subject:  nil,
 		Profile:  profileName,
-		Label:    ""}
+		Label:    "",
+	}
 
 	certPEM, err = s.Sign(req)
 	if err != nil {

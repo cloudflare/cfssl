@@ -109,8 +109,15 @@ func (srv *Server) AuthSign(req, ID []byte, provider auth.Provider) ([]byte, err
 		return nil, err
 	}
 
-	result := response.Result.(map[string]interface{})
-	cert := result["certificate"].(string)
+	result, ok := response.Result.(map[string]interface{})
+	if !ok {
+		return nil, errors.New(errors.APIClientError, errors.JSONError)
+	}
+
+	cert, ok := result["certificate"].(string)
+	if !ok {
+		return nil, errors.New(errors.APIClientError, errors.JSONError)
+	}
 
 	return []byte(cert), nil
 }

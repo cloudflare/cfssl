@@ -41,11 +41,17 @@ func NewLocalSigner(priv interface{}, cert *x509.Certificate, sigAlgo x509.Signa
 			Profiles: map[string]*config.SigningProfile{},
 			Default:  config.DefaultConfig()}
 	}
+
+	if !policy.Valid() {
+		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+	}
+
 	return &LocalSigner{
 		ca:      cert,
 		priv:    priv,
 		sigAlgo: sigAlgo,
-		policy:  policy}, nil
+		policy:  policy,
+	}, nil
 }
 
 // NewLocalSignerFromFile generates a new local signer from a caFile
@@ -69,7 +75,7 @@ func NewLocalSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*
 
 	priv, err := helpers.ParsePrivateKeyPEM(cakey)
 	if err != nil {
-		log.Debug("Malformed Private key %v", err)
+		log.Debug("Malformed private key %v", err)
 		return nil, err
 	}
 

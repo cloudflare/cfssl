@@ -99,6 +99,7 @@ func registerFlags() {
 	cfsslFlagSet.StringVar(&Config.domain, "domain", "", "remote server domain name")
 	cfsslFlagSet.StringVar(&Config.ip, "ip", "", "remote server ip")
 	cfsslFlagSet.StringVar(&Config.remote, "remote", "", "remote CFSSL server")
+	cfsslFlagSet.StringVar(&Config.label, "label", "", "key label to use in remote CFSSL server")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds

@@ -154,7 +154,8 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 
 	root := signer.Root{
 		CertFile: caFile,
-		KeyFile:  caKeyFile}
+		KeyFile:  caKeyFile,
+	}
 	if cg.signer, err = signer.NewSigner(root, policy); err != nil {
 		return nil, err
 	}
@@ -236,7 +237,8 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		Hostname: req.Hostname,
 		Request:  string(csr),
 		Profile:  req.Profile,
-		Label:    req.Label}
+		Label:    req.Label,
+	}
 
 	certBytes, err := cg.signer.Sign(signReq)
 	if err != nil {
