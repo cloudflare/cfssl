@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
@@ -133,8 +132,6 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 type CertGeneratorHandler struct {
 	generator *csr.Generator
 	signer    signer.Signer
-	server    *client.Server
-	policy    *config.Signing
 }
 
 // NewCertGeneratorHandler builds a new handler for generating
@@ -143,34 +140,27 @@ type CertGeneratorHandler struct {
 // sign the generated request. If remote is not an empty string, the
 // handler will send signature requests to the CFSSL instance contained
 // in remote.
-func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile, remote string, cfg *config.Signing) (http.Handler, error) {
+func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
 	var err error
 	log.Info("setting up new generator / signer")
 	cg := new(CertGeneratorHandler)
 
-	if cfg == nil {
-		cfg = &config.Signing{
+	if policy == nil {
+		policy = &config.Signing{
 			Default:  config.DefaultConfig(),
 			Profiles: nil,
 		}
 	}
 
-	if cg.signer, err = signer.NewSigner(caFile, caKeyFile, cfg); err != nil {
-		if remote == "" {
-			return nil, err
-		}
-		log.Infof("remote cert generator activated")
-		cg.signer = nil
+	root := signer.Root{
+		CertFile: caFile,
+		KeyFile:  caKeyFile,
+	}
+	if cg.signer, err = signer.NewSigner(root, policy); err != nil {
+		return nil, err
 	}
 
-	cg.policy = cfg
 	cg.generator = &csr.Generator{Validator: validator}
-	if remote != "" {
-		cg.server = client.NewServer(remote)
-		if cg.server == nil {
-			return nil, errors.New(errors.DialError, errors.None)
-		}
-	}
 
 	return HTTPHandler{cg, "POST"}, nil
 }
@@ -231,44 +221,26 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	}
 
 	var certPEM []byte
-	profile := cg.policy.Default
-	if cg.policy.Profiles != nil {
-		profile = cg.policy.Profiles[req.Profile]
+
+	var profile *config.SigningProfile
+	policy := cg.signer.Policy()
+	if policy != nil && policy.Profiles != nil && req.Profile != "" {
+		profile = policy.Profiles[req.Profile]
 	}
 
-	if profile == nil {
-		log.Critical("invalid profile ", req.Profile)
-		return errors.NewBadRequestString("invalid profile")
+	if profile == nil && policy != nil {
+		profile = policy.Default
 	}
 
-	if cg.server != nil {
-		if profile.Provider != nil {
-			authSign := authSign{
-				CSR:     csr,
-				Profile: profile,
-				Server:  cg.server,
-				Request: req,
-			}
-			certPEM, err = cg.handleAuthSign(w, &authSign)
-		} else {
-			certPEM, err = cg.server.Sign(req.Hostname, csr, req.Profile, req.Label)
-		}
-	} else if profile.Remote != nil {
-		if profile.Provider != nil {
-			authSign := authSign{
-				CSR:     csr,
-				Profile: profile,
-				Server:  profile.Remote,
-				Request: req,
-			}
-			certPEM, err = cg.handleAuthSign(w, &authSign)
-		} else {
-			certPEM, err = profile.Remote.Sign(req.Hostname, csr, req.Profile, req.Label)
-		}
-	} else {
-		certPEM, err = cg.signer.Sign(req.Hostname, csr, nil, req.Profile)
+	// This API does not override the subject because it was already added to the CSR
+	signReq := signer.SignRequest{
+		Hostname: req.Hostname,
+		Request:  string(csr),
+		Profile:  req.Profile,
+		Label:    req.Label,
 	}
 
+	certBytes, err := cg.signer.Sign(signReq)
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
 		return err
@@ -279,7 +251,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return errors.NewBadRequest(err)
 	}
 
-	certSum, err := computeSum(certPEM)
+	certSum, err := computeSum(certBytes)
 	if err != nil {
 		return errors.NewBadRequest(err)
 	}
@@ -294,38 +266,6 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		},
 	}
 	return sendResponse(w, result)
-}
-
-type authSign struct {
-	CSR     []byte
-	Profile *config.SigningProfile
-	Server  *client.Server
-	Request *genSignRequest
-}
-
-// handleAuthSign takes care of packaging the request and sending it
-// off to the authenticated signing endpoint.
-func (cg *CertGeneratorHandler) handleAuthSign(w http.ResponseWriter, authSign *authSign) ([]byte, error) {
-	if authSign.CSR == nil || authSign.Profile == nil {
-		return nil, errors.NewBadRequestString("invalid parameters to authsign")
-	}
-
-	if authSign.Server == nil {
-		return nil, errors.NewBadRequestString("no remote server could be used")
-	}
-
-	request := SignRequest{
-		Hostname: authSign.Request.Hostname,
-		Request:  string(authSign.CSR),
-		Profile:  authSign.Request.Profile,
-	}
-
-	jsonOut, err := json.Marshal(request)
-	if err != nil {
-		return nil, errors.NewBadRequest(err)
-	}
-
-	return authSign.Server.AuthSign(jsonOut, nil, request.Profile, authSign.Profile.Provider)
 }
 
 // CSRValidate contains the default validation logic for certificate requests to

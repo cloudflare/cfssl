@@ -1,16 +1,20 @@
 /*
-cfssl is the command line tool to issue/sign/bundle client certificate. It's also a tool to
-start a HTTP server to handle web requests for signing, bundling and verification.
+cfssl is the command line tool to issue/sign/bundle client certificate. It's
+also a tool to start a HTTP server to handle web requests for signing, bundling
+and verification.
 
 Usage:
 	cfssl command [-flags] arguments
 
 The commands are
 
-	bundle	create a client cert bundle
-	sign	signs a client cert
-	serve	starts a HTTP server handling sign and bundle requests
-	version	prints the current cfssl version
+	bundle	 create a certificate bundle
+	sign	 signs a certificate signing request (CSR)
+	serve	 starts a HTTP server handling sign and bundle requests
+	version	 prints the current cfssl version
+	genkey   generates a key and an associated CSR
+	gencert  generates a key and a signed certificate
+	selfsign generates a self-signed certificate
 
 Use "cfssl [command] -help" to find out more about a command.
 */
@@ -67,6 +71,7 @@ var Config struct {
 	domain            string
 	ip                string
 	remote            string
+	label             string
 }
 
 // Parsed command name
@@ -94,6 +99,7 @@ func registerFlags() {
 	cfsslFlagSet.StringVar(&Config.domain, "domain", "", "remote server domain name")
 	cfsslFlagSet.StringVar(&Config.ip, "ip", "", "remote server ip")
 	cfsslFlagSet.StringVar(&Config.remote, "remote", "", "remote CFSSL server")
+	cfsslFlagSet.StringVar(&Config.label, "label", "", "key label to use in remote CFSSL server")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
@@ -185,8 +191,9 @@ func main() {
 	cfsslFlagSet.Parse(args)
 	args = cfsslFlagSet.Args()
 
-	Config.cfg = config.LoadFile(Config.configFile)
-	if Config.configFile != "" && Config.cfg == nil {
+	var err error
+	Config.cfg, err = config.LoadFile(Config.configFile)
+	if Config.configFile != "" && err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config file\n")
 		os.Exit(1)
 	}

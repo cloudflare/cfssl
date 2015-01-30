@@ -50,9 +50,41 @@ func (srv *Server) getURL(endpoint string) string {
 	return fmt.Sprintf("http://%s:%d/api/v1/cfssl/%s", srv.Address, srv.Port, endpoint)
 }
 
+// post connects to the remote server and returns a Response struct
+func (srv *Server) post(url string, jsonData []byte) (*Response, error) {
+	buf := bytes.NewBuffer(jsonData)
+	resp, err := http.Post(url, "application/json", buf)
+	if err != nil {
+		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
+	}
+	resp.Body.Close()
+
+	var response Response
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
+	}
+
+	if !response.Success || response.Result == nil {
+		if len(response.Errors) > 0 {
+			return nil, errors.Wrap(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
+		}
+		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed)
+	}
+
+	return &response, nil
+}
+
+
 // AuthSign fills out an authenticated request to the server,
 // receiving a certificate or error in response.
-func (srv *Server) AuthSign(req, ID []byte, profileName string, provider auth.Provider) ([]byte, error) {
+// It takes the serialized JSON request to send, remote address and
+// authentication provider.
+func (srv *Server) AuthSign(req, ID []byte, provider auth.Provider) ([]byte, error) {
 	url := srv.getURL("authsign")
 
 	token, err := provider.Token(req)
@@ -72,78 +104,37 @@ func (srv *Server) AuthSign(req, ID []byte, profileName string, provider auth.Pr
 		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
-	buf := bytes.NewBuffer(jsonData)
-	resp, err := http.Post(url, "application/json", buf)
+	response, err := srv.post(url, jsonData)
 	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
-	}
-	resp.Body.Close()
-
-	var response Response
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
+		return nil, err
 	}
 
-	if !response.Success || response.Result == nil {
-		if len(response.Errors) > 0 {
-			return nil, errors.Wrap(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
-		}
-		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed)
+	result, ok := response.Result.(map[string]interface{})
+	if !ok {
+		return nil, errors.New(errors.APIClientError, errors.JSONError)
 	}
-	result := response.Result.(map[string]interface{})
-	cert := result["certificate"].(string)
+
+	cert, ok := result["certificate"].(string)
+	if !ok {
+		return nil, errors.New(errors.APIClientError, errors.JSONError)
+	}
 
 	return []byte(cert), nil
 }
 
 // Sign sends a signature request to the remote CFSSL server,
-// receiving a signed certificate or an error in response. The hostname,
-// csr, and profileName are used as with a local signing operation, and
-// the label is used to select a signing root in a multi-root CA.
-func (srv *Server) Sign(hostname string, csr []byte, profileName, label string) ([]byte, error) {
+// receiving a signed certificate or an error in response.
+// It takes the serialized JSON request to send.
+func (srv *Server) Sign(jsonData []byte) ([]byte, error) {
 	url := srv.getURL("sign")
-	var request = map[string]string{
-		"certificate_request": string(csr),
-		"hostname":            hostname,
-		"profile":             profileName,
-		"label":               label,
-	}
 
-	jsonData, err := json.Marshal(request)
+	response, err := srv.post(url, jsonData)
 	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
-	}
-
-	buf := bytes.NewBuffer(jsonData)
-	resp, err := http.Post(url, "application/json", buf)
-	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
-	}
-	resp.Body.Close()
-
-	var response Response
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
-	}
-
-	if !response.Success || response.Result == nil {
-		if len(response.Errors) > 0 {
-			return nil, errors.Wrap(errors.APIClientError, errors.ServerRequestFailed, stderr.New(response.Errors[0].Message))
-		}
-		return nil, errors.New(errors.APIClientError, errors.ServerRequestFailed)
+		return nil, err
 	}
 	result := response.Result.(map[string]interface{})
 	cert := result["certificate"].(string)
 
 	return []byte(cert), nil
 }
+

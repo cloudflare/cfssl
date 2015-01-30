@@ -26,6 +26,24 @@ type Subject struct {
 	Hosts []string   `json:"hosts"`
 }
 
+// SignRequest stores a signature request, which contains the hostname,
+// the CSR, optional subject information, and the signature profile.
+type SignRequest struct {
+	Hostname string   `json:"hostname"`
+	Request  string   `json:"certificate_request"`
+	Subject  *Subject `json:"subject,omitempty"`
+	Profile  string   `json:"profile"`
+	Label    string   `json:"label"`
+}
+
+// Root is used to define where the Signer gets its public certificate
+// and private keys for signing.
+type Root struct {
+	CertFile    string
+	KeyFile     string
+	ForceRemote bool
+}
+
 // appendIf appends to a if s is not an empty string.
 func appendIf(s string, a *[]string) {
 	if s != "" {
@@ -55,7 +73,7 @@ type Signer interface {
 	Policy() *config.Signing
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
-	Sign(string, []byte, *Subject, string) (cert []byte, err error)
+	Sign(req SignRequest) (cert []byte, err error)
 }
 
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
@@ -171,4 +189,44 @@ func CheckSignature(csr *x509.CertificateRequest, algo x509.SignatureAlgorithm, 
 		return nil
 	}
 	return x509.ErrUnsupportedAlgorithm
+}
+
+// NewSigner generates a new certificate signer from a Root structure.
+// This is one of two standard signers: local or remote. If the root
+// structure specifies a force remote, then a remote signer is created,
+// otherwise either a remote or local signer is generated based on the
+// policy. For a local signer, the CertFile and KeyFile need to be
+// defined in Root.
+func NewSigner(root Root, policy *config.Signing) (Signer, error) {
+	if policy == nil {
+		policy = &config.Signing{
+			Profiles: map[string]*config.SigningProfile{},
+			Default:  config.DefaultConfig(),
+		}
+	}
+
+	if !policy.Valid() {
+		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+	}
+
+	var s Signer
+	var err error
+	if root.ForceRemote {
+		s, err = NewRemoteSigner(policy)
+	} else {
+		if policy.NeedsLocalSigner() && policy.NeedsRemoteSigner() {
+			// Currently we don't support a hybrid signer
+			return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+		}
+
+		if policy.NeedsLocalSigner() {
+			s, err = NewLocalSignerFromFile(root.CertFile, root.KeyFile, policy)
+		}
+
+		if policy.NeedsRemoteSigner() {
+			s, err = NewRemoteSigner(policy)
+		}
+	}
+
+	return s, err
 }

@@ -133,13 +133,13 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, p := range validProfiles {
-		if !p.populate(nil) {
+		if p.populate(nil) != nil {
 			t.Fatalf("Failed to parse ExpiryString=%s", p.ExpiryString)
 		}
 	}
 
 	for _, p := range invalidProfiles {
-		if p.populate(nil) {
+		if p.populate(nil) == nil {
 			if p != nil {
 				t.Fatalf("ExpiryString=%s should not be parseable", p.ExpiryString)
 			}
@@ -151,8 +151,8 @@ func TestParse(t *testing.T) {
 func TestLoadFile(t *testing.T) {
 	validConfigFiles := []string{"testdata/valid_config.json", "testdata/valid_config_auth.json", "testdata/valid_config_no_default.json"}
 	for _, configFile := range validConfigFiles {
-		config := LoadFile(configFile)
-		if config == nil {
+		_, err := LoadFile(configFile)
+		if err != nil {
 			t.Fatal("Load valid config failded.", configFile)
 		}
 	}
@@ -167,8 +167,8 @@ func TestLoadInvalidConfigFile(t *testing.T) {
 		"testdata/invalid_auth.json",
 		"testdata/invalid_remote.json"}
 	for _, configFile := range invalidConfigFiles {
-		config := LoadFile(configFile)
-		if config != nil {
+		_, err := LoadFile(configFile)
+		if err == nil {
 			t.Fatal("Invalid config is loaded.", configFile)
 		}
 	}

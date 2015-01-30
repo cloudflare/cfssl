@@ -24,55 +24,48 @@ import (
 // MaxPathLen is the default path length for a new CA certificate.
 var MaxPathLen = 2
 
-// StandardSigner contains a signer that uses the standard library to
+// LocalSigner contains a signer that uses the standard library to
 // support both ECDSA and RSA CA keys.
-type StandardSigner struct {
+type LocalSigner struct {
 	ca      *x509.Certificate
 	priv    interface{}
 	policy  *config.Signing
 	sigAlgo x509.SignatureAlgorithm
 }
 
-// NewStandardSigner creates a new StandardSigner directly from a
-// private key and certificate.
-func NewStandardSigner(priv interface{}, cert *x509.Certificate, sigAlgo x509.SignatureAlgorithm) *StandardSigner {
-	return &StandardSigner{
-		ca:      cert,
-		priv:    priv,
-		sigAlgo: sigAlgo,
-		policy: &config.Signing{
-			Profiles: map[string]*config.SigningProfile{},
-			Default:  config.DefaultConfig(),
-		},
-	}
-}
-
-// NewSigner generates a new standard library certificate signer using
-// the certificate authority certificate and private key and Signing
-// config for signing. caFile should contain the CA's certificate, and
-// the cakeyFile should contain the private key. Both must be
-// PEM-encoded.
-func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigner, error) {
+// NewLocalSigner creates a new LocalSigner directly from a
+// private key and certificate, with optional policy.
+func NewLocalSigner(priv interface{}, cert *x509.Certificate, sigAlgo x509.SignatureAlgorithm, policy *config.Signing) (*LocalSigner, error) {
 	if policy == nil {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
-			Default:  config.DefaultConfig(),
-		}
+			Default:  config.DefaultConfig()}
 	}
 
 	if !policy.Valid() {
 		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
 	}
 
+	return &LocalSigner{
+		ca:      cert,
+		priv:    priv,
+		sigAlgo: sigAlgo,
+		policy:  policy,
+	}, nil
+}
+
+// NewLocalSignerFromFile generates a new local signer from a caFile
+// and a caKey file, both PEM encoded.
+func NewLocalSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*LocalSigner, error) {
 	log.Debug("Loading CA: ", caFile)
 	ca, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("Loading CA key: ", cakeyFile)
-	cakey, err := ioutil.ReadFile(cakeyFile)
+	log.Debug("Loading CA key: ", caKeyFile)
+	cakey, err := ioutil.ReadFile(caKeyFile)
 	if err != nil {
-		return nil, err
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ReadFailed, err)
 	}
 
 	parsedCa, err := helpers.ParseCertificatePEM(ca)
@@ -82,10 +75,11 @@ func NewSigner(caFile, cakeyFile string, policy *config.Signing) (*StandardSigne
 
 	priv, err := helpers.ParsePrivateKeyPEM(cakey)
 	if err != nil {
+		log.Debug("Malformed private key %v", err)
 		return nil, err
 	}
 
-	return &StandardSigner{parsedCa, priv, policy, DefaultSigAlgo(priv)}, nil
+	return NewLocalSigner(priv, parsedCa, DefaultSigAlgo(priv), policy)
 }
 
 type subjectPublicKeyInfo struct {
@@ -93,7 +87,7 @@ type subjectPublicKeyInfo struct {
 	SubjectPublicKey asn1.BitString
 }
 
-func (s *StandardSigner) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
+func (s *LocalSigner) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
 	pub := template.PublicKey
 	encodedpub, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
@@ -204,40 +198,38 @@ func (s *StandardSigner) sign(template *x509.Certificate, profile *config.Signin
 
 // Sign signs a new certificate based on the PEM-encoded client
 // certificate or certificate request with the signing profile, specified
-// by profileName. The certificate will be valid for the host named in
-// the hostName parameter. If not nil, the subject information contained
-// in subject will be used in place of the subject information in the CSR.
-func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, profileName string) (cert []byte, err error) {
-	profile := s.policy.Profiles[profileName]
+// by profileName.
+func (s *LocalSigner) Sign(req SignRequest) (cert []byte, err error) {
+	profile := s.policy.Profiles[req.Profile]
 	if profile == nil {
 		profile = s.policy.Default
 	}
 
-	block, _ := pem.Decode(in)
+	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	}
 
 	if block.Type != "CERTIFICATE REQUEST" {
 		return nil, cferr.Wrap(cferr.CertificateError,
-			cferr.ParseFailed, errors.New("not a certificate or csr"))
+			cferr.BadRequest, errors.New("not a certificate or csr"))
 	}
 
-	template, err := ParseCertificateRequest(s, block.Bytes, subject)
+	template, err := ParseCertificateRequest(s, block.Bytes, req.Subject)
 	if err != nil {
 		return nil, err
 	}
 
-	if subject == nil {
-		if ip := net.ParseIP(hostName); ip != nil {
+	if req.Subject == nil {
+		if ip := net.ParseIP(req.Hostname); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
 		} else {
-			template.DNSNames = append(template.DNSNames, hostName)
+			template.DNSNames = append(template.DNSNames, req.Hostname)
 		}
 	} else {
 		template.DNSNames = []string{}
 		template.IPAddresses = []net.IP{}
-		for _, host := range subject.Hosts {
+		for _, host := range req.Subject.Hosts {
 			if ip := net.ParseIP(host); ip != nil {
 				template.IPAddresses = append(template.IPAddresses, ip)
 			} else {
@@ -249,22 +241,22 @@ func (s *StandardSigner) Sign(hostName string, in []byte, subject *Subject, prof
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.
-func (s *StandardSigner) SigAlgo() x509.SignatureAlgorithm {
+func (s *LocalSigner) SigAlgo() x509.SignatureAlgorithm {
 	return s.sigAlgo
 }
 
 // Certificate returns the signer's certificate.
-func (s *StandardSigner) Certificate() *x509.Certificate {
+func (s *LocalSigner) Certificate() *x509.Certificate {
 	cert := *s.ca
 	return &cert
 }
 
 // SetPolicy sets the signer's signature policy.
-func (s *StandardSigner) SetPolicy(policy *config.Signing) {
+func (s *LocalSigner) SetPolicy(policy *config.Signing) {
 	s.policy = policy
 }
 
 // Policy returns the signer's policy.
-func (s *StandardSigner) Policy() *config.Signing {
+func (s *LocalSigner) Policy() *config.Signing {
 	return s.policy
 }
