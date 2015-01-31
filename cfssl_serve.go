@@ -36,21 +36,20 @@ func registerHandlers() error {
 	}
 
 	log.Info("Setting up signer endpoint")
-
-	// Update the signing policy is updated to include flags from the configuration.
-	// The remotes are set here.
-	policy, err := signingPolicyFromConfig()
-	if err != nil {
-		return err
-	}
-
-	// Note: a nil policy can be sent in here and a default one will be created
-	// but we don't do that because we need to create one to hold the remote address
-	signHandler, err := api.NewSignHandler(Config.caFile, Config.caKeyFile, policy)
+	s, err := signerFromConfig()
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
 	} else {
+		signHandler := api.NewSignHandlerFromSigner(s)
 		http.Handle("/api/v1/cfssl/sign", signHandler)
+	}
+
+	log.Info("Setting up new cert endpoint")
+	if err != nil {
+		log.Errorf("endpoint '/api/v1/cfssl/newcert' is disabled")
+	} else {
+		newCertGenerator := api.NewCertGeneratorHandlerFromSigner(api.CSRValidate, s)
+		http.Handle("/api/v1/cfssl/newcert", newCertGenerator)
 	}
 
 	log.Info("Setting up bundler endpoint")
@@ -69,14 +68,6 @@ func registerHandlers() error {
 	}
 	http.Handle("/api/v1/cfssl/newkey", generatorHandler)
 
-	log.Info("Setting up new cert endpoint")
-	newCertGenerator, err := api.NewCertGeneratorHandler(api.CSRValidate,
-		Config.caFile, Config.caKeyFile, policy)
-	if err != nil {
-		log.Errorf("endpoint '/api/v1/cfssl/newcert' is disabled")
-	} else {
-		http.Handle("/api/v1/cfssl/newcert", newCertGenerator)
-	}
 
 	log.Info("Setting up initial CA endpoint")
 	http.Handle("/api/v1/cfssl/init_ca", api.NewInitCAHandler())

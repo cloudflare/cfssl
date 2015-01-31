@@ -30,7 +30,9 @@ Flags:
 // Flags of 'cfssl sign'
 var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote"}
 
-func signingPolicyFromConfig() (*config.Signing, error) {
+// signerFromConfig takes the Config and creates the appropriate
+// signer.Signer object
+func signerFromConfig() (signer.Signer, error) {
 	// If there is a config, use its signing policy. Otherwise create a default policy.
 	var policy *config.Signing
 	if Config.cfg != nil {
@@ -50,7 +52,19 @@ func signingPolicyFromConfig() (*config.Signing, error) {
 			return nil, err
 		}
 	}
-	return policy, nil
+
+	root := signer.Root{
+		CertFile:    Config.caFile,
+		KeyFile:     Config.caKeyFile,
+		ForceRemote: Config.remote != "",
+	}
+
+	s, err := signer.NewSigner(root, policy)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 // signerMain is the main CLI of signer functionality.
@@ -109,17 +123,7 @@ func signerMain(args []string) (err error) {
 		}
 	}
 
-	policy, err := signingPolicyFromConfig()
-	if err != nil {
-		return
-	}
-
-	root := signer.Root{
-		CertFile:    Config.caFile,
-		KeyFile:     Config.caKeyFile,
-		ForceRemote: Config.remote == "",
-	}
-	s, err := signer.NewSigner(root, policy)
+	s, err := signerFromConfig()
 	if err != nil {
 		return
 	}
