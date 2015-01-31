@@ -215,15 +215,15 @@ func (c *Config) Valid() bool {
 // policies. A policy is valid if it has defined at least key usages
 // to be used, and a valid default profile has defined at least a
 // default expiration.
-func (s *Signing) Valid() bool {
+func (p *Signing) Valid() bool {
 	log.Debugf("validating configuration")
-	if !s.Default.validProfile(true) {
+	if !p.Default.validProfile(true) {
 		log.Debugf("default profile is invalid")
 		return false
 	}
 
-	for _, p := range s.Profiles {
-		if !p.validProfile(false) {
+	for _, sp := range p.Profiles {
+		if !sp.validProfile(false) {
 			log.Debugf("invalid profile")
 			return false
 		}

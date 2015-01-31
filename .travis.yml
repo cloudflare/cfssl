@@ -1,13 +1,12 @@
 language: go
 go:
         - 1.4
-script: go get golang.org/x/tools/cmd/vet && go get github.com/cloudflare/cfssl && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/...
+script: go get golang.org/x/tools/cmd/vet && go get github.com/cloudflare/cfssl && go get -u github.com/golang/lint/golint && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/... && golint github.com/cloudflare/cfssl/...
 notifications:
         email:
                 recipients:
                         - nick@cloudflare.com
                         - zi@cloudflare.com
                         - kyle@cloudflare.com
-                        - dane@cloudflare.com
                 on_success: never
                 on_failure: change

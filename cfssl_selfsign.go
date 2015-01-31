@@ -108,4 +108,5 @@ in production.
 	return
 }
 
+// CLISelfSign command creates self-signed certificates
 var CLISelfSign = &Command{selfSignUsageText, selfSignFlags, selfSignMain}

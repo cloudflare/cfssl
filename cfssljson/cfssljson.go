@@ -13,9 +13,8 @@ import (
 func readFile(filespec string) ([]byte, error) {
 	if filespec == "-" {
 		return ioutil.ReadAll(os.Stdin)
-	} else {
-		return ioutil.ReadFile(filespec)
 	}
+	return ioutil.ReadFile(filespec)
 }
 
 func writeFile(filespec, contents string, perms os.FileMode) {
@@ -26,11 +25,13 @@ func writeFile(filespec, contents string, perms os.FileMode) {
 	}
 }
 
+// ResponseMessage represents the format of a CFSSL output for an error or message
 type ResponseMessage struct {
 	Code    int    `json:"int"`
 	Message string `json:"message"`
 }
 
+// Response represents the format of a CFSSL output
 type Response struct {
 	Success  bool                   `json:"success"`
 	Result   map[string]interface{} `json:"result"`
