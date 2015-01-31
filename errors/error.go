@@ -129,17 +129,17 @@ const (
 // The following are API client related errors, and should be
 // specified with APIClientError.
 const (
-	// An AuthenticationFailure occurs when the client is unable
+	// AuthenticationFailure occurs when the client is unable
 	// to obtain an authentication token for the request.
 	AuthenticationFailure = 100 * (iota + 1)
 
-	// A JSONError wraps an encoding/json error.
+	// JSONError wraps an encoding/json error.
 	JSONError
 
-	// An IOError wraps an io/ioutil error.
+	// IOError wraps an io/ioutil error.
 	IOError
 
-	// HTTPError wraps a net/http error.
+	// ClientHTTPError wraps a net/http error.
 	ClientHTTPError
 
 	// ServerRequestFailed covers any other failures from the API
@@ -281,7 +281,7 @@ func New(category Category, reason Reason) *Error {
 	return &Error{ErrorCode: errorCode, Message: msg}
 }
 
-// New returns an error that contains the given error and an error code derived from
+// Wrap returns an error that contains the given error and an error code derived from
 // the given category, reason and the error. Currently, to avoid confusion, it is not
 // allowed to create an error of category Success
 func Wrap(category Category, reason Reason, err error) *Error {

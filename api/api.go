@@ -187,7 +187,7 @@ type Response struct {
 	Messages []ResponseMessage `json:"messages"`
 }
 
-// newResponseSuccess is a shortcut for creating new successul API
+// NewSuccessResponse is a shortcut for creating new successul API
 // responses. CFSSL does not use the messages field, but it is
 // provided to conform to the CloudFlare standard.
 func NewSuccessResponse(result interface{}) Response {
