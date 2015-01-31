@@ -93,17 +93,7 @@ func gencertMain(args []string) (err error) {
 			return
 		}
 
-		policy, err := signingPolicyFromConfig()
-		if err != nil {
-			return err
-		}
-
-		root := signer.Root{
-			CertFile:    Config.caFile,
-			KeyFile:     Config.caKeyFile,
-			ForceRemote: Config.remote == "",
-		}
-		sign, err := signer.NewSigner(root, policy)
+		s, err := signerFromConfig()
 		if err != nil {
 			return err
 		}
@@ -117,7 +107,7 @@ func gencertMain(args []string) (err error) {
 			Label:    Config.label,
 		}
 
-		cert, err = sign.Sign(req)
+		cert, err = s.Sign(req)
 		if err != nil {
 			return err
 		}
