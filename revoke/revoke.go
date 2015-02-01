@@ -17,7 +17,7 @@ import (
 	neturl "net/url"
 	"time"
 
-	"code.google.com/p/go.crypto/ocsp"
+	"golang.org/x/crypto/ocsp"
 
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
