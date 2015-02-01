@@ -29,45 +29,45 @@ const (
 )
 
 func TestKeyLength(t *testing.T) {
-	exp_nil := 0
-	rec_nil := KeyLength(nil)
-	if exp_nil != rec_nil {
+	expNil := 0
+	recNil := KeyLength(nil)
+	if expNil != recNil {
 		t.Fatal("KeyLength on nil did not return 0")
 	}
 
-	exp_nonsense := 0
-	in_nonsense := "string?"
-	out_nonsense := KeyLength(in_nonsense)
-	if exp_nonsense != out_nonsense {
+	expNonsense := 0
+	inNonsense := "string?"
+	outNonsense := KeyLength(inNonsense)
+	if expNonsense != outNonsense {
 		t.Fatal("KeyLength malfunctioning on nonsense input")
 	}
 
 	//test the ecdsa branch
-	ecdsa_priv, _ := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-	ecdsa_in, _ := ecdsa_priv.Public().(*ecdsa.PublicKey)
-	exp_ecda := ecdsa_in.Curve.Params().BitSize
-	out_ecdsa := KeyLength(ecdsa_in)
-	if exp_ecda != out_ecdsa {
+	ecdsaPriv, _ := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	ecdsaIn, _ := ecdsaPriv.Public().(*ecdsa.PublicKey)
+	expEcdsa := ecdsaIn.Curve.Params().BitSize
+	outEcdsa := KeyLength(ecdsaIn)
+	if expEcdsa != outEcdsa {
 		t.Fatal("KeyLength malfunctioning on ecdsa input")
 	}
 
 	//test the rsa branch
-	rsa_priv, _ := rsa.GenerateKey(rand.Reader, 256)
-	rsa_in, _ := rsa_priv.Public().(*rsa.PublicKey)
-	exp_rsa := rsa_in.N.BitLen()
-	out_rsa := KeyLength(rsa_in)
+	rsaPriv, _ := rsa.GenerateKey(rand.Reader, 256)
+	rsaIn, _ := rsaPriv.Public().(*rsa.PublicKey)
+	expRsa := rsaIn.N.BitLen()
+	outRsa := KeyLength(rsaIn)
 
-	if exp_rsa != out_rsa {
+	if expRsa != outRsa {
 		t.Fatal("KeyLength malfunctioning on rsa input")
 	}
 }
 
 func TestExpiryTime(t *testing.T) {
 	// nil case
-	var exp_nil *time.Time = nil
-	in_nil := []*x509.Certificate{}
-	out_nil := ExpiryTime(in_nil)
-	if exp_nil != out_nil {
+	var expNil *time.Time
+	inNil := []*x509.Certificate{}
+	outNil := ExpiryTime(inNil)
+	if expNil != outNil {
 		t.Fatal("Expiry time is malfunctioning on empty input")
 	}
 
