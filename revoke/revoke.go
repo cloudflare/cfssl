@@ -41,7 +41,7 @@ var CRLSet = map[string]*pkix.CertificateList{}
 func ldapURL(url string) bool {
 	u, err := neturl.Parse(url)
 	if err != nil {
-		log.Warningf("invalid url %s: %v", url, err)
+		log.Warningf("error parsing url %s: %v", url, err)
 		return false
 	}
 	if u.Scheme == "ldap" {
@@ -55,13 +55,16 @@ func ldapURL(url string) bool {
 // is revoked, the second indicates whether the revocations were
 // successfully checked.. This leads to the following combinations:
 //
-//	false, false: an error was encountered while checking revocations.
+//  false, false: an error was encountered while checking revocations.
 //
-//	false, true:  the certificate was checked successfully and
-//		      it is not revoked.
+//  false, true:  the certificate was checked successfully and
+//                  it is not revoked.
 //
-//      true, true:   the certificate was checked successfully and
-//		      it is revoked.
+//  true, true:   the certificate was checked successfully and
+//                  it is revoked.
+//
+//  true, false:  failure to check revocation status causes
+//                  verification to fail
 func revCheck(cert *x509.Certificate) (revoked, ok bool) {
 	for _, url := range cert.CRLDistributionPoints {
 		if ldapURL(url) {
