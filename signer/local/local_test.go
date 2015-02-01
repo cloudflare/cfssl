@@ -1,4 +1,4 @@
-package signer
+package local
 
 import (
 	"crypto/x509"
@@ -11,6 +11,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/signer"
 )
 
 const (
@@ -23,18 +24,15 @@ const (
 var expiry = 1 * time.Minute
 
 // Start a signer with the testing RSA CA cert and key.
-func newTestSigner(t *testing.T) (s Signer) {
-	root := Root{
-		CertFile: testCaFile,
-		KeyFile:  testCaKeyFile}
-	s, err := NewSigner(root, nil)
+func newTestSigner(t *testing.T) (s *Signer) {
+	s, err := NewSignerFromFile(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return
 }
 
-func TestNewSignerPolicy(t *testing.T) {
+func TestNewSignerFromFilePolicy(t *testing.T) {
 	var CAConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
@@ -51,16 +49,13 @@ func TestNewSignerPolicy(t *testing.T) {
 			},
 		},
 	}
-	root := Root{
-		CertFile: testCaFile,
-		KeyFile:  testCaKeyFile}
-	_, err := NewSigner(root, CAConfig.Signing)
+	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestNewSignerInvalidPolicy(t *testing.T) {
+func TestNewSignerFromFileInvalidPolicy(t *testing.T) {
 	var invalidConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
@@ -76,10 +71,7 @@ func TestNewSignerInvalidPolicy(t *testing.T) {
 			},
 		},
 	}
-	root := Root{
-		CertFile: testCaFile,
-		KeyFile:  testCaKeyFile}
-	_, err := NewSigner(root, invalidConfig.Signing)
+	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, invalidConfig.Signing)
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -89,7 +81,7 @@ func TestNewSignerInvalidPolicy(t *testing.T) {
 	}
 }
 
-func TestNewSignerNoUsageInPolicy(t *testing.T) {
+func TestNewSignerFromFileNoUsageInPolicy(t *testing.T) {
 	var invalidConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
@@ -105,10 +97,7 @@ func TestNewSignerNoUsageInPolicy(t *testing.T) {
 			},
 		},
 	}
-	root := Root{
-		CertFile: testCaFile,
-		KeyFile:  testCaKeyFile}
-	_, err := NewSigner(root, invalidConfig.Signing)
+	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, invalidConfig.Signing)
 	if err == nil {
 		t.Fatal("expect InvalidPolicy error")
 	}
@@ -118,18 +107,15 @@ func TestNewSignerNoUsageInPolicy(t *testing.T) {
 	}
 }
 
-func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s Signer) {
-	root := Root{
-		CertFile: testCaFile,
-		KeyFile:  testCaKeyFile}
-	s, err := NewSigner(root, nil)
+func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s *Signer) {
+	s, err := NewSignerFromFile(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return
 }
 
-func TestNewSigner(t *testing.T) {
+func TestNewSignerFromFile(t *testing.T) {
 	newTestSigner(t)
 }
 
@@ -138,14 +124,14 @@ const (
 )
 
 func testSignFile(t *testing.T, certFile string) ([]byte, error) {
-	signer := newTestSigner(t)
+	s := newTestSigner(t)
 
 	pem, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return signer.Sign(SignRequest{Hostname: testHostName, Request: string(pem)})
+	return s.Sign(signer.SignRequest{Hostname: testHostName, Request: string(pem)})
 }
 
 type csrTest struct {
@@ -205,7 +191,7 @@ var csrTests = []csrTest{
 }
 
 func TestSignCSRs(t *testing.T) {
-	signer := newTestSigner(t)
+	s := newTestSigner(t)
 	hostname := "cloudflare.com"
 	for _, test := range csrTests {
 		csr, err := ioutil.ReadFile(test.file)
@@ -215,8 +201,8 @@ func TestSignCSRs(t *testing.T) {
 		// It is possible to use different SHA2 algorithm with RSA CA key.
 		rsaSigAlgos := []x509.SignatureAlgorithm{x509.SHA1WithRSA, x509.SHA256WithRSA, x509.SHA384WithRSA, x509.SHA512WithRSA}
 		for _, sigAlgo := range rsaSigAlgos {
-			signer.(*LocalSigner).sigAlgo = sigAlgo
-			certBytes, err := signer.Sign(SignRequest{Hostname: hostname, Request: string(csr)})
+			s.sigAlgo = sigAlgo
+			certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -224,7 +210,7 @@ func TestSignCSRs(t *testing.T) {
 					t.Fatalf("Expected no error. Got %s. Param %s %d", err.Error(), test.keyAlgo, test.keyLen)
 				}
 				cert, _ := helpers.ParseCertificatePEM(certBytes)
-				if cert.SignatureAlgorithm != signer.SigAlgo() {
+				if cert.SignatureAlgorithm != s.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
 				}
 			}
@@ -233,7 +219,7 @@ func TestSignCSRs(t *testing.T) {
 }
 
 func TestECDSASigner(t *testing.T) {
-	signer := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 	hostname := "cloudflare.com"
 	for _, test := range csrTests {
 		csr, err := ioutil.ReadFile(test.file)
@@ -243,8 +229,8 @@ func TestECDSASigner(t *testing.T) {
 		// Try all ECDSA SignatureAlgorithm
 		SigAlgos := []x509.SignatureAlgorithm{x509.ECDSAWithSHA1, x509.ECDSAWithSHA256, x509.ECDSAWithSHA384, x509.ECDSAWithSHA512}
 		for _, sigAlgo := range SigAlgos {
-			signer.(*LocalSigner).sigAlgo = sigAlgo
-			certBytes, err := signer.Sign(SignRequest{Hostname: hostname, Request: string(csr)})
+			s.sigAlgo = sigAlgo
+			certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -252,7 +238,7 @@ func TestECDSASigner(t *testing.T) {
 					t.Fatalf("Expected no error. Got %s. Param %s %d", err.Error(), test.keyAlgo, test.keyLen)
 				}
 				cert, _ := helpers.ParseCertificatePEM(certBytes)
-				if cert.SignatureAlgorithm != signer.SigAlgo() {
+				if cert.SignatureAlgorithm != s.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
 				}
 			}
@@ -285,11 +271,11 @@ func TestCAIssuing(t *testing.T) {
 	// For each intermediate CA, use it to issue additional RSA and ECDSA intermediate CSRs.
 	for i, caFile := range caCerts {
 		caKeyFile := caKeys[i]
-		signer := newCustomSigner(t, caFile, caKeyFile)
-		signer.(*LocalSigner).policy = CAPolicy
+		s := newCustomSigner(t, caFile, caKeyFile)
+		s.policy = CAPolicy
 		for j, csr := range interCSRs {
 			csrBytes, _ := ioutil.ReadFile(csr)
-			certBytes, err := signer.Sign(SignRequest{Hostname: hostname, Request: string(csrBytes)})
+			certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csrBytes)})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -299,10 +285,10 @@ func TestCAIssuing(t *testing.T) {
 			}
 			keyBytes, _ := ioutil.ReadFile(interKeys[j])
 			interKey, _ := helpers.ParsePrivateKeyPEM(keyBytes)
-			interSigner := &LocalSigner{interCert, interKey, CAPolicy, DefaultSigAlgo(interKey)}
+			interSigner := &Signer{interCert, interKey, CAPolicy, signer.DefaultSigAlgo(interKey)}
 			for _, anotherCSR := range interCSRs {
 				anotherCSRBytes, _ := ioutil.ReadFile(anotherCSR)
-				bytes, err := interSigner.Sign(SignRequest{Hostname: hostname, Request: string(anotherCSRBytes)})
+				bytes, err := interSigner.Sign(signer.SignRequest{Hostname: hostname, Request: string(anotherCSRBytes)})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -327,16 +313,16 @@ func TestOverrideSubject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	req := &Subject{
+	req := &signer.Subject{
 		Hosts: []string{"127.0.0.1"},
 		Names: []csr.Name{
 			{O: "example.net"},
 		},
 	}
 
-	signer := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 
-	certPEM, err := signer.Sign(SignRequest{Hostname: "localhost", Request: string(csrPEM), Subject: req})
+	certPEM, err := s.Sign(signer.SignRequest{Hostname: "localhost", Request: string(csrPEM), Subject: req})
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/local"
 )
 
 type KeyRequest struct {
@@ -132,7 +133,7 @@ func TestInitCA(t *testing.T) {
 				CA:           true,
 			},
 		}
-		s, err := signer.NewLocalSigner(key, cert, signer.DefaultSigAlgo(key), nil)
+		s, err := local.NewSigner(key, cert, signer.DefaultSigAlgo(key), nil)
 		if err != nil {
 			t.Fatal("Signer Creation error:", err)
 		}
