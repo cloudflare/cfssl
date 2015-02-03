@@ -19,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/local"
 )
 
 // validator contains the default validation logic for certificate
@@ -65,7 +66,7 @@ func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
 		return
 	}
 
-	s, err := signer.NewLocalSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
+	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
 	if err != nil {
 		log.Errorf("failed to create signer: %v", err)
 		return
@@ -155,7 +156,7 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err e
 	}
 	certReq = pem.EncodeToMemory(p)
 
-	s, err := signer.NewLocalSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
+	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
 	if err != nil {
 		log.Errorf("failed to create signer: %v", err)
 		return

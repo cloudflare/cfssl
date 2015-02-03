@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/auth"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -29,7 +28,6 @@ type SigningProfile struct {
 
 	Expiry   time.Duration
 	Provider auth.Provider
-	Remote   *client.Server
 }
 
 // populate is used to fill in the fields that are not in JSON
@@ -98,11 +96,7 @@ func (p *SigningProfile) populate(cfg *Config) error {
 // to the hostname:port combination sent by remote
 func (p *SigningProfile) updateRemote(remote string) error {
 	if remote != "" {
-		p.Remote = client.NewServer(remote)
-		if p.Remote == nil {
-			return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
-				errors.New("failed to connect to remote"))
-		}
+		p.RemoteName = remote
 	}
 	return nil
 }
@@ -129,11 +123,11 @@ func (p *Signing) OverrideRemotes(remote string) error {
 // NeedsRemoteSigner returns true if one of the profiles has a remote set
 func (p *Signing) NeedsRemoteSigner() bool {
 	for _, profile := range p.Profiles {
-		if profile.Remote != nil {
+		if profile.RemoteName != "" {
 			return true
 		}
 	}
-	if p.Default.Remote != nil {
+	if p.Default.RemoteName != "" {
 		return true
 	}
 
@@ -143,11 +137,11 @@ func (p *Signing) NeedsRemoteSigner() bool {
 // NeedsLocalSigner returns true if one of the profiles doe not have a remote set
 func (p *Signing) NeedsLocalSigner() bool {
 	for _, profile := range p.Profiles {
-		if profile.Remote == nil {
+		if profile.RemoteName == "" {
 			return true
 		}
 	}
-	if p.Default.Remote == nil {
+	if p.Default.RemoteName == "" {
 		return true
 	}
 

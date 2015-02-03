@@ -15,6 +15,7 @@ import (
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/universal"
 )
 
 // Validator is a type of function that contains the logic for validating
@@ -152,11 +153,12 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 		}
 	}
 
-	root := signer.Root{
+	root := universal.Root{
 		CertFile: caFile,
 		KeyFile:  caKeyFile,
 	}
-	if cg.signer, err = signer.NewSigner(root, policy); err != nil {
+	if cg.signer, err = universal.NewSigner(root, policy); err != nil {
+		log.Errorf("setting up signer failed: %v", err)
 		return nil, err
 	}
 

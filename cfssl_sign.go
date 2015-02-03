@@ -7,6 +7,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/universal"
 )
 
 // Usage text of 'cfssl sign'
@@ -53,13 +54,13 @@ func signerFromConfig() (signer.Signer, error) {
 		}
 	}
 
-	root := signer.Root{
+	root := universal.Root{
 		CertFile:    Config.caFile,
 		KeyFile:     Config.caKeyFile,
 		ForceRemote: Config.remote != "",
 	}
 
-	s, err := signer.NewSigner(root, policy)
+	s, err := universal.NewSigner(root, policy)
 	if err != nil {
 		return nil, err
 	}

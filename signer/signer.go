@@ -18,6 +18,9 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 )
 
+// MaxPathLen is the default path length for a new CA certificate.
+var MaxPathLen = 2
+
 // Subject contains the information that should be used to override the
 // subject information when signing a certificate.
 type Subject struct {
@@ -34,14 +37,6 @@ type SignRequest struct {
 	Subject  *Subject `json:"subject,omitempty"`
 	Profile  string   `json:"profile"`
 	Label    string   `json:"label"`
-}
-
-// Root is used to define where the Signer gets its public certificate
-// and private keys for signing.
-type Root struct {
-	CertFile    string
-	KeyFile     string
-	ForceRemote bool
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -189,44 +184,4 @@ func CheckSignature(csr *x509.CertificateRequest, algo x509.SignatureAlgorithm, 
 		return nil
 	}
 	return x509.ErrUnsupportedAlgorithm
-}
-
-// NewSigner generates a new certificate signer from a Root structure.
-// This is one of two standard signers: local or remote. If the root
-// structure specifies a force remote, then a remote signer is created,
-// otherwise either a remote or local signer is generated based on the
-// policy. For a local signer, the CertFile and KeyFile need to be
-// defined in Root.
-func NewSigner(root Root, policy *config.Signing) (Signer, error) {
-	if policy == nil {
-		policy = &config.Signing{
-			Profiles: map[string]*config.SigningProfile{},
-			Default:  config.DefaultConfig(),
-		}
-	}
-
-	if !policy.Valid() {
-		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
-	}
-
-	var s Signer
-	var err error
-	if root.ForceRemote {
-		s, err = NewRemoteSigner(policy)
-	} else {
-		if policy.NeedsLocalSigner() && policy.NeedsRemoteSigner() {
-			// Currently we don't support a hybrid signer
-			return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
-		}
-
-		if policy.NeedsLocalSigner() {
-			s, err = NewLocalSignerFromFile(root.CertFile, root.KeyFile, policy)
-		}
-
-		if policy.NeedsRemoteSigner() {
-			s, err = NewRemoteSigner(policy)
-		}
-	}
-
-	return s, err
 }

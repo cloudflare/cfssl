@@ -10,6 +10,7 @@ import (
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/universal"
 )
 
 // A SignHandler accepts requests with a hostname and certficate
@@ -24,11 +25,15 @@ type SignHandler struct {
 // authority private key and certficate to sign certificates. If remote
 // is not an empty string, the handler will send signature requests to
 // the CFSSL instance contained in remote by default.
-func NewSignHandler(caFile, cakeyFile string, policy *config.Signing) (http.Handler, error) {
+func NewSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
 	var err error
 	s := new(SignHandler)
 
-	if s.signer, err = signer.NewSigner(signer.Root{CertFile: caFile, KeyFile: cakeyFile}, policy); err != nil {
+	root := universal.Root{
+		CertFile: caFile,
+		KeyFile:  caKeyFile,
+	}
+	if s.signer, err = universal.NewSigner(root, policy); err != nil {
 		log.Errorf("setting up signer failed: %v", err)
 		return nil, err
 	}

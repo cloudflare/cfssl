@@ -79,7 +79,6 @@ func (srv *Server) post(url string, jsonData []byte) (*Response, error) {
 	return &response, nil
 }
 
-
 // AuthSign fills out an authenticated request to the server,
 // receiving a certificate or error in response.
 // It takes the serialized JSON request to send, remote address and
@@ -137,4 +136,3 @@ func (srv *Server) Sign(jsonData []byte) ([]byte, error) {
 
 	return []byte(cert), nil
 }
-
