@@ -5,13 +5,17 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
+	"math"
 	"math/big"
 	"net"
+	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
@@ -184,4 +188,96 @@ func CheckSignature(csr *x509.CertificateRequest, algo x509.SignatureAlgorithm, 
 		return nil
 	}
 	return x509.ErrUnsupportedAlgorithm
+}
+
+type subjectPublicKeyInfo struct {
+	Algorithm        pkix.AlgorithmIdentifier
+	SubjectPublicKey asn1.BitString
+}
+
+// ComputeSKI derives an SKI from the certificate's public key in a
+// standard manner. This is done by computing the SHA-1 digest of the
+// SubjectPublicKeyInfo component of the certificate.
+func ComputeSKI(template *x509.Certificate) ([]byte, error) {
+	pub := template.PublicKey
+	encodedPub, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	var subPKI subjectPublicKeyInfo
+	_, err = asn1.Unmarshal(encodedPub, &subPKI)
+	if err != nil {
+		return nil, err
+	}
+
+	pubHash := sha1.Sum(subPKI.SubjectPublicKey.Bytes)
+	return pubHash[:], nil
+}
+
+// FillTemplate is a utility function that tries to load as much of
+// the certificate template as possible from the profiles and current
+// template. It fills in the key uses, expiration, revocation URLs,
+// serial number, and SKI.
+func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile) error {
+	ski, err := ComputeSKI(template)
+
+	var (
+		eku             []x509.ExtKeyUsage
+		ku              x509.KeyUsage
+		expiry          time.Duration
+		crlURL, ocspURL string
+	)
+
+	// The third value returned from Usages is a list of unknown key usages.
+	// This should be used when validating the profile at load, and isn't used
+	// here.
+	ku, eku, _ = profile.Usages()
+	if profile.IssuerURL == nil {
+		profile.IssuerURL = defaultProfile.IssuerURL
+	}
+
+	if ku == 0 && len(eku) == 0 {
+		return cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
+	}
+
+	expiry = profile.Expiry
+	if expiry == 0 {
+		expiry = defaultProfile.Expiry
+	}
+
+	if crlURL = profile.CRL; crlURL == "" {
+		crlURL = defaultProfile.CRL
+	}
+	if ocspURL = profile.OCSP; ocspURL == "" {
+		ocspURL = defaultProfile.OCSP
+	}
+
+	now := time.Now()
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+	if err != nil {
+		return cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
+	}
+
+	template.SerialNumber = serialNumber
+	template.NotBefore = now.Add(-5 * time.Minute).UTC()
+	template.NotAfter = now.Add(expiry).UTC()
+	template.KeyUsage = ku
+	template.ExtKeyUsage = eku
+	template.BasicConstraintsValid = true
+	template.IsCA = profile.CA
+	template.SubjectKeyId = ski
+
+	if ocspURL != "" {
+		template.OCSPServer = []string{ocspURL}
+	}
+	if crlURL != "" {
+		template.CRLDistributionPoints = []string{crlURL}
+	}
+
+	if len(profile.IssuerURL) != 0 {
+		template.IssuingCertificateURL = profile.IssuerURL
+	}
+
+	return nil
 }

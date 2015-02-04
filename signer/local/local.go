@@ -3,17 +3,11 @@ package local
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
 	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
-	"math"
-	"math/big"
 	"net"
-	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -80,89 +74,13 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	return NewSigner(priv, parsedCa, signer.DefaultSigAlgo(priv), policy)
 }
 
-type subjectPublicKeyInfo struct {
-	Algorithm        pkix.AlgorithmIdentifier
-	SubjectPublicKey asn1.BitString
-}
-
 func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
-	pub := template.PublicKey
-	encodedpub, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		return
-	}
-	var subPKI subjectPublicKeyInfo
-	_, err = asn1.Unmarshal(encodedpub, &subPKI)
+	err = signer.FillTemplate(template, s.policy.Default, profile)
 	if err != nil {
 		return
 	}
 
-	pubhash := sha1.New()
-	pubhash.Write(subPKI.SubjectPublicKey.Bytes)
-
-	if profile == nil {
-		profile = s.policy.Default
-	}
-
-	var (
-		eku             []x509.ExtKeyUsage
-		ku              x509.KeyUsage
-		expiry          time.Duration
-		crlURL, ocspURL string
-	)
-
-	// The third value returned from Usages is a list of unknown key usages.
-	// This should be used when validating the profile at load, and isn't used
-	// here.
-	ku, eku, _ = profile.Usages()
-	expiry = profile.Expiry
-	if profile.IssuerURL == nil {
-		profile.IssuerURL = s.policy.Default.IssuerURL
-	}
-
-	if ku == 0 && len(eku) == 0 {
-		err = cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
-		return
-	}
-
-	if expiry == 0 {
-		expiry = s.policy.Default.Expiry
-	}
-
-	if crlURL = profile.CRL; crlURL == "" {
-		crlURL = s.policy.Default.CRL
-	}
-	if ocspURL = profile.OCSP; ocspURL == "" {
-		ocspURL = s.policy.Default.OCSP
-	}
-
-	now := time.Now()
-	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
-	if err != nil {
-		err = cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
-		return
-	}
-
-	template.SerialNumber = serialNumber
-	template.NotBefore = now.Add(-5 * time.Minute).UTC()
-	template.NotAfter = now.Add(expiry).UTC()
-	template.KeyUsage = ku
-	template.ExtKeyUsage = eku
-	template.BasicConstraintsValid = true
-	template.IsCA = profile.CA
-	template.SubjectKeyId = pubhash.Sum(nil)
-
-	if ocspURL != "" {
-		template.OCSPServer = []string{ocspURL}
-	}
-	if crlURL != "" {
-		template.CRLDistributionPoints = []string{crlURL}
-	}
-
-	if len(profile.IssuerURL) != 0 {
-		template.IssuingCertificateURL = profile.IssuerURL
-	}
-
+	serialNumber := template.SerialNumber
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {
@@ -178,7 +96,7 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 		template.DNSNames = nil
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, pub, s.priv)
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
 	if err != nil {
 		return
 	}
@@ -189,14 +107,15 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 			return
 		}
 	}
+
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	log.Infof("signed certificate with serial number %s", serialNumber)
 	return
 }
 
 // Sign signs a new certificate based on the PEM-encoded client
-// certificate or certificate request with the signing profile, specified
-// by profileName.
+// certificate or certificate request with the signing profile,
+// specified by profileName.
 func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	profile := s.policy.Profiles[req.Profile]
 	if profile == nil {
