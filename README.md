@@ -1,7 +1,7 @@
-# CF-SSL
+# CFSSL
 ## CloudFlare's SSL tool
 
-CF-SSL is CloudFlare's SSL swiss army knife. It is both a command line
+CFSSL is CloudFlare's SSL swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling SSL
 certificates. It requires Go 1.3 to build.
 
@@ -11,7 +11,7 @@ Installation requires a [working Go
 installation](http://golang.org/doc/install) and a properly set `GOPATH`.
 
 ```
-$ go get github.com/cloudflare/cfssl
+$ go get -u github.com/cloudflare/cfssl/cmd/cfssl
 ```
 
 will download and build the CFSSL tool, installing it in
@@ -19,7 +19,7 @@ will download and build the CFSSL tool, installing it in
 this repo:
 
 ```
-$ go get github.com/cloudflare/cfssl/...
+$ go get -u github.com/cloudflare/cfssl/cmd/...
 ```
 
 This will download, build, and install `cfssl`, `cfssljson`, and
@@ -37,6 +37,7 @@ should carry out:
        gencert          generate a private key and a certificate
        serve            start the API server
        version          prints out the current version
+       selfsign         generates a self-signed certificate
 
 Use "cfssl [command] -help" to find out more about a command.
 The version command takes no arguments.
@@ -167,7 +168,7 @@ via a JSON request.
 
 ### Starting the API Server
 
-CF-SSL comes with an HTTP-based API server; the endpoints are
+CFSSL comes with an HTTP-based API server; the endpoints are
 documented in `doc/api.txt`. The server is started with the "serve"
 command:
 
@@ -207,7 +208,7 @@ The levels are:
 verifying certificates. It can be installed with
 
 ```
-go get github.com/cloudflare/cfssl/mkbundle
+go get -u github.com/cloudflare/cfssl/cmd/mkbundle
 ```
 
 It takes a collection of certificates, checks for CRL revocation (OCSP

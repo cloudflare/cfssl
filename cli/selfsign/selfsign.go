@@ -1,4 +1,4 @@
-package main
+package selfsign
 
 import (
 	"encoding/json"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
@@ -33,20 +35,20 @@ Flags:
 
 var selfSignFlags = []string{"config"}
 
-func selfSignMain(args []string) (err error) {
-	if Config.hostname == "" && !Config.isCA {
-		Config.hostname, args, err = popFirstArgument(args)
+func selfSignMain(args []string, c cli.Config) (err error) {
+	if c.Hostname == "" && !c.IsCA {
+		c.Hostname, args, err = cli.PopFirstArgument(args)
 		if err != nil {
 			return
 		}
 	}
 
-	csrFile, args, err := popFirstArgument(args)
+	csrFile, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return
 	}
 
-	csrFileBytes, err := readStdin(csrFile)
+	csrFileBytes, err := cli.ReadStdin(csrFile)
 	if err != nil {
 		return
 	}
@@ -58,7 +60,7 @@ func selfSignMain(args []string) (err error) {
 	}
 
 	var key, csrPEM []byte
-	g := &csr.Generator{Validator: validator}
+	g := &csr.Generator{Validator: genkey.Validator}
 	csrPEM, key, err = g.ProcessRequest(&req)
 	if err != nil {
 		key = nil
@@ -75,9 +77,9 @@ func selfSignMain(args []string) (err error) {
 
 	// If there is a config, use its signing policy. Otherwise, leave policy == nil
 	// and NewSigner will use DefaultConfig().
-	if Config.cfg != nil {
-		if Config.profile != "" && Config.cfg.Signing.Profiles != nil {
-			profile = Config.cfg.Signing.Profiles[Config.profile]
+	if c.CFG != nil {
+		if c.Profile != "" && c.CFG.Signing.Profiles != nil {
+			profile = c.CFG.Signing.Profiles[c.Profile]
 		}
 	}
 
@@ -104,9 +106,9 @@ in production.
 *** WARNING ***
 
 `)
-	printCert(key, csrPEM, cert)
+	cli.PrintCert(key, csrPEM, cert)
 	return
 }
 
 // CLISelfSign command creates self-signed certificates
-var CLISelfSign = &Command{selfSignUsageText, selfSignFlags, selfSignMain}
+var Command = &cli.Command{UsageText: selfSignUsageText, Flags: selfSignFlags, Main: selfSignMain}

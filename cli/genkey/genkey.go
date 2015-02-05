@@ -1,9 +1,10 @@
-package main
+package genkey
 
 import (
 	"encoding/json"
 	"errors"
 
+	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/initca"
@@ -22,13 +23,13 @@ Flags:
 
 var genkeyFlags = []string{"initca", "config"}
 
-func genkeyMain(args []string) (err error) {
-	csrFile, args, err := popFirstArgument(args)
+func genkeyMain(args []string, c cli.Config) (err error) {
+	csrFile, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return
 	}
 
-	csrFileBytes, err := readStdin(csrFile)
+	csrFileBytes, err := cli.ReadStdin(csrFile)
 	if err != nil {
 		return
 	}
@@ -39,14 +40,14 @@ func genkeyMain(args []string) (err error) {
 		return
 	}
 
-	if Config.isCA {
+	if c.IsCA {
 		var key, cert []byte
 		cert, key, err = initca.New(&req)
 		if err != nil {
 			return
 		}
 
-		printCert(key, nil, cert)
+		cli.PrintCert(key, nil, cert)
 	} else {
 		if req.CA != nil {
 			err = errors.New("ca section only permitted in initca")
@@ -54,19 +55,20 @@ func genkeyMain(args []string) (err error) {
 		}
 
 		var key, csrPEM []byte
-		g := &csr.Generator{Validator: validator}
+		g := &csr.Generator{Validator: Validator}
 		csrPEM, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
 			return
 		}
 
-		printCert(key, csrPEM, nil)
+		cli.PrintCert(key, csrPEM, nil)
 	}
 	return nil
 }
 
-func validator(req *csr.CertificateRequest) error {
+// Validator returns true if the csr has at least one host
+func Validator(req *csr.CertificateRequest) error {
 	if len(req.Hosts) == 0 {
 		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
 	}
@@ -75,4 +77,4 @@ func validator(req *csr.CertificateRequest) error {
 
 // CLIGenKey is a subcommand for generating a new key and CSR from a
 // JSON CSR request file.
-var CLIGenKey = &Command{genkeyUsageText, genkeyFlags, genkeyMain}
+var Command = &cli.Command{UsageText: genkeyUsageText, Flags: genkeyFlags, Main: genkeyMain}

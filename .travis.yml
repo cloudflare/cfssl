@@ -1,7 +1,7 @@
 language: go
 go:
         - 1.4
-script: go get golang.org/x/tools/cmd/vet && go get github.com/cloudflare/cfssl && go get -u github.com/golang/lint/golint && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/... && golint github.com/cloudflare/cfssl/...
+script: go get golang.org/x/tools/cmd/vet && go get golang.org/x/tools/cmd/goimports && go get -u github.com/golang/lint/golint && go get github.com/cloudflare/cfssl/cmd/... && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/... && [ -z $($GOPATH/bin/golint github.com/cloudflare/cfssl/...) ] && [ -z $($GOPATH/bin/goimports github.com/cloudflare/cfssl/...) ]
 notifications:
         email:
                 recipients:

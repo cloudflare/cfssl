@@ -8,7 +8,7 @@ included in the software.
 1. Installing CF-SSL
 
 ```
-go get github.com/cloudflare/cfssl
+go get -u github.com/cloudflare/cfssl/cmd/cfssl
 ```
 
 The `cfssl` binary may now be found in the `$GOPATH/bin` directory.
@@ -18,7 +18,7 @@ The `cfssl` binary may now be found in the `$GOPATH/bin` directory.
 Installing the `mkbundle` utility is similar:
 
 ```
-go get github.com/cloudflare/cfssl/mkbundle
+go get -u github.com/cloudflare/cfssl/cmd/mkbundle
 ```
 
 1.2 Installing cfssljson
@@ -26,13 +26,13 @@ go get github.com/cloudflare/cfssl/mkbundle
 The `cfssljson` utility is installed with:
 
 ```
-go get github.com/cloudflare/cfssl/cfssljson
+go get -u github.com/cloudflare/cfssl/cmd/cfssljson
 ```
 
 Alternatively, all three can be accomplished in one pass:
 
 ```
-go get github.com/cloudflare/cfssl/...
+go get -u github.com/cloudflare/cfssl/cmd/...
 ```
 
 All three binaries will now be in the `$GOPATH/bin` directory.
