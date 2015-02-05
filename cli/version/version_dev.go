@@ -1,6 +1,6 @@
 // +build !release
 
-package main
+package version
 
 func init() {
 	version.Revision = "dev"

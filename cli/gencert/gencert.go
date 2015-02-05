@@ -1,10 +1,12 @@
-package main
+package gencert
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
+	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/cli/genkey"
+	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
@@ -28,20 +30,20 @@ Flags:
 
 var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "profile", "label"}
 
-func gencertMain(args []string) (err error) {
-	if Config.hostname == "" && !Config.isCA {
-		Config.hostname, args, err = popFirstArgument(args)
+func gencertMain(args []string, c cli.Config) (err error) {
+	if c.Hostname == "" && !c.IsCA {
+		c.Hostname, args, err = cli.PopFirstArgument(args)
 		if err != nil {
 			return
 		}
 	}
 
-	csrJSONFile, args, err := popFirstArgument(args)
+	csrJSONFile, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return
 	}
 
-	csrJSONFileBytes, err := readStdin(csrJSONFile)
+	csrJSONFileBytes, err := cli.ReadStdin(csrJSONFile)
 	if err != nil {
 		return
 	}
@@ -52,9 +54,9 @@ func gencertMain(args []string) (err error) {
 		return
 	}
 
-	if Config.isCA {
+	if c.IsCA {
 		var key, cert []byte
-		cert, err = initca.NewFromPEM(&req, Config.caKeyFile)
+		cert, err = initca.NewFromPEM(&req, c.CAKeyFile)
 		if err != nil {
 			log.Errorf("%v\n", err)
 			log.Infof("generating a new CA key and certificate from CSR")
@@ -64,7 +66,7 @@ func gencertMain(args []string) (err error) {
 			}
 
 		}
-		printCert(key, nil, cert)
+		cli.PrintCert(key, nil, cert)
 
 	} else {
 		if req.CA != nil {
@@ -73,38 +75,38 @@ func gencertMain(args []string) (err error) {
 		}
 
 		// Remote can be forced on the command line or in the config
-		if Config.remote == "" && Config.cfg == nil {
-			if Config.caFile == "" {
+		if c.Remote == "" && c.CFG == nil {
+			if c.CAFile == "" {
 				log.Error("need a CA certificate (provide one with -ca)")
 				return
 			}
 
-			if Config.caKeyFile == "" {
+			if c.CAKeyFile == "" {
 				log.Error("need a CA key (provide one with -ca-key)")
 				return
 			}
 		}
 
 		var key, csrBytes []byte
-		g := &csr.Generator{Validator: validator}
+		g := &csr.Generator{Validator: genkey.Validator}
 		csrBytes, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
 			return
 		}
 
-		s, err := signerFromConfig()
+		s, err := sign.SignerFromConfig(c)
 		if err != nil {
 			return err
 		}
 
 		var cert []byte
 		req := signer.SignRequest{
-			Hostname: Config.hostname,
+			Hostname: c.Hostname,
 			Request:  string(csrBytes),
 			Subject:  nil,
-			Profile:  Config.profile,
-			Label:    Config.label,
+			Profile:  c.Profile,
+			Label:    c.Label,
 		}
 
 		cert, err = s.Sign(req)
@@ -112,32 +114,11 @@ func gencertMain(args []string) (err error) {
 			return err
 		}
 
-		printCert(key, csrBytes, cert)
+		cli.PrintCert(key, csrBytes, cert)
 	}
 	return nil
 }
 
-func printCert(key, csrBytes, cert []byte) {
-	out := map[string]string{}
-	if cert != nil {
-		out["cert"] = string(cert)
-	}
-
-	if key != nil {
-		out["key"] = string(key)
-	}
-
-	if csrBytes != nil {
-		out["csr"] = string(csrBytes)
-	}
-
-	jsonOut, err := json.Marshal(out)
-	if err != nil {
-		return
-	}
-	fmt.Printf("%s\n", jsonOut)
-}
-
 // CLIGenCert is a subcommand that generates a new certificate from a
 // JSON CSR request file.
-var CLIGenCert = &Command{gencertUsageText, gencertFlags, gencertMain}
+var Command = &cli.Command{UsageText: gencertUsageText, Flags: gencertFlags, Main: gencertMain}

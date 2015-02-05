@@ -1,9 +1,10 @@
-package main
+package sign
 
 import (
 	"encoding/json"
 	"io/ioutil"
 
+	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -31,13 +32,13 @@ Flags:
 // Flags of 'cfssl sign'
 var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote"}
 
-// signerFromConfig takes the Config and creates the appropriate
+// SignerFromConfig takes the Config and creates the appropriate
 // signer.Signer object
-func signerFromConfig() (signer.Signer, error) {
+func SignerFromConfig(c cli.Config) (signer.Signer, error) {
 	// If there is a config, use its signing policy. Otherwise create a default policy.
 	var policy *config.Signing
-	if Config.cfg != nil {
-		policy = Config.cfg.Signing
+	if c.CFG != nil {
+		policy = c.CFG.Signing
 	} else {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
@@ -46,18 +47,18 @@ func signerFromConfig() (signer.Signer, error) {
 	}
 
 	// Make sure the policy reflects the new remote
-	if Config.remote != "" {
-		err := policy.OverrideRemotes(Config.remote)
+	if c.Remote != "" {
+		err := policy.OverrideRemotes(c.Remote)
 		if err != nil {
-			log.Infof("Invalid remote %v, reverting to configuration default", Config.remote)
+			log.Infof("Invalid remote %v, reverting to configuration default", c.Remote)
 			return nil, err
 		}
 	}
 
 	root := universal.Root{
-		CertFile:    Config.caFile,
-		KeyFile:     Config.caKeyFile,
-		ForceRemote: Config.remote != "",
+		CertFile:    c.CAFile,
+		KeyFile:     c.CAKeyFile,
+		ForceRemote: c.Remote != "",
 	}
 
 	s, err := universal.NewSigner(root, policy)
@@ -70,16 +71,16 @@ func signerFromConfig() (signer.Signer, error) {
 
 // signerMain is the main CLI of signer functionality.
 // [TODO: zi] Decide whether to drop the argument list and only use flags to specify all the inputs.
-func signerMain(args []string) (err error) {
+func signerMain(args []string, c cli.Config) (err error) {
 	// Grab values through args only if corresponding flags are absent
-	if Config.hostname == "" {
-		Config.hostname, args, err = popFirstArgument(args)
+	if c.Hostname == "" {
+		c.Hostname, args, err = cli.PopFirstArgument(args)
 		if err != nil {
 			return
 		}
 	}
-	if Config.csrFile == "" {
-		Config.csrFile, args, err = popFirstArgument(args)
+	if c.CSRFile == "" {
+		c.CSRFile, args, err = cli.PopFirstArgument(args)
 		if err != nil {
 			return
 		}
@@ -88,7 +89,7 @@ func signerMain(args []string) (err error) {
 	var subjectData *signer.Subject
 	if len(args) > 0 {
 		var subjectFile string
-		subjectFile, args, err = popFirstArgument(args)
+		subjectFile, args, err = cli.PopFirstArgument(args)
 		if err != nil {
 			return
 		}
@@ -106,43 +107,43 @@ func signerMain(args []string) (err error) {
 		}
 	}
 
-	csr, err := readStdin(Config.csrFile)
+	csr, err := cli.ReadStdin(c.CSRFile)
 	if err != nil {
 		return
 	}
 
 	// Remote can be forced on the command line or in the config
-	if Config.remote == "" && Config.cfg == nil {
-		if Config.caFile == "" {
+	if c.Remote == "" && c.CFG == nil {
+		if c.CAFile == "" {
 			log.Error("need CA certificate (provide one with -ca)")
 			return
 		}
 
-		if Config.caKeyFile == "" {
+		if c.CAKeyFile == "" {
 			log.Error("need CA key (provide one with -ca-key)")
 			return
 		}
 	}
 
-	s, err := signerFromConfig()
+	s, err := SignerFromConfig(c)
 	if err != nil {
 		return
 	}
 
 	req := signer.SignRequest{
-		Hostname: Config.hostname,
+		Hostname: c.Hostname,
 		Request:  string(csr),
 		Subject:  subjectData,
-		Profile:  Config.profile,
-		Label:    Config.label,
+		Profile:  c.Profile,
+		Label:    c.Label,
 	}
 	cert, err := s.Sign(req)
 	if err != nil {
 		return
 	}
-	printCert(nil, csr, cert)
+	cli.PrintCert(nil, csr, cert)
 	return
 }
 
 // CLISigner assembles the definition of Command 'sign'
-var CLISigner = &Command{signerUsageText, signerFlags, signerMain}
+var Command = &cli.Command{UsageText: signerUsageText, Flags: signerFlags, Main: signerMain}

@@ -1,8 +1,10 @@
-package main
+package version
 
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/cloudflare/cfssl/cli"
 )
 
 // Version stores the semantic versioning information for CFSSL.
@@ -25,10 +27,10 @@ Usage of version:
 `
 
 // The main functionality of 'cfssl version' is to print out the version info.
-func versionMain(args []string) (err error) {
+func versionMain(args []string, c cli.Config) (err error) {
 	fmt.Printf("Version: %s\nRevision: %s\nRuntime: %s\n", versionString(), version.Revision, runtime.Version())
 	return nil
 }
 
 // CLIVersioner defines Command 'version'
-var CLIVersioner = &Command{versionUsageText, nil, versionMain}
+var Command = &cli.Command{UsageText: versionUsageText, Flags: nil, Main: versionMain}
