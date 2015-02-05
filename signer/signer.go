@@ -77,10 +77,11 @@ type Signer interface {
 
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
 // the CA's private key.
-func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
-	switch priv := priv.(type) {
-	case *rsa.PrivateKey:
-		keySize := priv.N.BitLen()
+func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
+	pub := priv.Public()
+	switch pub := pub.(type) {
+	case *rsa.PublicKey:
+		keySize := pub.N.BitLen()
 		switch {
 		case keySize >= 4096:
 			return x509.SHA512WithRSA
@@ -91,8 +92,8 @@ func DefaultSigAlgo(priv interface{}) x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case *ecdsa.PrivateKey:
-		switch priv.Curve {
+	case *ecdsa.PublicKey:
+		switch pub.Curve {
 		case elliptic.P256():
 			return x509.ECDSAWithSHA256
 		case elliptic.P384():
