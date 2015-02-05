@@ -3,6 +3,7 @@
 package selfsign
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/x509"
@@ -23,7 +24,7 @@ const threeMonths = 2190 * time.Hour
 
 // parseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
-func parseCertificateRequest(priv interface{}, csrBytes []byte) (template *x509.Certificate, err error) {
+func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x509.Certificate, err error) {
 
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
@@ -53,7 +54,7 @@ type subjectPublicKeyInfo struct {
 }
 
 // Sign creates a new self-signed certificate.
-func Sign(priv interface{}, csrPEM []byte, profile *config.SigningProfile) ([]byte, error) {
+func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]byte, error) {
 	if profile == nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("no profile for self-signing"))
 	}
