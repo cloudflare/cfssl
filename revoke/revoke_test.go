@@ -2,13 +2,15 @@ package revoke
 
 import (
 	"crypto/x509"
+	//"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
-// These three test cases represent known revoked, expired, and good
+// The first three test cases represent known revoked, expired, and good
 // certificates that were checked on the date listed in the log. The
 // good certificate will eventually need to be replaced.
 
@@ -74,7 +76,7 @@ jeBHq7OnpWm+ccTOPCE6H4ZN4wWVS7biEBUdop/8HgXBPQHWAdjL
 -----END CERTIFICATE-----`)
 
 // 2014/05/22 14:18:51 added misc/intermediate_ca/GandiProSSLCA.crt to intermediate bundle
-var goodCert = mustParse(`-----BEGIN CERTIFICATE-----
+var goodstring string = (`-----BEGIN CERTIFICATE-----
 MIIEnjCCA4agAwIBAgIQPBkQvAZ54yVvTfQWo16zFDANBgkqhkiG9w0BAQUFADCB
 lzELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAlVUMRcwFQYDVQQHEw5TYWx0IExha2Ug
 Q2l0eTEeMBwGA1UEChMVVGhlIFVTRVJUUlVTVCBOZXR3b3JrMSEwHwYDVQQLExho
@@ -101,6 +103,8 @@ cjatYny806bAaAxRqL56e3O4rRMr+Jw1sHGpcqfKkm3YBW0CyJAum4vI07lYjZpn
 3LS+K6NqGCKt58LcXQq75/e0OnHoJ3tiPMiB1IuYoIRCXevitc1ynVyP/m5wuZqB
 wHHiX3Eo2RFMBCfSE7mSUoSwgHWtp1tHh0IvL8H7dmKjZQ==
 -----END CERTIFICATE-----`)
+
+var goodCert = mustParse(goodstring)
 
 func mustParse(pemData string) *x509.Certificate {
 	block, _ := pem.Decode([]byte(pemData))
@@ -138,5 +142,82 @@ func TestGood(t *testing.T) {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if revoked {
 		t.Fatalf("good certificate should not have been marked as revoked")
+	}
+
+}
+
+func TestLdap(t *testing.T) {
+	ldapCert := mustParse(goodstring)
+	ldapCert.CRLDistributionPoints = append(ldapCert.CRLDistributionPoints, "ldap://myldap.example.com")
+	if revoked, ok := VerifyCertificate(ldapCert); revoked || !ok {
+		t.Fatalf("ldap certificate should have been recognized")
+	}
+}
+
+func TestLdapURLErr(t *testing.T) {
+	if ldapURL(":") {
+		t.Fatalf("bad url does not cause error")
+	}
+}
+
+func TestCertNotYetValid(t *testing.T) {
+	notReadyCert := expiredCert
+	notReadyCert.NotBefore = time.Date(3000, time.January, 1, 1, 1, 1, 1, time.Local)
+	notReadyCert.NotAfter = time.Date(3005, time.January, 1, 1, 1, 1, 1, time.Local)
+	if revoked, _ := VerifyCertificate(expiredCert); !revoked {
+		t.Fatalf("not yet verified certificate should have been marked as revoked")
+	}
+}
+
+func TestCRLFetchError(t *testing.T) {
+	ldapCert := mustParse(goodstring)
+	ldapCert.CRLDistributionPoints[0] = ""
+	if revoked, ok := VerifyCertificate(ldapCert); ok || revoked {
+		t.Fatalf("Fetching error not encountered")
+	}
+	HardFail = true
+	if revoked, ok := VerifyCertificate(ldapCert); ok || !revoked {
+		t.Fatalf("Fetching error not encountered, hardfail not registered")
+	}
+	HardFail = false
+}
+
+func TestBadCRLSet(t *testing.T) {
+	ldapCert := mustParse(goodstring)
+	ldapCert.CRLDistributionPoints[0] = ""
+	CRLSet[""] = nil
+	certIsRevokedCRL(ldapCert, "")
+	if _, ok := CRLSet[""]; ok {
+		t.Fatalf("key emptystring should be deleted from CRLSet")
+	}
+	delete(CRLSet, "")
+
+}
+
+func TestCachedCRLSet(t *testing.T) {
+	VerifyCertificate(goodCert)
+	if revoked, ok := VerifyCertificate(goodCert); !ok || revoked {
+		t.Fatalf("Previously fetched CRL's should be read smoothly and unrevoked")
+	}
+}
+
+func TestRemoteFetchError(t *testing.T) {
+
+	badurl := ":"
+
+	if _, err := fetchRemote(badurl); err == nil {
+		t.Fatalf("fetching bad url should result in non-nil error")
+	}
+
+}
+
+func TestNoOCSPServers(t *testing.T) {
+	badIssuer := goodCert
+	badIssuer.IssuingCertificateURL = []string{" "}
+	certIsRevokedOCSP(badIssuer, true)
+	noOCSPCert := goodCert
+	noOCSPCert.OCSPServer = make([]string, 0)
+	if revoked, ok := certIsRevokedOCSP(noOCSPCert, true); revoked || !ok {
+		t.Fatalf("OCSP falsely registered as enabled for this certificate")
 	}
 }
