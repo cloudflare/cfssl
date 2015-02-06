@@ -2,6 +2,7 @@
 package local
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
@@ -20,14 +21,14 @@ import (
 // support both ECDSA and RSA CA keys.
 type Signer struct {
 	ca      *x509.Certificate
-	priv    interface{}
+	priv    crypto.Signer
 	policy  *config.Signing
 	sigAlgo x509.SignatureAlgorithm
 }
 
 // NewSigner creates a new Signer directly from a
 // private key and certificate, with optional policy.
-func NewSigner(priv interface{}, cert *x509.Certificate, sigAlgo x509.SignatureAlgorithm, policy *config.Signing) (*Signer, error) {
+func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.SignatureAlgorithm, policy *config.Signing) (*Signer, error) {
 	if policy == nil {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
