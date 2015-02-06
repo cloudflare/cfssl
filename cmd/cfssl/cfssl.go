@@ -36,6 +36,7 @@ import (
 
 // main defines the cfssl usage and registers all defined commands and flags.
 func main() {
+	flag.Usage = nil
 	// Add command names to cfssl usage
 	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 	// Register commands.
@@ -49,6 +50,5 @@ func main() {
 		"selfsign": selfsign.Command,
 	}
 	// Register all command flags.
-	c := cli.RegisterFlags()
-	cli.Start(cmds, c)
+	cli.Start(cmds)
 }
