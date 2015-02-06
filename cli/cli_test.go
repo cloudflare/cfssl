@@ -6,12 +6,14 @@ import (
 	"testing"
 )
 
+var cfsslFlagSet = flag.NewFlagSet("cfssl", flag.ExitOnError)
+
 // 'cfssl -help' should be supported.
 func TestHelp(t *testing.T) {
 	called := false
 	ResetForTesting(func() { called = true })
 	os.Args = []string{"cfssl", "-help"}
-	Start(nil, Config{})
+	Start(nil)
 	if !called {
 		t.Fatal("flag -help is not recognized correctly.")
 	}
@@ -23,7 +25,7 @@ func TestUnknownFlag(t *testing.T) {
 	called := false
 	os.Args = []string{"cfssl", "-badflag"}
 	ResetForTesting(func() { called = true })
-	Start(nil, Config{})
+	Start(nil)
 	if !called {
 		t.Fatal("Bad flag is not caught.")
 	}
@@ -35,7 +37,7 @@ func TestBadCommand(t *testing.T) {
 	called := false
 	ResetForTesting(func() { called = true })
 	os.Args = []string{"cfssl", "badcommand"}
-	Start(nil, Config{})
+	Start(nil)
 	if !called {
 		t.Fatal("Bad command is not caught.")
 	}
@@ -74,7 +76,8 @@ func ResetForTesting(usage func()) {
 // ResetCFSSLFlagSetForTesting reset cfsslFlagSet with flag.ContinueOnError so parse
 // errors in flag will not exit the program
 func ResetCFSSLFlagSetForTesting(usage func()) {
+	var c Config
 	cfsslFlagSet = flag.NewFlagSet("cfssl", flag.ContinueOnError)
-	RegisterFlags()
+	registerFlags(&c, cfsslFlagSet)
 	cfsslFlagSet.Usage = usage
 }

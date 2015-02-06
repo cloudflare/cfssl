@@ -42,12 +42,6 @@ type Command struct {
 	Main func(args []string, c Config) error
 }
 
-// cmds is a registry of defined commands.
-var cmds map[string]*Command
-
-// cfsslFlagSet is the global flag sets for cfssl.
-var cfsslFlagSet = flag.NewFlagSet("cfssl", flag.ExitOnError)
-
 // Config is a type to hold flag values used by cfssl commands.
 type Config struct {
 	Hostname          string
@@ -77,31 +71,29 @@ type Config struct {
 // Parsed command name
 var cmdName string
 
-// RegisterFlags defines all cfssl command flags and associates their values with variables.
-func RegisterFlags() Config {
-	var c Config
-	cfsslFlagSet.StringVar(&c.Hostname, "hostname", "", "Hostname for the cert")
-	cfsslFlagSet.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
-	cfsslFlagSet.StringVar(&c.CSRFile, "csr", "", "Certificate signature request file for new public key")
-	cfsslFlagSet.StringVar(&c.CAFile, "ca", "ca.pem", "CA used to sign the new certificate")
-	cfsslFlagSet.StringVar(&c.CAKeyFile, "ca-key", "ca-key.pem", "CA private key")
-	cfsslFlagSet.StringVar(&c.KeyFile, "key", "", "private key for the certificate")
-	cfsslFlagSet.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
-	cfsslFlagSet.StringVar(&c.CABundleFile, "ca-bundle", "/etc/cfssl/ca-bundle.crt", "Bundle to be used for root certificates pool")
-	cfsslFlagSet.StringVar(&c.IntBundleFile, "int-bundle", "/etc/cfssl/int-bundle.crt", "Bundle to be used for intermediate certificates pool")
-	cfsslFlagSet.StringVar(&c.Address, "address", "127.0.0.1", "Address to bind")
-	cfsslFlagSet.IntVar(&c.Port, "port", 8888, "Port to bind")
-	cfsslFlagSet.StringVar(&c.ConfigFile, "config", "", "path to configuration file")
-	cfsslFlagSet.StringVar(&c.Profile, "profile", "", "signing profile to use")
-	cfsslFlagSet.BoolVar(&c.IsCA, "initca", false, "initialise new CA")
-	cfsslFlagSet.StringVar(&c.IntDir, "int-dir", "/etc/cfssl/intermediates", "specify intermediates directory")
-	cfsslFlagSet.StringVar(&c.Flavor, "flavor", "ubiquitous", "Bundle Flavor: ubiquitous, optimal and force.")
-	cfsslFlagSet.StringVar(&c.Metadata, "metadata", "/etc/cfssl/ca-bundle.crt.metadata", "Metadata file for root certificate presence. The content of the file is a json dictionary (k,v): each key k is SHA-1 digest of a root certificate while value v is a list of key store filenames.")
-	cfsslFlagSet.StringVar(&c.Domain, "domain", "", "remote server domain name")
-	cfsslFlagSet.StringVar(&c.IP, "ip", "", "remote server ip")
-	cfsslFlagSet.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
-	cfsslFlagSet.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
-	return c
+// registerFlags defines all cfssl command flags and associates their values with variables.
+func registerFlags(c *Config, f *flag.FlagSet) {
+	f.StringVar(&c.Hostname, "hostname", "", "Hostname for the cert")
+	f.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
+	f.StringVar(&c.CSRFile, "csr", "", "Certificate signature request file for new public key")
+	f.StringVar(&c.CAFile, "ca", "ca.pem", "CA used to sign the new certificate")
+	f.StringVar(&c.CAKeyFile, "ca-key", "ca-key.pem", "CA private key")
+	f.StringVar(&c.KeyFile, "key", "", "private key for the certificate")
+	f.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
+	f.StringVar(&c.CABundleFile, "ca-bundle", "/etc/cfssl/ca-bundle.crt", "Bundle to be used for root certificates pool")
+	f.StringVar(&c.IntBundleFile, "int-bundle", "/etc/cfssl/int-bundle.crt", "Bundle to be used for intermediate certificates pool")
+	f.StringVar(&c.Address, "address", "127.0.0.1", "Address to bind")
+	f.IntVar(&c.Port, "port", 8888, "Port to bind")
+	f.StringVar(&c.ConfigFile, "config", "", "path to configuration file")
+	f.StringVar(&c.Profile, "profile", "", "signing profile to use")
+	f.BoolVar(&c.IsCA, "initca", false, "initialise new CA")
+	f.StringVar(&c.IntDir, "int-dir", "/etc/cfssl/intermediates", "specify intermediates directory")
+	f.StringVar(&c.Flavor, "flavor", "ubiquitous", "Bundle Flavor: ubiquitous, optimal and force.")
+	f.StringVar(&c.Metadata, "metadata", "/etc/cfssl/ca-bundle.crt.metadata", "Metadata file for root certificate presence. The content of the file is a json dictionary (k,v): each key k is SHA-1 digest of a root certificate while value v is a list of key store filenames.")
+	f.StringVar(&c.Domain, "domain", "", "remote server domain name")
+	f.StringVar(&c.IP, "ip", "", "remote server ip")
+	f.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
+	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
@@ -129,14 +121,18 @@ func printDefaultValue(f *flag.Flag) {
 // to parse non-flag arguments previously used in cfssl commands.
 func PopFirstArgument(args []string) (string, []string, error) {
 	if len(args) < 1 {
-		cfsslFlagSet.Usage()
 		return "", nil, errors.New("not enough arguments are supplied --- please refer to the usage")
 	}
 	return args[0], args[1:], nil
 }
 
 // Start is the entrance point of cfssl command line tools.
-func Start(cmds map[string]*Command, c Config) {
+func Start(cmds map[string]*Command) {
+	// cfsslFlagSet is the flag sets for cfssl.
+	var cfsslFlagSet = flag.NewFlagSet("cfssl", flag.ExitOnError)
+	var c Config
+
+	registerFlags(&c, cfsslFlagSet)
 	// Initial parse of command line arguments. By convention, only -h/-help is supported.
 	flag.Parse()
 	if flag.Usage == nil {
@@ -173,6 +169,7 @@ func Start(cmds map[string]*Command, c Config) {
 			}
 		}
 	}
+
 	// Parse all flags and take the rest as argument lists for the command
 	cfsslFlagSet.Parse(args)
 	args = cfsslFlagSet.Args()
