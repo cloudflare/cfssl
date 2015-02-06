@@ -17,6 +17,7 @@ The commands are defined in the cli subpackages and include
 	genkey   generates a key and an associated CSR
 	gencert  generates a key and a signed certificate
 	selfsign generates a self-signed certificate
+	ocspsign signs an OCSP response
 
 Use "cfssl [command] -help" to find out more about a command.
 */
@@ -66,6 +67,9 @@ type Config struct {
 	IP                string
 	Remote            string
 	Label             string
+	ResponderFile     string
+	Status            string
+	Reason            int
 }
 
 // Parsed command name
@@ -94,6 +98,9 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
 	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
+	f.StringVar(&c.ResponderFile, "responder", "", "Certificate for OCSP responder")
+	f.StringVar(&c.Status, "status", "good", "Status of the certificate: good, revoked, unknown")
+	f.IntVar(&c.Reason, "reason", 0, "Reason code for revocation")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
@@ -209,6 +216,17 @@ func PrintCert(key, csrBytes, cert []byte) {
 		out["csr"] = string(csrBytes)
 	}
 
+	jsonOut, err := json.Marshal(out)
+	if err != nil {
+		return
+	}
+	fmt.Printf("%s\n", jsonOut)
+}
+
+// PrintOcspResponse outputs an OCSP response to stdout
+func PrintOcspResponse(resp []byte) {
+	out := map[string]string{}
+	out["ocspResponse"] = string(resp)
 	jsonOut, err := json.Marshal(out)
 	if err != nil {
 		return
