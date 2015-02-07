@@ -4,6 +4,7 @@ package helpers
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
@@ -180,7 +181,7 @@ func ParseOneCertificateFromPEM(certsPEM []byte) (cert *x509.Certificate, rest [
 // ParsePrivateKeyPEM parses and returns a PEM-encoded private
 // key. The private key may be either an unencrypted PKCS#8, PKCS#1,
 // or elliptic private key.
-func ParsePrivateKeyPEM(keyPEM []byte) (key interface{}, err error) {
+func ParsePrivateKeyPEM(keyPEM []byte) (key crypto.Signer, err error) {
 	keyDER, _ := pem.Decode(keyPEM)
 	if keyDER == nil {
 		return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
@@ -195,12 +196,12 @@ func ParsePrivateKeyPEM(keyPEM []byte) (key interface{}, err error) {
 
 // ParsePrivateKeyDER parses a PKCS #1, PKCS #8, or elliptic curve
 // DER-encoded private key. The key must not be in PEM format.
-func ParsePrivateKeyDER(keyDER []byte) (key interface{}, err error) {
-	key, err = x509.ParsePKCS8PrivateKey(keyDER)
+func ParsePrivateKeyDER(keyDER []byte) (key crypto.Signer, err error) {
+	generalKey, err := x509.ParsePKCS8PrivateKey(keyDER)
 	if err != nil {
-		key, err = x509.ParsePKCS1PrivateKey(keyDER)
+		generalKey, err = x509.ParsePKCS1PrivateKey(keyDER)
 		if err != nil {
-			key, err = x509.ParseECPrivateKey(keyDER)
+			generalKey, err = x509.ParseECPrivateKey(keyDER)
 			if err != nil {
 				// We don't include the actual error into
 				// the final error. The reason might be
@@ -211,5 +212,13 @@ func ParsePrivateKeyDER(keyDER []byte) (key interface{}, err error) {
 			}
 		}
 	}
-	return
+
+	switch generalKey.(type) {
+	case *rsa.PrivateKey:
+		return generalKey.(*rsa.PrivateKey), nil
+	case *ecdsa.PrivateKey:
+		return generalKey.(*ecdsa.PrivateKey), nil
+	}
+
+	return nil, cferr.New(cferr.PrivateKeyError, cferr.ParseFailed)
 }
