@@ -1,7 +1,11 @@
 package ocspsign
 
 import (
+	"io/ioutil"
+	"time"
+
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
 )
@@ -16,24 +20,46 @@ Flags:
 `
 
 // Flags of 'cfssl ocspsign'
-var ocspSignerFlags = []string{"ca", "responder", "key", "reason", "status"}
-
-// ocspSignerFromConfig takes the Config and creates the appropriate
-// ocsp.Signer object
-func ocspSignerFromConfig(c cli.Config) (ocsp.Signer, error) {
-	// TODO pull arguments, assemble an actual signer
-	return ocsp.NewSigner(), nil
-}
+var ocspSignerFlags = []string{"ca", "responder", "key", "reason", "status", "revoked-at", "interval"}
 
 // ocspSignerMain is the main CLI of OCSP signer functionality.
 func ocspSignerMain(args []string, c cli.Config) (err error) {
-	s, err := ocspSignerFromConfig(c)
+	// Read the cert to be revoked from file
+	certBytes, err := ioutil.ReadFile(c.CertFile)
+	if err != nil {
+		log.Critical("Unable to read certificate: ", err)
+		return
+	}
+	cert, err := helpers.ParseCertificatePEM(certBytes)
+	if err != nil {
+		log.Critical("Unable to parse certificate: ", err)
+		return
+	}
+
+	req := ocsp.SignRequest{
+		Certificate: cert,
+		Status:      c.Status,
+	}
+
+	if c.Status == "revoked" {
+		req.Reason = c.Reason
+
+		req.RevokedAt = time.Now()
+		if c.RevokedAt != "now" {
+			req.RevokedAt, err = time.Parse("2001-01-01", c.RevokedAt)
+			if err != nil {
+				log.Critical("Malformed revocation time: ", c.RevokedAt)
+				return
+			}
+		}
+	}
+
+	s, err := ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, c.KeyFile, c.Interval)
 	if err != nil {
 		log.Critical("Unable to create OCSP signer: ", err)
 		return
 	}
 
-	req := ocsp.SignRequest{ /* TODO */ }
 	resp, err := s.Sign(req)
 	if err != nil {
 		log.Critical("Unable to sign OCSP response: ", err)

@@ -34,7 +34,6 @@ type Signer interface {
 	Sign(req SignRequest) ([]byte, error)
 }
 
-// TODO
 type StandardSigner struct {
 	issuer    *x509.Certificate
 	responder *x509.Certificate
@@ -44,7 +43,7 @@ type StandardSigner struct {
 
 // NewSignerFromFile reads the issuer cert, the responder cert and the responder key
 // from PEM files, and takes an interval in seconds
-func NewStandardSignerFromFile(issuerFile, responderFile, keyFile string, interval int) (Signer, error) {
+func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval int) (Signer, error) {
 	log.Debug("Loading CA cert: ", issuerFile)
 	issuerBytes, err := ioutil.ReadFile(issuerFile)
 	if err != nil {
