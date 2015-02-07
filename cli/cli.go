@@ -70,6 +70,8 @@ type Config struct {
 	ResponderFile     string
 	Status            string
 	Reason            int
+	RevokedAt         string
+	Interval          int
 }
 
 // Parsed command name
@@ -101,6 +103,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.ResponderFile, "responder", "", "Certificate for OCSP responder")
 	f.StringVar(&c.Status, "status", "good", "Status of the certificate: good, revoked, unknown")
 	f.IntVar(&c.Reason, "reason", 0, "Reason code for revocation")
+	f.StringVar(&c.RevokedAt, "revoked-at", "now", "Date of revocation (YYYY-MM-DD)")
+	f.IntVar(&c.Interval, "interval", 3600*24*4, "Interval between OCSP updates, in seconds (default: 4 days)")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
