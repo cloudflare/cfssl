@@ -1,12 +1,29 @@
 language: go
 go:
-        - 1.4
-script: go get golang.org/x/tools/cmd/vet && go get golang.org/x/tools/cmd/goimports && go get -u github.com/golang/lint/golint && go get github.com/cloudflare/cfssl/cmd/... && go test github.com/cloudflare/cfssl/... && go vet github.com/cloudflare/cfssl/... && [ -z $($GOPATH/bin/golint github.com/cloudflare/cfssl/...) ] && [ -z $($GOPATH/bin/goimports github.com/cloudflare/cfssl/...) ]
+- 1.4
+before_script:
+  - go get golang.org/x/tools/cmd/vet
+  - go get golang.org/x/tools/cmd/goimports
+  - go get -u github.com/golang/lint/golint
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/modocache/gover
+  - go get github.com/mattn/goveralls
+  - go get -v github.com/GeertJohan/fgt
+script:
+  - go get github.com/cloudflare/cfssl/... 
+  - go test github.com/cloudflare/cfssl/... 
+  - go vet github.com/cloudflare/cfssl/...
+  - fgt golint github.com/cloudflare/cfssl/...
+  - go list -f '{{if len .TestGoFiles}}"go test -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"{{end}}' ./... | xargs -i sh -c {}
+  - gover 
+  - goveralls -coverprofile=gover.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN
 notifications:
-        email:
-                recipients:
-                        - nick@cloudflare.com
-                        - zi@cloudflare.com
-                        - kyle@cloudflare.com
-                on_success: never
-                on_failure: change
+  email:
+    recipients:
+    - nick@cloudflare.com
+    - zi@cloudflare.com
+    - kyle@cloudflare.com
+    on_success: never
+    on_failure: change
+env:
+  - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
