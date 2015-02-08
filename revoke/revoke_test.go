@@ -76,7 +76,7 @@ jeBHq7OnpWm+ccTOPCE6H4ZN4wWVS7biEBUdop/8HgXBPQHWAdjL
 -----END CERTIFICATE-----`)
 
 // 2014/05/22 14:18:51 added misc/intermediate_ca/GandiProSSLCA.crt to intermediate bundle
-var goodstring string = (`-----BEGIN CERTIFICATE-----
+var goodstring = (`-----BEGIN CERTIFICATE-----
 MIIEnjCCA4agAwIBAgIQPBkQvAZ54yVvTfQWo16zFDANBgkqhkiG9w0BAQUFADCB
 lzELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAlVUMRcwFQYDVQQHEw5TYWx0IExha2Ug
 Q2l0eTEeMBwGA1UEChMVVGhlIFVTRVJUUlVTVCBOZXR3b3JrMSEwHwYDVQQLExho

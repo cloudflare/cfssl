@@ -1,9 +1,13 @@
 # CFSSL
+
+[![Build Status](https://travis-ci.org/cloudflare/cfssl.png?branch=master)](https://travis-ci.org/cloudflare/cfssl)
+[![Coverage Status](https://coveralls.io/repos/cloudflare/cfssl/badge.svg?branch=master)](https://coveralls.io/r/cloudflare/cfssl?branch=master)
+[![GoDoc](https://godoc.org/github.com/cloudflare/cfssl?status.png)](https://godoc.org/github.com/cloudflare/cfssl)
 ## CloudFlare's SSL tool
 
 CFSSL is CloudFlare's SSL swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling SSL
-certificates. It requires Go 1.3 to build.
+certificates. It requires Go 1.4 to build.
 
 ### Installation
 
