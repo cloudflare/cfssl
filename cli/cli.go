@@ -42,63 +42,8 @@ type Command struct {
 	Main func(args []string, c Config) error
 }
 
-// Config is a type to hold flag values used by cfssl commands.
-type Config struct {
-	Hostname          string
-	CertFile          string
-	CSRFile           string
-	CAFile            string
-	CAKeyFile         string
-	KeyFile           string
-	IntermediatesFile string
-	CABundleFile      string
-	IntBundleFile     string
-	Address           string
-	Port              int
-	ConfigFile        string
-	CFG               *config.Config
-	Profile           string
-	IsCA              bool
-	IntDir            string
-	Flavor            string
-	Metadata          string
-	Domain            string
-	IP                string
-	Remote            string
-	Label             string
-	Responses         string
-	Path              string
-}
-
 // Parsed command name
 var cmdName string
-
-// registerFlags defines all cfssl command flags and associates their values with variables.
-func registerFlags(c *Config, f *flag.FlagSet) {
-	f.StringVar(&c.Hostname, "hostname", "", "Hostname for the cert")
-	f.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
-	f.StringVar(&c.CSRFile, "csr", "", "Certificate signature request file for new public key")
-	f.StringVar(&c.CAFile, "ca", "ca.pem", "CA used to sign the new certificate")
-	f.StringVar(&c.CAKeyFile, "ca-key", "ca-key.pem", "CA private key")
-	f.StringVar(&c.KeyFile, "key", "", "private key for the certificate")
-	f.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
-	f.StringVar(&c.CABundleFile, "ca-bundle", "/etc/cfssl/ca-bundle.crt", "Bundle to be used for root certificates pool")
-	f.StringVar(&c.IntBundleFile, "int-bundle", "/etc/cfssl/int-bundle.crt", "Bundle to be used for intermediate certificates pool")
-	f.StringVar(&c.Address, "address", "127.0.0.1", "Address to bind")
-	f.IntVar(&c.Port, "port", 8888, "Port to bind")
-	f.StringVar(&c.ConfigFile, "config", "", "path to configuration file")
-	f.StringVar(&c.Profile, "profile", "", "signing profile to use")
-	f.BoolVar(&c.IsCA, "initca", false, "initialise new CA")
-	f.StringVar(&c.IntDir, "int-dir", "/etc/cfssl/intermediates", "specify intermediates directory")
-	f.StringVar(&c.Flavor, "flavor", "ubiquitous", "Bundle Flavor: ubiquitous, optimal and force.")
-	f.StringVar(&c.Metadata, "metadata", "/etc/cfssl/ca-bundle.crt.metadata", "Metadata file for root certificate presence. The content of the file is a json dictionary (k,v): each key k is SHA-1 digest of a root certificate while value v is a list of key store filenames.")
-	f.StringVar(&c.Domain, "domain", "", "remote server domain name")
-	f.StringVar(&c.IP, "ip", "", "remote server ip")
-	f.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
-	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
-	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
-	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
-}
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
 // to form the final usage message of cfssl.

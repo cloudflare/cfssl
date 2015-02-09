@@ -154,8 +154,10 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 	}
 
 	root := universal.Root{
-		CertFile: caFile,
-		KeyFile:  caKeyFile,
+		Config: map[string]string{
+			"ca-file":     caFile,
+			"ca-key-file": caKeyFile,
+		},
 	}
 	if cg.signer, err = universal.NewSigner(root, policy); err != nil {
 		log.Errorf("setting up signer failed: %v", err)

@@ -29,6 +29,8 @@ The index of codes are listed below:
 	    2100: Encrypted
 	    2200: NotRSA
 	    2300: KeyMismatch
+	    2400: GenerationFailed
+	    2500: Unavailable
 	3XXX: IntermediatesError
 	4XXX: RootError
 	5XXX: PolicyError

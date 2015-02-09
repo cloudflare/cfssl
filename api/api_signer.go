@@ -30,8 +30,10 @@ func NewSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Hand
 	s := new(SignHandler)
 
 	root := universal.Root{
-		CertFile: caFile,
-		KeyFile:  caKeyFile,
+		Config: map[string]string{
+			"cert-file": caFile,
+			"key-file":  caKeyFile,
+		},
 	}
 	if s.signer, err = universal.NewSigner(root, policy); err != nil {
 		log.Errorf("setting up signer failed: %v", err)
