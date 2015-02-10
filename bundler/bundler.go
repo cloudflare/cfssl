@@ -4,6 +4,7 @@ package bundler
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/tls"
@@ -177,7 +178,7 @@ func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor
 // slices containing the PEM-encoded certificate(s), private key.
 func (b *Bundler) BundleFromPEM(certsPEM, keyPEM []byte, flavor BundleFlavor) (*Bundle, error) {
 	log.Debug("bundling from PEM files")
-	var key interface{}
+	var key crypto.Signer
 	var err error
 	if len(keyPEM) != 0 {
 		key, err = helpers.ParsePrivateKeyPEM(keyPEM)
@@ -475,10 +476,10 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 }
 
 // Bundle takes an X509 certificate (already in the
-// Certificate structure), a private key in one of the appropriate
-// formats (i.e. *rsa.PrivateKey or *ecdsa.PrivateKey), using them to
+// Certificate structure), a private key as crypto.Signer in one of the appropriate
+// formats (i.e. *rsa.PrivateKey or *ecdsa.PrivateKey, or even a opaque key), using them to
 // build a certificate bundle.
-func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor BundleFlavor) (*Bundle, error) {
+func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor BundleFlavor) (*Bundle, error) {
 	log.Infof("bundling certificate for %+v", certs[0].Subject)
 	if len(certs) == 0 {
 		return nil, nil
@@ -497,19 +498,20 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key interface{}, flavor Bund
 	if key != nil {
 		switch {
 		case cert.PublicKeyAlgorithm == x509.RSA:
-			var rsaKey *rsa.PrivateKey
-			if rsaKey, ok = key.(*rsa.PrivateKey); !ok {
+
+			var rsaPublicKey *rsa.PublicKey
+			if rsaPublicKey, ok = key.Public().(*rsa.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
-			if cert.PublicKey.(*rsa.PublicKey).N.Cmp(rsaKey.PublicKey.N) != 0 {
+			if cert.PublicKey.(*rsa.PublicKey).N.Cmp(rsaPublicKey.N) != 0 {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
-			var ecdsaKey *ecdsa.PrivateKey
-			if ecdsaKey, ok = key.(*ecdsa.PrivateKey); !ok {
+			var ecdsaPublicKey *ecdsa.PublicKey
+			if ecdsaPublicKey, ok = key.Public().(*ecdsa.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
-			if cert.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaKey.PublicKey.X) != 0 {
+			if cert.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaPublicKey.X) != 0 {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:
