@@ -24,6 +24,7 @@ Use "cfssl [command] -help" to find out more about a command.
 
 import (
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -229,8 +230,10 @@ func PrintCert(key, csrBytes, cert []byte) {
 
 // PrintOcspResponse outputs an OCSP response to stdout
 func PrintOcspResponse(resp []byte) {
+	pemResponse := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: resp})
+
 	out := map[string]string{}
-	out["ocspResponse"] = string(resp)
+	out["ocspResponse"] = string(pemResponse)
 	jsonOut, err := json.Marshal(out)
 	if err != nil {
 		return

@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/x509"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -50,7 +52,7 @@ func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval int) 
 		return nil, err
 	}
 	log.Debug("Loading responder cert: ", responderFile)
-	responderBytes, err := ioutil.ReadFile(issuerFile)
+	responderBytes, err := ioutil.ReadFile(responderFile)
 	if err != nil {
 		return nil, err
 	}
@@ -92,15 +94,17 @@ func NewSigner(issuer, responder *x509.Certificate, key crypto.Signer, interval 
 
 func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 	if req.Certificate == nil {
-		return nil, errors.New("TODO") // XXX
+		return nil, errors.New("req.Certificate == nil") // XXX
 	}
 
 	// Verify that req.Certificate is issued under s.issuer
 	if bytes.Compare(req.Certificate.RawIssuer, s.issuer.RawSubject) != 0 {
-		return nil, errors.New("TODO") // XXX
+		fmt.Println(hex.EncodeToString(req.Certificate.RawIssuer))
+		fmt.Println(hex.EncodeToString(s.issuer.RawSubject))
+		return nil, errors.New("Issuer doesn't match") // XXX
 	}
 	if req.Certificate.CheckSignatureFrom(s.issuer) != nil {
-		return nil, errors.New("TODO") // XXX
+		return nil, errors.New("Not issued by this issuer") // XXX
 	}
 
 	// Round thisUpdate times to the nearest hour
@@ -109,7 +113,7 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 
 	status, ok := statusCode[req.Status]
 	if !ok {
-		return nil, errors.New("TODO") // XXX
+		return nil, errors.New("Status code not found") // XXX
 	}
 
 	template := ocsp.Response{
