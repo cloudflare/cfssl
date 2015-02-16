@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/cli/bundle"
 	"github.com/cloudflare/cfssl/cli/gencert"
 	"github.com/cloudflare/cfssl/cli/genkey"
+	"github.com/cloudflare/cfssl/cli/ocspserve"
 	"github.com/cloudflare/cfssl/cli/selfsign"
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -41,13 +42,14 @@ func main() {
 	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 	// Register commands.
 	cmds := map[string]*cli.Command{
-		"bundle":   bundle.Command,
-		"sign":     sign.Command,
-		"serve":    serve.Command,
-		"version":  version.Command,
-		"genkey":   genkey.Command,
-		"gencert":  gencert.Command,
-		"selfsign": selfsign.Command,
+		"bundle":    bundle.Command,
+		"sign":      sign.Command,
+		"serve":     serve.Command,
+		"version":   version.Command,
+		"genkey":    genkey.Command,
+		"gencert":   gencert.Command,
+		"selfsign":  selfsign.Command,
+		"ocspserve": ocspserve.Command,
 	}
 	// Register all command flags.
 	cli.Start(cmds)

@@ -66,6 +66,8 @@ type Config struct {
 	IP                string
 	Remote            string
 	Label             string
+	Responses         string
+	Path              string
 }
 
 // Parsed command name
@@ -94,6 +96,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
 	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
+	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
+	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 }
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
