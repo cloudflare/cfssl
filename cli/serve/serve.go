@@ -42,8 +42,14 @@ func registerHandlers(c cli.Config) error {
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
 	} else {
-		signHandler := api.NewSignHandlerFromSigner(s)
-		http.Handle("/api/v1/cfssl/sign", signHandler)
+		if signHandler, err := api.NewAuthSignHandler(s); err == nil {
+			log.Info("Assigning handler to /authsign")
+			http.Handle("/api/v1/cfssl/authsign", signHandler)
+		} else {
+			log.Info("Assigning handler to /sign")
+			signHandler := api.NewSignHandlerFromSigner(s)
+			http.Handle("/api/v1/cfssl/sign", signHandler)
+		}
 	}
 
 	log.Info("Setting up new cert endpoint")
