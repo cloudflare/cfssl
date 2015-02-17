@@ -51,6 +51,7 @@ const (
 	ecdsaWarning             = "The bundle contains ECDSA signatures, which are problematic at certain operating systems, e.g. Windows XP SP2, Android 2.2 and Android 2.3."
 	expiringWarningStub      = "The bundle is expiring within 30 days. "
 	untrustedWarningStub     = "The bundle may not be trusted by the following platform(s):"
+	ubiquityWarning          = "The bundle trust ubiquity is not guaranteed: No platform metadata found."
 	deprecateSHA1WarningStub = "Due to SHA-1 deprecation, the bundle may not be trusted by the following platform(s):"
 )
 
@@ -575,6 +576,9 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	case Optimal:
 		matchingChains = optimalChains(chains)
 	case Ubiquitous:
+		if len(ubiquity.Platforms) == 0 {
+			log.Warning("No metadata, Ubiquitous falls back to Optimal.")
+		}
 		matchingChains = ubiquitousChains(chains)
 	case Force:
 		matchingChains = forceChains(certs, chains)
@@ -615,11 +619,13 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	bundle.Root = root
 	log.Infof("the anchoring root is %v", root.Subject)
 	// Check if there is any platform that doesn't trust the chain.
+	// Also, an warning will be generated if ubiquity.Platforms is nil,
 	untrusted := ubiquity.UntrustedPlatforms(root)
-	if len(untrusted) > 0 {
+	untrustedMsg := untrustedPlatformsWarning(untrusted)
+	if len(untrustedMsg) > 0 {
 		log.Debug("Populate untrusted platform warning.")
 		statusCode |= errors.BundleNotUbiquitousBit
-		messages = append(messages, untrustedPlatformsWarning(untrusted))
+		messages = append(messages, untrustedMsg)
 	}
 	// Check if there is any platform that rejects the chain because of SHA1 deprecation.
 	deprecated := ubiquity.DeprecatedSHA1Platforms(matchingChains[0])
@@ -677,9 +683,14 @@ func expirationWarning(expiringIntermediates []int) (ret string) {
 
 // untrustedPlatformsWarning generates a warning message with untrusted platform names.
 func untrustedPlatformsWarning(platforms []string) string {
+	if len(ubiquity.Platforms) == 0 {
+		return ubiquityWarning
+	}
+
 	if len(platforms) == 0 {
 		return ""
 	}
+
 	msg := untrustedWarningStub
 	for i, platform := range platforms {
 		if i > 0 {

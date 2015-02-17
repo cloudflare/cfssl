@@ -91,7 +91,7 @@ func TestChainKeyAlgoPriority(t *testing.T) {
 	chain = []*x509.Certificate{rsa2048Cert, rsa3072Cert}
 	p = KeyAlgoPriority(chain)
 	if p != (keyAlgoPriority(rsa2048Cert)+keyAlgoPriority(rsa3072Cert))/2 {
-		t.Fatal("Incorrect chain hash priority")
+		t.Fatal("Incorrect chain key algo priority")
 	}
 }
 func TestCertHashUbiquity(t *testing.T) {
@@ -324,5 +324,90 @@ func TestCompareSHA2Homogeneity(t *testing.T) {
 
 	if CompareSHA2Homogeneity(chain2, chain3) != 0 || CompareSHA2Homogeneity(chain3, chain4) != 0 {
 		t.Fatal("CompareSHA2Homogeneity failed.")
+	}
+}
+
+func TestFilterChainHashPriority(t *testing.T) {
+	var chain1, chain2 []*x509.Certificate
+	chain1 = []*x509.Certificate{rsa2048Cert}  // SHA256
+	chain2 = []*x509.Certificate{ecdsa384Cert} // SHA384
+	// SHA256 <= SHA384
+	if CompareChainHashPriority(chain1, chain2) > 0 {
+		t.Fatal("Incorrect chain hash priority comparison")
+	}
+	chains := [][]*x509.Certificate{chain2, chain1}
+	ret := Filter(chains, CompareChainHashPriority)
+
+	// check there is no reordering
+	if ret[0][0] != ecdsa384Cert {
+		t.Fatal("Incorrect chain hash priority filtering")
+	}
+}
+
+func TestFilterChainKeyAlgoPriority(t *testing.T) {
+	var chain1, chain2 []*x509.Certificate
+	chain1 = []*x509.Certificate{rsa2048Cert}  // RSA
+	chain2 = []*x509.Certificate{ecdsa384Cert} // ECDSA
+	// RSA <= ECDSA
+	if CompareChainKeyAlgoPriority(chain1, chain2) >= 0 {
+		t.Fatal("Incorrect chain key algo priority comparison")
+	}
+	chains := [][]*x509.Certificate{chain1, chain2}
+	ret := Filter(chains, CompareChainKeyAlgoPriority)
+
+	// check there is reordering
+	if ret[0][0] != ecdsa384Cert {
+		t.Fatal("Incorrect chain key algo priority filtering")
+	}
+}
+
+func TestFilterChainCipherSuite(t *testing.T) {
+	var chain1, chain2 []*x509.Certificate
+	chain1 = []*x509.Certificate{rsa2048Cert}
+	chain2 = []*x509.Certificate{ecdsa384Cert}
+	// RSA2048 < ECDSA384
+	if CompareChainCryptoSuite(chain1, chain2) >= 0 {
+		t.Fatal("Incorrect chain key algo priority comparison")
+	}
+	chains := [][]*x509.Certificate{chain1, chain2}
+	ret := Filter(chains, CompareChainCryptoSuite)
+
+	// check there is reordering
+	if ret[0][0] != ecdsa384Cert {
+		t.Fatal("Incorrect chain key algo priority filtering")
+	}
+}
+
+func TestFilterChainHashUbiquity(t *testing.T) {
+	var chain1, chain2 []*x509.Certificate
+	chain1 = []*x509.Certificate{rsa2048Cert}  // SHA256
+	chain2 = []*x509.Certificate{ecdsa384Cert} // SHA384
+	// SHA256 == SHA384
+	if CompareChainHashUbiquity(chain1, chain2) != 0 {
+		t.Fatal("Incorrect chain hash priority comparison")
+	}
+	chains := [][]*x509.Certificate{chain2, chain1}
+	ret := Filter(chains, CompareChainHashUbiquity)
+
+	// check there is no reordering
+	if ret[0][0] != ecdsa384Cert {
+		t.Fatal("Incorrect chain hash priority filtering")
+	}
+}
+
+func TestFilterChainKeyAlgoUbiquity(t *testing.T) {
+	var chain1, chain2 []*x509.Certificate
+	chain1 = []*x509.Certificate{rsa2048Cert}  // RSA
+	chain2 = []*x509.Certificate{ecdsa384Cert} // ECDSA
+	// RSA >= ECDSA
+	if CompareChainKeyAlgoUbiquity(chain1, chain2) < 0 {
+		t.Fatal("Incorrect chain key algo priority comparison")
+	}
+	chains := [][]*x509.Certificate{chain1, chain2}
+	ret := Filter(chains, CompareChainKeyAlgoUbiquity)
+
+	// check there is no reordering
+	if ret[0][0] != rsa2048Cert {
+		t.Fatal("Incorrect chain key algo priority filtering")
 	}
 }

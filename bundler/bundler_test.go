@@ -375,10 +375,32 @@ func TestUbiquitousBundle(t *testing.T) {
 	checkUbiquityWarningAndCode(t, ubiquitousBundle, false)
 }
 
+func TestUbiquityBundleWithoutMetadata(t *testing.T) {
+	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
+	L1Cert := readCert(interL1)
+	b.RootPool.AddCert(L1Cert)
+
+	// Without platform info, ubiquitous bundling falls back to optimal bundling.
+	ubiquity.Platforms = nil
+	nuBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous)
+	if err != nil {
+		t.Fatal("Ubiquitous-fall-back-to-optimal bundle failed: ", err)
+
+	}
+	if len(nuBundle.Chain) != 2 {
+		t.Fatal("Ubiquitous-fall-back-to-optimal bundle failed")
+	}
+	// Should be trusted by all (i.e. zero) platforms.
+	if len(nuBundle.Status.Untrusted) != 0 {
+		t.Fatal("Ubiquitous-fall-back-to-optimal bundle status has incorrect untrusted platforms", len(nuBundle.Status.Untrusted))
+	}
+	checkUbiquityWarningAndCode(t, nuBundle, true)
+}
+
 func checkUbiquityWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 	found := false
 	for _, msg := range bundle.Status.Messages {
-		if strings.Contains(msg, untrustedWarningStub) {
+		if strings.Contains(msg, untrustedWarningStub) || strings.Contains(msg, ubiquityWarning) {
 			found = true
 		}
 	}
