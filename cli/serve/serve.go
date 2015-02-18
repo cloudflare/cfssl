@@ -86,9 +86,12 @@ func serverMain(args []string, c cli.Config) error {
 	}
 
 	bundler.IntermediateStash = c.IntDir
-	ubiquity.LoadPlatforms(c.Metadata)
+	err := ubiquity.LoadPlatforms(c.Metadata)
+	if err != nil {
+		log.Error(err)
+	}
 
-	err := registerHandlers(c)
+	err = registerHandlers(c)
 	if err != nil {
 		return err
 	}

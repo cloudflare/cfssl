@@ -168,19 +168,19 @@ var Platforms []Platform
 
 // LoadPlatforms reads the file content as a json object array and convert it
 // to Platforms.
-func LoadPlatforms(filename string) {
+func LoadPlatforms(filename string) error {
 	relativePath := filepath.Dir(filename)
 	// Attempt to load root certificate metadata
 	log.Debug("Loading platform metadata: ", filename)
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Errorf("platform metadata failed to load: %v", err)
+		return fmt.Errorf("platform metadata failed to load: %v", err)
 	}
 	var rawPlatforms []Platform
 	if bytes != nil {
 		err = json.Unmarshal(bytes, &rawPlatforms)
 		if err != nil {
-			log.Errorf("platform metadata failed to parse: %v", err)
+			return fmt.Errorf("platform metadata failed to parse: %v", err)
 		}
 	}
 
@@ -190,12 +190,16 @@ func LoadPlatforms(filename string) {
 		}
 		ok := platform.ParseAndLoad()
 		if !ok {
-			log.Errorf("fail to finalize the parsing of platform metadata: %v", platform)
-		} else {
-			log.Infof("Platform metadata is loaded: %v %v", platform.Name, len(platform.KeyStore))
-			Platforms = append(Platforms, platform)
+			// erase all loaded platforms
+			Platforms = nil
+			return fmt.Errorf("fail to finalize the parsing of platform metadata: %v", platform)
 		}
+
+		log.Infof("Platform metadata is loaded: %v %v", platform.Name, len(platform.KeyStore))
+		Platforms = append(Platforms, platform)
 	}
+
+	return nil
 }
 
 // UntrustedPlatforms returns a list of platforms which don't trust the root certificate.
