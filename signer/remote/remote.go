@@ -8,6 +8,7 @@ import (
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/signer"
 )
 
@@ -37,21 +38,32 @@ func NewSigner(policy *config.Signing) (*Signer, error) {
 // csr, and profileName are used as with a local signing operation, and
 // the label is used to select a signing root in a multi-root CA.
 func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
+	return s.remoteOp(req, req.Profile, "sign")
+}
+
+// Info sends an info request to the remote CFSSL server, receiving a signed
+// certificate or an error in response.
+func (s *Signer) Info(req client.InfoReq) (cert []byte, err error) {
+	return s.remoteOp(req, req.Profile, "info")
+}
+
+// Helper function to perform a remote sign or info request.
+func (s *Signer) remoteOp(req interface{}, profile, target string) (cert []byte, err error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.APIClientError, cferr.JSONError, err)
 	}
 
-	var profile *config.SigningProfile
-	if s.policy.Profiles != nil && req.Profile != "" {
-		profile = s.policy.Profiles[req.Profile]
+	var p *config.SigningProfile
+	if s.policy.Profiles != nil && profile != "" {
+		p = s.policy.Profiles[profile]
 	}
 
-	if profile == nil {
-		profile = s.policy.Default
+	if p == nil {
+		p = s.policy.Default
 	}
 
-	server := client.NewServer(profile.RemoteName)
+	server := client.NewServer(p.RemoteName)
 	if server == nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
 			errors.New("failed to connect to remote"))
@@ -61,10 +73,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return nil, cferr.Wrap(cferr.APIClientError, cferr.JSONError, err)
 	}
 
-	if profile.Provider != nil {
-		cert, err = server.AuthSign(jsonData, nil, profile.Provider)
+	if p.Provider != nil {
+		cert, err = server.AuthReq(jsonData, nil, p.Provider, target)
 	} else {
-		cert, err = server.Sign(jsonData)
+		cert, err = server.Req(jsonData, target)
 	}
 
 	return []byte(cert), nil
@@ -77,9 +89,16 @@ func (s *Signer) SigAlgo() x509.SignatureAlgorithm {
 }
 
 // Certificate returns the signer's certificate.
-func (s *Signer) Certificate() *x509.Certificate {
-	// TODO: implement this as a remote info call
-	return nil
+func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
+	certStr, err := s.Info(client.InfoReq{Label: label, Profile: profile})
+	if err != nil {
+		return nil, err
+	}
+	cert, err := helpers.ParseCertificatePEM(certStr)
+	if err != nil {
+		return nil, err
+	}
+	return cert, nil
 }
 
 // SetPolicy sets the signer's signature policy.
