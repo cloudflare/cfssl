@@ -56,7 +56,8 @@ func (c chain) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(ret))
 }
 
-func pemBlockToString(block *pem.Block) string {
+// PemBlockToString turns a pem.Block into the string encoded form.
+func PemBlockToString(block *pem.Block) string {
 	if block.Bytes == nil || block.Type == "" {
 		return ""
 	}
@@ -130,9 +131,9 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(map[string]interface{}{
 		"bundle":       chain(b.Chain),
-		"root":         pemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Root.Raw}),
-		"crt":          pemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Cert.Raw}),
-		"key":          pemBlockToString(&pem.Block{Type: typeString, Bytes: keyBytes}),
+		"root":         PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Root.Raw}),
+		"crt":          PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Cert.Raw}),
+		"key":          PemBlockToString(&pem.Block{Type: typeString, Bytes: keyBytes}),
 		"key_type":     keyType,
 		"key_size":     keyLength,
 		"issuer":       names(b.Issuer.Names),
