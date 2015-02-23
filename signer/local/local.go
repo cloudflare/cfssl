@@ -164,9 +164,12 @@ func (s *Signer) SigAlgo() x509.SignatureAlgorithm {
 }
 
 // Certificate returns the signer's certificate.
-func (s *Signer) Certificate() *x509.Certificate {
+func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
+	if label != "" {
+		return nil, cferr.NewBadRequestString("label specified for local operation")
+	}
 	cert := *s.ca
-	return &cert
+	return &cert, nil
 }
 
 // SetPolicy sets the signer's signature policy.

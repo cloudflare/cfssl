@@ -68,7 +68,7 @@ func (s *Subject) Name() pkix.Name {
 // A Signer contains a CA's certificate and private key for signing
 // certificates, a Signing policy to refer to and a SignatureAlgorithm.
 type Signer interface {
-	Certificate() *x509.Certificate
+	Certificate(label, profile string) (*x509.Certificate, error)
 	Policy() *config.Signing
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
