@@ -3,6 +3,7 @@ package local
 import (
 	"crypto/x509"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -104,6 +105,172 @@ func TestNewSignerFromFileNoUsageInPolicy(t *testing.T) {
 
 	if !strings.Contains(err.Error(), `"code":5200`) {
 		t.Fatal(err)
+	}
+}
+
+func TestNewSignerFromFileEdgeCases(t *testing.T) {
+
+	res, err := NewSignerFromFile("nil", "nil", nil)
+	if res != nil && err == nil {
+		t.Fatal("Incorrect inputs failed to produce correct results")
+	}
+
+	res, err = NewSignerFromFile(testCaFile, "nil", nil)
+	if res != nil && err == nil {
+		t.Fatal("Incorrect inputs failed to produce correct results")
+	}
+
+	res, err = NewSignerFromFile("../../helpers/testdata/messedupcert.pem", "local.go", nil)
+	if res != nil && err == nil {
+		t.Fatal("Incorrect inputs failed to produce correct results")
+	}
+
+	res, err = NewSignerFromFile("../../helpers/testdata/cert.pem", "../../helpers/testdata/messed_up_priv_key.pem", nil)
+	if res != nil && err == nil {
+		t.Fatal("Incorrect inputs failed to produce correct results")
+	}
+}
+
+// test the private method
+func testSign(t *testing.T) {
+	signer, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
+	if signer == nil || err != nil {
+		t.Fatal("Failed to produce signer")
+	}
+
+	pem, _ := ioutil.ReadFile("../../helpers/testdata/cert.pem")
+	cert, _ := helpers.ParseCertificatePEM(pem)
+
+	badcert := *cert
+	badcert.PublicKey = nil
+	profl := config.SigningProfile{Usage: []string{"Certificates", "Rule"}}
+	_, err = signer.sign(&badcert, &profl)
+
+	if err == nil {
+		t.Fatal("Improper input failed to raise an error")
+	}
+
+	// nil profile
+	_, err = signer.sign(cert, &profl)
+	if err == nil {
+		t.Fatal("Nil profile failed to raise an error")
+	}
+
+	// empty profile
+	_, err = signer.sign(cert, &config.SigningProfile{})
+	if err == nil {
+		t.Fatal("Empty profile failed to raise an error")
+	}
+
+	// empty expiry
+	prof := signer.policy.Default
+	prof.Expiry = 0
+	_, err = signer.sign(cert, prof)
+	if err != nil {
+		t.Fatal("nil expiry raised an error")
+	}
+
+	// non empty urls
+	prof = signer.policy.Default
+	prof.CRL = "stuff"
+	prof.OCSP = "stuff"
+	prof.IssuerURL = []string{"stuff"}
+	_, err = signer.sign(cert, prof)
+	if err != nil {
+		t.Fatal("non nil urls raised an error")
+	}
+
+	// nil ca
+	nilca := *signer
+	prof = signer.policy.Default
+	prof.CA = false
+	nilca.ca = nil
+	_, err = nilca.sign(cert, prof)
+	if err == nil {
+		t.Fatal("nil ca with isca false raised an error")
+	}
+	prof.CA = true
+	_, err = nilca.sign(cert, prof)
+	if err != nil {
+		t.Fatal("nil ca with CA true raised an error")
+	}
+}
+
+func TestSign(t *testing.T) {
+	testSign(t)
+	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
+	if err != nil {
+		t.Fatal("Failed to produce signer")
+	}
+
+	// test the empty request
+	_, err = s.Sign(signer.SignRequest{})
+	if err == nil {
+		t.Fatalf("Empty request failed to produce an error")
+	}
+
+	// not a csr
+	certPem, err := ioutil.ReadFile("../../helpers/testdata/cert.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// csr with ip as hostname
+	pem, err := ioutil.ReadFile("testdata/ip.csr")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// improper request
+	validReq := signer.SignRequest{Hostname: testHostName, Request: string(certPem)}
+	_, err = s.Sign(validReq)
+	if err == nil {
+		t.Fatal("A bad case failed to raise an error")
+	}
+
+	validReq = signer.SignRequest{Hostname: "128.84.126.213", Request: string(pem)}
+	_, err = s.Sign(validReq)
+	if err != nil {
+		t.Fatal("A bad case failed to raise an error")
+	}
+
+	pem, err = ioutil.ReadFile("testdata/ex.csr")
+	validReq = signer.SignRequest{
+		Hostname: testHostName,
+		Request:  string(pem),
+		Subject: &signer.Subject{
+			Hosts: []string{"example.com"},
+		},
+	}
+	s.Sign(validReq)
+	if err != nil {
+		t.Fatal("amilli")
+	}
+}
+
+func TestCertificate(t *testing.T) {
+	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := s.Certificate()
+	if !reflect.DeepEqual(*c, *s.ca) {
+		t.Fatal("Certificate() producing incorrect results")
+	}
+}
+
+func TestPolicy(t *testing.T) {
+	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sgn := config.Signing{}
+
+	s.SetPolicy(&sgn)
+	if s.Policy() != &sgn {
+		t.Fatal("Policy is malfunctioning")
 	}
 }
 
