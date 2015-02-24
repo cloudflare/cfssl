@@ -108,6 +108,11 @@ const (
 	// GenerationFailed indicates that a private key could not
 	// be generated.
 	GenerationFailed //24XX
+
+	// Unavailable indicates that a private key mechanism (such as
+	// PKCS #11) was requested but support for that mechanism is
+	// not available.
+	Unavailable
 )
 
 // The following are policy-related non-parsing errors, and must be
@@ -203,6 +208,8 @@ func New(category Category, reason Reason) *Error {
 			msg = "Private key does not match public key"
 		case GenerationFailed:
 			msg = "Failed to new private key"
+		case Unavailable:
+			msg = "Private key is unavailable"
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category PrivateKeyError.",
 				reason))
