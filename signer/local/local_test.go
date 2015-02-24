@@ -254,8 +254,8 @@ func TestCertificate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := s.Certificate()
-	if !reflect.DeepEqual(*c, *s.ca) {
+	c, err := s.Certificate("", "")
+	if !reflect.DeepEqual(*c, *s.ca) || err != nil {
 		t.Fatal("Certificate() producing incorrect results")
 	}
 }
