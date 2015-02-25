@@ -36,6 +36,8 @@ type Config struct {
 	Token             string
 	PIN               string
 	PKCS11Label       string
+  Responses         string
+  Path              string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
