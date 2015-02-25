@@ -158,12 +158,12 @@ const (
 // The following are OCSP related errors, and should be
 // specified with OCSPError
 const (
-	// The certificate in the OCSP signing request was not issued
-	// by the CA that this responder responds for.
+	// IssuerMismatch ocurs when the certificate in the OCSP signing
+	// request was not issued by the CA that this responder responds for.
 	IssuerMismatch Reason = 100 * (iota + 1) // 81XX
 
-	// The OCSP signing requests includes an invalid value for the
-	// certificate status.
+	// InvalidStatus occurs when the OCSP signing requests includes an
+	// invalid value for the certificate status.
 	InvalidStatus
 )
 

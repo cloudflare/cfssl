@@ -1,4 +1,10 @@
-// Package signer implements certificate signature functionality for CF-SSL.
+/*
+
+Package ocsp exposes OCSP signing functionality, much like the signer
+package does for certificate signing.  It also provies a basic OCSP
+responder stack for serving pre-signed OCSP responses.
+
+*/
 package ocsp
 
 import (
@@ -29,10 +35,18 @@ type SignRequest struct {
 	RevokedAt   time.Time
 }
 
+// Signer represents a general signer of OCSP responses.  It is
+// responsible for populating all fields in the OCSP response that
+// are not reflected in the SignRequest.
 type Signer interface {
 	Sign(req SignRequest) ([]byte, error)
 }
 
+// StandardSigner is the default concrete type of OCSP signer.
+// It represents a single responder (represented by a key and certificate)
+// speaking for a single issuer (certificate).  It is assumed that OCSP
+// responses are issued at a regular interval, which is used to compute
+// the nextUpdate value based on the current time.
 type StandardSigner struct {
 	issuer    *x509.Certificate
 	responder *x509.Certificate
@@ -89,6 +103,8 @@ func NewSigner(issuer, responder *x509.Certificate, key crypto.Signer, interval 
 	}, nil
 }
 
+// Sign is used with an OCSP signer to request the issuance of
+// an OCSP response.
 func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 	if req.Certificate == nil {
 		return nil, cferr.New(cferr.OCSPError, cferr.ReadFailed)
