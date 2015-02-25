@@ -12,27 +12,33 @@ import (
 )
 
 var (
-	MalformedRequestErrorResponse = []byte{0x30, 0x03, 0x0A, 0x01, 0x01}
-	InternalErrorErrorResponse    = []byte{0x30, 0x03, 0x0A, 0x01, 0x02}
-	TryLaterErrorResponse         = []byte{0x30, 0x03, 0x0A, 0x01, 0x03}
-	SigRequredErrorResponse       = []byte{0x30, 0x03, 0x0A, 0x01, 0x05}
-	UnauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
+	malformedRequestErrorResponse = []byte{0x30, 0x03, 0x0A, 0x01, 0x01}
+	internalErrorErrorResponse    = []byte{0x30, 0x03, 0x0A, 0x01, 0x02}
+	tryLaterErrorResponse         = []byte{0x30, 0x03, 0x0A, 0x01, 0x03}
+	sigRequredErrorResponse       = []byte{0x30, 0x03, 0x0A, 0x01, 0x05}
+	unauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
 )
 
+// Source represents the logical source of OCSP responses, i.e.,
+// the logic that actually chooses a response based on a request.  In
+// order to create an actual responder, wrap one of these in a Responder
+// object and pass it to http.Handle.
 type Source interface {
 	Response(*ocsp.Request) ([]byte, bool)
 }
 
-// An InMemorySource is a map from base64(serialNumber) -> der(response)
-// It looks up a response purely based on serial number, without regard
-// to what issuer the request is asking for.
+// An InMemorySource is a map from serialNumber -> der(response)
 type InMemorySource map[string][]byte
 
+// Response looks up an OCSP response to provide for a given request.
+// InMemorySource looks up a response purely based on serial number,
+// without regard to what issuer the request is asking for.
 func (src InMemorySource) Response(request *ocsp.Request) (response []byte, present bool) {
 	response, present = src[request.SerialNumber.String()]
 	return
 }
 
+// NewSourceFromFile reads the named file into an InMemorySource.
 // The file read by this function must contain whitespace-separated OCSP
 // responses. Each OCSP response must be in base64-encoded DER form (i.e.,
 // PEM without headers or whitespace).  Invalid responses are ignored.
@@ -43,9 +49,9 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 		return nil, err
 	}
 
-	responses_b64 := regexp.MustCompile("\\s+").Split(string(fileContents), -1)
+	responsesB64 := regexp.MustCompile("\\s+").Split(string(fileContents), -1)
 	src := InMemorySource{}
-	for _, b64 := range responses_b64 {
+	for _, b64 := range responsesB64 {
 		der, tmpErr := base64.StdEncoding.DecodeString(b64)
 		if tmpErr != nil {
 			log.Errorf("Base64 decode error on: %s", b64)
@@ -117,7 +123,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspRequest, err := ocsp.ParseRequest(requestBody)
 	if err != nil {
 		log.Errorf("Error decoding request body: %s", b64Body)
-		response.Write(MalformedRequestErrorResponse)
+		response.Write(malformedRequestErrorResponse)
 		return
 	}
 
@@ -125,7 +131,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspResponse, found := rs.Source.Response(ocspRequest)
 	if !found {
 		log.Errorf("No response found for request: %s", b64Body)
-		response.Write(UnauthorizedErrorResponse)
+		response.Write(unauthorizedErrorResponse)
 		return
 	}
 
