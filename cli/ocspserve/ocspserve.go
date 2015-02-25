@@ -11,9 +11,9 @@ import (
 )
 
 // Usage text of 'cfssl serve'
-var ocspServerUsageText = `cfssl serve -- set up a HTTP server handles OCSP requests from a file (see RFC 5019)
+var ocspServerUsageText = `cfssl ocspserve -- set up an HTTP server that handles OCSP requests from a file (see RFC 5019)
 
-Usage of serve:
+Usage of ocspserve:
         cfssl ocspserve [-address address] [-port port] [-responses file]
 
 Flags:

@@ -3,7 +3,6 @@ package ocsp
 import (
 	"encoding/base64"
 	"io/ioutil"
-	"math/big"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -29,12 +28,8 @@ type Source interface {
 // to what issuer the request is asking for.
 type InMemorySource map[string][]byte
 
-func numberToKey(serialNumber *big.Int) string {
-	return base64.StdEncoding.EncodeToString(serialNumber.Bytes())
-}
-
 func (src InMemorySource) Response(request *ocsp.Request) (response []byte, present bool) {
-	response, present = src[numberToKey(request.SerialNumber)]
+	response, present = src[request.SerialNumber.String()]
 	return
 }
 
@@ -63,7 +58,7 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 			continue
 		}
 
-		src[numberToKey(response.SerialNumber)] = der
+		src[response.SerialNumber.String()] = der
 	}
 
 	log.Infof("Read %d OCSP responses", len(src))
