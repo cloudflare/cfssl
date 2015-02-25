@@ -63,6 +63,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
 	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
+	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
+	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
