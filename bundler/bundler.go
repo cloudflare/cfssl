@@ -376,7 +376,6 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 		b.KnownIssuers[string(cert.Cert.Signature)] = true
 
 		fileName := filepath.Join(IntermediateStash, cert.Name)
-		fileName += fmt.Sprintf(".%d", time.Now().UnixNano())
 
 		var block = pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
 
@@ -426,6 +425,11 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 			// construct the filename as the CN with no period and space
 			name = strings.Replace(cert.Subject.CommonName, ".", "", -1)
 			name = strings.Replace(name, " ", "", -1)
+
+			// add SKI and serial number as extra identifier
+			name += fmt.Sprintf("_%x", cert.SubjectKeyId)
+			name += fmt.Sprintf("_%x", cert.SerialNumber.Bytes())
+
 			name += ".crt"
 		}
 		chain = append([]*fetchedIntermediate{&fetchedIntermediate{cert, name}}, chain...)
