@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -222,13 +223,13 @@ func TestSign(t *testing.T) {
 	}
 
 	// improper request
-	validReq := signer.SignRequest{Hostname: testHostName, Request: string(certPem)}
+	validReq := signer.SignRequest{Hosts: signer.SplitHosts(testHostName), Request: string(certPem)}
 	_, err = s.Sign(validReq)
 	if err == nil {
 		t.Fatal("A bad case failed to raise an error")
 	}
 
-	validReq = signer.SignRequest{Hostname: "128.84.126.213", Request: string(pem)}
+	validReq = signer.SignRequest{Hosts: signer.SplitHosts("128.84.126.213"), Request: string(pem)}
 	_, err = s.Sign(validReq)
 	if err != nil {
 		t.Fatal("A bad case failed to raise an error")
@@ -236,15 +237,12 @@ func TestSign(t *testing.T) {
 
 	pem, err = ioutil.ReadFile("testdata/ex.csr")
 	validReq = signer.SignRequest{
-		Hostname: testHostName,
-		Request:  string(pem),
-		Subject: &signer.Subject{
-			Hosts: []string{"example.com"},
-		},
+		Request: string(pem),
+		Hosts:   []string{"example.com"},
 	}
 	s.Sign(validReq)
 	if err != nil {
-		t.Fatal("amilli")
+		t.Fatal("Failed to sign")
 	}
 }
 
@@ -298,7 +296,7 @@ func testSignFile(t *testing.T, certFile string) ([]byte, error) {
 		t.Fatal(err)
 	}
 
-	return s.Sign(signer.SignRequest{Hostname: testHostName, Request: string(pem)})
+	return s.Sign(signer.SignRequest{Hosts: signer.SplitHosts(testHostName), Request: string(pem)})
 }
 
 type csrTest struct {
@@ -369,7 +367,7 @@ func TestSignCSRs(t *testing.T) {
 		rsaSigAlgos := []x509.SignatureAlgorithm{x509.SHA1WithRSA, x509.SHA256WithRSA, x509.SHA384WithRSA, x509.SHA512WithRSA}
 		for _, sigAlgo := range rsaSigAlgos {
 			s.sigAlgo = sigAlgo
-			certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
+			certBytes, err := s.Sign(signer.SignRequest{Hosts: signer.SplitHosts(hostname), Request: string(csr)})
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -397,7 +395,7 @@ func TestECDSASigner(t *testing.T) {
 		SigAlgos := []x509.SignatureAlgorithm{x509.ECDSAWithSHA1, x509.ECDSAWithSHA256, x509.ECDSAWithSHA384, x509.ECDSAWithSHA512}
 		for _, sigAlgo := range SigAlgos {
 			s.sigAlgo = sigAlgo
-			certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
+			certBytes, err := s.Sign(signer.SignRequest{Hosts: signer.SplitHosts(hostname), Request: string(csr)})
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -442,7 +440,7 @@ func TestCAIssuing(t *testing.T) {
 		s.policy = CAPolicy
 		for j, csr := range interCSRs {
 			csrBytes, _ := ioutil.ReadFile(csr)
-			certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csrBytes)})
+			certBytes, err := s.Sign(signer.SignRequest{Hosts: signer.SplitHosts(hostname), Request: string(csrBytes)})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -455,7 +453,11 @@ func TestCAIssuing(t *testing.T) {
 			interSigner := &Signer{interCert, interKey, CAPolicy, signer.DefaultSigAlgo(interKey)}
 			for _, anotherCSR := range interCSRs {
 				anotherCSRBytes, _ := ioutil.ReadFile(anotherCSR)
-				bytes, err := interSigner.Sign(signer.SignRequest{Hostname: hostname, Request: string(anotherCSRBytes)})
+				bytes, err := interSigner.Sign(
+					signer.SignRequest{
+						Hosts:   signer.SplitHosts(hostname),
+						Request: string(anotherCSRBytes),
+					})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -481,7 +483,6 @@ func TestOverrideSubject(t *testing.T) {
 	}
 
 	req := &signer.Subject{
-		Hosts: []string{"127.0.0.1"},
 		Names: []csr.Name{
 			{O: "example.net"},
 		},
@@ -489,7 +490,13 @@ func TestOverrideSubject(t *testing.T) {
 
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 
-	certPEM, err := s.Sign(signer.SignRequest{Hostname: "localhost", Request: string(csrPEM), Subject: req})
+	request := signer.SignRequest{
+		Hosts:   []string{"127.0.0.1", "localhost"},
+		Request: string(csrPEM),
+		Subject: req,
+	}
+	certPEM, err := s.Sign(request)
+
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -504,4 +511,51 @@ func TestOverrideSubject(t *testing.T) {
 	}
 
 	log.Info("Overrode subject info")
+}
+
+func TestOverwriteHosts(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(testCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	req := &signer.Subject{
+		Names: []csr.Name{
+			{O: "example.net"},
+		},
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	request := signer.SignRequest{
+		Hosts:   []string{"127.0.0.1", "localhost"},
+		Request: string(csrPEM),
+		Subject: req,
+	}
+	certPEM, err := s.Sign(request)
+
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// get the hosts, and add the ips
+	hosts, ips := cert.DNSNames, cert.IPAddresses
+	for _, ip := range ips {
+		hosts = append(hosts, ip.String())
+	}
+
+	// compare the sorted host lists
+	sort.Strings(hosts)
+	sort.Strings(request.Hosts)
+	if !reflect.DeepEqual(hosts, request.Hosts) {
+		t.Fatalf("Hosts not the same. cert hosts: %v, expected: %v", hosts, request.Hosts)
+	}
+
+	log.Info("Overwrote hosts")
+
 }

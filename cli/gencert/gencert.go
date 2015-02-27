@@ -102,11 +102,10 @@ func gencertMain(args []string, c cli.Config) (err error) {
 
 		var cert []byte
 		req := signer.SignRequest{
-			Hostname: c.Hostname,
-			Request:  string(csrBytes),
-			Subject:  nil,
-			Profile:  c.Profile,
-			Label:    c.Label,
+			Request: string(csrBytes),
+			Hosts:   signer.SplitHosts(c.Hostname),
+			Profile: c.Profile,
+			Label:   c.Label,
 		}
 
 		cert, err = s.Sign(req)

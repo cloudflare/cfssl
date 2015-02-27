@@ -15,6 +15,7 @@ import (
 	"math"
 	"math/big"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -30,17 +31,16 @@ var MaxPathLen = 2
 type Subject struct {
 	CN    string
 	Names []csr.Name `json:"names"`
-	Hosts []string   `json:"hosts"`
 }
 
 // SignRequest stores a signature request, which contains the hostname,
 // the CSR, optional subject information, and the signature profile.
 type SignRequest struct {
-	Hostname string   `json:"hostname"`
-	Request  string   `json:"certificate_request"`
-	Subject  *Subject `json:"subject,omitempty"`
-	Profile  string   `json:"profile"`
-	Label    string   `json:"label"`
+	Hosts   []string `json:"hosts"`
+	Request string   `json:"certificate_request"`
+	Subject *Subject `json:"subject,omitempty"`
+	Profile string   `json:"profile"`
+	Label   string   `json:"label"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -63,6 +63,12 @@ func (s *Subject) Name() pkix.Name {
 		appendIf(n.OU, &name.OrganizationalUnit)
 	}
 	return name
+}
+
+// SplitHosts takes a comma-spearated list of hosts and returns a slice
+// with the hosts split
+func SplitHosts(hostList string) []string {
+	return strings.Split(hostList, ",")
 }
 
 // A Signer contains a CA's certificate and private key for signing
@@ -111,8 +117,8 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it. If not nil, the subject
 // information from subject will be used in place of the information in
-// the CSR.
-func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject) (template *x509.Certificate, err error) {
+// the CSR. The same is true for the list of hosts.
+func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject, hosts []string) (template *x509.Certificate, err error) {
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
@@ -134,11 +140,11 @@ func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject) (template 
 
 	if req != nil {
 		template.Subject = req.Name()
-		for i := range req.Hosts {
-			if ip := net.ParseIP(req.Hosts[i]); ip != nil {
+		for i := range hosts {
+			if ip := net.ParseIP(hosts[i]); ip != nil {
 				template.IPAddresses = append(template.IPAddresses, ip)
 			} else {
-				template.DNSNames = append(template.DNSNames, req.Hosts[i])
+				template.DNSNames = append(template.DNSNames, hosts[i])
 			}
 		}
 	}

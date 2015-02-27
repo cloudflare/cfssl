@@ -73,7 +73,7 @@ func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
 	}
 	s.SetPolicy(CAPolicy)
 
-	signReq := signer.SignRequest{Request: string(csr)}
+	signReq := signer.SignRequest{Hosts: req.Hosts, Request: string(csr)}
 	cert, err = s.Sign(signReq)
 
 	return
