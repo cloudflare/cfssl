@@ -17,12 +17,14 @@ The commands are defined in the cli subpackages and include
 	genkey   generates a key and an associated CSR
 	gencert  generates a key and a signed certificate
 	selfsign generates a self-signed certificate
+	ocspsign signs an OCSP response
 
 Use "cfssl [command] -help" to find out more about a command.
 */
 
 import (
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -158,6 +160,19 @@ func PrintCert(key, csrBytes, cert []byte) {
 		out["csr"] = string(csrBytes)
 	}
 
+	jsonOut, err := json.Marshal(out)
+	if err != nil {
+		return
+	}
+	fmt.Printf("%s\n", jsonOut)
+}
+
+// PrintOCSPResponse outputs an OCSP response to stdout
+func PrintOCSPResponse(resp []byte) {
+	pemResponse := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: resp})
+
+	out := map[string]string{}
+	out["ocspResponse"] = string(pemResponse)
 	jsonOut, err := json.Marshal(out)
 	if err != nil {
 		return
