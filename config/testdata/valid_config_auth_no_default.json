@@ -3,16 +3,8 @@
 		"profiles": {
 			"CA": {
 				"auth_key": "garbage",
-				"remote": "localhoster"
-			},
-			"email": {
-				"usages": ["s/mime"],
-				"expiry": "720h"
+				"remote": "localhost"
 			}
-		},
-		"default": {
-			"usages": ["digital signature", "email protection"],
-			"expiry": "8000h"
 		}
 	},
 	"auth_keys": {

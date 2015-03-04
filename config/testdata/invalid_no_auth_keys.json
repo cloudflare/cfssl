@@ -16,10 +16,6 @@
 		}
 	},
 	"auth_keys": {
-		"garbage": {
-			"type":"stadardo",
-			"key":"0123456789ABCDEF0123456789ABCDEF"
-		}
 	},
 	"remotes": {
 		"localhost": "127.0.0.1:8888"

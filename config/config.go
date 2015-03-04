@@ -26,8 +26,9 @@ type SigningProfile struct {
 	AuthKeyName  string   `json:"auth_key"`
 	RemoteName   string   `json:"remote"`
 
-	Expiry   time.Duration
-	Provider auth.Provider
+	Expiry       time.Duration
+	Provider     auth.Provider
+	RemoteServer string
 }
 
 // populate is used to fill in the fields that are not in JSON
@@ -43,22 +44,38 @@ type SigningProfile struct {
 // time.Duration, and the AuthKeyString and RemoteName point to
 // valid objects. It returns false otherwise.
 func (p *SigningProfile) populate(cfg *Config) error {
-	log.Debugf("parse expiry in profile")
 	if p == nil {
-		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("no timestamp in profile"))
-	} else if p.ExpiryString == "" {
-		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("empty expiry string"))
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("can't parse nil profile"))
 	}
 
-	dur, err := time.ParseDuration(p.ExpiryString)
-	if err != nil {
-		return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
-	}
+	var err error
+	if p.RemoteName == "" {
+		log.Debugf("parse expiry in profile")
+		if p.ExpiryString == "" {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("empty expiry string"))
+		}
 
-	log.Debugf("expiry is valid")
-	p.Expiry = dur
+		dur, err := time.ParseDuration(p.ExpiryString)
+		if err != nil {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+		}
+
+		log.Debugf("expiry is valid")
+		p.Expiry = dur
+	} else {
+		log.Debug("match remote in profile to remotes section")
+		if remote := cfg.Remotes[p.RemoteName]; remote != "" {
+			if err := p.updateRemote(remote); err != nil {
+				return err
+			}
+		} else {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to find remote in remotes section"))
+		}
+	}
 
 	if p.AuthKeyName != "" {
+		log.Debug("match auth key in profile to auth_keys section")
 		if key, ok := cfg.AuthKeys[p.AuthKeyName]; ok == true {
 			if key.Type == "standard" {
 				p.Provider, err = auth.New(key.Key, nil)
@@ -78,17 +95,6 @@ func (p *SigningProfile) populate(cfg *Config) error {
 		}
 	}
 
-	if p.RemoteName != "" {
-		if remote := cfg.Remotes[p.RemoteName]; remote != "" {
-			if err := p.updateRemote(remote); err != nil {
-				return err
-			}
-		} else {
-			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
-				errors.New("failed to find remote in remotes section"))
-		}
-	}
-
 	return nil
 }
 
@@ -96,7 +102,7 @@ func (p *SigningProfile) populate(cfg *Config) error {
 // to the hostname:port combination sent by remote
 func (p *SigningProfile) updateRemote(remote string) error {
 	if remote != "" {
-		p.RemoteName = remote
+		p.RemoteServer = remote
 	}
 	return nil
 }
@@ -164,24 +170,44 @@ func (p *SigningProfile) Usages() (ku x509.KeyUsage, eku []x509.ExtKeyUsage, unk
 	return
 }
 
-// A valid profile has defined at least key usages to be used, and a
-// valid default profile has defined at least a default expiration.
+// A valid profile must be a valid local profile or a valid remote profile.
+// A valid local profile has defined at least key usages to be used, and a
+// valid local default profile has defined at least a default expiration.
+// A valid remote profile (default or not) has remote signer initialized.
+// In addition, a remote profile must has a valid auth provider if auth
+// key defined.
 func (p *SigningProfile) validProfile(isDefault bool) bool {
-	log.Debugf("validate profile")
-	if !isDefault {
-		if len(p.Usage) == 0 {
-			log.Debugf("invalid profile: no usages specified")
+
+	if p.RemoteName != "" {
+		log.Debugf("validate remote profile")
+
+		if p.RemoteServer == "" {
+			log.Debugf("invalid remote profile: no remote signer specified")
 			return false
-		} else if _, _, unk := p.Usages(); len(unk) == len(p.Usage) {
-			log.Debugf("invalid profile: no valid usages")
+		}
+
+		if p.AuthKeyName != "" && p.Provider == nil {
+			log.Debugf("invalid remote profile: auth key name is defined but no auth provider is set")
 			return false
 		}
 	} else {
-		if p.Expiry == 0 {
-			log.Debugf("invalid profile: no expiry set")
-			return false
+		log.Debugf("validate local profile")
+		if !isDefault {
+			if len(p.Usage) == 0 {
+				log.Debugf("invalid local profile: no usages specified")
+				return false
+			} else if _, _, unk := p.Usages(); len(unk) == len(p.Usage) {
+				log.Debugf("invalid local profile: no valid usages")
+				return false
+			}
+		} else {
+			if p.Expiry == 0 {
+				log.Debugf("invalid local profile: no expiry set")
+				return false
+			}
 		}
 	}
+
 	log.Debugf("profile is valid")
 	return true
 }
@@ -314,14 +340,14 @@ func LoadConfig(config []byte) (*Config, error) {
 		}
 	}
 
-	if !cfg.Valid() {
-		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid configuration"))
-	}
-
 	for k := range cfg.Signing.Profiles {
 		if err := cfg.Signing.Profiles[k].populate(cfg); err != nil {
 			return nil, err
 		}
+	}
+
+	if !cfg.Valid() {
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid configuration"))
 	}
 
 	log.Debugf("configuration ok")

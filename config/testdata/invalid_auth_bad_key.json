@@ -17,8 +17,8 @@
 	},
 	"auth_keys": {
 		"garbage": {
-			"type":"stadardo",
-			"key":"0123456789ABCDEF0123456789ABCDEF"
+			"type":"standard",
+			"key":"BAD_KEY"
 		}
 	},
 	"remotes": {

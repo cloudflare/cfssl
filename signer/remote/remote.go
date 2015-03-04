@@ -63,7 +63,7 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (cert []byte,
 		p = s.policy.Default
 	}
 
-	server := client.NewServer(p.RemoteName)
+	server := client.NewServer(p.RemoteServer)
 	if server == nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
 			errors.New("failed to connect to remote"))
