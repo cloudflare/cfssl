@@ -2,8 +2,8 @@
 	"signing": {
 		"profiles": {
 			"CA": {
-				"remote": "localhost",
-				"auth_key": "garbage"
+				"auth_key": "garbage",
+				"remote": "localhoster"
 			},
 			"email": {
 				"usages": ["s/mime"],
@@ -17,11 +17,8 @@
 	},
 	"auth_keys": {
 		"garbage": {
-			"type":"stadardo",
+			"type":"standard",
 			"key":"0123456789ABCDEF0123456789ABCDEF"
 		}
-	},
-	"remotes": {
-		"localhost": "127.0.0.1:8888"
 	}
 }
