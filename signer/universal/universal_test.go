@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func newPKCS11Signer(t *testing.T) {
+func TestNewPKCS11Signer(t *testing.T) {
 	h := map[string]string{
 		"rsc": "abc",
 		"r":   "def",

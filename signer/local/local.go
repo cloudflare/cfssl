@@ -224,6 +224,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
 	return s.sign(&safeTemplate, profile, serialSeq)
+
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

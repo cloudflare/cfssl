@@ -14,6 +14,11 @@ Note that certain linux distributions have certain algorithms removed
 official repositories will not work. Users of these distributions should
 [install go manually](golang.org) to install CFSSL.
 
+Note that certain linux distributions have certain algorithms removed
+(RHEL-based distributions in particular), so the golang from the 
+official repositories will not work. Users of these distributions should
+[install go manually](golang.org) to install CFSSL.
+
 ### Installation
 
 Installation requires a [working Go
