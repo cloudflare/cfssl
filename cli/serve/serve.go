@@ -29,21 +29,32 @@ var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers(c cli.Config) error {
+	log.Info("Setting up signer endpoint")
+	s, err := sign.SignerFromConfig(c)
+	if err != nil {
+		log.Warningf("sign and authsign endpoints are disabled: %v", err)
+	} else {
+		if signHandler, err := api.NewSignHandlerFromSigner(s); err == nil {
+			log.Info("Assigning handler to /sign")
+			http.Handle("/api/v1/cfssl/sign", signHandler)
+		} else {
+			log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
+		}
+
+		if signHandler, err := api.NewAuthSignHandler(s); err == nil {
+			log.Info("Assigning handler to /authsign")
+			http.Handle("/api/v1/cfssl/authsign", signHandler)
+		} else {
+			log.Warningf("endpoint '/api/v1/cfssl/authsign' is disabled: %v", err)
+		}
+	}
+
 	log.Info("Setting up info endpoint")
-	infoHandler, err := api.NewInfoHandlerFromPEM([]string{c.CAFile})
+	infoHandler, err := api.NewInfoHandler(s)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/info' is disabled: %v", err)
 	} else {
 		http.Handle("/api/v1/cfssl/info", infoHandler)
-	}
-
-	log.Info("Setting up signer endpoint")
-	s, err := sign.SignerFromConfig(c)
-	if err != nil {
-		log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
-	} else {
-		signHandler := api.NewSignHandlerFromSigner(s)
-		http.Handle("/api/v1/cfssl/sign", signHandler)
 	}
 
 	log.Info("Setting up new cert endpoint")

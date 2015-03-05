@@ -20,6 +20,9 @@ import (
 // OneYear is a time.Duration representing a year's worth of seconds.
 const OneYear = 8760 * time.Hour
 
+// OneDay is a time.Duration representing a day's worth of seconds.
+const OneDay = 24 * time.Hour
+
 // KeyLength returns the bit size of ECDSA or RSA PublicKey
 func KeyLength(key interface{}) int {
 	if key == nil {
@@ -196,12 +199,12 @@ func ParsePrivateKeyPEM(keyPEM []byte) (key crypto.Signer, err error) {
 
 // ParsePrivateKeyDER parses a PKCS #1, PKCS #8, or elliptic curve
 // DER-encoded private key. The key must not be in PEM format.
-func ParsePrivateKeyDER(keyDER []byte) (crypto.Signer, error) {
-	key, err := x509.ParsePKCS8PrivateKey(keyDER)
+func ParsePrivateKeyDER(keyDER []byte) (key crypto.Signer, err error) {
+	generalKey, err := x509.ParsePKCS8PrivateKey(keyDER)
 	if err != nil {
-		key, err = x509.ParsePKCS1PrivateKey(keyDER)
+		generalKey, err = x509.ParsePKCS1PrivateKey(keyDER)
 		if err != nil {
-			key, err = x509.ParseECPrivateKey(keyDER)
+			generalKey, err = x509.ParseECPrivateKey(keyDER)
 			if err != nil {
 				// We don't include the actual error into
 				// the final error. The reason might be
@@ -213,10 +216,12 @@ func ParsePrivateKeyDER(keyDER []byte) (crypto.Signer, error) {
 		}
 	}
 
-	signKey, ok := key.(crypto.Signer)
-	if !ok {
-		return nil, cferr.New(cferr.PrivateKeyError,
-			cferr.ParseFailed)
+	switch generalKey.(type) {
+	case *rsa.PrivateKey:
+		return generalKey.(*rsa.PrivateKey), nil
+	case *ecdsa.PrivateKey:
+		return generalKey.(*ecdsa.PrivateKey), nil
 	}
-	return signKey, nil
+
+	return nil, cferr.New(cferr.PrivateKeyError, cferr.ParseFailed)
 }

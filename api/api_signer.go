@@ -26,30 +26,51 @@ type SignHandler struct {
 // is not an empty string, the handler will send signature requests to
 // the CFSSL instance contained in remote by default.
 func NewSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
-	var err error
-	s := new(SignHandler)
-
 	root := universal.Root{
-		CertFile: caFile,
-		KeyFile:  caKeyFile,
+		Config: map[string]string{
+			"cert-file": caFile,
+			"key-file":  caKeyFile,
+		},
 	}
-	if s.signer, err = universal.NewSigner(root, policy); err != nil {
+	s, err := universal.NewSigner(root, policy)
+	if err != nil {
 		log.Errorf("setting up signer failed: %v", err)
 		return nil, err
 	}
 
-	return HTTPHandler{s, "POST"}, nil
+	return NewSignHandlerFromSigner(s)
 }
 
 // NewSignHandlerFromSigner generates a new SignHandler directly from
 // an existing signer.
-func NewSignHandlerFromSigner(signer signer.Signer) HTTPHandler {
+func NewSignHandlerFromSigner(signer signer.Signer) (h HTTPHandler, err error) {
+	policy := signer.Policy()
+	if policy == nil {
+		err = errors.New(errors.PolicyError, errors.InvalidPolicy)
+		return
+	}
+
+	// Sign will only respond for profiles that have no auth provider.
+	// So if all of the profiles require authentication, we return an error.
+	haveUnauth := (policy.Default.Provider == nil)
+	for _, profile := range policy.Profiles {
+		if haveUnauth {
+			break
+		}
+		haveUnauth = (profile.Provider == nil)
+	}
+
+	if !haveUnauth {
+		err = errors.New(errors.PolicyError, errors.InvalidPolicy)
+		return
+	}
+
 	return HTTPHandler{
 		&SignHandler{
 			signer: signer,
 		},
 		"POST",
-	}
+	}, nil
 }
 
 // Handle responds to requests for the CA to sign the certificate request
@@ -92,6 +113,11 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		profile = policy.Default
 	}
 
+	if profile.Provider != nil {
+		log.Error("profile requires authentication")
+		return errors.NewBadRequestString("authentication required")
+	}
+
 	cert, err = h.signer.Sign(req)
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
@@ -120,17 +146,18 @@ func NewAuthSignHandler(signer signer.Signer) (http.Handler, error) {
 		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
 	}
 
-	// If not every profile has an auth provider, the
-	// configuration for this endpoint is invalid. We start the
-	// check with the initial value that indicates the presence of
-	// a default authentication provider.
-	var hasProviders = (policy.Default.Provider != nil)
+	// AuthSign will not respond for profiles that have no auth provider.
+	// So if there are no profiles with auth providers in this policy,
+	// we return an error.
+	haveAuth := (policy.Default.Provider != nil)
 	for _, profile := range policy.Profiles {
-		// A single profile without a provider will cause hasProviders to be false.
-		hasProviders = hasProviders && (profile.Provider != nil)
+		if haveAuth {
+			break
+		}
+		haveAuth = (profile.Provider != nil)
 	}
 
-	if !hasProviders {
+	if !haveAuth {
 		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
 	}
 

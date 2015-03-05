@@ -46,6 +46,9 @@ const (
 
 	// APIClientError indicates a problem with the API client.
 	APIClientError // 7XXX
+
+	// OCSPError indicates a problem with OCSP signing
+	OCSPError // 8XXX
 )
 
 // None is a non-specified error.
@@ -108,6 +111,11 @@ const (
 	// GenerationFailed indicates that a private key could not
 	// be generated.
 	GenerationFailed //24XX
+
+	// Unavailable indicates that a private key mechanism (such as
+	// PKCS #11) was requested but support for that mechanism is
+	// not available.
+	Unavailable
 )
 
 // The following are policy-related non-parsing errors, and must be
@@ -131,7 +139,7 @@ const (
 const (
 	// AuthenticationFailure occurs when the client is unable
 	// to obtain an authentication token for the request.
-	AuthenticationFailure = 100 * (iota + 1)
+	AuthenticationFailure Reason = 100 * (iota + 1)
 
 	// JSONError wraps an encoding/json error.
 	JSONError
@@ -145,6 +153,18 @@ const (
 	// ServerRequestFailed covers any other failures from the API
 	// client.
 	ServerRequestFailed
+)
+
+// The following are OCSP related errors, and should be
+// specified with OCSPError
+const (
+	// IssuerMismatch ocurs when the certificate in the OCSP signing
+	// request was not issued by the CA that this responder responds for.
+	IssuerMismatch Reason = 100 * (iota + 1) // 81XX
+
+	// InvalidStatus occurs when the OCSP signing requests includes an
+	// invalid value for the certificate status.
+	InvalidStatus
 )
 
 // The error interface implementation, which formats to a JSON object string.
@@ -164,6 +184,15 @@ func New(category Category, reason Reason) *Error {
 	errorCode := int(category) + int(reason)
 	var msg string
 	switch category {
+	case OCSPError:
+		switch reason {
+		case ReadFailed:
+			msg = "No certificate provided"
+		case IssuerMismatch:
+			msg = "Certificate not issued by this issuer"
+		case InvalidStatus:
+			msg = "Invalid revocation status"
+		}
 	case CertificateError:
 		switch reason {
 		case Unknown:
@@ -203,6 +232,8 @@ func New(category Category, reason Reason) *Error {
 			msg = "Private key does not match public key"
 		case GenerationFailed:
 			msg = "Failed to new private key"
+		case Unavailable:
+			msg = "Private key is unavailable"
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category PrivateKeyError.",
 				reason))

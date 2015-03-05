@@ -79,12 +79,27 @@ func (srv *Server) post(url string, jsonData []byte) (*Response, error) {
 	return &response, nil
 }
 
-// AuthSign fills out an authenticated request to the server,
+// AuthSign fills out an authenticated signing request to the server,
 // receiving a certificate or error in response.
 // It takes the serialized JSON request to send, remote address and
 // authentication provider.
-func (srv *Server) AuthSign(req, ID []byte, provider auth.Provider) ([]byte, error) {
-	url := srv.getURL("authsign")
+func (srv *Server) AuthSign(req, id []byte, provider auth.Provider) ([]byte, error) {
+	return srv.AuthReq(req, id, provider, "sign")
+}
+
+// AuthInfo fills out an authenticated info request to the server,
+// receiving a certificate or error in response.
+// It takes the serialized JSON request to send, remote address and
+// authentication provider.
+func (srv *Server) AuthInfo(req, id []byte, provider auth.Provider) ([]byte, error) {
+	return srv.AuthReq(req, id, provider, "info")
+}
+
+// AuthReq is the common logic for AuthSign and AuthInfo -- perform the given
+// request, and return the resultant certificate.
+// The target is either 'sign' or 'info'.
+func (srv *Server) AuthReq(req, ID []byte, provider auth.Provider, target string) ([]byte, error) {
+	url := srv.getURL("auth" + target)
 
 	token, err := provider.Token(req)
 	if err != nil {
@@ -125,7 +140,20 @@ func (srv *Server) AuthSign(req, ID []byte, provider auth.Provider) ([]byte, err
 // receiving a signed certificate or an error in response.
 // It takes the serialized JSON request to send.
 func (srv *Server) Sign(jsonData []byte) ([]byte, error) {
-	url := srv.getURL("sign")
+	return srv.Req(jsonData, "sign")
+}
+
+// Info sends an info request to the remote CFSSL server, receiving a
+// certificate or an error in response.
+// It takes the serialized JSON request to send.
+func (srv *Server) Info(jsonData []byte) ([]byte, error) {
+	return srv.Req(jsonData, "info")
+}
+
+// Req performs the common logic for Sign and Info, performing the actual
+// request and returning the resultant certificate.
+func (srv *Server) Req(jsonData []byte, target string) ([]byte, error) {
+	url := srv.getURL(target)
 
 	response, err := srv.post(url, jsonData)
 	if err != nil {

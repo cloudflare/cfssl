@@ -53,6 +53,64 @@ var validConfig = &Config{
 	},
 }
 
+var validMixedConfig = `
+{
+	"signing": {
+		"profiles": {
+			"CA": {
+				"auth_key": "sample",
+				"remote": "localhost"
+			},
+			"email": {
+				"usages": ["s/mime"],
+				"expiry": "720h"
+			}
+		},
+		"default": {
+			"usages": ["digital signature", "email protection"],
+			"expiry": "8000h"
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
+var validMinimalRemoteConfig = `
+{
+	"signing": {
+		"default": {
+			"auth_key": "sample",
+			"remote": "localhost"
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
+var validMinimalLocalConfig = `
+{
+	"signing": {
+		"default": {
+			"usages": ["digital signature", "email protection"],
+			"expiry": "8000h"
+		}
+	}
+}`
+
 func TestInvalidProfile(t *testing.T) {
 	if invalidProfileConfig.Signing.Profiles["invalid"].validProfile(false) {
 		t.Fatal("invalid profile accepted as valid")
@@ -68,6 +126,38 @@ func TestInvalidProfile(t *testing.T) {
 
 	if !invalidProfileConfig.Signing.Profiles["invalid"].validProfile(true) {
 		t.Fatal("invalid profile should be a valid default profile")
+	}
+}
+
+func TestRemoteProfiles(t *testing.T) {
+	var validRemoteProfile = &SigningProfile{
+		RemoteName:   "localhost",
+		RemoteServer: "localhost:8080",
+	}
+
+	var invalidRemoteProfile = &SigningProfile{
+		RemoteName: "localhost",
+	}
+
+	var invalidRemoteAuthProfile = &SigningProfile{
+		RemoteName:   "localhost",
+		RemoteServer: "localhost:8080",
+		AuthKeyName:  "blahblah",
+	}
+
+	if !validRemoteProfile.validProfile(true) ||
+		!validRemoteProfile.validProfile(false) {
+		t.Fatal("valid remote profile is rejected.")
+	}
+
+	if invalidRemoteProfile.validProfile(true) ||
+		invalidRemoteProfile.validProfile(false) {
+		t.Fatal("invalid remote profile is accepted.")
+	}
+
+	if invalidRemoteAuthProfile.validProfile(true) ||
+		invalidRemoteAuthProfile.validProfile(false) {
+		t.Fatal("invalid remote profile is accepted.")
 	}
 }
 
@@ -115,6 +205,7 @@ func TestParse(t *testing.T) {
 			ExpiryString: "300s",
 		},
 	}
+
 	var invalidProfiles = []*SigningProfile{
 		nil,
 		{},
@@ -146,14 +237,21 @@ func TestParse(t *testing.T) {
 			t.Fatalf("Nil profile should not be parseable")
 		}
 	}
+
 }
 
 func TestLoadFile(t *testing.T) {
-	validConfigFiles := []string{"testdata/valid_config.json", "testdata/valid_config_auth.json", "testdata/valid_config_no_default.json"}
+	validConfigFiles := []string{
+		"testdata/valid_config.json",
+		"testdata/valid_config_auth.json",
+		"testdata/valid_config_no_default.json",
+		"testdata/valid_config_auth_no_default.json",
+	}
+
 	for _, configFile := range validConfigFiles {
 		_, err := LoadFile(configFile)
 		if err != nil {
-			t.Fatal("Load valid config failded.", configFile)
+			t.Fatal("Load valid config file failed.", configFile, "error is ", err)
 		}
 	}
 }
@@ -165,11 +263,75 @@ func TestLoadInvalidConfigFile(t *testing.T) {
 		"testdata/invalid_usage.json",
 		"testdata/invalid_config.json",
 		"testdata/invalid_auth.json",
-		"testdata/invalid_remote.json"}
+		"testdata/invalid_auth_bad_key.json",
+		"testdata/invalid_no_auth_keys.json",
+		"testdata/invalid_remote.json",
+		"testdata/invalid_no_remotes.json",
+	}
 	for _, configFile := range invalidConfigFiles {
 		_, err := LoadFile(configFile)
 		if err == nil {
 			t.Fatal("Invalid config is loaded.", configFile)
 		}
 	}
+}
+
+func TestNeedLocalSigner(t *testing.T) {
+
+	c, err := LoadConfig([]byte(validMixedConfig))
+	if err != nil {
+		t.Fatal("load valid config failed:", err)
+	}
+
+	// This signing config needs both local signer and remote signer.
+	if c.Signing.NeedsLocalSigner() != true {
+		t.Fatal("incorrect NeedsLocalSigner().")
+	}
+
+	if c.Signing.NeedsRemoteSigner() != true {
+		t.Fatal("incorrect NeedsRemoteSigner()")
+	}
+
+	remoteConfig, err := LoadConfig([]byte(validMinimalRemoteConfig))
+	if err != nil {
+		t.Fatal("Load valid config failed:", err)
+	}
+
+	if remoteConfig.Signing.NeedsLocalSigner() != false {
+		t.Fatal("incorrect NeedsLocalSigner().")
+	}
+
+	if remoteConfig.Signing.NeedsRemoteSigner() != true {
+		t.Fatal("incorrect NeedsRemoteSigner().")
+	}
+
+	localConfig, err := LoadConfig([]byte(validMinimalLocalConfig))
+	if localConfig.Signing.NeedsLocalSigner() != true {
+		t.Fatal("incorrect NeedsLocalSigner().")
+	}
+
+	if localConfig.Signing.NeedsRemoteSigner() != false {
+		t.Fatal("incorrect NeedsRemoteSigner().")
+	}
+}
+
+func TestOverrideRemotes(t *testing.T) {
+	c, err := LoadConfig([]byte(validMixedConfig))
+	if err != nil {
+		t.Fatal("load valid config failed:", err)
+	}
+
+	host := "localhost:8888"
+	c.Signing.OverrideRemotes(host)
+
+	if c.Signing.Default.RemoteServer != host {
+		t.Fatal("should override default profile's RemoteServer")
+	}
+
+	for _, p := range c.Signing.Profiles {
+		if p.RemoteServer != host {
+			t.Fatal("failed to override profile's RemoteServer")
+		}
+	}
+
 }

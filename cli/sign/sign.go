@@ -55,13 +55,7 @@ func SignerFromConfig(c cli.Config) (signer.Signer, error) {
 		}
 	}
 
-	root := universal.Root{
-		CertFile:    c.CAFile,
-		KeyFile:     c.CAKeyFile,
-		ForceRemote: c.Remote != "",
-	}
-
-	s, err := universal.NewSigner(root, policy)
+	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
 	if err != nil {
 		return nil, err
 	}

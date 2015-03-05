@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/cli/bundle"
 	"github.com/cloudflare/cfssl/cli/gencert"
 	"github.com/cloudflare/cfssl/cli/genkey"
+	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/selfsign"
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -47,6 +48,7 @@ func main() {
 		"version":  version.Command,
 		"genkey":   genkey.Command,
 		"gencert":  gencert.Command,
+		"ocspsign": ocspsign.Command,
 		"selfsign": selfsign.Command,
 	}
 	// Register all command flags.
