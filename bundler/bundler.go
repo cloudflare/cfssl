@@ -302,7 +302,7 @@ func fetchRemoteCertificate(certURL string) (fi *fetchedIntermediate, err error)
 	}
 
 	log.Debugf("certificate fetch succeeds")
-	fi = &fetchedIntermediate{crt, filepath.Base(certURL)}
+	fi = &fetchedIntermediate{Cert: crt, Name: constructCertFileName(crt)}
 	return
 }
 
@@ -391,6 +391,20 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 	return true
 }
 
+// constructCertFileName returns a uniquely identifying file name for a certificate
+func constructCertFileName(cert *x509.Certificate) string {
+	// construct the filename as the CN with no period and space
+	name := strings.Replace(cert.Subject.CommonName, ".", "", -1)
+	name = strings.Replace(name, " ", "", -1)
+
+	// add SKI and serial number as extra identifier
+	name += fmt.Sprintf("_%x", cert.SubjectKeyId)
+	name += fmt.Sprintf("_%x", cert.SerialNumber.Bytes())
+
+	name += ".crt"
+	return name
+}
+
 // fetchIntermediates goes through each of the URLs in the AIA "Issuing
 // CA" extensions and fetches those certificates. If those
 // certificates are not present in either the root pool or
@@ -420,18 +434,14 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 	var chain []*fetchedIntermediate
 	for i, cert := range certs {
 		var name string
-		// Construct file name for non-leaf certs so they can be saved to disk.
+
+		// Only construct filenames for non-leaf intermediate certs
+		// so they will be saved to disk if necessary.
+		// Leaf cert gets a empty name and will be skipped.
 		if i > 0 {
-			// construct the filename as the CN with no period and space
-			name = strings.Replace(cert.Subject.CommonName, ".", "", -1)
-			name = strings.Replace(name, " ", "", -1)
-
-			// add SKI and serial number as extra identifier
-			name += fmt.Sprintf("_%x", cert.SubjectKeyId)
-			name += fmt.Sprintf("_%x", cert.SerialNumber.Bytes())
-
-			name += ".crt"
+			name = constructCertFileName(cert)
 		}
+
 		chain = append([]*fetchedIntermediate{&fetchedIntermediate{cert, name}}, chain...)
 		seen[string(cert.Signature)] = true
 	}
