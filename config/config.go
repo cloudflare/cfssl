@@ -50,7 +50,7 @@ func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err err
 		return
 	}
 
-	segments := strings.Split(".", oidString)
+	segments := strings.Split(oidString, ".")
 	oid = make(asn1.ObjectIdentifier, len(segments))
 	for i, intString := range segments {
 		oid[i], err = strconv.Atoi(intString)
