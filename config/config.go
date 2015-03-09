@@ -21,25 +21,23 @@ import (
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
-	Usage           []string `json:"usages"`
-	IssuerURL       []string `json:"issuer_urls"`
-	OCSP            string   `json:"ocsp_url"`
-	CRL             string   `json:"crl_url"`
-	CA              bool     `json:"is_ca"`
-	PolicyStrings   []string `json:"policies"`
-	OCSPNoCheck     bool     `json:"ocsp_no_check"`
-	ExpiryString    string   `json:"expiry"`
-	BackdateString  string   `json:"backdate"`
-	AuthKeyName     string   `json:"auth_key"`
-	RemoteName      string   `json:"remote"`
-	NotBeforeString string   `json:"not_before"`
-	NotAfterString  string   `json:"not_after"`
+	Usage          []string  `json:"usages"`
+	IssuerURL      []string  `json:"issuer_urls"`
+	OCSP           string    `json:"ocsp_url"`
+	CRL            string    `json:"crl_url"`
+	CA             bool      `json:"is_ca"`
+	PolicyStrings  []string  `json:"policies"`
+	OCSPNoCheck    bool      `json:"ocsp_no_check"`
+	ExpiryString   string    `json:"expiry"`
+	BackdateString string    `json:"backdate"`
+	AuthKeyName    string    `json:"auth_key"`
+	RemoteName     string    `json:"remote"`
+	NotBefore      time.Time `json:"not_before"`
+	NotAfter       time.Time `json:"not_after"`
 
 	Policies     []asn1.ObjectIdentifier
 	Expiry       time.Duration
 	Backdate     time.Duration
-	NotBefore    time.Time
-	NotAfter     time.Time
 	Provider     auth.Provider
 	RemoteServer string
 }
@@ -106,24 +104,6 @@ func (p *SigningProfile) populate(cfg *Config) error {
 			}
 
 			p.Backdate = dur
-		}
-
-		if p.NotBeforeString != "" {
-			time, err := time.Parse(timeFormat, p.NotBeforeString)
-			if err != nil {
-				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
-			}
-
-			p.NotBefore = time
-		}
-
-		if p.NotAfterString != "" {
-			time, err := time.Parse(timeFormat, p.NotAfterString)
-			if err != nil {
-				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
-			}
-
-			p.NotAfter = time
 		}
 
 		if !p.NotBefore.IsZero() && !p.NotAfter.IsZero() && p.NotAfter.Before(p.NotBefore) {
