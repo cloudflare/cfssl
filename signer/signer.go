@@ -228,6 +228,8 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		ku              x509.KeyUsage
 		backdate        time.Duration
 		expiry          time.Duration
+		notBefore       time.Time
+		notAfter        time.Time
 		crlURL, ocspURL string
 	)
 
@@ -259,15 +261,26 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		backdate = -1 * profile.Backdate
 	}
 
-	now := time.Now()
+	if !profile.NotBefore.IsZero() {
+		notBefore = profile.NotBefore.UTC()
+	} else {
+		notBefore = time.Now().Round(time.Minute).Add(backdate).UTC()
+	}
+
+	if !profile.NotAfter.IsZero() {
+		notAfter = profile.NotAfter.UTC()
+	} else {
+		notAfter = notBefore.Add(expiry).UTC()
+	}
+
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
 		return cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 	}
 
 	template.SerialNumber = serialNumber
-	template.NotBefore = now.Add(backdate).UTC()
-	template.NotAfter = now.Add(expiry).UTC()
+	template.NotBefore = notBefore
+	template.NotAfter = notAfter
 	template.KeyUsage = ku
 	template.ExtKeyUsage = eku
 	template.BasicConstraintsValid = true
