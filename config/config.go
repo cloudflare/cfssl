@@ -3,9 +3,13 @@ package config
 
 import (
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/auth"
@@ -17,19 +21,49 @@ import (
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
-	Usage        []string `json:"usages"`
-	IssuerURL    []string `json:"issuer_urls"`
-	OCSP         string   `json:"ocsp_url"`
-	CRL          string   `json:"crl_url"`
-	CA           bool     `json:"is_ca"`
-	ExpiryString string   `json:"expiry"`
-	AuthKeyName  string   `json:"auth_key"`
-	RemoteName   string   `json:"remote"`
+	Usage          []string  `json:"usages"`
+	IssuerURL      []string  `json:"issuer_urls"`
+	OCSP           string    `json:"ocsp_url"`
+	CRL            string    `json:"crl_url"`
+	CA             bool      `json:"is_ca"`
+	PolicyStrings  []string  `json:"policies"`
+	OCSPNoCheck    bool      `json:"ocsp_no_check"`
+	ExpiryString   string    `json:"expiry"`
+	BackdateString string    `json:"backdate"`
+	AuthKeyName    string    `json:"auth_key"`
+	RemoteName     string    `json:"remote"`
+	NotBefore      time.Time `json:"not_before"`
+	NotAfter       time.Time `json:"not_after"`
 
+	Policies     []asn1.ObjectIdentifier
 	Expiry       time.Duration
+	Backdate     time.Duration
 	Provider     auth.Provider
 	RemoteServer string
 }
+
+func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
+	validOID, err := regexp.MatchString("\\d(\\.\\d+)*", oidString)
+	if err != nil {
+		return
+	}
+	if !validOID {
+		err = errors.New("Invalid OID")
+		return
+	}
+
+	segments := strings.Split(oidString, ".")
+	oid = make(asn1.ObjectIdentifier, len(segments))
+	for i, intString := range segments {
+		oid[i], err = strconv.Atoi(intString)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+const timeFormat = "2006-01-02T15:04:05"
 
 // populate is used to fill in the fields that are not in JSON
 //
@@ -62,6 +96,29 @@ func (p *SigningProfile) populate(cfg *Config) error {
 
 		log.Debugf("expiry is valid")
 		p.Expiry = dur
+
+		if p.BackdateString != "" {
+			dur, err = time.ParseDuration(p.BackdateString)
+			if err != nil {
+				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+			}
+
+			p.Backdate = dur
+		}
+
+		if !p.NotBefore.IsZero() && !p.NotAfter.IsZero() && p.NotAfter.Before(p.NotBefore) {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+		}
+
+		if len(p.PolicyStrings) > 0 {
+			p.Policies = make([]asn1.ObjectIdentifier, len(p.PolicyStrings))
+			for i, oidString := range p.PolicyStrings {
+				p.Policies[i], err = parseObjectIdentifier(oidString)
+				if err != nil {
+					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+				}
+			}
+		}
 	} else {
 		log.Debug("match remote in profile to remotes section")
 		if remote := cfg.Remotes[p.RemoteName]; remote != "" {
@@ -80,9 +137,9 @@ func (p *SigningProfile) populate(cfg *Config) error {
 			if key.Type == "standard" {
 				p.Provider, err = auth.New(key.Key, nil)
 				if err != nil {
-					log.Debugf("failed to create new stanard auth provider: %v", err)
+					log.Debugf("failed to create new standard auth provider: %v", err)
 					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
-						errors.New("failed to create new stanard auth provider"))
+						errors.New("failed to create new standard auth provider"))
 				}
 			} else {
 				log.Debugf("unknown authentication type %v", key.Type)
