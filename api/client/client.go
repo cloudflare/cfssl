@@ -54,7 +54,6 @@ func (srv *Server) getURL(endpoint string) string {
 // post connects to the remote server and returns a Response struct
 func (srv *Server) post(url string, jsonData []byte) (*api.Response, error) {
 	buf := bytes.NewBuffer(jsonData)
-	fmt.Println("url:", url, " data:", string(jsonData))
 	resp, err := http.Post(url, "application/json", buf)
 	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
@@ -68,7 +67,6 @@ func (srv *Server) post(url string, jsonData []byte) (*api.Response, error) {
 	var response api.Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		fmt.Println(string(body))
 		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
@@ -167,6 +165,6 @@ func (srv *Server) Req(jsonData []byte, target string) ([]byte, error) {
 	if cert != "" {
 		return []byte(cert), nil
 	}
-	responseBytes, _ := json.Marshal(response)
-	return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New(string(responseBytes)))
+
+	return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New("response doesn't contain certificate."))
 }

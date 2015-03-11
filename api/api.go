@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -143,16 +142,6 @@ func ProcessRequestFirstMatchOf(r *http.Request, keywordSets [][]string) (map[st
 		}
 	}
 	return nil, nil, errors.NewBadRequestString("no valid parameter sets found")
-}
-
-func missingParamsError(missing []string) error {
-	s := "Missing parameter"
-	if len(missing) > 1 {
-		s += "s"
-	}
-	s += " "
-	s += strings.Join(missing, ", ")
-	return errors.NewBadRequestString(s)
 }
 
 func matchKeywords(blob map[string]string, keywords []string) bool {
