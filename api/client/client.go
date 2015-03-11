@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/errors"
 )
@@ -51,8 +52,9 @@ func (srv *Server) getURL(endpoint string) string {
 }
 
 // post connects to the remote server and returns a Response struct
-func (srv *Server) post(url string, jsonData []byte) (*Response, error) {
+func (srv *Server) post(url string, jsonData []byte) (*api.Response, error) {
 	buf := bytes.NewBuffer(jsonData)
+	fmt.Println("url:", url, " data:", string(jsonData))
 	resp, err := http.Post(url, "application/json", buf)
 	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
@@ -63,9 +65,10 @@ func (srv *Server) post(url string, jsonData []byte) (*Response, error) {
 	}
 	resp.Body.Close()
 
-	var response Response
+	var response api.Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
+		fmt.Println(string(body))
 		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
@@ -161,6 +164,9 @@ func (srv *Server) Req(jsonData []byte, target string) ([]byte, error) {
 	}
 	result := response.Result.(map[string]interface{})
 	cert := result["certificate"].(string)
-
-	return []byte(cert), nil
+	if cert != "" {
+		return []byte(cert), nil
+	}
+	responseBytes, _ := json.Marshal(response)
+	return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New(string(responseBytes)))
 }

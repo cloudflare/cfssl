@@ -1,4 +1,4 @@
-package api
+package generator
 
 import (
 	"crypto/md5"
@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
@@ -17,6 +18,12 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
 )
+
+// Sum contains digests for a certificate or certificate request.
+type Sum struct {
+	MD5  string `json:"md5"`
+	SHA1 string `json:"sha-1"`
+}
 
 // Validator is a type of function that contains the logic for validating
 // a certificate request.
@@ -40,7 +47,7 @@ type GeneratorHandler struct {
 // validation function provided.
 func NewGeneratorHandler(validator Validator) (http.Handler, error) {
 	log.Info("setting up key / CSR generator")
-	return HTTPHandler{&GeneratorHandler{
+	return &api.HTTPHandler{&GeneratorHandler{
 		generator: &csr.Generator{Validator: validator},
 	}, "POST"}, nil
 }
@@ -116,7 +123,7 @@ func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// Both key and csr are returned PEM-encoded.
-	response := NewSuccessResponse(&CertRequest{
+	response := api.NewSuccessResponse(&CertRequest{
 		Key:  string(key),
 		CSR:  string(csr),
 		Sums: map[string]Sum{"certificate_request": sum},
@@ -166,13 +173,13 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 
 	cg.generator = &csr.Generator{Validator: validator}
 
-	return HTTPHandler{cg, "POST"}, nil
+	return api.HTTPHandler{cg, "POST"}, nil
 }
 
 // NewCertGeneratorHandlerFromSigner returns a handler directly from
 // the signer and validation function.
 func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer) http.Handler {
-	return HTTPHandler{
+	return api.HTTPHandler{
 		Handler: &CertGeneratorHandler{
 			generator: &csr.Generator{Validator: validator},
 			signer:    signer,
@@ -269,7 +276,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 			"certificate":         certSum,
 		},
 	}
-	return sendResponse(w, result)
+	return api.SendResponse(w, result)
 }
 
 // CSRValidate contains the default validation logic for certificate requests to

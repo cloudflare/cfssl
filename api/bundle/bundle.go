@@ -1,9 +1,9 @@
-package api
+package bundle
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -27,12 +27,12 @@ func NewBundleHandler(caBundleFile, intBundleFile string) (http.Handler, error) 
 	}
 
 	log.Info("bundler API ready")
-	return HTTPHandler{b, "POST"}, nil
+	return api.HTTPHandler{b, "POST"}, nil
 }
 
 // Handle implements an http.Handler interface for the bundle handler.
 func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	blob, matched, err := ProcessRequestFirstMatchOf(r,
+	blob, matched, err := api.ProcessRequestFirstMatchOf(r,
 		[][]string{
 			[]string{"certificate"},
 			[]string{"domain"},
@@ -85,9 +85,6 @@ func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 		result = bundle
 	}
-	response := NewSuccessResponse(result)
-	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	err = enc.Encode(response)
-	return err
+	log.Info("wrote response")
+	return api.SendResponse(w, result)
 }

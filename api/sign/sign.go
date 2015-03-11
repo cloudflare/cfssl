@@ -1,10 +1,11 @@
-package api
+package sign
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
@@ -43,7 +44,7 @@ func NewSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Hand
 
 // NewSignHandlerFromSigner generates a new SignHandler directly from
 // an existing signer.
-func NewSignHandlerFromSigner(signer signer.Signer) (h HTTPHandler, err error) {
+func NewSignHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) {
 	policy := signer.Policy()
 	if policy == nil {
 		err = errors.New(errors.PolicyError, errors.InvalidPolicy)
@@ -65,7 +66,7 @@ func NewSignHandlerFromSigner(signer signer.Signer) (h HTTPHandler, err error) {
 		return
 	}
 
-	return HTTPHandler{
+	return &api.HTTPHandler{
 		&SignHandler{
 			signer: signer,
 		},
@@ -154,7 +155,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	result := map[string]string{"certificate": string(cert)}
 	log.Info("wrote response")
-	return sendResponse(w, result)
+	return api.SendResponse(w, result)
 }
 
 // An AuthSignHandler verifies and signs incoming signature requests.
@@ -162,9 +163,29 @@ type AuthSignHandler struct {
 	signer signer.Signer
 }
 
+// NewAuthSignHandler generates a new AuthSignHandler using the certificate
+// authority private key and certficate to sign certificates. If remote
+// is not an empty string, the handler will send signature requests to
+// the CFSSL instance contained in remote by default.
+func NewAuthSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
+	root := universal.Root{
+		Config: map[string]string{
+			"cert-file": caFile,
+			"key-file":  caKeyFile,
+		},
+	}
+	s, err := universal.NewSigner(root, policy)
+	if err != nil {
+		log.Errorf("setting up signer failed: %v", err)
+		return nil, err
+	}
+
+	return NewAuthSignHandlerFromSigner(s)
+}
+
 // NewAuthSignHandler creates a new AuthSignHandler from the signer
 // that is passed in.
-func NewAuthSignHandler(signer signer.Signer) (http.Handler, error) {
+func NewAuthSignHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
 	policy := signer.Policy()
 	if policy == nil {
 		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
@@ -189,7 +210,7 @@ func NewAuthSignHandler(signer signer.Signer) (http.Handler, error) {
 		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
 	}
 
-	return &HTTPHandler{
+	return &api.HTTPHandler{
 		&AuthSignHandler{
 			signer: signer,
 		},
@@ -266,5 +287,5 @@ func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	result := map[string]string{"certificate": string(cert)}
 	log.Info("wrote response")
-	return sendResponse(w, result)
+	return api.SendResponse(w, result)
 }
