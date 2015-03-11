@@ -177,6 +177,9 @@ func (p *SigningProfile) Usages() (ku x509.KeyUsage, eku []x509.ExtKeyUsage, unk
 // In addition, a remote profile must has a valid auth provider if auth
 // key defined.
 func (p *SigningProfile) validProfile(isDefault bool) bool {
+	if p == nil {
+		return false
+	}
 
 	if p.RemoteName != "" {
 		log.Debugf("validate remote profile")
@@ -236,6 +239,10 @@ func (c *Config) Valid() bool {
 // to be used, and a valid default profile has defined at least a
 // default expiration.
 func (p *Signing) Valid() bool {
+	if p == nil {
+		return false
+	}
+
 	log.Debugf("validating configuration")
 	if !p.Default.validProfile(true) {
 		log.Debugf("default profile is invalid")
