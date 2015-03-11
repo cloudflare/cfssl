@@ -311,6 +311,9 @@ func TestRebundleExpiring(t *testing.T) {
 
 	// Use the expiring intermediate to initiate a bundler.
 	bundler, err := NewBundlerFromPEM(rootBundlePEM, expiringPEM)
+	if err != nil {
+		t.Fatalf("bundle failed. %s", err.Error())
+	}
 	newBundle, err := bundler.BundleFromPEM(expiredBundlePEM, nil, Optimal)
 	if err != nil {
 		t.Fatalf("Re-bundle failed. %s", err.Error())
@@ -697,11 +700,10 @@ func createInterCert(t *testing.T, csrFile string, policy *config.Signing, profi
 		t.Fatal(err)
 	}
 	req := signer.SignRequest{
-		Hostname: "cloudflare-inter.com",
-		Request:  string(csr),
-		Subject:  nil,
-		Profile:  profileName,
-		Label:    "",
+		Hosts:   []string{"cloudflare-inter.com"},
+		Request: string(csr),
+		Profile: profileName,
+		Label:   "",
 	}
 
 	certPEM, err = s.Sign(req)

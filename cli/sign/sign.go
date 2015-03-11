@@ -125,11 +125,11 @@ func signerMain(args []string, c cli.Config) (err error) {
 	}
 
 	req := signer.SignRequest{
-		Hostname: c.Hostname,
-		Request:  string(csr),
-		Subject:  subjectData,
-		Profile:  c.Profile,
-		Label:    c.Label,
+		Hosts:   signer.SplitHosts(c.Hostname),
+		Request: string(csr),
+		Subject: subjectData,
+		Profile: c.Profile,
+		Label:   c.Label,
 	}
 	cert, err := s.Sign(req)
 	if err != nil {

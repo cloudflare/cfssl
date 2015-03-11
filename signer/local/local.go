@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
-	"net"
 
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -133,28 +132,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			cferr.BadRequest, errors.New("not a certificate or csr"))
 	}
 
-	template, err := signer.ParseCertificateRequest(s, block.Bytes, req.Subject)
+	template, err := signer.ParseCertificateRequest(s, block.Bytes, req.Subject, req.Hosts)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.Subject == nil {
-		if ip := net.ParseIP(req.Hostname); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, req.Hostname)
-		}
-	} else {
-		template.DNSNames = []string{}
-		template.IPAddresses = []net.IP{}
-		for _, host := range req.Subject.Hosts {
-			if ip := net.ParseIP(host); ip != nil {
-				template.IPAddresses = append(template.IPAddresses, ip)
-			} else {
-				template.DNSNames = append(template.DNSNames, host)
-			}
-		}
-	}
 	return s.sign(template, profile)
 }
 

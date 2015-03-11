@@ -73,6 +73,34 @@ func NewSignHandlerFromSigner(signer signer.Signer) (h HTTPHandler, err error) {
 	}, nil
 }
 
+// This type is meant to be unmarshalled from JSON so that there can be a
+// hostname field in the API
+// TODO: Change the API such that the normal struct can be used.
+type jsonSignRequest struct {
+	Hostname string          `json:"hostname"`
+	Request  string          `json:"certificate_request"`
+	Subject  *signer.Subject `json:"subject,omitempty"`
+	Profile  string          `json:"profile"`
+	Label    string          `json:"label"`
+}
+
+func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
+	var sub *signer.Subject
+	if js.Subject == nil {
+		sub = nil
+	} else {
+		// make a copy
+		*sub = *js.Subject
+	}
+	return signer.SignRequest{
+		Hosts:   signer.SplitHosts(js.Hostname),
+		Subject: sub,
+		Request: js.Request,
+		Profile: js.Profile,
+		Label:   js.Label,
+	}
+}
+
 // Handle responds to requests for the CA to sign the certificate request
 // present in the "certificate_request" parameter for the host named
 // in the "hostname" parameter. The certificate should be PEM-encoded. If
@@ -87,7 +115,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	r.Body.Close()
 
-	var req signer.SignRequest
+	var req jsonSignRequest
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return err
@@ -118,7 +146,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("authentication required")
 	}
 
-	cert, err = h.signer.Sign(req)
+	cert, err = h.signer.Sign(jsonReqToTrue(req))
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
 		return err
@@ -187,7 +215,7 @@ func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(err)
 	}
 
-	var req signer.SignRequest
+	var req jsonSignRequest
 	err = json.Unmarshal(aReq.Request, &req)
 	if err != nil {
 		log.Errorf("failed to unmarshal request from authenticated request: %v", err)
@@ -230,7 +258,7 @@ func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("missing certificate_request parameter")
 	}
 
-	cert, err := h.signer.Sign(req)
+	cert, err := h.signer.Sign(jsonReqToTrue(req))
 	if err != nil {
 		log.Errorf("signature failed: %v", err)
 		return err

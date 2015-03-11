@@ -238,10 +238,10 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 
 	// This API does not override the subject because it was already added to the CSR
 	signReq := signer.SignRequest{
-		Hostname: req.Hostname,
-		Request:  string(csr),
-		Profile:  req.Profile,
-		Label:    req.Label,
+		Hosts:   signer.SplitHosts(req.Hostname),
+		Request: string(csr),
+		Profile: req.Profile,
+		Label:   req.Label,
 	}
 
 	certBytes, err := cg.signer.Sign(signReq)
