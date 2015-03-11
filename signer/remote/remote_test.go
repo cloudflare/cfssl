@@ -155,13 +155,13 @@ func TestRemoteSign(t *testing.T) {
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL[7:])
 	s := newRemoteSigner(t, remoteConfig.Signing)
 
-	hostname := "cloudflare.com"
+	hosts := []string{"cloudflare.com"}
 	for _, test := range csrTests {
 		csr, err := ioutil.ReadFile(test.file)
 		if err != nil {
 			t.Fatal("CSR loading error:", err)
 		}
-		certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
+		certBytes, err := s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr)})
 		if test.errorCallback != nil {
 			test.errorCallback(t, err)
 		} else {
@@ -170,7 +170,7 @@ func TestRemoteSign(t *testing.T) {
 			}
 			_, err := helpers.ParseCertificatePEM(certBytes)
 			if err != nil {
-				t.Fatalf("Fail to parse returned certificate:", err)
+				t.Fatal("Fail to parse returned certificate:", err)
 			}
 		}
 	}
@@ -184,26 +184,26 @@ func TestRemoteSignBadServerAndOverride(t *testing.T) {
 	remoteConfig := newConfig(t, []byte(validMinimalRemoteConfig))
 	s := newRemoteSigner(t, remoteConfig.Signing)
 
-	hostname := "cloudflare.com"
+	hosts := []string{"cloudflare.com"}
 	csr, err := ioutil.ReadFile("../local/testdata/rsa2048.csr")
 	if err != nil {
 		t.Fatal("CSR loading error:", err)
 	}
 
-	_, err = s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
+	_, err = s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr)})
 	if err == nil {
 		t.Fatal("Should return error")
 	}
 
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL[7:])
 	s.SetPolicy(remoteConfig.Signing)
-	certBytes, err := s.Sign(signer.SignRequest{Hostname: hostname, Request: string(csr)})
+	certBytes, err := s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr)})
 	if err != nil {
-		t.Fatalf("Expected no error. Got %s. Param %s %d", err.Error())
+		t.Fatalf("Expected no error. Got %s.", err.Error())
 	}
 	_, err = helpers.ParseCertificatePEM(certBytes)
 	if err != nil {
-		t.Fatalf("Fail to parse returned certificate:", err)
+		t.Fatal("Fail to parse returned certificate:", err)
 	}
 
 }
@@ -268,7 +268,7 @@ func closeTestServer(t *testing.T, ts *httptest.Server) {
 	ts.Close()
 }
 
-// newSignHandler generates a new SignHandler (or InfoHandler) using the certificate
+// newHandler generates a new sign handler (or info handler) using the certificate
 // authority private key and certficate to sign certificates.
 func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error) {
 	var expiry = 1 * time.Minute
@@ -295,7 +295,7 @@ func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error
 	if op == "sign" {
 		return NewSignHandlerFromSigner(s)
 	} else if op == "info" {
-		return info.NewInfoHandler(s)
+		return info.NewHandler(s)
 	}
 
 	t.Fatal("Bad op code")
@@ -362,12 +362,12 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if req.Hostname == "" {
-		return errors.NewBadRequestString("missing hostname parameter")
+	if len(req.Hosts) == 0 {
+		return errors.NewBadRequestString("missing paratmeter 'hosts'")
 	}
 
 	if req.Request == "" {
-		return errors.NewBadRequestString("missing certificate_request parameter")
+		return errors.NewBadRequestString("missing parameter 'certificate_request'")
 	}
 
 	var cert []byte

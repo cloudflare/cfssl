@@ -9,29 +9,29 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// BundlerHandler accepts requests for either remote or uploaded
+// Handler accepts requests for either remote or uploaded
 // certificates to be bundled, and returns a certificate bundle (or
 // error).
-type BundlerHandler struct {
+type Handler struct {
 	bundler *bundler.Bundler
 }
 
-// NewBundleHandler creates a new bundler that uses the root bundle and
+// NewHandler creates a new bundler that uses the root bundle and
 // intermediate bundle in the trust chain.
-func NewBundleHandler(caBundleFile, intBundleFile string) (http.Handler, error) {
+func NewHandler(caBundleFile, intBundleFile string) (http.Handler, error) {
 	var err error
 
-	b := new(BundlerHandler)
+	b := new(Handler)
 	if b.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile); err != nil {
 		return nil, err
 	}
 
 	log.Info("bundler API ready")
-	return api.HTTPHandler{b, "POST"}, nil
+	return api.HTTPHandler{Handler: b, Method: "POST"}, nil
 }
 
 // Handle implements an http.Handler interface for the bundle handler.
-func (h *BundlerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	blob, matched, err := api.ProcessRequestFirstMatchOf(r,
 		[][]string{
 			[]string{"certificate"},

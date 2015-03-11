@@ -193,7 +193,7 @@ func NewErrorResponse(message string, code int) Response {
 	}
 }
 
-// sendResponse builds a response from the result, sets the JSON
+// SendResponse builds a response from the result, sets the JSON
 // header, and writes to the http.ResponseWriter.
 func SendResponse(w http.ResponseWriter, result interface{}) error {
 	response := NewSuccessResponse(result)

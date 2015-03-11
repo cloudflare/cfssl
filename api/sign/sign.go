@@ -14,19 +14,19 @@ import (
 	"github.com/cloudflare/cfssl/signer/universal"
 )
 
-// A SignHandler accepts requests with a hostname and certficate
+// A Handler accepts requests with a hostname and certficate
 // parameter (which should be PEM-encoded) and returns a new signed
 // certificate. It includes upstream servers indexed by their
 // profile name.
-type SignHandler struct {
+type Handler struct {
 	signer signer.Signer
 }
 
-// NewSignHandler generates a new SignHandler using the certificate
+// NewHandler generates a new Handler using the certificate
 // authority private key and certficate to sign certificates. If remote
 // is not an empty string, the handler will send signature requests to
 // the CFSSL instance contained in remote by default.
-func NewSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
+func NewHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
 	root := universal.Root{
 		Config: map[string]string{
 			"cert-file": caFile,
@@ -39,12 +39,12 @@ func NewSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Hand
 		return nil, err
 	}
 
-	return NewSignHandlerFromSigner(s)
+	return NewHandlerFromSigner(s)
 }
 
-// NewSignHandlerFromSigner generates a new SignHandler directly from
+// NewHandlerFromSigner generates a new Handler directly from
 // an existing signer.
-func NewSignHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) {
+func NewHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) {
 	policy := signer.Policy()
 	if policy == nil {
 		err = errors.New(errors.PolicyError, errors.InvalidPolicy)
@@ -67,10 +67,10 @@ func NewSignHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err err
 	}
 
 	return &api.HTTPHandler{
-		&SignHandler{
+		Handler: &Handler{
 			signer: signer,
 		},
-		"POST",
+		Method: "POST",
 	}, nil
 }
 
@@ -79,6 +79,7 @@ func NewSignHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err err
 // TODO: Change the API such that the normal struct can be used.
 type jsonSignRequest struct {
 	Hostname string          `json:"hostname"`
+	Hosts    []string        `json:"hosts"`
 	Request  string          `json:"certificate_request"`
 	Subject  *signer.Subject `json:"subject,omitempty"`
 	Profile  string          `json:"profile"`
@@ -93,8 +94,19 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 		// make a copy
 		*sub = *js.Subject
 	}
+
+	if js.Hostname != "" {
+		return signer.SignRequest{
+			Hosts:   signer.SplitHosts(js.Hostname),
+			Subject: sub,
+			Request: js.Request,
+			Profile: js.Profile,
+			Label:   js.Label,
+		}
+	}
+
 	return signer.SignRequest{
-		Hosts:   signer.SplitHosts(js.Hostname),
+		Hosts:   js.Hosts,
 		Subject: sub,
 		Request: js.Request,
 		Profile: js.Profile,
@@ -107,7 +119,7 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 // in the "hostname" parameter. The certificate should be PEM-encoded. If
 // provided, subject information from the "subject" parameter will be used
 // in place of the subject information from the CSR.
-func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("signature request received")
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -117,17 +129,19 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	r.Body.Close()
 
 	var req jsonSignRequest
+
 	err = json.Unmarshal(body, &req)
 	if err != nil {
-		return err
+		return errors.NewBadRequestString("Unable to parse sign request")
 	}
 
-	if req.Hostname == "" {
-		return errors.NewBadRequestString("missing hostname parameter")
+	signReq := jsonReqToTrue(req)
+	if len(signReq.Hosts) == 0 {
+		return errors.NewBadRequestString("missing parameter 'hostname' or 'hosts'")
 	}
 
 	if req.Request == "" {
-		return errors.NewBadRequestString("missing certificate_request parameter")
+		return errors.NewBadRequestString("missing parameter 'certificate_request'")
 	}
 
 	var cert []byte
@@ -147,7 +161,7 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("authentication required")
 	}
 
-	cert, err = h.signer.Sign(jsonReqToTrue(req))
+	cert, err = h.signer.Sign(signReq)
 	if err != nil {
 		log.Warningf("failed to sign request: %v", err)
 		return err
@@ -158,16 +172,16 @@ func (h *SignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	return api.SendResponse(w, result)
 }
 
-// An AuthSignHandler verifies and signs incoming signature requests.
-type AuthSignHandler struct {
+// An AuthHandler verifies and signs incoming signature requests.
+type AuthHandler struct {
 	signer signer.Signer
 }
 
-// NewAuthSignHandler generates a new AuthSignHandler using the certificate
+// NewAuthHandler generates a new AuthHandler using the certificate
 // authority private key and certficate to sign certificates. If remote
 // is not an empty string, the handler will send signature requests to
 // the CFSSL instance contained in remote by default.
-func NewAuthSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
+func NewAuthHandler(caFile, caKeyFile string, policy *config.Signing) (http.Handler, error) {
 	root := universal.Root{
 		Config: map[string]string{
 			"cert-file": caFile,
@@ -180,12 +194,12 @@ func NewAuthSignHandler(caFile, caKeyFile string, policy *config.Signing) (http.
 		return nil, err
 	}
 
-	return NewAuthSignHandlerFromSigner(s)
+	return NewAuthHandlerFromSigner(s)
 }
 
-// NewAuthSignHandler creates a new AuthSignHandler from the signer
+// NewAuthHandlerFromSigner creates a new AuthHandler from the signer
 // that is passed in.
-func NewAuthSignHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
+func NewAuthHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
 	policy := signer.Policy()
 	if policy == nil {
 		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
@@ -211,15 +225,15 @@ func NewAuthSignHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
 	}
 
 	return &api.HTTPHandler{
-		&AuthSignHandler{
+		Handler: &AuthHandler{
 			signer: signer,
 		},
-		"POST",
+		Method: "POST",
 	}, nil
 }
 
 // Handle receives the incoming request, validates it, and processes it.
-func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("signature request received")
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -240,11 +254,20 @@ func (h *AuthSignHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	err = json.Unmarshal(aReq.Request, &req)
 	if err != nil {
 		log.Errorf("failed to unmarshal request from authenticated request: %v", err)
-		return errors.NewBadRequest(err)
+		return errors.NewBadRequestString("Unable to parse authenticated sign request")
+	}
+
+	signReq := jsonReqToTrue(req)
+	if len(signReq.Hosts) == 0 {
+		return errors.NewBadRequestString("missing parameter 'hostname' or 'hosts'")
+	}
+
+	if req.Request == "" {
+		return errors.NewBadRequestString("missing parameter 'certificate_request'")
 	}
 
 	// Sanity checks to ensure that we have a valid policy. This
-	// should have been checked in NewAuthSignHandler.
+	// should have been checked in NewAuthHandler.
 	policy := h.signer.Policy()
 	if policy == nil {
 		log.Critical("signer was initialised without a signing policy")

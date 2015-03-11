@@ -20,8 +20,8 @@ const (
 	testBrokenCertFile   = "../testdata/broken.pem"
 )
 
-func newTestBundleHandler(t *testing.T) (h http.Handler) {
-	h, err := NewBundleHandler(testCaBundleFile, testIntBundleFile)
+func newTestHandler(t *testing.T) (h http.Handler) {
+	h, err := NewHandler(testCaBundleFile, testIntBundleFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func newTestBundleHandler(t *testing.T) (h http.Handler) {
 }
 
 func newBundleServer(t *testing.T) *httptest.Server {
-	ts := httptest.NewServer(newTestBundleHandler(t))
+	ts := httptest.NewServer(newTestHandler(t))
 	return ts
 }
 
@@ -82,8 +82,8 @@ func testBundleFile(t *testing.T, domain, ip, certFile, keyFile, flavor string) 
 	return
 }
 
-func TestNewBundleHandler(t *testing.T) {
-	newTestBundleHandler(t)
+func TestNewHandler(t *testing.T) {
+	newTestHandler(t)
 }
 
 type bundleTest struct {

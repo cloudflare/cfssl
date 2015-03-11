@@ -17,25 +17,25 @@ const (
 	testCaKeyFile = "../testdata/ca_key.pem"
 )
 
-func newTestInfoHandler(t *testing.T) (h http.Handler) {
+func newTestHandler(t *testing.T) (h http.Handler) {
 	signer, err := local.NewSignerFromFile(testCaFile, testCaKeyFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h, err = NewInfoHandler(signer)
+	h, err = NewHandler(signer)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return
 }
 
-func TestNewInfoHandler(t *testing.T) {
-	newTestInfoHandler(t)
+func TestNewHandler(t *testing.T) {
+	newTestHandler(t)
 }
 
 func newInfoServer(t *testing.T) *httptest.Server {
-	ts := httptest.NewServer(newTestInfoHandler(t))
+	ts := httptest.NewServer(newTestHandler(t))
 	return ts
 }
 

@@ -37,19 +37,22 @@ type CertRequest struct {
 	Sums map[string]Sum `json:"sums"`
 }
 
-// A GeneratorHandler accepts JSON-encoded certificate requests and
+// A Handler accepts JSON-encoded certificate requests and
 // returns a new private key and certificate request.
-type GeneratorHandler struct {
+type Handler struct {
 	generator *csr.Generator
 }
 
-// NewGeneratorHandler builds a new GeneratorHandler from the
+// NewHandler builds a new Handler from the
 // validation function provided.
-func NewGeneratorHandler(validator Validator) (http.Handler, error) {
+func NewHandler(validator Validator) (http.Handler, error) {
 	log.Info("setting up key / CSR generator")
-	return &api.HTTPHandler{&GeneratorHandler{
-		generator: &csr.Generator{Validator: validator},
-	}, "POST"}, nil
+	return &api.HTTPHandler{
+		Handler: &Handler{
+			generator: &csr.Generator{Validator: validator},
+		},
+		Method: "POST",
+	}, nil
 }
 
 func computeSum(in []byte) (sum Sum, err error) {
@@ -90,7 +93,7 @@ func computeSum(in []byte) (sum Sum, err error) {
 // Handle responds to requests for the CA to generate a new private
 // key and certificate request on behalf of the client. The format for
 // these requests is documented in the API documentation.
-func (g *GeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func (g *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("request for CSR")
 	req := new(csr.CertificateRequest)
 	body, err := ioutil.ReadAll(r.Body)
@@ -173,7 +176,7 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 
 	cg.generator = &csr.Generator{Validator: validator}
 
-	return api.HTTPHandler{cg, "POST"}, nil
+	return api.HTTPHandler{Handler: cg, Method: "POST"}, nil
 }
 
 // NewCertGeneratorHandlerFromSigner returns a handler directly from

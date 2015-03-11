@@ -38,14 +38,14 @@ func registerHandlers(c cli.Config) error {
 	if err != nil {
 		log.Warningf("sign and authsign endpoints are disabled: %v", err)
 	} else {
-		if signHandler, err := apisign.NewSignHandlerFromSigner(s); err == nil {
+		if signHandler, err := apisign.NewHandlerFromSigner(s); err == nil {
 			log.Info("Assigning handler to /sign")
 			http.Handle("/api/v1/cfssl/sign", signHandler)
 		} else {
 			log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
 		}
 
-		if signHandler, err := apisign.NewAuthSignHandlerFromSigner(s); err == nil {
+		if signHandler, err := apisign.NewAuthHandlerFromSigner(s); err == nil {
 			log.Info("Assigning handler to /authsign")
 			http.Handle("/api/v1/cfssl/authsign", signHandler)
 		} else {
@@ -54,7 +54,7 @@ func registerHandlers(c cli.Config) error {
 	}
 
 	log.Info("Setting up info endpoint")
-	infoHandler, err := info.NewInfoHandler(s)
+	infoHandler, err := info.NewHandler(s)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/info' is disabled: %v", err)
 	} else {
@@ -70,7 +70,7 @@ func registerHandlers(c cli.Config) error {
 	}
 
 	log.Info("Setting up bundler endpoint")
-	bundleHandler, err := bundle.NewBundleHandler(c.CABundleFile, c.IntBundleFile)
+	bundleHandler, err := bundle.NewHandler(c.CABundleFile, c.IntBundleFile)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/bundle' is disabled: %v", err)
 	} else {
@@ -78,7 +78,7 @@ func registerHandlers(c cli.Config) error {
 	}
 
 	log.Info("Setting up CSR endpoint")
-	generatorHandler, err := generator.NewGeneratorHandler(generator.CSRValidate)
+	generatorHandler, err := generator.NewHandler(generator.CSRValidate)
 	if err != nil {
 		log.Errorf("Failed to set up CSR endpoint: %v", err)
 		return err
@@ -86,7 +86,7 @@ func registerHandlers(c cli.Config) error {
 	http.Handle("/api/v1/cfssl/newkey", generatorHandler)
 
 	log.Info("Setting up initial CA endpoint")
-	http.Handle("/api/v1/cfssl/init_ca", initca.NewInitCAHandler())
+	http.Handle("/api/v1/cfssl/init_ca", initca.NewHandler())
 
 	log.Info("Handler set up complete.")
 	return nil

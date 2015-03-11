@@ -51,8 +51,8 @@ func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 	return err
 }
 
-// NewInitCAHandler returns a new http.Handler that handles request to
+// NewHandler returns a new http.Handler that handles request to
 // initialize a CA.
-func NewInitCAHandler() http.Handler {
-	return api.HTTPHandler{api.HandlerFunc(initialCAHandler), "POST"}
+func NewHandler() http.Handler {
+	return api.HTTPHandler{Handler: api.HandlerFunc(initialCAHandler), Method: "POST"}
 }

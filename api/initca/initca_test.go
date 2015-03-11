@@ -36,7 +36,7 @@ func csrData(t *testing.T) *bytes.Reader {
 }
 
 func TestInitCARESTfulVerbs(t *testing.T) {
-	ts := httptest.NewServer(NewInitCAHandler())
+	ts := httptest.NewServer(NewHandler())
 	data := csrData(t)
 	// POST should work.
 	req, _ := http.NewRequest("POST", ts.URL, data)

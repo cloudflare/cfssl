@@ -36,7 +36,7 @@ func csrData(t *testing.T) *bytes.Reader {
 }
 
 func TestGeneratorRESTfulVerbs(t *testing.T) {
-	handler, _ := NewGeneratorHandler(CSRValidate)
+	handler, _ := NewHandler(CSRValidate)
 	ts := httptest.NewServer(handler)
 	data := csrData(t)
 	// POST should work.
