@@ -1,4 +1,4 @@
-package api
+package info
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/errors"
@@ -13,17 +14,17 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 )
 
-// InfoHandler is a type that contains the root certificates for the CA,
+// Handler is a type that contains the root certificates for the CA,
 // and serves information on them for clients that need the certificates.
-type InfoHandler struct {
+type Handler struct {
 	sign signer.Signer
 }
 
-// NewInfoHandler creates a new handler to serve information on the CA's
+// NewHandler creates a new handler to serve information on the CA's
 // certificates, taking a signer to use.
-func NewInfoHandler(s signer.Signer) (http.Handler, error) {
-	return &HTTPHandler{
-		Handler: &InfoHandler{
+func NewHandler(s signer.Signer) (http.Handler, error) {
+	return &api.HTTPHandler{
+		Handler: &Handler{
 			sign: s,
 		},
 		Method: "POST",
@@ -32,7 +33,7 @@ func NewInfoHandler(s signer.Signer) (http.Handler, error) {
 
 // Handle listens for incoming requests for CA information, and returns
 // a list containing information on each root certificate.
-func (h *InfoHandler) Handle(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	req := new(client.InfoReq)
 	body, err := ioutil.ReadAll(r.Body)
@@ -54,7 +55,7 @@ func (h *InfoHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		Certificate: bundler.PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}),
 	}
 
-	response := NewSuccessResponse(resp)
+	response := api.NewSuccessResponse(resp)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	return enc.Encode(response)

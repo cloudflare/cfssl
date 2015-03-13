@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -21,12 +20,6 @@ type Handler interface {
 type HTTPHandler struct {
 	Handler        // CFSSL handler
 	Method  string // The assoicated HTTP method
-}
-
-// Sum contains digests for a certificate or certificate request.
-type Sum struct {
-	MD5  string `json:"md5"`
-	SHA1 string `json:"sha-1"`
 }
 
 // HandlerFunc is similar to the http.HandlerFunc type; it serves as
@@ -151,16 +144,6 @@ func ProcessRequestFirstMatchOf(r *http.Request, keywordSets [][]string) (map[st
 	return nil, nil, errors.NewBadRequestString("no valid parameter sets found")
 }
 
-func missingParamsError(missing []string) error {
-	s := "Missing parameter"
-	if len(missing) > 1 {
-		s += "s"
-	}
-	s += " "
-	s += strings.Join(missing, ", ")
-	return errors.NewBadRequestString(s)
-}
-
 func matchKeywords(blob map[string]string, keywords []string) bool {
 	for _, keyword := range keywords {
 		if _, ok := blob[keyword]; !ok {
@@ -210,9 +193,9 @@ func NewErrorResponse(message string, code int) Response {
 	}
 }
 
-// sendResponse builds a response from the result, sets the JSON
+// SendResponse builds a response from the result, sets the JSON
 // header, and writes to the http.ResponseWriter.
-func sendResponse(w http.ResponseWriter, result interface{}) error {
+func SendResponse(w http.ResponseWriter, result interface{}) error {
 	response := NewSuccessResponse(result)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)

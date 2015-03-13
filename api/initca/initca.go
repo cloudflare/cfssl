@@ -1,10 +1,11 @@
-package api
+package initca
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/initca"
@@ -43,15 +44,15 @@ func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	response := NewSuccessResponse(&NewCA{string(key), string(cert)})
+	response := api.NewSuccessResponse(&NewCA{string(key), string(cert)})
 
 	enc := json.NewEncoder(w)
 	err = enc.Encode(response)
 	return err
 }
 
-// NewInitCAHandler returns a new http.Handler that handles request to
+// NewHandler returns a new http.Handler that handles request to
 // initialize a CA.
-func NewInitCAHandler() http.Handler {
-	return HTTPHandler{HandlerFunc(initialCAHandler), "POST"}
+func NewHandler() http.Handler {
+	return api.HTTPHandler{Handler: api.HandlerFunc(initialCAHandler), Method: "POST"}
 }
