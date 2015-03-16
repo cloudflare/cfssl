@@ -87,7 +87,7 @@ type jsonSignRequest struct {
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
-	var sub *signer.Subject
+	sub := new(signer.Subject)
 	if js.Subject == nil {
 		sub = nil
 	} else {
@@ -294,8 +294,8 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("invalid token")
 	}
 
-	if req.Hostname == "" {
-		return errors.NewBadRequestString("missing hostname parameter")
+	if req.Hostname == "" && len(req.Hosts) == 0 {
+		return errors.NewBadRequestString("missing hostnames")
 	}
 
 	if req.Request == "" {
