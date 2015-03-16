@@ -163,15 +163,7 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	signReq := signer.SignRequest{
-		Hostname: sigRequest.Hostname,
-		Request:  sigRequest.Request,
-		Subject:  sigRequest.Subject,
-		Profile:  sigRequest.Profile,
-		Label:    sigRequest.Label,
-	}
-
-	cert, err := s.Sign(signReq)
+	cert, err := s.Sign(sigRequest)
 	if err != nil {
 		fail(w, req, http.StatusBadRequest, 1, "bad request", "signature failed: "+err.Error())
 		return
