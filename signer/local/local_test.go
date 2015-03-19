@@ -519,18 +519,12 @@ func TestOverwriteHosts(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	req := &signer.Subject{
-		Names: []csr.Name{
-			{O: "example.net"},
-		},
-	}
-
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 
 	request := signer.SignRequest{
 		Hosts:   []string{"127.0.0.1", "localhost"},
 		Request: string(csrPEM),
-		Subject: req,
+		Subject: nil,
 	}
 	certPEM, err := s.Sign(request)
 

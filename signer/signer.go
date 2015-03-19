@@ -118,7 +118,7 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 // builds a certificate template from it. If not nil, the subject
 // information from subject will be used in place of the information in
 // the CSR. The same is true for the list of hosts.
-func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject, hosts []string) (template *x509.Certificate, err error) {
+func ParseCertificateRequest(s Signer, csrBytes []byte, sub *Subject, hosts []string) (template *x509.Certificate, err error) {
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
@@ -138,14 +138,15 @@ func ParseCertificateRequest(s Signer, csrBytes []byte, req *Subject, hosts []st
 		SignatureAlgorithm: s.SigAlgo(),
 	}
 
-	if req != nil {
-		template.Subject = req.Name()
-		for i := range hosts {
-			if ip := net.ParseIP(hosts[i]); ip != nil {
-				template.IPAddresses = append(template.IPAddresses, ip)
-			} else {
-				template.DNSNames = append(template.DNSNames, hosts[i])
-			}
+	if sub != nil {
+		template.Subject = sub.Name()
+	}
+
+	for i := range hosts {
+		if ip := net.ParseIP(hosts[i]); ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, hosts[i])
 		}
 	}
 
