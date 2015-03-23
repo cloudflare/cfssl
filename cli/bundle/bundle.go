@@ -1,6 +1,7 @@
 package bundle
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cloudflare/cfssl/bundler"
@@ -13,34 +14,18 @@ var bundlerUsageText = `cfssl bundle -- create a certificate bundle that contain
 
 Usage of bundle:
 	- Bundle local certificate files
-        cfssl bundle [-ca-bundle file] [-int-bundle file] [-key keyfile] [-flavor int] [-metadata file] CERT
+        cfssl bundle -cert file [-ca-bundle file] [-int-bundle file] [-metadata file] [-key keyfile] [-flavor optimal|ubiquitous|force]
 	- Bundle certificate from remote server.
         cfssl bundle -domain domain_name [-ip ip_address] [-ca-bundle file] [-int-bundle file] [-metadata file]
-
-Arguments:
-	CERT:    Client certificate, possible followed by intermediates to form a (partial) chain, use '-' to read from stdin.
-
-Note:
-	CERT can be specified as flag value. But flag value will take precedence, overwriting the argument.
 
 Flags:
 `
 
 // flags used by 'cfssl bundle'
-var bundlerFlags = []string{"cert", "key", "ca-bundle", "int-bundle", "flavor", "metadata", "domain", "ip", "config"}
+var bundlerFlags = []string{"cert", "key", "ca-bundle", "int-bundle", "flavor", "metadata", "domain", "ip"}
 
 // bundlerMain is the main CLI of bundler functionality.
-// TODO(zi): Decide whether to drop the argument list and only use flags to specify all the inputs.
-// There are debates on whether flag or arg is more appropriate for required parameters.
 func bundlerMain(args []string, c cli.Config) (err error) {
-	// Grab cert file through args only if flag values for cert and domain are absent
-	if c.CertFile == "" && c.Domain == "" {
-		c.CertFile, args, err = cli.PopFirstArgument(args)
-		if err != nil {
-			return
-		}
-	}
-
 	ubiquity.LoadPlatforms(c.Metadata)
 	flavor := bundler.BundleFlavor(c.Flavor)
 	// Initialize a bundler with CA bundle and intermediate bundle.
@@ -79,7 +64,10 @@ func bundlerMain(args []string, c cli.Config) (err error) {
 		if err != nil {
 			return
 		}
+	} else {
+		return errors.New("Must specify bundle target through -cert or -domain")
 	}
+
 	marshaled, err := bundle.MarshalJSON()
 	if err != nil {
 		return

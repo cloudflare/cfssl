@@ -97,18 +97,68 @@ a JSON file with the type:
 
 ```
 cfssl bundle [-ca-bundle bundle] [-int-bundle bundle] \
-             cert [key] [intermediates]
+             [-metadata metadata_file] [-flavor bundle_flavor] \
+             -cert certificate_file [-key key_file]
 ```
 
 The bundles are used for the root and intermediate certificate
-pools. The certificate and key parameters are paths to the
-PEM-encoded client certificate to be bundled. If key is specified,
-the bundle will be built and verified with the key. Otherwise the bundle
-will be built without a private key.
+pools. In addition, platform metadata is specified through '-metadata'
+The bundle files, metadata file (and auxiliary files) can be
+found at [cfssl_trust](https://github.com/cloudflare/cfssl_trust)
 
-It is also possible to specify cert, key and intermediates through '-cert',
-'-key' and '-intermediates' respectively. And like other commands, flag
-values will take precedence and overwrite the arguments.
+
+Specify PEM-encoded client certificate and key through '-cert' and
+'-key' respectively. If key is specified, the bundle will be built
+and verified with the key. Otherwise the bundle will be built
+without a private key. Instead of file path, use '-' for reading
+certificate PEM from stdin. It is also acceptable the certificate
+file contains a (partial) certificate bundle.
+
+Specify bundling flavor through '-flavor'. There are three flavors:
+'optimal' to generate a bundle of shortest chain and most advanced
+cryptographic algorithms, 'ubiquitous' to generate a bundle of most
+widely acceptance across different browsers and OS platforms, and
+'force' to find an acceptable bundle which is identical to the
+content of the input certificate file.
+
+Alternatively, the client certificate can be pulled directly from
+a domain. It is also possible to connect to the remote address
+through '-ip'.
+
+```
+cfssl bundle [-ca-bundle bundle] [-int-bundle bundle] \
+             [-metadata metadata_file] [-flavor bundle_flavor] \
+             -domain domain_name [-ip ip_address]
+```
+
+The bundle output form should follow the example
+
+```
+{
+    "bundle": "CERT_BUNDLE_IN_PEM",
+    "crt": "LEAF_CERT_IN_PEM",
+    "crl_support": true,
+    "expires": "2015-12-31T23:59:59Z",
+    "hostnames": ["example.com"],
+    "issuer": "ISSUER CERT SUBJECT",
+    "key": "KEY_IN_PEM",
+    "key_size": 2048,
+    "key_type": "2048-bit RSA",
+    "ocsp": ["http://ocsp.example-ca.com"],
+    "ocsp_support": true,
+    "root": "ROOT_CA_CERT_IN_PEM",
+    "signature": "SHA1WithRSA",
+    "subject": "LEAF CERT SUBJECT",
+    "status": {
+        "rebundled": false,
+        "expiring_SKIs": [],
+        "untrusted_root_stores": [],
+        "messages": [],
+        "code": 0
+    }
+}
+```
+
 
 #### Generating certificate signing request and private key
 
