@@ -2,6 +2,8 @@ package local
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"io/ioutil"
 	"reflect"
 	"sort"
@@ -17,6 +19,7 @@ import (
 )
 
 const (
+	fullSubjectCSR     = "testdata/test.csr"
 	testCaFile         = "testdata/ca.pem"
 	testCaKeyFile      = "testdata/ca_key.pem"
 	testECDSACaFile    = "testdata/ecdsa256_ca.pem"
@@ -476,8 +479,67 @@ func TestCAIssuing(t *testing.T) {
 
 const testCSR = "testdata/ecdsa256.csr"
 
+func TestPopulateSubjectFromCSR(t *testing.T) {
+	// a subject with all its fields full.
+	fullSubject := &signer.Subject{
+		CN: "CN",
+		Names: []csr.Name{
+			{
+				C:  "C",
+				ST: "ST",
+				L:  "L",
+				O:  "O",
+				OU: "OU",
+			},
+		},
+	}
+
+	fullName := pkix.Name{
+		CommonName:         "CommonName",
+		Country:            []string{"Country"},
+		Province:           []string{"Province"},
+		Organization:       []string{"Organization"},
+		OrganizationalUnit: []string{"OrganizationalUnit"},
+	}
+
+	noCN := *fullSubject
+	noCN.CN = ""
+	name := PopulateSubjectFromCSR(&noCN, fullName)
+	if name.CommonName != "CommonName" {
+		t.Fatal("Failed to replace empty common name")
+	}
+
+	noC := *fullSubject
+	noC.Names[0].C = ""
+	name = PopulateSubjectFromCSR(&noC, fullName)
+	if !reflect.DeepEqual(name.Country, fullName.Country) {
+		t.Fatal("Failed to replace empty country")
+	}
+
+	noL := *fullSubject
+	noL.Names[0].L = ""
+	name = PopulateSubjectFromCSR(&noL, fullName)
+	if !reflect.DeepEqual(name.Locality, fullName.Locality) {
+		t.Fatal("Failed to replace empty locality")
+	}
+
+	noO := *fullSubject
+	noO.Names[0].O = ""
+	name = PopulateSubjectFromCSR(&noO, fullName)
+	if !reflect.DeepEqual(name.Organization, fullName.Organization) {
+		t.Fatal("Failed to replace empty organization")
+	}
+
+	noOU := *fullSubject
+	noOU.Names[0].OU = ""
+	name = PopulateSubjectFromCSR(&noOU, fullName)
+	if !reflect.DeepEqual(name.OrganizationalUnit, fullName.OrganizationalUnit) {
+		t.Fatal("Failed to replace empty organizational unit")
+	}
+
+}
 func TestOverrideSubject(t *testing.T) {
-	csrPEM, err := ioutil.ReadFile(testCSR)
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -495,6 +557,7 @@ func TestOverrideSubject(t *testing.T) {
 		Request: string(csrPEM),
 		Subject: req,
 	}
+
 	certPEM, err := s.Sign(request)
 
 	if err != nil {
@@ -506,8 +569,29 @@ func TestOverrideSubject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	block, _ := pem.Decode(csrPEM)
+	template, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if cert.Subject.Organization[0] != "example.net" {
 		t.Fatalf("Failed to override subject: want example.net but have %s", cert.Subject.Organization[0])
+	}
+
+	if cert.Subject.Country[0] != template.Subject.Country[0] {
+		t.Fatal("Failed to override Country")
+	}
+
+	if cert.Subject.Locality[0] != template.Subject.Locality[0] {
+		t.Fatal("Failed to override Locality")
+	}
+
+	if cert.Subject.Organization[0] == template.Subject.Organization[0] {
+		t.Fatal("Shouldn't have overrode Organization")
+	}
+
+	if cert.Subject.OrganizationalUnit[0] != template.Subject.OrganizationalUnit[0] {
+		t.Fatal("Failed to override OrganizationalUnit")
 	}
 
 	log.Info("Overrode subject info")

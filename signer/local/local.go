@@ -5,9 +5,11 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
+	"net"
 
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -113,6 +115,52 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 	return
 }
 
+// replaceSliceIfEmpty replaces the contents of replaced with newContents if
+// the slice referenced by replaced is empty
+func replaceSliceIfEmpty(replaced, newContents *[]string) {
+	if len(*replaced) == 0 {
+		*replaced = *newContents
+	}
+}
+
+// PopulateSubjectFromCSR has functionality similar to Name, except
+// it fills the fields of the resulting pkix.Name with req's if the
+// subject's corresponding fields are empty
+func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
+
+	// if no subject, use req
+	if s == nil {
+		return req
+	}
+
+	name := s.Name()
+
+	if name.CommonName == "" {
+		name.CommonName = req.CommonName
+	}
+
+	replaceSliceIfEmpty(&name.Country, &req.Country)
+	replaceSliceIfEmpty(&name.Province, &req.Province)
+	replaceSliceIfEmpty(&name.Locality, &req.Locality)
+	replaceSliceIfEmpty(&name.Organization, &req.Organization)
+	replaceSliceIfEmpty(&name.OrganizationalUnit, &req.OrganizationalUnit)
+
+	return name
+}
+
+// PopulateHosts fills template's IPAddresses and DNSNames with the
+// hosts in hosts
+func PopulateHosts(template *x509.Certificate, hosts []string) {
+	for i := range hosts {
+		if ip := net.ParseIP(hosts[i]); ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, hosts[i])
+		}
+	}
+
+}
+
 // Sign signs a new certificate based on the PEM-encoded client
 // certificate or certificate request with the signing profile,
 // specified by profileName.
@@ -132,7 +180,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			cferr.BadRequest, errors.New("not a certificate or csr"))
 	}
 
-	template, err := signer.ParseCertificateRequest(s, block.Bytes, req.Subject, req.Hosts)
+	template, err := signer.ParseCertificateRequest(s, block.Bytes)
+	PopulateHosts(template, req.Hosts)
+	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
+
 	if err != nil {
 		return nil, err
 	}
