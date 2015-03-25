@@ -28,6 +28,8 @@ const (
 	testEncryptedPrivateKey = "testdata/enc_priv_key.pem"
 	testEmptyPem            = "testdata/empty.pem"
 	testNoHeaderCert        = "testdata/noheadercert.pem"
+	testSinglePKCS7         = "testdata/cert_pkcs7.pem"
+	testMultiplePKCS7       = "testdata/bundle_pkcs7.pem"
 )
 
 func TestKeyLength(t *testing.T) {
@@ -175,7 +177,7 @@ func TestSignatureString(t *testing.T) {
 }
 
 func TestParseCertificatePEM(t *testing.T) {
-	for _, testFile := range []string{testCertFile, testExtraWSCertFile} {
+	for _, testFile := range []string{testCertFile, testExtraWSCertFile, testSinglePKCS7} {
 		certPEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -185,7 +187,7 @@ func TestParseCertificatePEM(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyCertFile} {
+	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyCertFile, testMultiplePKCS7} {
 		certPEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -199,7 +201,7 @@ func TestParseCertificatePEM(t *testing.T) {
 
 func TestParseCertificatesPEM(t *testing.T) {
 	// expected cases
-	for _, testFile := range []string{testBundleFile, testExtraWSBundleFile} {
+	for _, testFile := range []string{testBundleFile, testExtraWSBundleFile, testSinglePKCS7, testMultiplePKCS7} {
 		bundlePEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -209,6 +211,7 @@ func TestParseCertificatesPEM(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
 	// test failure cases
 	// few lines deleted, then headers removed
 	for _, testFile := range []string{testMessedUpBundleFile, testNoHeaderCert} {
