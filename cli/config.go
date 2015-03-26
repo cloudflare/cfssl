@@ -33,6 +33,7 @@ type Config struct {
 	IP                string
 	Remote            string
 	Label             string
+	AuthKey           string
 	Module            string
 	Token             string
 	PIN               string
@@ -67,6 +68,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.Remote, "remote", "", "remote CFSSL server")
 	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
+	f.StringVar(&c.AuthKey, "authkey", "", "key to authenticate requests to remote CFSSL server")
 	f.StringVar(&c.ResponderFile, "responder", "", "Certificate for OCSP responder")
 	f.StringVar(&c.Status, "status", "good", "Status of the certificate: good, revoked, unknown")
 	f.IntVar(&c.Reason, "reason", 0, "Reason code for revocation")
