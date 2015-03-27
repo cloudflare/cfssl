@@ -185,16 +185,12 @@ func ParseOneCertificateFromPEM(certsPEM []byte) (cert *x509.Certificate, rest [
 // key. The private key may be either an unencrypted PKCS#8, PKCS#1,
 // or elliptic private key.
 func ParsePrivateKeyPEM(keyPEM []byte) (key crypto.Signer, err error) {
-	keyDER, _ := pem.Decode(keyPEM)
-	if keyDER == nil {
-		return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
+	keyDER, err := GetKeyDERFromPEM(keyPEM)
+	if err != nil {
+		return nil, err
 	}
-	if procType, ok := keyDER.Headers["Proc-Type"]; ok {
-		if strings.Contains(procType, "ENCRYPTED") {
-			return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted)
-		}
-	}
-	return ParsePrivateKeyDER(keyDER.Bytes)
+
+	return ParsePrivateKeyDER(keyDER)
 }
 
 // ParsePrivateKeyDER parses a PKCS #1, PKCS #8, or elliptic curve
@@ -223,5 +219,21 @@ func ParsePrivateKeyDER(keyDER []byte) (key crypto.Signer, err error) {
 		return generalKey.(*ecdsa.PrivateKey), nil
 	}
 
+	// should never reach here
 	return nil, cferr.New(cferr.PrivateKeyError, cferr.ParseFailed)
+}
+
+// GetKeyDERFromPEM parses a PEM-encoded private key and returns DER-format key bytes.
+func GetKeyDERFromPEM(in []byte) ([]byte, error) {
+	keyDER, _ := pem.Decode(in)
+	if keyDER != nil {
+		if procType, ok := keyDER.Headers["Proc-Type"]; ok {
+			if strings.Contains(procType, "ENCRYPTED") {
+				return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted)
+			}
+		}
+		return keyDER.Bytes, nil
+	}
+
+	return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
 }
