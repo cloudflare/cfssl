@@ -148,9 +148,14 @@ func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
 	return name
 }
 
-// PopulateHosts fills template's IPAddresses and DNSNames with the
-// hosts in hosts
-func PopulateHosts(template *x509.Certificate, hosts []string) {
+// OverrideHosts fills template's IPAddresses and DNSNames with the
+// content of hosts, if it is not nil.
+func OverrideHosts(template *x509.Certificate, hosts []string) {
+	if hosts != nil {
+		template.IPAddresses = []net.IP{}
+		template.DNSNames = []string{}
+	}
+
 	for i := range hosts {
 		if ip := net.ParseIP(hosts[i]); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
@@ -181,12 +186,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	template, err := signer.ParseCertificateRequest(s, block.Bytes)
-	PopulateHosts(template, req.Hosts)
-	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
-
 	if err != nil {
 		return nil, err
 	}
+
+	OverrideHosts(template, req.Hosts)
+	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
 
 	return s.sign(template, profile)
 }

@@ -20,6 +20,8 @@ import (
 
 const (
 	fullSubjectCSR     = "testdata/test.csr"
+	testCSR            = "testdata/ecdsa256.csr"
+	testSANCSR         = "testdata/san_domain.csr"
 	testCaFile         = "testdata/ca.pem"
 	testCaKeyFile      = "testdata/ca_key.pem"
 	testECDSACaFile    = "testdata/ecdsa256_ca.pem"
@@ -477,8 +479,6 @@ func TestCAIssuing(t *testing.T) {
 
 }
 
-const testCSR = "testdata/ecdsa256.csr"
-
 func TestPopulateSubjectFromCSR(t *testing.T) {
 	// a subject with all its fields full.
 	fullSubject := &signer.Subject{
@@ -598,42 +598,72 @@ func TestOverrideSubject(t *testing.T) {
 }
 
 func TestOverwriteHosts(t *testing.T) {
-	csrPEM, err := ioutil.ReadFile(testCSR)
-	if err != nil {
-		t.Fatalf("%v", err)
+	for _, csrFile := range []string{testCSR, testSANCSR} {
+		csrPEM, err := ioutil.ReadFile(csrFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		csrDER, _ := pem.Decode([]byte(csrPEM))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		csr, err := x509.ParseCertificateRequest(csrDER.Bytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		csrHosts := csr.DNSNames
+		for _, ip := range csr.IPAddresses {
+			csrHosts = append(csrHosts, ip.String())
+		}
+		sort.Strings(csrHosts)
+
+		s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+		for _, hosts := range [][]string{
+			nil,
+			[]string{},
+			[]string{"127.0.0.1", "localhost"},
+		} {
+			request := signer.SignRequest{
+				Hosts:   hosts,
+				Request: string(csrPEM),
+				Subject: nil,
+			}
+			certPEM, err := s.Sign(request)
+
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+
+			cert, err := helpers.ParseCertificatePEM(certPEM)
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+
+			// get the hosts, and add the ips
+			certHosts := cert.DNSNames
+			for _, ip := range cert.IPAddresses {
+				certHosts = append(certHosts, ip.String())
+			}
+
+			// compare the sorted host lists
+			sort.Strings(certHosts)
+			sort.Strings(request.Hosts)
+			if len(request.Hosts) > 0 && !reflect.DeepEqual(certHosts, request.Hosts) {
+				t.Fatalf("Hosts not the same. cert hosts: %v, expected: %v", certHosts, request.Hosts)
+			}
+
+			if request.Hosts == nil && !reflect.DeepEqual(certHosts, csrHosts) {
+				t.Fatalf("Hosts not the same. cert hosts: %v, expected csr hosts: %v", certHosts, csrHosts)
+			}
+
+			if request.Hosts != nil && len(request.Hosts) == 0 && len(certHosts) != 0 {
+				t.Fatalf("Hosts not the same. cert hosts: %v, expected: %v", certHosts, request.Hosts)
+			}
+		}
 	}
-
-	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
-
-	request := signer.SignRequest{
-		Hosts:   []string{"127.0.0.1", "localhost"},
-		Request: string(csrPEM),
-		Subject: nil,
-	}
-	certPEM, err := s.Sign(request)
-
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	cert, err := helpers.ParseCertificatePEM(certPEM)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	// get the hosts, and add the ips
-	hosts, ips := cert.DNSNames, cert.IPAddresses
-	for _, ip := range ips {
-		hosts = append(hosts, ip.String())
-	}
-
-	// compare the sorted host lists
-	sort.Strings(hosts)
-	sort.Strings(request.Hosts)
-	if !reflect.DeepEqual(hosts, request.Hosts) {
-		t.Fatalf("Hosts not the same. cert hosts: %v, expected: %v", hosts, request.Hosts)
-	}
-
-	log.Info("Overwrote hosts")
 
 }
