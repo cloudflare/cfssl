@@ -26,4 +26,5 @@ notifications:
     on_success: never
     on_failure: change
 env:
-  - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
+  global:
+    - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
