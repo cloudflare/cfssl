@@ -114,9 +114,7 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 }
 
 // ParseCertificateRequest takes an incoming certificate request and
-// builds a certificate template from it. If not nil, the subject
-// information from subject will be used in place of the information in
-// the CSR. The same is true for the list of hosts.
+// builds a certificate template from it.
 func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certificate, err error) {
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
@@ -135,6 +133,8 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,
 		SignatureAlgorithm: s.SigAlgo(),
+		DNSNames:           csr.DNSNames,
+		IPAddresses:        csr.IPAddresses,
 	}
 
 	return
