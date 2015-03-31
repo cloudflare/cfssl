@@ -263,6 +263,18 @@ func TestCertificate(t *testing.T) {
 	}
 }
 
+func TestCertificateNoLabel(t *testing.T) {
+	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = s.Certificate("any", "")
+	if err == nil {
+		t.Fatal("Certificate() currently shouldn't support label")
+	}
+}
+
 func TestPolicy(t *testing.T) {
 	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
 	if err != nil {
