@@ -314,6 +314,37 @@ Example:
     cURL call:
     curl 127.0.0.1:8888/api/v1/cfssl/info | python -m json.tool
 
+2.7 SCAN
+
+The scan endpoint returns the output 
+
+Endpoint: "/api/v1/cfssl/scan"
+Method: POST
+Required parameters:
+
+         * hosts: the hostname for the certificate
+
+Optional parameters:
+         * scanner: regular expression specifying scanner(s) to run
+         * family:  regular expression specifying scan famil(ies) to run
+
+Example:
+
+    scan.json:
+    {
+        "hosts": [
+            "example.com",
+            "cloudflare.com"
+            "localhost:44433"
+        ]
+        family: "Connectivity"
+    }
+
+    cURL call:
+    curl -XPOST -H "Content-Type: application/json" -d @scan.json \
+         127.0.0.1:8888/api/v1/cfssl/scan
+
+
 3. CONFIGURATION
 
 `cfssl` takes an optional configuration file; this is currently used to

@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
+	"github.com/cloudflare/cfssl/api/scan"
 	apisign "github.com/cloudflare/cfssl/api/sign"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/cli"
@@ -87,6 +88,9 @@ func registerHandlers(c cli.Config) error {
 
 	log.Info("Setting up initial CA endpoint")
 	http.Handle("/api/v1/cfssl/init_ca", initca.NewHandler())
+
+	log.Info("Setting up scan endpoint")
+	http.Handle("/api/v1/cfssl/scan", scan.NewHandler())
 
 	log.Info("Handler set up complete.")
 	return nil

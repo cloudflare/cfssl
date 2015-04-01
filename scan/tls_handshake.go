@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net"
@@ -79,6 +80,20 @@ func (cvList cipherVersionList) String() string {
 		cvStrings[i] = fmt.Sprintf("%s\t%s", tls.CipherSuites[c.cipherID], strings.Join(versStrings, ", "))
 	}
 	return strings.Join(cvStrings, "\n")
+}
+
+func (cvList cipherVersionList) MarshalJSON() ([]byte, error) {
+	b := new(bytes.Buffer)
+	cvStrs := make([]string, len(cvList))
+	for i, cv := range cvList {
+		versStrings := make([]string, len(cv.versions))
+		for j, vers := range cv.versions {
+			versStrings[j] = fmt.Sprintf("\"%s\"", tls.Versions[vers])
+		}
+		cvStrs[i] = fmt.Sprintf("{\"%s\":[%s]}", tls.CipherSuites[cv.cipherID].String(), strings.Join(versStrings, ","))
+	}
+	fmt.Fprintf(b, "[%s]", strings.Join(cvStrs, ","))
+	return b.Bytes(), nil
 }
 
 // cipherSuiteScan returns, by TLS Version, the sort list of cipher suites
