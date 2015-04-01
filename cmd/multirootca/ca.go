@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"net/http"
@@ -14,25 +16,34 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 )
 
-func parseSigner(root *config.Root) (signer.Signer, error) {
+func parseSigner(root *config.Root) (signer.Signer, *x509.Certificate, error) {
 	privateKey := root.PrivateKey
 	switch priv := privateKey.(type) {
 	case *rsa.PrivateKey, *ecdsa.PrivateKey:
 		s, err := local.NewSigner(priv, root.Certificate, signer.DefaultSigAlgo(priv), nil)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		s.SetPolicy(root.Config)
-		return s, nil
+		return s, root.Certificate, nil
 	default:
-		return nil, errors.New("unsupported private key type")
+		return nil, nil, errors.New("unsupported private key type")
 	}
 }
 
 var (
 	defaultLabel string
 	signers      = map[string]signer.Signer{}
+	publics      = map[string]string{}
 )
+
+func buildCertificate(c *x509.Certificate) string {
+	cert := pem.EncodeToMemory(&pem.Block{
+		Bytes: c.Raw,
+		Type:  "CERTIFICATE",
+	})
+	return string(cert)
+}
 
 func main() {
 	flagAddr := flag.String("a", ":8888", "listening address")
@@ -53,11 +64,12 @@ func main() {
 	}
 
 	for label, root := range roots {
-		s, err := parseSigner(root)
+		s, c, err := parseSigner(root)
 		if err != nil {
 			log.Criticalf("%v", err)
 		}
 		signers[label] = s
+		publics[label] = buildCertificate(c)
 		log.Info("loaded signer ", label)
 	}
 
@@ -66,6 +78,7 @@ func main() {
 
 	http.HandleFunc("/api/v1/cfssl/authsign", dispatchRequest)
 	http.HandleFunc("/api/v1/cfssl/metrics", dumpMetrics)
+	http.HandleFunc("/api/v1/cfssl/info", info)
 	log.Info("listening on ", *flagAddr)
 	log.Error(http.ListenAndServe(*flagAddr, nil))
 }
