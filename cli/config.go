@@ -43,6 +43,9 @@ type Config struct {
 	Reason            int
 	RevokedAt         string
 	Interval          int64
+	List              bool
+	Family            string
+	Scanner           string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -74,6 +77,9 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.IntVar(&c.Reason, "reason", 0, "Reason code for revocation")
 	f.StringVar(&c.RevokedAt, "revoked-at", "now", "Date of revocation (YYYY-MM-DD)")
 	f.Int64Var(&c.Interval, "interval", int64(4*helpers.OneDay), "Interval between OCSP updates, in seconds (default: 4 days)")
+	f.BoolVar(&c.List, "list", false, "list possible scanners")
+	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
+	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")

@@ -44,7 +44,6 @@ type Command struct {
 	Main func(args []string, c Config) error
 }
 
-// Parsed command name
 var cmdName string
 
 // usage is the cfssl usage heading. It will be appended with names of defined commands in cmds
