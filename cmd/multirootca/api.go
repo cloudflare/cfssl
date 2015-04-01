@@ -193,3 +193,17 @@ func dumpMetrics(w http.ResponseWriter, req *http.Request) {
 
 	w.Write(out)
 }
+
+// info returns a JSON-encoded map of labels to certificates.
+func info(w http.ResponseWriter, req *http.Request) {
+	incRequests()
+
+	// publics is defined in ca.go; it contains a mapping of
+	// labels to certificates.
+	res := api.NewSuccessResponse(publics)
+	jenc := json.NewEncoder(w)
+	err := jenc.Encode(res)
+	if err != nil {
+		log.Errorf("error writing response to info endpoint: %v", err)
+	}
+}
