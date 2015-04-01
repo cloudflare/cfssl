@@ -15,14 +15,13 @@ import (
 var signerUsageText = `cfssl sign -- signs a client cert with a host name by a given CA and CA key
 
 Usage of sign:
-        cfssl sign -ca cert -ca-key key [-config config] [-profile profile] HOSTNAME CSR [SUBJECT]
-        cfssl sign -remote remote_host [-config config] [-profile profile] [-label label] HOSTNAME CSR [SUBJECT]
+        cfssl sign -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] CSR [SUBJECT]
+        cfssl sign -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSR [SUBJECT]
 
 Arguments:
-        HOSTNAME:   Hostname for the cert
         CSR:        PEM file for certificate request, use '-' for reading PEM from stdin.
 
-Note: HOSTNAME and CSR can also be supplied via flag values; flag values will take precedence over the argument.
+Note: CSR can also be supplied via flag values; flag value will take precedence over the argument.
 
 SUBJECT is an optional file containing subject information to use for the certificate instead of the subject information in the CSR.
 
@@ -66,13 +65,6 @@ func SignerFromConfig(c cli.Config) (signer.Signer, error) {
 // signerMain is the main CLI of signer functionality.
 // [TODO: zi] Decide whether to drop the argument list and only use flags to specify all the inputs.
 func signerMain(args []string, c cli.Config) (err error) {
-	// Grab values through args only if corresponding flags are absent
-	if c.Hostname == "" {
-		c.Hostname, args, err = cli.PopFirstArgument(args)
-		if err != nil {
-			return
-		}
-	}
 	if c.CSRFile == "" {
 		c.CSRFile, args, err = cli.PopFirstArgument(args)
 		if err != nil {
