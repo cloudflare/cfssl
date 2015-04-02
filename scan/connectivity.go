@@ -10,21 +10,17 @@ import (
 
 // Connectivity contains scanners testing basic connectivity to the host
 var Connectivity = &Family{
-	Name:        "Connectivity",
 	Description: "Scans for basic connectivity with the host through DNS and TCP/TLS dials",
-	Scanners: []*Scanner{
-		{
-			"DNSLookup",
+	Scanners: map[string]*Scanner{
+		"DNSLookup": {
 			"Host can be resolved through DNS",
 			dnsLookupScan,
 		},
-		{
-			"TCPDial",
+		"TCPDial": {
 			"Host accepts TCP connection",
 			tcpDialScan,
 		},
-		{
-			"TLSDial",
+		"TLSDial": {
 			"Host can perform TLS handshake",
 			tlsDialScan,
 		},

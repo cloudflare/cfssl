@@ -3,6 +3,7 @@ package scan
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"time"
 
 	"github.com/cloudflare/cf-tls/tls"
@@ -53,10 +54,8 @@ type Output interface {
 
 // Scanner describes a type of scan to perform on a host.
 type Scanner struct {
-	// Name provides a short name for the Scanner.
-	Name string
 	// Description describes the nature of the scan to be performed.
-	Description string
+	Description string `json:"description"`
 	// scan is the function that scans the given host and provides a Grade and Output.
 	scan func(host string) (Grade, Output, error)
 }
@@ -65,19 +64,79 @@ type Scanner struct {
 func (s *Scanner) Scan(host string) (Grade, Output, error) {
 	grade, output, err := s.scan(host)
 	if err != nil {
-		log.Infof("%s: %s", s.Name, err)
+		log.Infof("scan: %v", err)
 		return grade, output, err
 	}
 	return grade, output, err
 }
 
-// String gives the name of the Scanner, and its description if loglevel is 0.
-func (s *Scanner) String() string {
-	ret := fmt.Sprintf("%s", s.Name)
-	if log.Level == log.LevelDebug {
-		ret += fmt.Sprintf(": %s", s.Description)
+// Family defines a set of related scans meant to be run together in sequence.
+type Family struct {
+	// Description gives a short description of the scans performed scan/scan_common.goon the host.
+	Description string `json:"description"`
+	// Scanners is a list of scanners that are to be run in sequence.
+	Scanners map[string]*Scanner `json:"scanners"`
+}
+
+// FamilySet contains a set of Families to run Scans from.
+type FamilySet map[string]*Family
+
+// Default contains each scan Family that is defined
+var Default = FamilySet{
+	"Connectivity": Connectivity,
+	"TLSHandshake": TLSHandshake,
+	"TLSSession":   TLSSession,
+	"PKI":          PKI,
+}
+
+// ScannerResult contains the result for a single scan.
+type ScannerResult struct {
+	Grade  string `json:"grade"`
+	Output Output `json:"output,omitempty"`
+	Error  error  `json:"error,omitempty"`
+}
+
+// FamilyResult contains a scan response for a single Family
+type FamilyResult map[string]ScannerResult
+
+// RunScans interates over AllScans, running scans matching the family and scanner
+// regular expressions.
+func (fs FamilySet) RunScans(host, family, scanner string) (map[string]FamilyResult, error) {
+	if _, _, err := net.SplitHostPort(host); err != nil {
+		host = net.JoinHostPort(host, "443")
 	}
-	return ret
+
+	familyRegexp, err := regexp.Compile(family)
+	if err != nil {
+		return nil, err
+	}
+
+	scannerRegexp, err := regexp.Compile(scanner)
+	if err != nil {
+		return nil, err
+	}
+
+	familyResults := make(map[string]FamilyResult)
+
+	for familyName, family := range fs {
+		if familyRegexp.MatchString(familyName) {
+			scannerResults := make(map[string]ScannerResult)
+
+			for scannerName, scanner := range family.Scanners {
+				if scannerRegexp.MatchString(scannerName) {
+					grade, output, err := scanner.Scan(host)
+					scannerResults[scannerName] = ScannerResult{
+						Grade:  grade.String(),
+						Output: output,
+						Error:  err,
+					}
+				}
+			}
+
+			familyResults[familyName] = scannerResults
+		}
+	}
+	return familyResults, nil
 }
 
 func defaultTLSConfig(host string) *tls.Config {
@@ -86,31 +145,4 @@ func defaultTLSConfig(host string) *tls.Config {
 		h = host
 	}
 	return &tls.Config{ServerName: h, InsecureSkipVerify: true}
-}
-
-// Family defines a set of related scans meant to be run together in sequence.
-type Family struct {
-	// Name is a short name for the Family.
-	Name string
-	// Description gives a short description of the scans performed scan/scan_common.goon the host.
-	Description string
-	// Scanners is a list of scanners that are to be run in sequence.
-	Scanners []*Scanner
-}
-
-// String gives the name of the Family, and its description if loglevel is 0.
-func (f *Family) String() string {
-	ret := fmt.Sprintf("%s", f.Name)
-	if log.Level == 0 {
-		ret += fmt.Sprintf(": %s", f.Description)
-	}
-	return ret
-}
-
-// AllFamilies contains each scan Family that is defined
-var AllFamilies = []*Family{
-	Connectivity,
-	TLSHandshake,
-	TLSSession,
-	PKI,
 }

@@ -306,7 +306,7 @@ Example:
 The info endpoint returns a list of information on all the CA's
 certificates (those corresponding to the CA's private keys).
 
-Endpoint: "/api/v1/cfssl/remotecert"
+Endpoint: "/api/v1/cfssl/info"
 Method: GET
 
 Example:
@@ -318,11 +318,22 @@ Example:
 
 The scan endpoint returns the output 
 
+Endpoint: "/api/v1/cfssl/scaninfo"
+Method: GET
+
+Example:
+
+    cURL call:
+    curl 127.0.0.1:8888/api/v1/cfssl/scaninfo
+
+
+The scan endpoint returns the output 
+
 Endpoint: "/api/v1/cfssl/scan"
-Method: POST
+Method: GET
 Required parameters:
 
-         * hosts: the hostname for the certificate
+         * host: the hostname for the certificate
 
 Optional parameters:
          * scanner: regular expression specifying scanner(s) to run
@@ -330,19 +341,8 @@ Optional parameters:
 
 Example:
 
-    scan.json:
-    {
-        "hosts": [
-            "example.com",
-            "cloudflare.com"
-            "localhost:44433"
-        ]
-        family: "Connectivity"
-    }
-
     cURL call:
-    curl -XPOST -H "Content-Type: application/json" -d @scan.json \
-         127.0.0.1:8888/api/v1/cfssl/scan
+    curl 127.0.0.1:8888/api/v1/cfssl/scan?host=example.com
 
 
 3. CONFIGURATION

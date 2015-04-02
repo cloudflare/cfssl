@@ -2,10 +2,7 @@ package scan
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"net"
 	"net/http"
-	"regexp"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/errors"
@@ -13,85 +10,61 @@ import (
 	"github.com/cloudflare/cfssl/scan"
 )
 
-// Request contatins a request to perform scan(s) on the given hosts.
-type Request struct {
-	Hosts   []string `json:"hosts"`
-	Scanner string   `json:"scanner,optional"`
-	Family  string   `json:"family,optional"`
-}
-
-// ScannerResult contains the result for a single scan.
-type ScannerResult struct {
-	Scanner     string      `json:"scanner"`
-	Description string      `json:"description"`
-	Grade       scan.Grade  `json:"grade"`
-	Output      scan.Output `json:"output"`
-	Error       error       `json:"error,omitempty"`
-}
-
-// FamilyResponse contains a scan response for a single Family
-type FamilyResponse struct {
-	Family      string          `json:"family"`
-	Description string          `json:"description"`
-	Results     []ScannerResult `json:"results"`
-}
-
-// scanHandler is an HTTP handler that accepts a JSON blob
+// scanHandler is an HTTP handler that accepts GET parameters for host (required)
+// family and scanner, and uses these to perform scans, returning a JSON blob result.
 func scanHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Info("setting up scan handler")
 
-	req := new(Request)
-	body, err := ioutil.ReadAll(r.Body)
+	err := r.ParseForm()
+	log.Info(r.Form)
 	if err != nil {
-		log.Warningf("failed to read request body: %v", err)
+		log.Warningf("failed to parse body: %v", err)
 		return errors.NewBadRequest(err)
 	}
 
-	err = json.Unmarshal(body, req)
+	if len(r.Form["host"]) == 0 {
+		log.Warningf("no host given")
+		return errors.NewBadRequestString("no host given")
+	}
+	host := r.Form["host"][0]
+
+	var family, scanner string
+	if len(r.Form["family"]) > 0 {
+		family = r.Form["family"][0]
+	}
+
+	if len(r.Form["scanner"]) > 0 {
+		scanner = r.Form["scanner"][0]
+	}
+
+	results, err := scan.Default.RunScans(host, family, scanner)
 	if err != nil {
-		log.Warningf("failed to unmarshal request: %v", err)
+		log.Warningf("%v", err)
 		return errors.NewBadRequest(err)
 	}
 
-	familyRegexp, err := regexp.Compile(req.Family)
-	scannerRegexp, err := regexp.Compile(req.Scanner)
-	if err != nil {
-		log.Warningf("failed to compile regexp: %v", err)
-		return errors.NewBadRequest(err)
-	}
-
-	responses := make(map[string][]FamilyResponse)
-	for _, host := range req.Hosts {
-		if _, _, err := net.SplitHostPort(host); err != nil {
-			host = net.JoinHostPort(host, "443")
-		}
-
-		for _, family := range scan.AllFamilies {
-			if familyRegexp.MatchString(family.Name) {
-				fr := FamilyResponse{Family: family.Name, Description: family.Description}
-				for _, scanner := range family.Scanners {
-					if scannerRegexp.MatchString(scanner.Name) {
-						sr := ScannerResult{Scanner: scanner.Name, Description: scanner.Description}
-						sr.Grade, sr.Output, sr.Error = scanner.Scan(host)
-						fr.Results = append(fr.Results, sr)
-						if sr.Error != nil {
-							log.Warningf("error performing %s scan: %v", scanner.Name, sr.Error)
-						}
-					}
-				}
-				responses[host] = append(responses[host], fr)
-			}
-		}
-	}
-
-	response := api.NewSuccessResponse(responses)
+	response := api.NewSuccessResponse(results)
 	enc := json.NewEncoder(w)
 	err = enc.Encode(response)
 	return err
 }
 
-// NewHandler returns a new http.Handler that handles request to
-// initialize a CA.
+// NewHandler returns a new http.Handler that handles a scan request.
 func NewHandler() http.Handler {
-	return api.HTTPHandler{Handler: api.HandlerFunc(scanHandler), Method: "POST"}
+	return api.HTTPHandler{Handler: api.HandlerFunc(scanHandler), Method: "GET"}
+}
+
+// scanInfoHandler is an HTTP handler that returns a JSON blob result describing
+// the possible families and scans to be run.
+func scanInfoHandler(w http.ResponseWriter, r *http.Request) error {
+	log.Info("setting up scaninfo handler")
+	response := api.NewSuccessResponse(scan.Default)
+	enc := json.NewEncoder(w)
+	err := enc.Encode(response)
+	return err
+}
+
+// NewInfoHandler returns a new http.Handler that handles a request for scan info.
+func NewInfoHandler() http.Handler {
+	return api.HTTPHandler{Handler: api.HandlerFunc(scanInfoHandler), Method: "GET"}
 }

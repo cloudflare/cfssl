@@ -92,6 +92,9 @@ func registerHandlers(c cli.Config) error {
 	log.Info("Setting up scan endpoint")
 	http.Handle("/api/v1/cfssl/scan", scan.NewHandler())
 
+	log.Info("Setting up scaninfo endpoint")
+	http.Handle("/api/v1/cfssl/scaninfo", scan.NewInfoHandler())
+
 	log.Info("Handler set up complete.")
 	return nil
 }

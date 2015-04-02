@@ -12,9 +12,8 @@ func (os OutputString) String() string {
 }
 
 var TestingScanner = &Scanner{
-	"TestingScanner",
-	"Tests common scan functions",
-	func(host string) (Grade, Output, error) {
+	Description: "Tests common scan functions",
+	scan: func(host string) (Grade, Output, error) {
 		switch host {
 		case "bad.example.com:443":
 			return Bad, OutputString("bad.com"), nil
@@ -31,15 +30,14 @@ var TestingScanner = &Scanner{
 }
 
 var TestingFamily = &Family{
-	Name:        "TestingFamily",
 	Description: "Tests the scan_common",
-	Scanners: []*Scanner{
-		TestingScanner,
+	Scanners: map[string]*Scanner{
+		"TestingScanner": TestingScanner,
 	},
 }
 
 func TestCommon(t *testing.T) {
-	if TestingScanner.Name != "TestingScanner" {
+	if TestingFamily.Scanners["TestingScanner"] != TestingScanner {
 		t.FailNow()
 	}
 

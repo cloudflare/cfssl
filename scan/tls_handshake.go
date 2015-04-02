@@ -12,11 +12,9 @@ import (
 
 // TLSHandshake contains scanners testing host cipher suite negotiation
 var TLSHandshake = &Family{
-	Name:        "TLSHandshake",
 	Description: "Scans for host's SSL/TLS version and cipher suite negotiation",
-	Scanners: []*Scanner{
-		{
-			"CipherSuite",
+	Scanners: map[string]*Scanner{
+		"CipherSuite": {
 			"Determines host's cipher suites accepted and prefered order",
 			cipherSuiteScan,
 		},
