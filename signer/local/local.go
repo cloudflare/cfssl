@@ -100,13 +100,12 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
 	if err != nil {
-		return
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 	}
 	if initRoot {
 		s.ca, err = x509.ParseCertificate(derBytes)
 		if err != nil {
-			err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
-			return
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		}
 	}
 

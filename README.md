@@ -49,13 +49,15 @@ The version command takes no arguments.
 #### Signing
 
 ```
-cfssl sign [-ca cert] [-ca-key key] hostname csr [subject]
+cfssl sign [-ca cert] [-ca-key key] [-hostname comma,separated,hostnames] csr [subject]
 ```
 
-The hostname and csr are the client's host name and certificate
-request. The `-ca` and `-ca-key` flags are the CA's certificate
-and private key, respectively. By default, they are "ca.pem" and
-"ca_key.pem".  For example, assuming the CA's private key is in
+The csr is the client's certificate request. The `-ca` and `-ca-key`
+flags are the CA's certificate and private key, respectively. By
+default, they are "ca.pem" and "ca_key.pem". The `-hostname` is
+a comma separated hostname list that overrides the DNS names and
+IP address in the certificate SAN extension.
+For example, assuming the CA's private key is in
 `/etc/ssl/private/cfssl_key.pem` and the CA's certificate is in
 `/etc/ssl/certs/cfssl.pem`, to sign the `cloudflare.pem` certificate
 for cloudflare.com:
@@ -63,12 +65,11 @@ for cloudflare.com:
 ```
 cfssl sign -ca /etc/ssl/certs/cfssl.pem \
            -ca-key /etc/ssl/private/cfssl_key.pem \
-           cloudflare.com ./cloudflare.pem
+           -hostname cloudflare.com ./cloudflare.pem
 ```
 
-It is also possible to specify hostname and clientcert through '-hostname'
-and '-cert' flags. By doing so, flag values take precedence and will
-overwrite the arguments.
+It is also possible to specify csr through '-csr' flag. By doing so,
+flag values take precedence and will overwrite the argument.
 
 The subject is an optional file that contains subject information that
 should be used in place of the information from the CSR. It should be
@@ -76,10 +77,6 @@ a JSON file with the type:
 
 ```
 {
-    "hosts": [
-        "example.com",
-        "www.example.com"
-    ],
     "CN": "example.com",
     "names": [
         {
@@ -205,20 +202,20 @@ certificate.
 #### Generating a remote-issued certificate and private key.
 
 ```
-cfssl gencert -remote=remote_server hostname csrjson
+cfssl gencert -remote=remote_server [-hostname=comma,separated,hostnames] csrjson
 ```
 
 This is calls genkey, but has a remote CFSSL server sign and issue
-a certificate.
+a certificate. You may use `-hostname` to override certificate SANs.
 
 #### Generating a local-issued certificate and private key.
 
 ```
-cfssl gencert -ca cert -ca-key key hostname csrjson
+cfssl gencert -ca cert -ca-key key [-hostname=comma,separated,hostnames] csrjson
 ```
 
 This is generates and issues a certificate and private key from a local CA
-via a JSON request.
+via a JSON request. You may use `-hostname` to override certificate SANs.
 
 ### Starting the API Server
 

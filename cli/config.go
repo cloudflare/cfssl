@@ -50,7 +50,7 @@ type Config struct {
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
 func registerFlags(c *Config, f *flag.FlagSet) {
-	f.StringVar(&c.Hostname, "hostname", "", "Hostname for the cert")
+	f.StringVar(&c.Hostname, "hostname", "", "Hostname for the cert, could be a comma-separated hostname list")
 	f.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
 	f.StringVar(&c.CSRFile, "csr", "", "Certificate signature request file for new public key")
 	f.StringVar(&c.CAFile, "ca", "ca.pem", "CA used to sign the new certificate")

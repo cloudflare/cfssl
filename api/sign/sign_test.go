@@ -6,11 +6,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/signer"
 )
 
 const (
@@ -38,6 +40,52 @@ var validAuthLocalConfig = `
 			"usages": ["digital signature", "email protection"],
 			"expiry": "1m",
 			"auth_key": "sample"
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	}
+}`
+
+var validMixedLocalConfig = `
+{
+	"signing": {
+		"default": {
+			"usages": ["digital signature", "email protection"],
+			"expiry": "1m"
+		},
+		"profiles": {
+			"auth": {
+				"usages": ["digital signature", "email protection"],
+				"expiry": "1m",
+				"auth_key": "sample"
+			}
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	}
+}`
+
+var alsoValidMixedLocalConfig = `
+{
+	"signing": {
+		"default": {
+			"usages": ["digital signature", "email protection"],
+			"expiry": "1m",
+			"auth_key": "sample"
+		},
+		"profiles": {
+			"no-auth": {
+				"usages": ["digital signature", "email protection"],
+				"expiry": "1m"
+			}
 		}
 	},
 	"auth_keys": {
@@ -92,6 +140,52 @@ func TestNewHandlerError(t *testing.T) {
 	}
 }
 
+func TestNewAuthHandlerWithNonAuthProfile(t *testing.T) {
+	conf, err := config.LoadConfig([]byte(validLocalConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = NewAuthHandler(testCaFile, testCaKeyFile, conf.Signing)
+	if err == nil {
+		t.Fatal("No profile have auth keys. Should have failed to create auth sign handler.")
+	}
+}
+
+func TestNewHandlersWithMixedProfile(t *testing.T) {
+	conf, err := config.LoadConfig([]byte(validMixedLocalConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = NewHandler(testCaFile, testCaKeyFile, conf.Signing)
+	if err != nil {
+		t.Fatal("Should be able to create non-auth sign handler.")
+	}
+
+	_, err = NewAuthHandler(testCaFile, testCaKeyFile, conf.Signing)
+	if err != nil {
+		t.Fatal("Should be able to create auth sign handler.")
+	}
+}
+
+func TestNewHandlersWithAnotherMixedProfile(t *testing.T) {
+	conf, err := config.LoadConfig([]byte(alsoValidMixedLocalConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = NewHandler(testCaFile, testCaKeyFile, conf.Signing)
+	if err != nil {
+		t.Fatal("Should be able to create non-auth sign handler.")
+	}
+
+	_, err = NewAuthHandler(testCaFile, testCaKeyFile, conf.Signing)
+	if err != nil {
+		t.Fatal("Should be able to create auth sign handler.")
+	}
+}
+
 func newSignServer(t *testing.T) *httptest.Server {
 	ts := httptest.NewServer(newTestHandler(t))
 	return ts
@@ -132,7 +226,7 @@ func testSignFileOldInterface(t *testing.T, hostname, csrFile string) (resp *htt
 	return
 }
 
-func testSignFile(t *testing.T, hostname, csrFile string) (resp *http.Response, body []byte) {
+func testSignFile(t *testing.T, hosts []string, subject *signer.Subject, csrFile string) (resp *http.Response, body []byte) {
 	ts := newSignServer(t)
 	defer ts.Close()
 	var csrPEM []byte
@@ -144,11 +238,14 @@ func testSignFile(t *testing.T, hostname, csrFile string) (resp *http.Response, 
 		}
 	}
 	obj := map[string]interface{}{}
-	if len(hostname) > 0 {
-		obj["hosts"] = []string{hostname}
+	if hosts != nil {
+		obj["hosts"] = hosts
 	}
 	if len(csrPEM) > 0 {
 		obj["certificate_request"] = string(csrPEM)
+	}
+	if subject != nil {
+		obj["subject"] = subject
 	}
 
 	blob, err := json.Marshal(obj)
@@ -173,7 +270,8 @@ const (
 )
 
 type signTest struct {
-	Hostname           string
+	Hosts              []string
+	Subject            *signer.Subject
 	CSRFile            string
 	ExpectedHTTPStatus int
 	ExpectedSuccess    bool
@@ -182,45 +280,68 @@ type signTest struct {
 
 var signTests = []signTest{
 	{
-		testHostName,
-		testCSRFile,
-		http.StatusOK,
-		true,
-		0,
+		Hosts:              []string{testHostName},
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		testDomainName,
-		testCSRFile,
-		http.StatusOK,
-		true,
-		0,
+		Hosts:              []string{testDomainName},
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		"",
-		testCSRFile,
-		http.StatusBadRequest,
-		false,
-		http.StatusBadRequest,
+		Hosts:              []string{testDomainName, testHostName},
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		testDomainName,
-		"",
-		http.StatusBadRequest,
-		false,
-		http.StatusBadRequest,
+		Hosts:              []string{testDomainName},
+		Subject:            &signer.Subject{CN: "example.com"},
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
-		testDomainName,
-		testBrokenCSRFile,
-		http.StatusBadRequest,
-		false,
-		1002,
+		Hosts:              []string{},
+		Subject:            &signer.Subject{CN: "example.com"},
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
+	},
+	{
+		Hosts:              nil,
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  http.StatusBadRequest,
+	},
+	{
+		Hosts:              []string{testDomainName},
+		CSRFile:            "",
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  http.StatusBadRequest,
+	},
+	{
+		Hosts:              []string{testDomainName},
+		CSRFile:            testBrokenCSRFile,
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  1002,
 	},
 }
 
 func TestSign(t *testing.T) {
 	for i, test := range signTests {
-		resp, body := testSignFile(t, test.Hostname, test.CSRFile)
+		resp, body := testSignFile(t, test.Hosts, test.Subject, test.CSRFile)
 		if resp.StatusCode != test.ExpectedHTTPStatus {
 			t.Logf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))
@@ -251,7 +372,14 @@ func TestSign(t *testing.T) {
 	// Test for backward compatibility
 	// TODO remove after API transition is complete.
 	for i, test := range signTests {
-		resp, body := testSignFileOldInterface(t, test.Hostname, test.CSRFile)
+		// an empty hostname is not accepted by the old interface but an empty hosts array should be accepted
+		// so skip the case of empty hosts array for the old interface.
+		if test.Hosts != nil && len(test.Hosts) == 0 {
+			continue
+		}
+
+		hostname := strings.Join(test.Hosts, ",")
+		resp, body := testSignFileOldInterface(t, hostname, test.CSRFile)
 		if resp.StatusCode != test.ExpectedHTTPStatus {
 			t.Logf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))
@@ -311,7 +439,7 @@ func TestNewAuthHandlerWithNoAuthConfig(t *testing.T) {
 	return
 }
 
-func testAuthSignFile(t *testing.T, hostname, csrFile string, profile *config.SigningProfile) (resp *http.Response, body []byte) {
+func testAuthSignFile(t *testing.T, hosts []string, subject *signer.Subject, csrFile string, profile *config.SigningProfile) (resp *http.Response, body []byte) {
 	ts := newAuthSignServer(t)
 	defer ts.Close()
 
@@ -323,9 +451,12 @@ func testAuthSignFile(t *testing.T, hostname, csrFile string, profile *config.Si
 			t.Fatal(err)
 		}
 	}
-	obj := map[string]string{}
-	if len(hostname) > 0 {
-		obj["hostname"] = hostname
+	obj := map[string]interface{}{}
+	if hosts != nil {
+		obj["hosts"] = hosts
+	}
+	if subject != nil {
+		obj["subject"] = subject
 	}
 	if len(csrPEM) > 0 {
 		obj["certificate_request"] = string(csrPEM)
@@ -370,7 +501,7 @@ func TestAuthSign(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, test := range signTests {
-		resp, body := testAuthSignFile(t, test.Hostname, test.CSRFile, conf.Signing.Default)
+		resp, body := testAuthSignFile(t, test.Hosts, test.Subject, test.CSRFile, conf.Signing.Default)
 		if resp.StatusCode != test.ExpectedHTTPStatus {
 			t.Logf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))

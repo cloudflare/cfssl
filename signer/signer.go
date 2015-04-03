@@ -67,6 +67,10 @@ func (s *Subject) Name() pkix.Name {
 // SplitHosts takes a comma-spearated list of hosts and returns a slice
 // with the hosts split
 func SplitHosts(hostList string) []string {
+	if hostList == "" {
+		return nil
+	}
+
 	return strings.Split(hostList, ",")
 }
 
