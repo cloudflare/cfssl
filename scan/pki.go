@@ -12,11 +12,9 @@ import (
 
 // PKI contains scanners to test application layer HTTP(S) features
 var PKI = &Family{
-	Name:        "PKI",
 	Description: "Scans for the Public Key Infrastructure",
-	Scanners: []*Scanner{
-		{
-			"IntermediateCAs",
+	Scanners: map[string]*Scanner{
+		"IntermediateCAs": {
 			"Scans a CIDR IP range for unknown Intermediate CAs",
 			intermediateCAScan,
 		},

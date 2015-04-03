@@ -10,11 +10,9 @@ import (
 // TLSSession contains tests of host TLS Session Resumption via
 // Session Tickets and Session IDs
 var TLSSession = &Family{
-	Name:        "TLSSession",
 	Description: "Scans host's implementation of TLS session resumption using session tickets/session IDs",
-	Scanners: []*Scanner{
-		{
-			"SessionResume",
+	Scanners: map[string]*Scanner{
+		"SessionResume": {
 			"Host is able to resume sessions across all addresses",
 			sessionResumeScan,
 		},
