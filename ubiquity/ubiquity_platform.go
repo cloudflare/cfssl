@@ -141,11 +141,14 @@ func (p *Platform) ParseAndLoad() (ok bool) {
 		// Best effort parsing the PEMs such that ignore all borken pem,
 		// since some of CA certs have negative serial number which trigger errors.
 		for len(pemBytes) > 0 {
-			var cert *x509.Certificate
-			cert, rest, err := helpers.ParseOneCertificateFromPEM(pemBytes)
-			// If one cert is parsed, record the raw SHA1 hash.
-			if err == nil && cert != nil {
-				p.KeyStore.Add(cert)
+			var certs []*x509.Certificate
+			certs, rest, err := helpers.ParseOneCertificateFromPEM(pemBytes)
+			// If one certificate object is parsed, possibly a PKCS#7
+			// structure containing multiple certs, record the raw SHA1 hash(es).
+			if err == nil && certs != nil {
+				for _, cert := range certs {
+					p.KeyStore.Add(cert)
+				}
 			}
 
 			if len(rest) < len(pemBytes) {
