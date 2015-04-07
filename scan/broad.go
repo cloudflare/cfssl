@@ -10,9 +10,9 @@ import (
 	"github.com/cloudflare/cfssl/bundler"
 )
 
-// PKI contains scanners to test application layer HTTP(S) features
-var PKI = &Family{
-	Description: "Scans for the Public Key Infrastructure",
+// Broad contains scanners for large swaths of TLS hosts on the internet.
+var Broad = &Family{
+	Description: "Large scale scans of TLS hosts",
 	Scanners: map[string]*Scanner{
 		"IntermediateCAs": {
 			"Scans a CIDR IP range for unknown Intermediate CAs",
