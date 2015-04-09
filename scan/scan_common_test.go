@@ -17,8 +17,8 @@ var TestingScanner = &Scanner{
 		switch host {
 		case "bad.example.com:443":
 			return Bad, OutputString("bad.com"), nil
-		case "legacy.example.com:443":
-			return Legacy, OutputString("legacy.com"), nil
+		case "Warning.example.com:443":
+			return Warning, OutputString("Warning.com"), nil
 		case "good.example.com:443":
 			return Good, OutputString("good.com"), nil
 		case "skipped.example.com:443/0":
@@ -50,8 +50,8 @@ func TestCommon(t *testing.T) {
 		t.FailNow()
 	}
 
-	grade, output, err = TestingScanner.Scan("legacy.example.com:443")
-	if grade != Legacy || output.String() != "legacy.com" || err != nil {
+	grade, output, err = TestingScanner.Scan("Warning.example.com:443")
+	if grade != Warning || output.String() != "Warning.com" || err != nil {
 		t.FailNow()
 	}
 

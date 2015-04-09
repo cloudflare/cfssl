@@ -23,8 +23,8 @@ type Grade int
 const (
 	// Bad describes a host with serious misconfiguration or vulnerability.
 	Bad Grade = iota
-	// Legacy describes a host with non-ideal configuration that maintains support for legacy clients.
-	Legacy
+	// Warning describes a host with non-ideal configuration that maintains support for Warning clients.
+	Warning
 	// Good describes host performing the expected state-of-the-art.
 	Good
 	// Skipped descibes the "grade" of a scan that has been skipped.
@@ -36,8 +36,8 @@ func (g Grade) String() string {
 	switch g {
 	case Bad:
 		return "Bad"
-	case Legacy:
-		return "Legacy"
+	case Warning:
+		return "Warning"
 	case Good:
 		return "Good"
 	case Skipped:
