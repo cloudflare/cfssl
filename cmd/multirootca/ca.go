@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/cmd/multirootca/config"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -64,8 +65,15 @@ func main() {
 	defaultLabel = *flagDefaultLabel
 	initStats()
 
+	infoHandler, err := info.NewMultiHandler(signers, defaultLabel)
+	if err != nil {
+		log.Critical("%v", err)
+	}
+
 	http.HandleFunc("/api/v1/cfssl/authsign", dispatchRequest)
 	http.HandleFunc("/api/v1/cfssl/metrics", dumpMetrics)
+	http.Handle("/api/v1/cfssl/info", infoHandler)
+
 	log.Info("listening on ", *flagAddr)
 	log.Error(http.ListenAndServe(*flagAddr, nil))
 }
