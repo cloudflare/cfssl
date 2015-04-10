@@ -3,12 +3,12 @@ package remote
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/client"
@@ -175,11 +175,10 @@ func TestRemoteSign(t *testing.T) {
 				t.Fatal("Fail to parse returned certificate:", err)
 			}
 			sn := fmt.Sprintf("%X", cert.SerialNumber)
-			fmt.Println("Serial:" +sn)
 			if sn[0:len(testSeq)] != testSeq {
 				t.Fatal("Serial Number did not begin with seq:", sn)
 			}
-			if len(sn) != len(testSeq) + 16 {
+			if len(sn) != len(testSeq)+16 {
 				t.Fatal("Serial Number unexpected length:", sn)
 			}
 		}

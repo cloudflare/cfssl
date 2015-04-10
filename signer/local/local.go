@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net"
 

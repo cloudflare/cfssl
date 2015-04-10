@@ -35,12 +35,12 @@ type SigningProfile struct {
 	NotBefore      time.Time `json:"not_before"`
 	NotAfter       time.Time `json:"not_after"`
 
-	Policies        []asn1.ObjectIdentifier
-	Expiry          time.Duration
-	Backdate        time.Duration
-	Provider        auth.Provider
-	RemoteServer    string
-	UseSerialSeq  bool
+	Policies     []asn1.ObjectIdentifier
+	Expiry       time.Duration
+	Backdate     time.Duration
+	Provider     auth.Provider
+	RemoteServer string
+	UseSerialSeq bool
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {

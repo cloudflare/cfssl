@@ -12,6 +12,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"strings"
@@ -279,8 +280,8 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	}
 
 	if serialSeq != "" {
-		randomPart := fmt.Sprintf("%016X", serialNumber)  // 016 ensures we're left-0-padded
-		_, ok := serialNumber.SetString(serialSeq + randomPart,16)
+		randomPart := fmt.Sprintf("%016X", serialNumber) // 016 ensures we're left-0-padded
+		_, ok := serialNumber.SetString(serialSeq+randomPart, 16)
 		if !ok {
 			return cferr.Wrap(cferr.CertificateError, cferr.SerialSeqParseError, err)
 		}
