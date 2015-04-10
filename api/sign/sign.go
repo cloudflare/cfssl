@@ -84,7 +84,7 @@ type jsonSignRequest struct {
 	Subject   *signer.Subject `json:"subject,omitempty"`
 	Profile   string          `json:"profile"`
 	Label     string          `json:"label"`
-	SerialSeq string          `json:"serial_sequence"`
+	SerialSeq string          `json:"serial_sequence,omitempty"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {

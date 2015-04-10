@@ -41,7 +41,7 @@ type SignRequest struct {
 	Subject   *Subject `json:"subject,omitempty"`
 	Profile   string   `json:"profile"`
 	Label     string   `json:"label"`
-	SerialSeq string   `json:"serial_sequence"`
+	SerialSeq string   `json:"serial_sequence,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.
