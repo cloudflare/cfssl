@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 
@@ -76,8 +77,8 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	return NewSigner(priv, parsedCa, signer.DefaultSigAlgo(priv), policy)
 }
 
-func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
-	err = signer.FillTemplate(template, s.policy.Default, profile)
+func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile, serialSeq string) (cert []byte, err error) {
+	err = signer.FillTemplate(template, s.policy.Default, profile, serialSeq)
 	if err != nil {
 		return
 	}
@@ -174,6 +175,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		profile = s.policy.Default
 	}
 
+	serialSeq := ""
+	if profile.UseSerialSeq {
+		serialSeq = req.SerialSeq
+	}
+
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
@@ -192,7 +198,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	OverrideHosts(template, req.Hosts)
 	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
 
-	return s.sign(template, profile)
+	return s.sign(template, profile, serialSeq)
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

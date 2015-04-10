@@ -35,11 +35,12 @@ type Subject struct {
 // SignRequest stores a signature request, which contains the hostname,
 // the CSR, optional subject information, and the signature profile.
 type SignRequest struct {
-	Hosts   []string `json:"hosts"`
-	Request string   `json:"certificate_request"`
-	Subject *Subject `json:"subject,omitempty"`
-	Profile string   `json:"profile"`
-	Label   string   `json:"label"`
+	Hosts     []string `json:"hosts"`
+	Request   string   `json:"certificate_request"`
+	Subject   *Subject `json:"subject,omitempty"`
+	Profile   string   `json:"profile"`
+	Label     string   `json:"label"`
+	SerialSeq string   `json:"serial_sequence"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -218,7 +219,7 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 // the certificate template as possible from the profiles and current
 // template. It fills in the key uses, expiration, revocation URLs,
 // serial number, and SKI.
-func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile) error {
+func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile, serialSeq string) error {
 	ski, err := ComputeSKI(template)
 
 	var (
@@ -272,8 +273,17 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	}
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+
 	if err != nil {
 		return cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
+	}
+
+	if serialSeq != "" {
+		randomPart := fmt.Sprintf("%016X", serialNumber)  // 016 ensures we're left-0-padded
+		_, ok := serialNumber.SetString(serialSeq + randomPart,16)
+		if !ok {
+			return cferr.Wrap(cferr.CertificateError, cferr.SerialSeqParseError, err)
+		}
 	}
 
 	template.SerialNumber = serialNumber
