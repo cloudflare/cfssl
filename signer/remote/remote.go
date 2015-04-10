@@ -69,14 +69,16 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (cert []byte,
 			errors.New("failed to connect to remote"))
 	}
 
-	if server == nil {
-		return nil, cferr.Wrap(cferr.APIClientError, cferr.JSONError, err)
-	}
-
-	if p.Provider != nil {
+	// There's no server-side auth provider for the "info" method
+	// TODO: Revert this change once there is an AuthInfo provider.
+	if p.Provider != nil && target != "info" {
 		cert, err = server.AuthReq(jsonData, nil, p.Provider, target)
 	} else {
 		cert, err = server.Req(jsonData, target)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	return []byte(cert), nil

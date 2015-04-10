@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
@@ -99,19 +100,69 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
 	if err != nil {
-		return
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 	}
 	if initRoot {
 		s.ca, err = x509.ParseCertificate(derBytes)
 		if err != nil {
-			err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
-			return
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		}
 	}
 
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	log.Infof("signed certificate with serial number %s", serialNumber)
 	return
+}
+
+// replaceSliceIfEmpty replaces the contents of replaced with newContents if
+// the slice referenced by replaced is empty
+func replaceSliceIfEmpty(replaced, newContents *[]string) {
+	if len(*replaced) == 0 {
+		*replaced = *newContents
+	}
+}
+
+// PopulateSubjectFromCSR has functionality similar to Name, except
+// it fills the fields of the resulting pkix.Name with req's if the
+// subject's corresponding fields are empty
+func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
+
+	// if no subject, use req
+	if s == nil {
+		return req
+	}
+
+	name := s.Name()
+
+	if name.CommonName == "" {
+		name.CommonName = req.CommonName
+	}
+
+	replaceSliceIfEmpty(&name.Country, &req.Country)
+	replaceSliceIfEmpty(&name.Province, &req.Province)
+	replaceSliceIfEmpty(&name.Locality, &req.Locality)
+	replaceSliceIfEmpty(&name.Organization, &req.Organization)
+	replaceSliceIfEmpty(&name.OrganizationalUnit, &req.OrganizationalUnit)
+
+	return name
+}
+
+// OverrideHosts fills template's IPAddresses and DNSNames with the
+// content of hosts, if it is not nil.
+func OverrideHosts(template *x509.Certificate, hosts []string) {
+	if hosts != nil {
+		template.IPAddresses = []net.IP{}
+		template.DNSNames = []string{}
+	}
+
+	for i := range hosts {
+		if ip := net.ParseIP(hosts[i]); ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, hosts[i])
+		}
+	}
+
 }
 
 // Sign signs a new certificate based on the PEM-encoded client
@@ -133,28 +184,14 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			cferr.BadRequest, errors.New("not a certificate or csr"))
 	}
 
-	template, err := signer.ParseCertificateRequest(s, block.Bytes, req.Subject)
+	template, err := signer.ParseCertificateRequest(s, block.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.Subject == nil {
-		if ip := net.ParseIP(req.Hostname); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, req.Hostname)
-		}
-	} else {
-		template.DNSNames = []string{}
-		template.IPAddresses = []net.IP{}
-		for _, host := range req.Subject.Hosts {
-			if ip := net.ParseIP(host); ip != nil {
-				template.IPAddresses = append(template.IPAddresses, ip)
-			} else {
-				template.DNSNames = append(template.DNSNames, host)
-			}
-		}
-	}
+	OverrideHosts(template, req.Hosts)
+	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
+
 	return s.sign(template, profile)
 }
 
@@ -165,9 +202,6 @@ func (s *Signer) SigAlgo() x509.SignatureAlgorithm {
 
 // Certificate returns the signer's certificate.
 func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
-	if label != "" {
-		return nil, cferr.NewBadRequestString("label specified for local operation")
-	}
 	cert := *s.ca
 	return &cert, nil
 }

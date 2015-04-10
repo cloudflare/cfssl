@@ -21,11 +21,15 @@ const (
 	testMessedUpBundleFile  = "testdata/messed_up_bundle.pem"
 	testMessedUpCertFile    = "testdata/messedupcert.pem"
 	testEmptyCertFile       = "testdata/emptycert.pem"
-	testPrivateKey          = "testdata/priv_key.pem"
+	testPrivateRSAKey       = "testdata/priv_rsa_key.pem"
+	testPrivateECDSAKey     = "testdata/private_ecdsa_key.pem"
+	testUnsupportedECDSAKey = "testdata/secp256k1-key.pem"
 	testMessedUpPrivateKey  = "testdata/messed_up_priv_key.pem"
 	testEncryptedPrivateKey = "testdata/enc_priv_key.pem"
 	testEmptyPem            = "testdata/empty.pem"
 	testNoHeaderCert        = "testdata/noheadercert.pem"
+	testSinglePKCS7         = "testdata/cert_pkcs7.pem"
+	testMultiplePKCS7       = "testdata/bundle_pkcs7.pem"
 )
 
 func TestKeyLength(t *testing.T) {
@@ -173,7 +177,7 @@ func TestSignatureString(t *testing.T) {
 }
 
 func TestParseCertificatePEM(t *testing.T) {
-	for _, testFile := range []string{testCertFile, testExtraWSCertFile} {
+	for _, testFile := range []string{testCertFile, testExtraWSCertFile, testSinglePKCS7} {
 		certPEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -183,7 +187,7 @@ func TestParseCertificatePEM(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyCertFile} {
+	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyCertFile, testMultiplePKCS7} {
 		certPEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -197,7 +201,7 @@ func TestParseCertificatePEM(t *testing.T) {
 
 func TestParseCertificatesPEM(t *testing.T) {
 	// expected cases
-	for _, testFile := range []string{testBundleFile, testExtraWSBundleFile} {
+	for _, testFile := range []string{testBundleFile, testExtraWSBundleFile, testSinglePKCS7, testMultiplePKCS7} {
 		bundlePEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -207,6 +211,7 @@ func TestParseCertificatesPEM(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
 	// test failure cases
 	// few lines deleted, then headers removed
 	for _, testFile := range []string{testMessedUpBundleFile, testNoHeaderCert} {
@@ -248,22 +253,29 @@ func TestSelfSignedCertificatePEM(t *testing.T) {
 
 func TestParsePrivateKeyPEM(t *testing.T) {
 
-	// expected case
-	testPEM, _ := ioutil.ReadFile(testPrivateKey)
-	_, err := ParsePrivateKeyPEM(testPEM)
+	// expected cases
+	testRSAPEM, _ := ioutil.ReadFile(testPrivateRSAKey)
+	_, err := ParsePrivateKeyPEM(testRSAPEM)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
+	}
+
+	testECDSAPEM, _ := ioutil.ReadFile(testPrivateECDSAKey)
+	_, err = ParsePrivateKeyPEM(testECDSAPEM)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// error cases
 	errCases := []string{
 		testMessedUpPrivateKey,  // a few lines deleted
-		testEmptyPem,            //empty file
+		testEmptyPem,            // empty file
 		testEncryptedPrivateKey, // encrypted key
+		testUnsupportedECDSAKey, // ECDSA curve not currently supported by Go standard library
 	}
 
 	for _, fname := range errCases {
-		testPEM, _ = ioutil.ReadFile(fname)
+		testPEM, _ := ioutil.ReadFile(fname)
 		_, err = ParsePrivateKeyPEM(testPEM)
 		if err == nil {
 			t.Fatal("Incorrect private key failed to produce an error")

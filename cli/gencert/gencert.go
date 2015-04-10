@@ -17,26 +17,18 @@ var gencertUsageText = `cfssl gencert -- generate a new key and signed certifica
 
 Usage of gencert:
         cfssl gencert -initca CSRJSON
-        cfssl gencert -ca cert -ca-key key [-config config] [-profile -profile] HOSTNAME CSRJSON
-        cfssl gencert -remote remote_host [-config config] [-profile profile] [-label label] HOSTNAME CSRJSON
+        cfssl gencert -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] CSRJSON
+        cfssl gencert -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSRJSON
 
 Arguments:
-        HOSTNAME:   Hostname for the cert
         CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
 
-	HOSTNAME should not be included when initalising a new CA.
 Flags:
 `
 
-var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "profile", "label"}
+var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "hostname", "profile", "label"}
 
 func gencertMain(args []string, c cli.Config) (err error) {
-	if c.Hostname == "" && !c.IsCA {
-		c.Hostname, args, err = cli.PopFirstArgument(args)
-		if err != nil {
-			return
-		}
-	}
 
 	csrJSONFile, args, err := cli.PopFirstArgument(args)
 	if err != nil {
@@ -102,11 +94,10 @@ func gencertMain(args []string, c cli.Config) (err error) {
 
 		var cert []byte
 		req := signer.SignRequest{
-			Hostname: c.Hostname,
-			Request:  string(csrBytes),
-			Subject:  nil,
-			Profile:  c.Profile,
-			Label:    c.Label,
+			Request: string(csrBytes),
+			Hosts:   signer.SplitHosts(c.Hostname),
+			Profile: c.Profile,
+			Label:   c.Label,
 		}
 
 		cert, err = s.Sign(req)

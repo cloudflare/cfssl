@@ -5,7 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/api/bundle"
+	"github.com/cloudflare/cfssl/api/generator"
+	"github.com/cloudflare/cfssl/api/info"
+	"github.com/cloudflare/cfssl/api/initca"
+	"github.com/cloudflare/cfssl/api/scan"
+	apisign "github.com/cloudflare/cfssl/api/sign"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -34,14 +39,14 @@ func registerHandlers(c cli.Config) error {
 	if err != nil {
 		log.Warningf("sign and authsign endpoints are disabled: %v", err)
 	} else {
-		if signHandler, err := api.NewSignHandlerFromSigner(s); err == nil {
+		if signHandler, err := apisign.NewHandlerFromSigner(s); err == nil {
 			log.Info("Assigning handler to /sign")
 			http.Handle("/api/v1/cfssl/sign", signHandler)
 		} else {
 			log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
 		}
 
-		if signHandler, err := api.NewAuthSignHandler(s); err == nil {
+		if signHandler, err := apisign.NewAuthHandlerFromSigner(s); err == nil {
 			log.Info("Assigning handler to /authsign")
 			http.Handle("/api/v1/cfssl/authsign", signHandler)
 		} else {
@@ -50,7 +55,7 @@ func registerHandlers(c cli.Config) error {
 	}
 
 	log.Info("Setting up info endpoint")
-	infoHandler, err := api.NewInfoHandler(s)
+	infoHandler, err := info.NewHandler(s)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/info' is disabled: %v", err)
 	} else {
@@ -61,12 +66,12 @@ func registerHandlers(c cli.Config) error {
 	if err != nil {
 		log.Errorf("endpoint '/api/v1/cfssl/newcert' is disabled")
 	} else {
-		newCertGenerator := api.NewCertGeneratorHandlerFromSigner(api.CSRValidate, s)
+		newCertGenerator := generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, s)
 		http.Handle("/api/v1/cfssl/newcert", newCertGenerator)
 	}
 
 	log.Info("Setting up bundler endpoint")
-	bundleHandler, err := api.NewBundleHandler(c.CABundleFile, c.IntBundleFile)
+	bundleHandler, err := bundle.NewHandler(c.CABundleFile, c.IntBundleFile)
 	if err != nil {
 		log.Warningf("endpoint '/api/v1/cfssl/bundle' is disabled: %v", err)
 	} else {
@@ -74,7 +79,7 @@ func registerHandlers(c cli.Config) error {
 	}
 
 	log.Info("Setting up CSR endpoint")
-	generatorHandler, err := api.NewGeneratorHandler(api.CSRValidate)
+	generatorHandler, err := generator.NewHandler(generator.CSRValidate)
 	if err != nil {
 		log.Errorf("Failed to set up CSR endpoint: %v", err)
 		return err
@@ -82,7 +87,13 @@ func registerHandlers(c cli.Config) error {
 	http.Handle("/api/v1/cfssl/newkey", generatorHandler)
 
 	log.Info("Setting up initial CA endpoint")
-	http.Handle("/api/v1/cfssl/init_ca", api.NewInitCAHandler())
+	http.Handle("/api/v1/cfssl/init_ca", initca.NewHandler())
+
+	log.Info("Setting up scan endpoint")
+	http.Handle("/api/v1/cfssl/scan", scan.NewHandler())
+
+	log.Info("Setting up scaninfo endpoint")
+	http.Handle("/api/v1/cfssl/scaninfo", scan.NewInfoHandler())
 
 	log.Info("Handler set up complete.")
 	return nil

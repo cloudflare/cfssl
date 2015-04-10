@@ -306,13 +306,44 @@ Example:
 The info endpoint returns a list of information on all the CA's
 certificates (those corresponding to the CA's private keys).
 
-Endpoint: "/api/v1/cfssl/remotecert"
+Endpoint: "/api/v1/cfssl/info"
 Method: GET
 
 Example:
 
     cURL call:
     curl 127.0.0.1:8888/api/v1/cfssl/info | python -m json.tool
+
+2.7 SCAN
+
+The scan endpoint returns the output 
+
+Endpoint: "/api/v1/cfssl/scaninfo"
+Method: GET
+
+Example:
+
+    cURL call:
+    curl 127.0.0.1:8888/api/v1/cfssl/scaninfo
+
+
+The scan endpoint returns the output 
+
+Endpoint: "/api/v1/cfssl/scan"
+Method: GET
+Required parameters:
+
+         * host: the hostname for the certificate
+
+Optional parameters:
+         * scanner: regular expression specifying scanner(s) to run
+         * family:  regular expression specifying scan famil(ies) to run
+
+Example:
+
+    cURL call:
+    curl 127.0.0.1:8888/api/v1/cfssl/scan?host=example.com
+
 
 3. CONFIGURATION
 

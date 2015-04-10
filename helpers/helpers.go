@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	pkcs7 "github.com/cloudflare/cfssl/crypto/pkcs7"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 )
@@ -117,13 +118,14 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
-// ParseCertificatesPEM parses a sequence of PEM-encoded certificate and returns them.
+// ParseCertificatesPEM parses a sequence of PEM-encoded certificate and returns them,
+// can handle PEM encoded PKCS #7 structures.
 func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 	var certs []*x509.Certificate
 	var err error
 	certsPEM = bytes.TrimSpace(certsPEM)
 	for len(certsPEM) > 0 {
-		var cert *x509.Certificate
+		var cert []*x509.Certificate
 		cert, certsPEM, err = ParseOneCertificateFromPEM(certsPEM)
 		if err != nil {
 			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed)
@@ -131,7 +133,7 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 			break
 		}
 
-		certs = append(certs, cert)
+		certs = append(certs, cert...)
 	}
 	if len(certsPEM) > 0 {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
@@ -151,7 +153,8 @@ func ParseSelfSignedCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	return cert, nil
 }
 
-// ParseCertificatePEM parses and returns a PEM-encoded certificate.
+// ParseCertificatePEM parses and returns a PEM-encoded certificate,
+// can handle PEM encoded PKCS #7 structures.
 func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	certPEM = bytes.TrimSpace(certPEM)
 	cert, rest, err := ParseOneCertificateFromPEM(certPEM)
@@ -162,39 +165,50 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	} else if cert == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	} else if len(rest) > 0 {
-		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("The PEM file should contain only one certificate."))
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("The PEM file should contain only one object."))
+	} else if len(cert) > 1 {
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("The PKCS7 object in the PEM file should contain only one certificate"))
 	}
-	return cert, nil
+	return cert[0], nil
 }
 
-// ParseOneCertificateFromPEM attempts to parse one certificate from the top of the certsPEM,
-// which may contain multiple certs.
-func ParseOneCertificateFromPEM(certsPEM []byte) (cert *x509.Certificate, rest []byte, err error) {
+// ParseOneCertificateFromPEM attempts to parse one PEM encoded certificate object,
+// either a raw x509 certificate or a PKCS #7 structure possibly containing
+// multiple certificates, from the top of certsPEM, which itself may
+// contain multiple PEM encoded certificate objects.
+func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, error) {
+
 	block, rest := pem.Decode(certsPEM)
 	if block == nil {
 		return nil, rest, nil
 	}
-	cert, err = x509.ParseCertificate(block.Bytes)
+
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, rest, err
+		pkcs7data, err := pkcs7.ParsePKCS7(block.Bytes)
+		if err != nil {
+			return nil, rest, err
+		}
+		certs := pkcs7data.Certificates
+		if certs == nil {
+			return nil, rest, errors.New("Pkcs#7 structure contains no certificates")
+		}
+		return certs, rest, nil
 	}
-	return
+	var certs = []*x509.Certificate{cert}
+	return certs, rest, nil
 }
 
 // ParsePrivateKeyPEM parses and returns a PEM-encoded private
 // key. The private key may be either an unencrypted PKCS#8, PKCS#1,
 // or elliptic private key.
 func ParsePrivateKeyPEM(keyPEM []byte) (key crypto.Signer, err error) {
-	keyDER, _ := pem.Decode(keyPEM)
-	if keyDER == nil {
-		return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
+	keyDER, err := GetKeyDERFromPEM(keyPEM)
+	if err != nil {
+		return nil, err
 	}
-	if procType, ok := keyDER.Headers["Proc-Type"]; ok {
-		if strings.Contains(procType, "ENCRYPTED") {
-			return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted)
-		}
-	}
-	return ParsePrivateKeyDER(keyDER.Bytes)
+
+	return ParsePrivateKeyDER(keyDER)
 }
 
 // ParsePrivateKeyDER parses a PKCS #1, PKCS #8, or elliptic curve
@@ -223,5 +237,21 @@ func ParsePrivateKeyDER(keyDER []byte) (key crypto.Signer, err error) {
 		return generalKey.(*ecdsa.PrivateKey), nil
 	}
 
+	// should never reach here
 	return nil, cferr.New(cferr.PrivateKeyError, cferr.ParseFailed)
+}
+
+// GetKeyDERFromPEM parses a PEM-encoded private key and returns DER-format key bytes.
+func GetKeyDERFromPEM(in []byte) ([]byte, error) {
+	keyDER, _ := pem.Decode(in)
+	if keyDER != nil {
+		if procType, ok := keyDER.Headers["Proc-Type"]; ok {
+			if strings.Contains(procType, "ENCRYPTED") {
+				return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted)
+			}
+		}
+		return keyDER.Bytes, nil
+	}
+
+	return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
 }
