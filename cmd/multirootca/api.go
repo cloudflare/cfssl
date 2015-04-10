@@ -25,10 +25,14 @@ type filter func(string, *signer.SignRequest) bool
 
 var filters = map[string][]filter{}
 
+type signerStats struct {
+	Counter metrics.Counter
+	Rate    metrics.Meter
+}
+
 var stats struct {
 	Registry         metrics.Registry
-	Requests         map[string]metrics.Counter
-	RequestRate      map[string]metrics.Meter
+	Requests         map[string]signerStats
 	TotalRequestRate metrics.Meter
 	ErrorPercent     metrics.GaugeFloat64
 	ErrorRate        metrics.Meter
@@ -37,13 +41,14 @@ var stats struct {
 func initStats() {
 	stats.Registry = metrics.NewRegistry()
 
-	stats.Requests = map[string]metrics.Counter{}
-	stats.RequestRate = map[string]metrics.Meter{}
+	stats.Requests = map[string]signerStats{}
 
 	// signers is defined in ca.go
 	for k := range signers {
-		stats.Requests[k] = metrics.NewRegisteredCounter("requests:"+k, stats.Registry)
-		stats.RequestRate[k] = metrics.NewRegisteredMeter("request-rate:"+k, stats.Registry)
+		stats.Requests[k] = signerStats{
+			Counter: metrics.NewRegisteredCounter("requests:"+k, stats.Registry),
+			Rate:    metrics.NewRegisteredMeter("request-rate:"+k, stats.Registry),
+		}
 	}
 
 	stats.TotalRequestRate = metrics.NewRegisteredMeter("total-request-rate", stats.Registry)
@@ -121,8 +126,8 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		sigRequest.Label = defaultLabel
 	}
 
-	stats.Requests[sigRequest.Label].Inc(1)
-	stats.RequestRate[sigRequest.Label].Mark(1)
+	stats.Requests[sigRequest.Label].Counter.Inc(1)
+	stats.Requests[sigRequest.Label].Rate.Mark(1)
 
 	s, ok := signers[sigRequest.Label]
 	if !ok {
@@ -185,8 +190,23 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func metricsDisallowed(w http.ResponseWriter, req *http.Request) {
+	log.Warning("attempt to access metrics endpoint from external address ", req.RemoteAddr)
+	http.NotFound(w, req)
+}
+
 func dumpMetrics(w http.ResponseWriter, req *http.Request) {
-	out, err := json.Marshal(stats.Registry)
+	log.Info("whitelisted requested for metrics endpoint")
+	var statsOut = struct {
+		Metrics metrics.Registry `json:"metrics"`
+		Signers []string         `json:"signers"`
+	}{stats.Registry, make([]string, 0, len(signers))}
+
+	for signer := range signers {
+		statsOut.Signers = append(statsOut.Signers, signer)
+	}
+
+	out, err := json.Marshal(statsOut)
 	if err != nil {
 		log.Errorf("failed to dump metrics: %v", err)
 	}
