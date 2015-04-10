@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"fmt"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/client"
@@ -161,16 +162,25 @@ func TestRemoteSign(t *testing.T) {
 		if err != nil {
 			t.Fatal("CSR loading error:", err)
 		}
-		certBytes, err := s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr)})
+		testSeq := "7007F"
+		certBytes, err := s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr), SerialSeq: testSeq})
 		if test.errorCallback != nil {
 			test.errorCallback(t, err)
 		} else {
 			if err != nil {
 				t.Fatalf("Expected no error. Got %s. Param %s %d", err.Error(), test.keyAlgo, test.keyLen)
 			}
-			_, err := helpers.ParseCertificatePEM(certBytes)
+			cert, err := helpers.ParseCertificatePEM(certBytes)
 			if err != nil {
 				t.Fatal("Fail to parse returned certificate:", err)
+			}
+			sn := fmt.Sprintf("%X", cert.SerialNumber)
+			fmt.Println("Serial:" +sn)
+			if sn[0:len(testSeq)] != testSeq {
+				t.Fatal("Serial Number did not begin with seq:", sn)
+			}
+			if len(sn) != len(testSeq) + 16 {
+				t.Fatal("Serial Number unexpected length:", sn)
 			}
 		}
 	}
@@ -285,6 +295,7 @@ func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error
 				ExpiryString: "43800h",
 				Expiry:       expiry,
 				CA:           true,
+				UseSerialSeq: true,
 			},
 		},
 	}
