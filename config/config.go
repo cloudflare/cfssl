@@ -40,6 +40,7 @@ type SigningProfile struct {
 	Backdate     time.Duration
 	Provider     auth.Provider
 	RemoteServer string
+	UseSerialSeq bool
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
