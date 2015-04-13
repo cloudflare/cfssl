@@ -122,16 +122,49 @@ func replaceSliceIfEmpty(replaced, newContents *[]string) {
 	}
 }
 
+func whitelistString(keep bool, field *string) {
+	if !keep {
+		*field = ""
+	}
+}
+
+func whitelistStringSlice(keep bool, field *[]string) {
+	if !keep {
+		*field = []string{}
+	}
+}
+
+// whitelistRequest checks the request for a whitelist. If one isn't
+// present, the name is untouched. If it is present, only those fields
+// which are explictly permitted are kept.
+func whitelistRequest(s *signer.Subject, name pkix.Name) pkix.Name {
+	if s == nil || s.Whitelist == nil {
+		return name
+	}
+
+	whitelistString(s.Whitelist.CN, &name.CommonName)
+	whitelistStringSlice(s.Whitelist.C, &name.Country)
+	whitelistStringSlice(s.Whitelist.ST, &name.Province)
+	whitelistStringSlice(s.Whitelist.L, &name.Locality)
+	whitelistStringSlice(s.Whitelist.O, &name.Organization)
+	whitelistStringSlice(s.Whitelist.OU, &name.OrganizationalUnit)
+
+	return name
+}
+
 // PopulateSubjectFromCSR has functionality similar to Name, except
 // it fills the fields of the resulting pkix.Name with req's if the
 // subject's corresponding fields are empty
 func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
-
 	// if no subject, use req
 	if s == nil {
 		return req
 	}
 
+	req = whitelistRequest(s, req)
+	if len(s.Names) == 0 {
+		return req
+	}
 	name := s.Name()
 
 	if name.CommonName == "" {
