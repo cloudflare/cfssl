@@ -667,3 +667,50 @@ func TestOverwriteHosts(t *testing.T) {
 	}
 
 }
+
+func TestWhitelist(t *testing.T) {
+	name := csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "C",
+				ST: "ST",
+				L:  "L",
+				O:  "O",
+				OU: "OU",
+			},
+		},
+		CN: "something dot com",
+	}
+
+	subject := &signer.Subject{
+		Whitelist: &signer.Whitelist{
+			C: true,
+			O: true,
+		},
+	}
+
+	out := whitelistRequest(subject, name.Name())
+	if out.CommonName != "" {
+		t.Fatal("Common name should not have been whitelisted.")
+	}
+
+	if len(out.Country) != 0 && out.Country[0] != "C" {
+		t.Fatalf("Expected country to be whitelisted and preserved, but have %v", out.Country)
+	}
+
+	if len(out.Province) != 0 {
+		t.Fatalf("Expected province to not have been whitelisted, but have %v", out.Province)
+	}
+
+	if len(out.Locality) != 0 {
+		t.Fatalf("Expected locality to not have been whitelisted, but have %v", out.Locality)
+	}
+
+	if len(out.Organization) != 0 && out.Organization[0] != "O" {
+		t.Fatalf("Expected organization to be whitelisted and preserved, but have %v", out.Organization)
+	}
+
+	if len(out.OrganizationalUnit) != 0 {
+		t.Fatalf("Expected organizational unit to not have been whitelisted, but have %v", out.OrganizationalUnit)
+	}
+}
