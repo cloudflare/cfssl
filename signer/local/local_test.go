@@ -667,3 +667,112 @@ func TestOverwriteHosts(t *testing.T) {
 	}
 
 }
+
+func TestWhitelist(t *testing.T) {
+	name := csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "C",
+				ST: "ST",
+				L:  "L",
+				O:  "O",
+				OU: "OU",
+			},
+		},
+		CN: "something dot com",
+	}
+
+	subject := &signer.Subject{
+		Whitelist: &signer.Whitelist{
+			C: true,
+			O: true,
+		},
+	}
+
+	out := whitelistRequest(subject, name.Name())
+	if out.CommonName != "" {
+		t.Fatal("Common name should not have been whitelisted.")
+	}
+
+	if len(out.Country) != 0 && out.Country[0] != "C" {
+		t.Fatalf("Expected country to be whitelisted and preserved, but have %v", out.Country)
+	}
+
+	if len(out.Province) != 0 {
+		t.Fatalf("Expected province to not have been whitelisted, but have %v", out.Province)
+	}
+
+	if len(out.Locality) != 0 {
+		t.Fatalf("Expected locality to not have been whitelisted, but have %v", out.Locality)
+	}
+
+	if len(out.Organization) != 0 && out.Organization[0] != "O" {
+		t.Fatalf("Expected organization to be whitelisted and preserved, but have %v", out.Organization)
+	}
+
+	if len(out.OrganizationalUnit) != 0 {
+		t.Fatalf("Expected organizational unit to not have been whitelisted, but have %v", out.OrganizationalUnit)
+	}
+}
+
+func TestWhitelistSign(t *testing.T) {
+	expectOneValueOf := func(s []string, e, n string) {
+		if len(s) != 1 {
+			t.Fatalf("Expected %s to have a single value, but it has %d values", n, len(s))
+		}
+
+		if s[0] != e {
+			t.Fatalf("Expected %s to be '%s', but it is '%s'", n, e, s[0])
+		}
+	}
+
+	expectEmpty := func(s []string, n string) {
+		if len(s) != 0 {
+			t.Fatalf("Expected no values in %s, but have %d values", n, len(s))
+		}
+	}
+
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	req := &signer.Subject{
+		Names: []csr.Name{
+			{O: "sam certificate authority"},
+		},
+		Whitelist: &signer.Whitelist{
+			OU: true,
+		},
+		CN: "localhost",
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	request := signer.SignRequest{
+		Hosts:   []string{"127.0.0.1", "localhost"},
+		Request: string(csrPEM),
+		Subject: req,
+	}
+
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	name := cert.Subject
+	if name.CommonName != "localhost" {
+		t.Fatalf("Expected certificate common name to be 'localhost' but have '%v'", name.CommonName)
+	}
+
+	expectOneValueOf(name.Organization, "sam certificate authority", "O")
+	expectOneValueOf(name.OrganizationalUnit, "WWW", "OU")
+	expectEmpty(name.Province, "ST")
+	expectEmpty(name.Locality, "L")
+	expectEmpty(name.Country, "C")
+}

@@ -26,11 +26,19 @@ import (
 // MaxPathLen is the default path length for a new CA certificate.
 var MaxPathLen = 2
 
+// A Whitelist marks which fields should be set. As a bool's default
+// value is false, a whitelist should only keep those fields marked
+// true.
+type Whitelist struct {
+	CN, C, ST, L, O, OU bool
+}
+
 // Subject contains the information that should be used to override the
 // subject information when signing a certificate.
 type Subject struct {
-	CN    string
-	Names []csr.Name `json:"names"`
+	CN        string
+	Names     []csr.Name `json:"names"`
+	Whitelist *Whitelist `json:"whitelist,omitempty"`
 }
 
 // SignRequest stores a signature request, which contains the hostname,
