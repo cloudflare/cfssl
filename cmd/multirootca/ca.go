@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"flag"
+	"net"
 	"net/http"
 	"os"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
+	"github.com/kisom/whitelist"
 )
 
 func parseSigner(root *config.Root) (signer.Signer, error) {
@@ -67,13 +69,20 @@ func main() {
 
 	infoHandler, err := info.NewMultiHandler(signers, defaultLabel)
 	if err != nil {
-		log.Critical("%v", err)
+		log.Criticalf("%v", err)
+	}
+
+	var localhost = whitelist.NewBasic()
+	localhost.Add(net.ParseIP("127.0.0.1"))
+	localhost.Add(net.ParseIP("::1"))
+	metrics, err := whitelist.NewHandlerFunc(dumpMetrics, metricsDisallowed, localhost)
+	if err != nil {
+		log.Criticalf("failed to set up the metrics whitelist: %v", err)
 	}
 
 	http.HandleFunc("/api/v1/cfssl/authsign", dispatchRequest)
-	http.HandleFunc("/api/v1/cfssl/metrics", dumpMetrics)
 	http.Handle("/api/v1/cfssl/info", infoHandler)
-
+	http.Handle("/api/v1/cfssl/metrics", metrics)
 	log.Info("listening on ", *flagAddr)
 	log.Error(http.ListenAndServe(*flagAddr, nil))
 }
