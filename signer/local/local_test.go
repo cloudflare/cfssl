@@ -760,7 +760,7 @@ func TestWhitelistSign(t *testing.T) {
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
 			CA:           true,
-			CsrWhitelist:    &config.CsrWhitelist{
+			CSRWhitelist:    &config.CSRWhitelist{
 				PublicKey: true,
 				PublicKeyAlgorithm: true,
 				SignatureAlgorithm: true,

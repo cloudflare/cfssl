@@ -18,16 +18,16 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// A CsrWhitelist stores booleans for fields in the CSR. If a CsrWhitelist is
+// A CSRWhitelist stores booleans for fields in the CSR. If a CSRWhitelist is
 // not present in a SigningProfile, all of these fields may be copied from the
-// CSR into the signed certificate. If a CsrWhitelist *is* present in a
-// SigningProfile, only those fields with a `true` value in the CsrWhitelist may
+// CSR into the signed certificate. If a CSRWhitelist *is* present in a
+// SigningProfile, only those fields with a `true` value in the CSRWhitelist may
 // be copied from the CSR to the signed certificate. Note that some of these
 // fields, like Subject, can be provided or partially provided through the API.
 // Since API clients are expected to be trusted, but CSRs are not, fields
 // provided through the API are not subject to whitelisting through this
 // mechanism.
-type CsrWhitelist struct {
+type CSRWhitelist struct {
 	Subject, PublicKeyAlgorithm, PublicKey, SignatureAlgorithm bool
 	DNSNames, IPAddresses bool
 }
@@ -55,7 +55,7 @@ type SigningProfile struct {
 	Provider     auth.Provider
 	RemoteServer string
 	UseSerialSeq bool
-	CsrWhitelist *CsrWhitelist
+	CSRWhitelist *CSRWhitelist
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
