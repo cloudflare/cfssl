@@ -122,36 +122,6 @@ func replaceSliceIfEmpty(replaced, newContents *[]string) {
 	}
 }
 
-func whitelistString(keep bool, field *string) {
-	if !keep {
-		*field = ""
-	}
-}
-
-func whitelistStringSlice(keep bool, field *[]string) {
-	if !keep {
-		*field = []string{}
-	}
-}
-
-// whitelistRequest checks the request for a whitelist. If one isn't
-// present, the name is untouched. If it is present, only those fields
-// which are explictly permitted are kept.
-func whitelistRequest(s *signer.Subject, name pkix.Name) pkix.Name {
-	if s == nil || s.Whitelist == nil {
-		return name
-	}
-
-	whitelistString(s.Whitelist.CN, &name.CommonName)
-	whitelistStringSlice(s.Whitelist.C, &name.Country)
-	whitelistStringSlice(s.Whitelist.ST, &name.Province)
-	whitelistStringSlice(s.Whitelist.L, &name.Locality)
-	whitelistStringSlice(s.Whitelist.O, &name.Organization)
-	whitelistStringSlice(s.Whitelist.OU, &name.OrganizationalUnit)
-
-	return name
-}
-
 // PopulateSubjectFromCSR has functionality similar to Name, except
 // it fills the fields of the resulting pkix.Name with req's if the
 // subject's corresponding fields are empty
@@ -161,10 +131,6 @@ func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
 		return req
 	}
 
-	req = whitelistRequest(s, req)
-	if len(s.Names) == 0 {
-		return req
-	}
 	name := s.Name()
 
 	if name.CommonName == "" {
@@ -222,15 +188,42 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			cferr.BadRequest, errors.New("not a certificate or csr"))
 	}
 
-	template, err := signer.ParseCertificateRequest(s, block.Bytes)
+	csrTemplate, err := signer.ParseCertificateRequest(s, block.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	OverrideHosts(template, req.Hosts)
-	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
+	// Copy out only the fields from the CSR authorized by policy.
+	safeTemplate := x509.Certificate{}
+	// If the profile contains no explicit whitelist, assume that all fields
+	// should be copied from the CSR.
+	if profile.CSRWhitelist == nil {
+		safeTemplate = *csrTemplate
+	} else {
+		if profile.CSRWhitelist.Subject {
+			safeTemplate.Subject = csrTemplate.Subject
+		}
+		if profile.CSRWhitelist.PublicKeyAlgorithm {
+			safeTemplate.PublicKeyAlgorithm = csrTemplate.PublicKeyAlgorithm
+		}
+		if profile.CSRWhitelist.PublicKey {
+			safeTemplate.PublicKey = csrTemplate.PublicKey
+		}
+		if profile.CSRWhitelist.SignatureAlgorithm {
+			safeTemplate.SignatureAlgorithm = csrTemplate.SignatureAlgorithm
+		}
+		if profile.CSRWhitelist.DNSNames {
+			safeTemplate.DNSNames = csrTemplate.DNSNames
+		}
+		if profile.CSRWhitelist.IPAddresses {
+			safeTemplate.IPAddresses = csrTemplate.IPAddresses
+		}
+	}
 
-	return s.sign(template, profile, serialSeq)
+	OverrideHosts(&safeTemplate, req.Hosts)
+	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
+
+	return s.sign(&safeTemplate, profile, serialSeq)
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

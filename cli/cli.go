@@ -127,7 +127,7 @@ func Start(cmds map[string]*Command) {
 	var err error
 	c.CFG, err = config.LoadFile(c.ConfigFile)
 	if c.ConfigFile != "" && err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config file\n")
+		fmt.Fprintf(os.Stderr, "Failed to load config file: %v", err)
 		os.Exit(1)
 	}
 
