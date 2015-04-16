@@ -92,7 +92,7 @@ var godaddySubjectString = `/Country=US/Province=Arizona/Locality=Scottsdale/Org
 // Also serves as a JSON format regression test.
 func TestBundleMarshalJSON(t *testing.T) {
 	b := newBundler(t)
-	bundle, _ := b.BundleFromPEM(GoDaddyIntermediateCert, nil, Optimal)
+	bundle, _ := b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Optimal, "")
 	bytes, err := json.Marshal(bundle)
 
 	if err != nil {
@@ -167,7 +167,7 @@ func TestBundleMarshalJSON(t *testing.T) {
 
 func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
-	bundle, _ := b.BundleFromFile(leafECDSA256, leafKeyECDSA256, Optimal)
+	bundle, _ := b.BundleFromFile(leafECDSA256, leafKeyECDSA256, Optimal, "")
 	jsonBytes, err := json.Marshal(bundle)
 
 	if err != nil {
@@ -203,7 +203,7 @@ func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 
 func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
-	bundle, _ := b.BundleFromFile(leafRSA2048, leafKeyRSA2048, Optimal)
+	bundle, _ := b.BundleFromFile(leafRSA2048, leafKeyRSA2048, Optimal, "")
 	jsonBytes, err := json.Marshal(bundle)
 
 	if err != nil {
@@ -250,7 +250,7 @@ func TestBundleHostnamesMarshalJSON(t *testing.T) {
 		t.Fatal("Hostnames construction failed for cloudflare.com.", string(hostnames))
 	}
 
-	bundle, _ = b.BundleFromPEM(GoDaddyIntermediateCert, nil, Optimal)
+	bundle, _ = b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Optimal, "")
 	expected := []byte(`["Go Daddy Secure Certification Authority"]`)
 	hostnames, _ = json.Marshal(bundle.Hostnames)
 	if !bytes.Equal(hostnames, expected) {
@@ -262,7 +262,7 @@ func TestBundleHostnamesMarshalJSON(t *testing.T) {
 // Tests on verifying the rebundle flag and error code in Bundle.Status when rebundling.
 func TestRebundleFromPEM(t *testing.T) {
 	newBundler := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, interL1, "")
-	newBundle, err := newBundler.BundleFromPEM(expiredBundlePEM, nil, Optimal)
+	newBundle, err := newBundler.BundleFromPEMorDER(expiredBundlePEM, nil, Optimal, "")
 	if err != nil {
 		t.Fatalf("Re-bundle failed. %s", err.Error())
 	}
@@ -314,7 +314,7 @@ func TestRebundleExpiring(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bundle failed. %s", err.Error())
 	}
-	newBundle, err := bundler.BundleFromPEM(expiredBundlePEM, nil, Optimal)
+	newBundle, err := bundler.BundleFromPEMorDER(expiredBundlePEM, nil, Optimal, "")
 	if err != nil {
 		t.Fatalf("Re-bundle failed. %s", err.Error())
 	}
@@ -349,7 +349,7 @@ func TestUbiquitousBundle(t *testing.T) {
 	ubiquity.Platforms = []ubiquity.Platform{platformA, platformB}
 
 	// Optimal bundle algorithm will picks up the new root and shorten the chain.
-	optimalBundle, err := b.BundleFromFile(leafECDSA256, "", Optimal)
+	optimalBundle, err := b.BundleFromFile(leafECDSA256, "", Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
@@ -363,7 +363,7 @@ func TestUbiquitousBundle(t *testing.T) {
 	checkUbiquityWarningAndCode(t, optimalBundle, true)
 
 	// Ubiquitous bundle will remain the same.
-	ubiquitousBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous)
+	ubiquitousBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed")
 
@@ -385,7 +385,7 @@ func TestUbiquityBundleWithoutMetadata(t *testing.T) {
 
 	// Without platform info, ubiquitous bundling falls back to optimal bundling.
 	ubiquity.Platforms = nil
-	nuBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous)
+	nuBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous-fall-back-to-optimal bundle failed: ", err)
 
@@ -436,7 +436,7 @@ func TestAndroidUbiquitousBundle(t *testing.T) {
 		ubiquity.LoadPlatforms(testMetadata)
 
 		// Optimal bundle algorithm will use the Godaddy Root/GeoTrust CA.
-		optimalBundle, err := b.BundleFromFile(leaf, "", Optimal)
+		optimalBundle, err := b.BundleFromFile(leaf, "", Optimal, "")
 		if err != nil {
 			t.Fatal("Optimal bundle failed:", err)
 		}
@@ -446,7 +446,7 @@ func TestAndroidUbiquitousBundle(t *testing.T) {
 		checkUbiquityWarningAndCode(t, optimalBundle, true)
 
 		// Ubiquitous bundle will include a 2nd intermediate CA.
-		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous)
+		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous, "")
 		if err != nil {
 			t.Fatal("Ubiquitous bundle failed")
 
@@ -468,7 +468,7 @@ func TestForceBundle(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
 	ubiquity.Platforms = nil
 	ubiquity.LoadPlatforms(testMetadata)
-	bundle, err := b.BundleFromFile(firstdataPEM, "", Ubiquitous)
+	bundle, err := b.BundleFromFile(firstdataPEM, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("ubiquitous bundling failed.", err)
 	}
@@ -481,7 +481,7 @@ func TestForceBundle(t *testing.T) {
 		t.Fatal("force bundling failed, incorrect bundle.Status", bundle.Status)
 	}
 
-	bundle, err = b.BundleFromFile(firstdataPEM, "", Force)
+	bundle, err = b.BundleFromFile(firstdataPEM, "", Force, "")
 	if err != nil {
 		t.Fatal("force bundling failed.", err)
 	}
@@ -502,7 +502,7 @@ func testUpdateIntermediate(t *testing.T) {
 	ubiquity.Platforms = nil
 	ubiquity.LoadPlatforms(testMetadata)
 	// forcebundle.pem contains a newer intermediate, which should be used when bundling.
-	ub, err := b.BundleFromFile(forcebundlePEM, "", Ubiquitous)
+	ub, err := b.BundleFromFile(forcebundlePEM, "", Ubiquitous, "")
 
 	if err != nil {
 		t.Fatal("ubiquitous bundling failed.", err)
@@ -517,7 +517,7 @@ func testUpdateIntermediate(t *testing.T) {
 		t.Fatal("force bundling failed, incorrect bundle.Status", ub.Status)
 	}
 
-	fb, err := b.BundleFromFile(forcebundlePEM, "", Force)
+	fb, err := b.BundleFromFile(forcebundlePEM, "", Force, "")
 
 	if err != nil {
 		t.Fatal("force bundling failed.", err)
@@ -541,12 +541,12 @@ func TestForceBundleFallback(t *testing.T) {
 		ubiquity.Platforms = nil
 		ubiquity.LoadPlatforms(testMetadata)
 
-		forceBundle, err := b.BundleFromFile(leaf, "", Force)
+		forceBundle, err := b.BundleFromFile(leaf, "", Force, "")
 		if err != nil {
 			t.Fatal("Force bundle failed:", err)
 		}
 
-		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous)
+		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous, "")
 		if err != nil {
 			t.Fatal("Ubiquitous bundle failed")
 
@@ -565,7 +565,7 @@ func TestSHA2Homogeneity(t *testing.T) {
 	ubiquity.LoadPlatforms(testMetadata)
 	// The input PEM bundle is 3-cert chain with a cross-signed GeoTrust certificate,
 	// aimed to provide cert ubiquity to Android 2.2
-	bundle, err := b.BundleFromFile(bunningsPEM, "", Force)
+	bundle, err := b.BundleFromFile(bunningsPEM, "", Force, "")
 	if err != nil {
 		t.Fatal("Force bundle failed:", err)
 	}
@@ -577,7 +577,7 @@ func TestSHA2Homogeneity(t *testing.T) {
 	}
 
 	// With ubiquity flavor, we should not sacrifice Android 2.2 and rebundle with a shorter chain.
-	bundle, err = b.BundleFromFile(bunningsPEM, "", Ubiquitous)
+	bundle, err = b.BundleFromFile(bunningsPEM, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed:", err)
 	}
@@ -590,7 +590,7 @@ func TestSHA2Homogeneity(t *testing.T) {
 
 	// With optimal flavor, we should have a shorter chain with only SHA-2 intermediates. But Android 2.2
 	// is untrusted.
-	bundle, err = b.BundleFromFile(bunningsPEM, "", Optimal)
+	bundle, err = b.BundleFromFile(bunningsPEM, "", Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
@@ -642,14 +642,14 @@ func checkECDSAWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 func TestSHA2Warning(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
 	// Optimal bundle algorithm will use the Godaddy Root/GeoTrust CA.
-	optimalBundle, err := b.BundleFromFile(riotPEM, "", Optimal)
+	optimalBundle, err := b.BundleFromFile(riotPEM, "", Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
 	checkSHA2WarningAndCode(t, optimalBundle, true)
 
 	// Ubiquitous bundle will include a 2nd intermediate CA.
-	ubiquitousBundle, err := b.BundleFromFile(riotPEM, "", Ubiquitous)
+	ubiquitousBundle, err := b.BundleFromFile(riotPEM, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed")
 
@@ -662,7 +662,7 @@ func TestSHA2Warning(t *testing.T) {
 func TestECDSAWarning(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCAFile, interL1SHA1, "")
 	// Optimal
-	optimalBundle, err := b.BundleFromFile(interL2SHA1, "", Optimal)
+	optimalBundle, err := b.BundleFromFile(interL2SHA1, "", Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}

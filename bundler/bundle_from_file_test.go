@@ -371,7 +371,7 @@ var fileTests = []fileTest{
 func TestBundleFromFile(t *testing.T) {
 	for _, test := range fileTests {
 		b := newCustomizedBundlerFromFile(t, test.caBundleFile, test.intBundleFile, test.extraIntermediates)
-		bundle, err := b.BundleFromFile(test.cert, test.key, Optimal)
+		bundle, err := b.BundleFromFile(test.cert, test.key, Optimal, "")
 		if test.errorCallback != nil {
 			test.errorCallback(t, err)
 		} else {

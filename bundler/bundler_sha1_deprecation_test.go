@@ -21,6 +21,7 @@ const (
 
 func TestChromeWarning(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, sha1CA, sha1Intermediate, "")
+
 	s, err := local.NewSignerFromFile(sha1Intermediate, intermediateKey, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +40,7 @@ func TestChromeWarning(t *testing.T) {
 	}
 
 	// Bundle a leaf cert with default 1 year expiration
-	bundle, err := b.BundleFromPEM(certBytes, nil, Ubiquitous)
+	bundle, err := b.BundleFromPEMorDER(certBytes, nil, Ubiquitous, "")
 	if err != nil {
 		t.Fatal("bundling failed: ", err)
 	}
