@@ -71,13 +71,6 @@ The subject contains:
           * 'ST': the state or province
         * CN: the certificate's Common Name.
 
-	* whitelist: if not null, this structure contains a set of
-        boolean fields indicating which fields should be accepted from
-        the client CSR. These fields are CN, C, L, O, OU, and ST. Any
-        fields not explicitly set to true will not be copied from the
-        CSR. However, if the whitelist is null, it will not be
-        checked.
-
 Result: { "certificate": "-----BEGIN CERTIFICATE..." }
 
 2.2 BUNDLING
