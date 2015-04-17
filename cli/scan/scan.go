@@ -21,7 +21,7 @@ var scanFlags = []string{"list", "family", "scanner"}
 
 func printJSON(v interface{}) {
 	b, _ := json.MarshalIndent(v, "", "  ")
-	fmt.Printf("%s\n", b)
+	fmt.Printf("%s\n\n", b)
 }
 
 func scanMain(args []string, c cli.Config) (err error) {
@@ -35,6 +35,8 @@ func scanMain(args []string, c cli.Config) (err error) {
 			if err != nil {
 				return
 			}
+
+			fmt.Printf("Scanning %s...\n", host)
 
 			var results map[string]scan.FamilyResult
 			results, err = scan.Default.RunScans(host, c.Family, c.Scanner)
