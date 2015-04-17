@@ -68,3 +68,24 @@ func TestGeneratorRESTfulVerbs(t *testing.T) {
 		t.Fatal(resp.Status)
 	}
 }
+
+type ResponseEx struct {
+}
+
+func (r *ResponseEx) Header() Header {
+	return map["1"][]
+}
+
+func (r *ResponseEx) Write([]byte) (int, error) {
+	return (1, "error")
+}
+
+func (r *ResponseEx) WriteHeader(int) {
+	return 5
+}
+
+func TestInvalidHTTP(t *testing.T) {
+	req, _ = http.NewRequest("", ts.URL, data)
+	resW, _ = ResponseEx
+	h := Handle(resW, req)
+}
