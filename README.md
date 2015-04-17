@@ -9,6 +9,11 @@ CFSSL is CloudFlare's SSL swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling SSL
 certificates. It requires Go 1.4 to build.
 
+Note that certain linux distributions have certain algorithms removed
+(RHEL-based distributions in particular), so the golang from the 
+official repositories will not work. Users of these distributions should
+[install go manually](golang.org) to install CFSSL.
+
 ### Installation
 
 Installation requires a [working Go
