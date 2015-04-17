@@ -150,20 +150,20 @@ func testSign(t *testing.T) {
 	badcert := *cert
 	badcert.PublicKey = nil
 	profl := config.SigningProfile{Usage: []string{"Certificates", "Rule"}}
-	_, err = signer.sign(&badcert, &profl)
+	_, err = signer.sign(&badcert, &profl, "")
 
 	if err == nil {
 		t.Fatal("Improper input failed to raise an error")
 	}
 
 	// nil profile
-	_, err = signer.sign(cert, &profl)
+	_, err = signer.sign(cert, &profl, "")
 	if err == nil {
 		t.Fatal("Nil profile failed to raise an error")
 	}
 
 	// empty profile
-	_, err = signer.sign(cert, &config.SigningProfile{})
+	_, err = signer.sign(cert, &config.SigningProfile{}, "")
 	if err == nil {
 		t.Fatal("Empty profile failed to raise an error")
 	}
@@ -171,7 +171,7 @@ func testSign(t *testing.T) {
 	// empty expiry
 	prof := signer.policy.Default
 	prof.Expiry = 0
-	_, err = signer.sign(cert, prof)
+	_, err = signer.sign(cert, prof, "")
 	if err != nil {
 		t.Fatal("nil expiry raised an error")
 	}
@@ -181,7 +181,7 @@ func testSign(t *testing.T) {
 	prof.CRL = "stuff"
 	prof.OCSP = "stuff"
 	prof.IssuerURL = []string{"stuff"}
-	_, err = signer.sign(cert, prof)
+	_, err = signer.sign(cert, prof, "")
 	if err != nil {
 		t.Fatal("non nil urls raised an error")
 	}
@@ -191,12 +191,12 @@ func testSign(t *testing.T) {
 	prof = signer.policy.Default
 	prof.CA = false
 	nilca.ca = nil
-	_, err = nilca.sign(cert, prof)
+	_, err = nilca.sign(cert, prof, "")
 	if err == nil {
 		t.Fatal("nil ca with isca false raised an error")
 	}
 	prof.CA = true
-	_, err = nilca.sign(cert, prof)
+	_, err = nilca.sign(cert, prof, "")
 	if err != nil {
 		t.Fatal("nil ca with CA true raised an error")
 	}
@@ -666,4 +666,144 @@ func TestOverwriteHosts(t *testing.T) {
 		}
 	}
 
+}
+
+func expectOneValueOf(t *testing.T, s []string, e, n string) {
+	if len(s) != 1 {
+		t.Fatalf("Expected %s to have a single value, but it has %d values", n, len(s))
+	}
+
+	if s[0] != e {
+		t.Fatalf("Expected %s to be '%s', but it is '%s'", n, e, s[0])
+	}
+}
+
+func expectEmpty(t *testing.T, s []string, n string) {
+	if len(s) != 0 {
+		t.Fatalf("Expected no values in %s, but have %d values: %v", n, len(s), s)
+	}
+}
+
+func TestNoWhitelistSign(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	req := &signer.Subject{
+		Names: []csr.Name{
+			{O: "sam certificate authority"},
+		},
+		CN: "localhost",
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+	// No policy CSR whitelist: the normal set of CSR fields get passed through to
+	// certificate.
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"cert sign", "crl sign"},
+			ExpiryString: "1h",
+			Expiry:       1 * time.Hour,
+			CA:           true,
+		},
+	}
+
+	request := signer.SignRequest{
+		Hosts:   []string{"127.0.0.1", "localhost"},
+		Request: string(csrPEM),
+		Subject: req,
+	}
+
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	name := cert.Subject
+	if name.CommonName != "localhost" {
+		t.Fatalf("Expected certificate common name to be 'localhost' but have '%v'", name.CommonName)
+	}
+
+	// CSR has: Subject: C=US, O=CloudFlare, OU=WWW, L=Ithaca, ST=New York
+	// Expect all to be passed through.
+	expectOneValueOf(t, name.Organization, "sam certificate authority", "O")
+	expectOneValueOf(t, name.OrganizationalUnit, "WWW", "OU")
+	expectOneValueOf(t, name.Province, "New York", "ST")
+	expectOneValueOf(t, name.Locality, "Ithaca", "L")
+	expectOneValueOf(t, name.Country, "US", "C")
+}
+
+func TestWhitelistSign(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	req := &signer.Subject{
+		Names: []csr.Name{
+			{O: "sam certificate authority"},
+		},
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+	// Whitelist only key-related fields. Subject, DNSNames, etc shouldn't get
+	// passed through from CSR.
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"cert sign", "crl sign"},
+			ExpiryString: "1h",
+			Expiry:       1 * time.Hour,
+			CA:           true,
+			CSRWhitelist:    &config.CSRWhitelist{
+				PublicKey: true,
+				PublicKeyAlgorithm: true,
+				SignatureAlgorithm: true,
+			},
+		},
+	}
+
+	request := signer.SignRequest{
+		Hosts:   []string{"127.0.0.1", "localhost"},
+		Request: string(csrPEM),
+		Subject: req,
+	}
+
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	name := cert.Subject
+	if name.CommonName != "" {
+		t.Fatalf("Expected empty certificate common name under policy without " +
+			"Subject whitelist, got %v", name.CommonName)
+	}
+	// O is provided by the signing API request, not the CSR, so it's allowed to
+	// be copied into the certificate.
+	expectOneValueOf(t, name.Organization, "sam certificate authority", "O")
+	expectEmpty(t, name.OrganizationalUnit, "OU")
+	expectEmpty(t, name.Province, "ST")
+	expectEmpty(t, name.Locality, "L")
+	expectEmpty(t, name.Country, "C")
+	if cert.PublicKeyAlgorithm != x509.RSA {
+		t.Fatalf("Expected public key algorithm to be RSA")
+	}
+
+	// Signature algorithm is allowed to be copied from CSR, but is overridden by
+	// DefaultSigAlgo.
+	if cert.SignatureAlgorithm != x509.ECDSAWithSHA256 {
+		t.Fatalf("Expected public key algorithm to be ECDSAWithSHA256, got %v",
+			cert.SignatureAlgorithm)
+	}
 }

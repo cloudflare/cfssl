@@ -78,12 +78,13 @@ func NewHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) 
 // hostname field in the API
 // TODO: Change the API such that the normal struct can be used.
 type jsonSignRequest struct {
-	Hostname string          `json:"hostname"`
-	Hosts    []string        `json:"hosts"`
-	Request  string          `json:"certificate_request"`
-	Subject  *signer.Subject `json:"subject,omitempty"`
-	Profile  string          `json:"profile"`
-	Label    string          `json:"label"`
+	Hostname  string          `json:"hostname"`
+	Hosts     []string        `json:"hosts"`
+	Request   string          `json:"certificate_request"`
+	Subject   *signer.Subject `json:"subject,omitempty"`
+	Profile   string          `json:"profile"`
+	Label     string          `json:"label"`
+	SerialSeq string          `json:"serial_sequence,omitempty"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -97,20 +98,22 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 
 	if js.Hostname != "" {
 		return signer.SignRequest{
-			Hosts:   signer.SplitHosts(js.Hostname),
-			Subject: sub,
-			Request: js.Request,
-			Profile: js.Profile,
-			Label:   js.Label,
+			Hosts:     signer.SplitHosts(js.Hostname),
+			Subject:   sub,
+			Request:   js.Request,
+			Profile:   js.Profile,
+			Label:     js.Label,
+			SerialSeq: js.SerialSeq,
 		}
 	}
 
 	return signer.SignRequest{
-		Hosts:   js.Hosts,
-		Subject: sub,
-		Request: js.Request,
-		Profile: js.Profile,
-		Label:   js.Label,
+		Hosts:     js.Hosts,
+		Subject:   sub,
+		Request:   js.Request,
+		Profile:   js.Profile,
+		Label:     js.Label,
+		SerialSeq: js.SerialSeq,
 	}
 }
 

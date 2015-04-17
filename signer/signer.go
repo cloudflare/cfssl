@@ -12,6 +12,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"strings"
@@ -25,21 +26,30 @@ import (
 // MaxPathLen is the default path length for a new CA certificate.
 var MaxPathLen = 2
 
+// A Whitelist marks which fields should be set. As a bool's default
+// value is false, a whitelist should only keep those fields marked
+// true.
+type Whitelist struct {
+	CN, C, ST, L, O, OU bool
+}
+
 // Subject contains the information that should be used to override the
 // subject information when signing a certificate.
 type Subject struct {
-	CN    string
-	Names []csr.Name `json:"names"`
+	CN        string
+	Names     []csr.Name `json:"names"`
+	Whitelist *Whitelist `json:"whitelist,omitempty"`
 }
 
 // SignRequest stores a signature request, which contains the hostname,
 // the CSR, optional subject information, and the signature profile.
 type SignRequest struct {
-	Hosts   []string `json:"hosts"`
-	Request string   `json:"certificate_request"`
-	Subject *Subject `json:"subject,omitempty"`
-	Profile string   `json:"profile"`
-	Label   string   `json:"label"`
+	Hosts     []string `json:"hosts"`
+	Request   string   `json:"certificate_request"`
+	Subject   *Subject `json:"subject,omitempty"`
+	Profile   string   `json:"profile"`
+	Label     string   `json:"label"`
+	SerialSeq string   `json:"serial_sequence,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -218,7 +228,7 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 // the certificate template as possible from the profiles and current
 // template. It fills in the key uses, expiration, revocation URLs,
 // serial number, and SKI.
-func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile) error {
+func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile, serialSeq string) error {
 	ski, err := ComputeSKI(template)
 
 	var (
@@ -272,8 +282,17 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	}
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+
 	if err != nil {
 		return cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
+	}
+
+	if serialSeq != "" {
+		randomPart := fmt.Sprintf("%016X", serialNumber) // 016 ensures we're left-0-padded
+		_, ok := serialNumber.SetString(serialSeq+randomPart, 16)
+		if !ok {
+			return cferr.Wrap(cferr.CertificateError, cferr.SerialSeqParseError, err)
+		}
 	}
 
 	template.SerialNumber = serialNumber

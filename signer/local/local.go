@@ -76,8 +76,8 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	return NewSigner(priv, parsedCa, signer.DefaultSigAlgo(priv), policy)
 }
 
-func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
-	err = signer.FillTemplate(template, s.policy.Default, profile)
+func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile, serialSeq string) (cert []byte, err error) {
+	err = signer.FillTemplate(template, s.policy.Default, profile, serialSeq)
 	if err != nil {
 		return
 	}
@@ -126,7 +126,6 @@ func replaceSliceIfEmpty(replaced, newContents *[]string) {
 // it fills the fields of the resulting pkix.Name with req's if the
 // subject's corresponding fields are empty
 func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
-
 	// if no subject, use req
 	if s == nil {
 		return req
@@ -174,6 +173,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		profile = s.policy.Default
 	}
 
+	serialSeq := ""
+	if profile.UseSerialSeq {
+		serialSeq = req.SerialSeq
+	}
+
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
@@ -184,15 +188,42 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			cferr.BadRequest, errors.New("not a certificate or csr"))
 	}
 
-	template, err := signer.ParseCertificateRequest(s, block.Bytes)
+	csrTemplate, err := signer.ParseCertificateRequest(s, block.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	OverrideHosts(template, req.Hosts)
-	template.Subject = PopulateSubjectFromCSR(req.Subject, template.Subject)
+	// Copy out only the fields from the CSR authorized by policy.
+	safeTemplate := x509.Certificate{}
+	// If the profile contains no explicit whitelist, assume that all fields
+	// should be copied from the CSR.
+	if profile.CSRWhitelist == nil {
+		safeTemplate = *csrTemplate
+	} else {
+		if profile.CSRWhitelist.Subject {
+			safeTemplate.Subject = csrTemplate.Subject
+		}
+		if profile.CSRWhitelist.PublicKeyAlgorithm {
+			safeTemplate.PublicKeyAlgorithm = csrTemplate.PublicKeyAlgorithm
+		}
+		if profile.CSRWhitelist.PublicKey {
+			safeTemplate.PublicKey = csrTemplate.PublicKey
+		}
+		if profile.CSRWhitelist.SignatureAlgorithm {
+			safeTemplate.SignatureAlgorithm = csrTemplate.SignatureAlgorithm
+		}
+		if profile.CSRWhitelist.DNSNames {
+			safeTemplate.DNSNames = csrTemplate.DNSNames
+		}
+		if profile.CSRWhitelist.IPAddresses {
+			safeTemplate.IPAddresses = csrTemplate.IPAddresses
+		}
+	}
 
-	return s.sign(template, profile)
+	OverrideHosts(&safeTemplate, req.Hosts)
+	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
+
+	return s.sign(&safeTemplate, profile, serialSeq)
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

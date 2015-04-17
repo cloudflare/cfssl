@@ -84,6 +84,9 @@ const (
 
 	// BadRequest indicates that the certificate request is invalid.
 	BadRequest // Code 13XX
+
+	// SerialSeqParseError -- SerialSeq failed to parse as hex digits
+	SerialSeqParseError // Code 14XX
 )
 
 const (
