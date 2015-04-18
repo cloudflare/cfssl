@@ -46,6 +46,8 @@ type Config struct {
 	List              bool
 	Family            string
 	Scanner           string
+	Responses         string
+	Path              string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -80,6 +82,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.BoolVar(&c.List, "list", false, "list possible scanners")
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
+	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
+	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
