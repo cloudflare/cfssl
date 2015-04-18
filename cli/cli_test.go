@@ -8,6 +8,11 @@ import (
 
 var cfsslFlagSet = flag.NewFlagSet("cfssl", flag.ExitOnError)
 
+// The testing style from this package is borrowed from the Go flag
+// library's methodology for testing this. We set flag.Usage to nil,
+// then replace it with a closure to ensure the usage function was
+// called appropriately.
+
 // 'cfssl -help' should be supported.
 func TestHelp(t *testing.T) {
 	called := false

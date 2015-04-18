@@ -38,8 +38,8 @@ import (
 
 // main defines the cfssl usage and registers all defined commands and flags.
 func main() {
-	flag.Usage = nil
 	// Add command names to cfssl usage
+	flag.Usage = nil // this is set to nil for testabilty
 	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 	// Register commands.
 	cmds := map[string]*cli.Command{
