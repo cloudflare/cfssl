@@ -126,14 +126,14 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		sigRequest.Label = defaultLabel
 	}
 
-	stats.Requests[sigRequest.Label].Counter.Inc(1)
-	stats.Requests[sigRequest.Label].Rate.Mark(1)
-
 	s, ok := signers[sigRequest.Label]
 	if !ok {
 		fail(w, req, http.StatusBadRequest, 1, "bad request", "request is for non-existent label "+sigRequest.Label)
 		return
 	}
+
+	stats.Requests[sigRequest.Label].Counter.Inc(1)
+	stats.Requests[sigRequest.Label].Rate.Mark(1)
 
 	// Sanity checks to ensure that we have a valid policy. This
 	// should have been checked in NewAuthSignHandler.
