@@ -3,11 +3,22 @@ package generator
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/signer/local"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+)
 
-	"github.com/cloudflare/cfssl/csr"
+const (
+	testCaFile    = "../testdata/ca.pem"
+	testCaKeyFile = "../testdata/ca_key.pem"
+
+	// second test CA for multiroot
+	testCaFile2    = "../testdata/ca2.pem"
+	testCaKeyFile2 = "../testdata/ca2-key.pem"
 )
 
 func csrData(t *testing.T) *bytes.Reader {
@@ -72,20 +83,76 @@ func TestGeneratorRESTfulVerbs(t *testing.T) {
 type ResponseEx struct {
 }
 
-func (r *ResponseEx) Header() Header {
-	return map["1"][]
+type errorString struct {
+	s string
+}
+
+func (e *errorString) Error() string {
+	return e.s
+}
+
+func (r *ResponseEx) Header() http.Header {
+	h := map[string][]string{
+		"rsc": []string{"hello", "you"},
+	}
+	return h
 }
 
 func (r *ResponseEx) Write([]byte) (int, error) {
-	return (1, "error")
+
+	return 2, &errorString{"error"}
 }
 
 func (r *ResponseEx) WriteHeader(int) {
-	return 5
+
+}
+
+func testValidator(req *csr.CertificateRequest) error {
+	// if req.CN == "" {
+	// 	return errors.NewBadRequestMissingParameter("CN")
+	// }
+
+	return nil
 }
 
 func TestInvalidHTTP(t *testing.T) {
-	req, _ = http.NewRequest("", ts.URL, data)
-	resW, _ = ResponseEx
-	h := Handle(resW, req)
+	var expiry = 1 * time.Minute
+	handler, _ := NewHandler(CSRValidate)
+	ts := httptest.NewServer(handler)
+	data := csrData(t)
+	req, _ := http.NewRequest("Yeah", ts.URL, data)
+	resW := &ResponseEx{}
+	var validSigning = &config.Signing{
+		Profiles: map[string]*config.SigningProfile{
+			"valid": {
+				Usage:  []string{"digital signature"},
+				Expiry: expiry,
+			},
+		},
+		Default: &config.SigningProfile{
+			Usage:  []string{"digital signature"},
+			Expiry: expiry,
+		},
+	}
+
+	signer2, err5 := local.NewSignerFromFile(testCaFile, testCaKeyFile, validSigning)
+	if err5 != nil {
+		t.Fatal(err5)
+	}
+	// _, err := NewCertGeneratorHandler(CSRValidate, testCaFile, testCaKeyFile, validSigning)
+	// if err != nil {
+	// 	t.Fatalf("%v", err)
+	// }
+	ghSigner := NewCertGeneratorHandlerFromSigner(CSRValidate, signer2)
+	if ghSigner == nil {
+		t.Fatalf("%v", ghSigner)
+	}
+	var cgh = &CertGeneratorHandler{
+		generator: &csr.Generator{CSRValidate},
+		signer:    signer2,
+	}
+	h := cgh.Handle(resW, req)
+	if h != nil {
+		t.Fatalf("%v", h)
+	}
 }
