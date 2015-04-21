@@ -84,15 +84,18 @@ func Start(cmds map[string]*Command) {
 
 	registerFlags(&c, cfsslFlagSet)
 	// Initial parse of command line arguments. By convention, only -h/-help is supported.
-	flag.Parse()
 	if flag.Usage == nil {
 		flag.Usage = func() {
 			fmt.Fprintf(os.Stderr, usage)
 			for name := range cmds {
-				fmt.Fprintf(os.Stderr, "%s\n", name)
+				fmt.Fprintf(os.Stderr, "\t%s\n", name)
 			}
+			fmt.Fprintf(os.Stderr, "Top-level flags:\n")
+			flag.PrintDefaults()
 		}
 	}
+
+	flag.Parse()
 
 	if flag.NArg() < 1 {
 		fmt.Fprintf(os.Stderr, "No command is given.\n")
@@ -112,7 +115,7 @@ func Start(cmds map[string]*Command) {
 	// The usage of each individual command is re-written to mention
 	// flags defined and referenced only in that command.
 	cfsslFlagSet.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s", cmd.UsageText)
+		fmt.Fprintf(os.Stderr, "\t%s", cmd.UsageText)
 		for _, name := range cmd.Flags {
 			if f := cfsslFlagSet.Lookup(name); f != nil {
 				printDefaultValue(f)
