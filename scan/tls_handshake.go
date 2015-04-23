@@ -99,6 +99,7 @@ func (cvList cipherVersionList) MarshalJSON() ([]byte, error) {
 func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 	var cvList cipherVersionList
 	allCiphers := allCiphersIDs()
+
 	var vers uint16
 	for vers = tls.VersionTLS12; vers >= tls.VersionSSL30; vers-- {
 		ciphers := make([]uint16, len(allCiphers))
@@ -109,7 +110,7 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 				break
 			}
 			if vers == tls.VersionSSL30 {
-				grade = Legacy
+				grade = Warning
 			}
 			cipherID := ciphers[cipherIndex]
 			for i, c := range cvList {
@@ -123,11 +124,16 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 			ciphers = append(ciphers[:cipherIndex], ciphers[cipherIndex+1:]...)
 		}
 	}
-	if grade != Legacy && len(cvList) > 0 {
-		grade = Good
-	} else {
+
+	if len(cvList) == 0 {
 		err = errors.New("couldn't negotiate any cipher suites")
+		return
 	}
+
+	if grade != Warning {
+		grade = Good
+	}
+
 	output = cvList
 	return
 }

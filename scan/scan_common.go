@@ -1,7 +1,6 @@
 package scan
 
 import (
-	"fmt"
 	"net"
 	"regexp"
 	"time"
@@ -23,8 +22,8 @@ type Grade int
 const (
 	// Bad describes a host with serious misconfiguration or vulnerability.
 	Bad Grade = iota
-	// Legacy describes a host with non-ideal configuration that maintains support for legacy clients.
-	Legacy
+	// Warning describes a host with non-ideal configuration that maintains support for Warning clients.
+	Warning
 	// Good describes host performing the expected state-of-the-art.
 	Good
 	// Skipped descibes the "grade" of a scan that has been skipped.
@@ -36,8 +35,8 @@ func (g Grade) String() string {
 	switch g {
 	case Bad:
 		return "Bad"
-	case Legacy:
-		return "Legacy"
+	case Warning:
+		return "Warning"
 	case Good:
 		return "Good"
 	case Skipped:
@@ -48,8 +47,41 @@ func (g Grade) String() string {
 }
 
 // Output is the result of a scan, to be stored for potential use by later Scanners.
-type Output interface {
-	fmt.Stringer
+type Output interface{}
+
+type scanFunc func(string) (Grade, Output, error)
+
+// multiscan scans all DNS addresses returned for the host, returning the lowest grade
+// and the concatenation of all the output.
+func multiscan(host string, scan scanFunc) (grade Grade, output Output, err error) {
+	domain, port, _ := net.SplitHostPort(host)
+	var addrs []string
+	addrs, err = net.LookupHost(domain)
+	if err != nil {
+		return
+	}
+
+	grade = Good
+	out := make(map[string]Output)
+
+	for _, addr := range addrs {
+		var g Grade
+		var o Output
+
+		g, o, err = scan(net.JoinHostPort(addr, port))
+		if err != nil {
+			grade = Bad
+			return
+		}
+
+		if g < grade {
+			grade = g
+		}
+
+		out[addr] = o
+	}
+	output = out
+	return
 }
 
 // Scanner describes a type of scan to perform on a host.
@@ -57,7 +89,7 @@ type Scanner struct {
 	// Description describes the nature of the scan to be performed.
 	Description string `json:"description"`
 	// scan is the function that scans the given host and provides a Grade and Output.
-	scan func(host string) (Grade, Output, error)
+	scan scanFunc
 }
 
 // Scan performs the scan to be performed on the given host and stores its result.
@@ -87,13 +119,14 @@ var Default = FamilySet{
 	"TLSHandshake": TLSHandshake,
 	"TLSSession":   TLSSession,
 	"PKI":          PKI,
+	"Broad":        Broad,
 }
 
 // ScannerResult contains the result for a single scan.
 type ScannerResult struct {
 	Grade  string `json:"grade"`
 	Output Output `json:"output,omitempty"`
-	Error  error  `json:"error,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 // FamilyResult contains a scan response for a single Family
@@ -125,11 +158,16 @@ func (fs FamilySet) RunScans(host, family, scanner string) (map[string]FamilyRes
 			for scannerName, scanner := range family.Scanners {
 				if scannerRegexp.MatchString(scannerName) {
 					grade, output, err := scanner.Scan(host)
-					scannerResults[scannerName] = ScannerResult{
+
+					result := ScannerResult{
 						Grade:  grade.String(),
 						Output: output,
-						Error:  err,
 					}
+					if err != nil {
+						result.Error = err.Error()
+					}
+
+					scannerResults[scannerName] = result
 				}
 			}
 
