@@ -113,7 +113,7 @@ func chainValidation(host string) (grade Grade, output Output, err error) {
 		case x509.ECDSAWithSHA1:
 			warnings = append(warnings, fmt.Sprintf("%s is signed by ECDSAWithSHA1", cert.Subject.CommonName))
 		case x509.SHA1WithRSA:
-			warnings = append(warnings, fmt.Sprintf("%s is signed by ECDSAWithSHA1", cert.Subject.CommonName))
+			warnings = append(warnings, fmt.Sprintf("%s is signed by RSAWithSHA1", cert.Subject.CommonName))
 		}
 	}
 
