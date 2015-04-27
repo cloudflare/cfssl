@@ -233,50 +233,6 @@ func TestPlatformCryptoUbiquity(t *testing.T) {
 	}
 }
 
-func TestPlatformCryptoDeprecation(t *testing.T) {
-	cert1 := rsa1024Cert
-	cert2 := rsa2048Cert
-	pweight1 := 1
-	pweight2 := 10
-	pweight3 := 100
-	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
-	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
-	DeprecationPolicy2014 := &CryptoDeprecationPolicy{Target: "SHA1", EffectiveDate: Jan1st2014, ExpiryDeadline: Jan1st2014}
-	DeprecationPolicy2100 := &CryptoDeprecationPolicy{Target: "SHA2", EffectiveDate: Jan1st2100, ExpiryDeadline: Jan1st2014}
-	// All platforms have the same trust store but are with various crypto suite and deprecation policy.
-	// platformA supports SHA1 only and has no deprecation plan of SHA1.
-	// platformB supports SHA1/SHA2 and will deprecate SHA1 at year 2100.
-	// platformC supports SHA1/SHA2 and will deprecate SHA1 at year 2014.
-	platformA := Platform{Name: "TinySoft", Weight: pweight1, HashAlgo: "SHA1", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
-	platformB := Platform{Name: "SmallSoft", Weight: pweight2, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem", HashDeprecation: DeprecationPolicy2100}
-	platformC := Platform{Name: "LargeSoft", Weight: pweight3, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem", HashDeprecation: DeprecationPolicy2014}
-	platformA.ParseAndLoad()
-	platformB.ParseAndLoad()
-	platformC.ParseAndLoad()
-	Platforms = []Platform{platformA, platformB, platformC}
-	// chain1 is accepted by platform A, B and C. It's not rejected by platFormC because root cert is not subject to SHA1 deprecation.
-	chain1 := []*x509.Certificate{cert1}
-	// chain2 is accepted by platform A, B. It's rejected by platFormC because leaf cert is subject to SHA1 deprecation.
-	chain2 := []*x509.Certificate{cert1, cert1}
-	// chain3 is accepted by platformB and platFormC. It's rejected by platformA due to A's inablity to support SHA2.
-	chain3 := []*x509.Certificate{cert2, cert1}
-
-	if CrossPlatformUbiquity(chain1) != pweight1+pweight2+pweight3 {
-		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain1))
-	}
-	if CrossPlatformUbiquity(chain2) != pweight1+pweight2 {
-		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain2))
-	}
-	if CrossPlatformUbiquity(chain3) != pweight2+pweight3 {
-		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain3))
-	}
-
-	dplatforms := DeprecatedSHA1Platforms(chain2)
-	if len(dplatforms) != 1 || dplatforms[0] != "LargeSoft" {
-		t.Fatal("Incorrect deprecation checking: ", dplatforms)
-	}
-}
-
 func TestSHA2Homogeneity(t *testing.T) {
 	// root-only chain is always SHA2-Homogeneous.
 	chain0 := []*x509.Certificate{rsa1024Cert}
@@ -409,5 +365,67 @@ func TestFilterChainKeyAlgoUbiquity(t *testing.T) {
 	// check there is no reordering
 	if ret[0][0] != rsa2048Cert {
 		t.Fatal("Incorrect chain key algo priority filtering")
+	}
+}
+
+func TestRejectBySHA1Deprecated(t *testing.T) {
+	cert1 := rsa1024Cert
+	cert2 := rsa2048Cert
+	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
+	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
+	browser1 := SHA1Deprecated{Name: "SHA1 should be gone years ago", ExpiryDeadline: Jan1st2014}
+	browser2 := SHA1Deprecated{Name: "SHA1 is perfect for another century", ExpiryDeadline: Jan1st2100}
+	browser3 := SHA1Deprecated{Name: "effectively one century later, reject SHA1 expires on 2014", EffectiveDate: Jan1st2100, ExpiryDeadline: Jan1st2014}
+	// chain1 is accepted univerally. It's not rejected  because root cert is not subject to SHA1 deprecation.
+	chain1 := []*x509.Certificate{cert1}
+	// chain2 is accepted by browser2 and browser3. It's rejected by browser1 because leaf cert is subject to SHA1 deprecation.
+	chain2 := []*x509.Certificate{cert1, cert1}
+	// chain3 is accepted by universally since the leaf cert is signed by SHA-256
+	chain3 := []*x509.Certificate{cert2, cert1}
+
+	if browser1.Reject(chain1) || browser2.Reject(chain1) || browser3.Reject(chain1) {
+		t.Fatal("Incorrect SHA1 deprecation")
+	}
+
+	if !browser1.Reject(chain2) || browser2.Reject(chain2) || browser3.Reject(chain2) {
+		t.Fatal("Incorrect SHA1 deprecation")
+	}
+
+	if browser1.Reject(chain3) || browser2.Reject(chain3) || browser3.Reject(chain3) {
+		t.Fatal("Incorrect SHA1 deprecation")
+	}
+}
+
+func TestDeprecatedSHA1Platforms(t *testing.T) {
+	cert1 := rsa1024Cert
+	cert2 := rsa2048Cert
+	browserName1 := "SHA1 should be gone years ago"
+	browserName2 := "SHA1 is perfect for another century"
+	browserName3 := "No new SHA1 cert after 2014"
+	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
+	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
+	browser1 := SHA1Deprecated{Name: browserName1, ExpiryDeadline: Jan1st2014}
+	browser2 := SHA1Deprecated{Name: browserName2, ExpiryDeadline: Jan1st2100}
+	browser3 := SHA1Deprecated{Name: browserName3, NeverIssueAfter: Jan1st2014}
+	SHA1Deprecateds = []SHA1Deprecated{browser1, browser2, browser3}
+
+	// chain1 is accepted by all 3 browsers. Root certificate is not affected by SHA1 deprecation.
+	chain1 := []*x509.Certificate{cert1}
+	if len(DeprecatedSHA1Platforms(chain1)) != 0 {
+		t.Fatal("Incorrect SHA1 deprecation reporting")
+	}
+
+	// chain2 is accepted by browser2. It's rejected by browser1 because leaf cert is subject to SHA1 deprecation.
+	// And it is rejected by browser3 because it is issued after 01-01-2014.
+	chain2 := []*x509.Certificate{cert1, cert1}
+	list := DeprecatedSHA1Platforms(chain2)
+	if len(list) != 2 || list[0] != browserName1 || list[1] != browserName3 {
+		t.Fatal("Incorrect SHA1 deprecation reporting")
+	}
+
+	// chain3 is accepted by universally
+	chain3 := []*x509.Certificate{cert2, cert1}
+	if len(DeprecatedSHA1Platforms(chain3)) != 0 {
+		t.Fatal("Incorrect SHA1 deprecation reporting")
 	}
 }
