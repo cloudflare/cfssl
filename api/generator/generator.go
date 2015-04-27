@@ -234,8 +234,6 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	var certPEM []byte
-
 	var profile *config.SigningProfile
 	policy := cg.signer.Policy()
 	if policy != nil && policy.Profiles != nil && req.Profile != "" {
@@ -273,7 +271,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	result := map[string]interface{}{
 		"private_key":         string(key),
 		"certificate_request": string(csr),
-		"certificate":         string(certPEM),
+		"certificate":         string(certBytes),
 		"sums": map[string]Sum{
 			"certificate_request": reqSum,
 			"certificate":         certSum,
