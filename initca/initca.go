@@ -23,19 +23,23 @@ import (
 )
 
 // validator contains the default validation logic for certificate
-// requests to the API server. This follows the Baseline Requirements
-// for the Issuance and Management of Publicly-Trusted Certificates,
-// v.1.1.6, from the CA/Browser Forum
-// (https://cabforum.org). Specifically, section 10.2.3 ("Information
-// Requirements"), states:
-//
-// "Applicant information MUST include, but not be limited to, at least one
-// Fully-Qualified Domain Name or IP address to be included in the Certificate’s
-// SubjectAltName extension."
+// authority certificates. The only requirement here is that the
+// certificate have a non-empty subject field.
 func validator(req *csr.CertificateRequest) error {
-	if len(req.Hosts) == 0 {
-		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
+	if req.CN != "" {
+		return nil
 	}
+
+	if len(req.Names) == 0 {
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
+	}
+
+	for i := range req.Names {
+		if csr.IsNameEmpty(req.Names[i]) {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
+		}
+	}
+
 	return nil
 }
 

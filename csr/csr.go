@@ -10,6 +10,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"strings"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -233,4 +234,14 @@ func (g *Generator) ProcessRequest(req *CertificateRequest) (csr, key []byte, er
 		return nil, nil, err
 	}
 	return
+}
+
+// IsNameEmpty returns true if the name has no identifying information in it.
+func IsNameEmpty(n Name) bool {
+	empty := func(s string) bool { return strings.TrimSpace(s) == "" }
+
+	if empty(n.C) && empty(n.ST) && empty(n.L) && empty(n.O) && empty(n.OU) {
+		return true
+	}
+	return false
 }
