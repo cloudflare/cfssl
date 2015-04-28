@@ -371,3 +371,41 @@ func TestWeakCSR(t *testing.T) {
 		t.Fatalf("Request should have failed.")
 	}
 }
+
+var testEmpty = []struct {
+	name Name
+	ok   bool
+}{
+	{
+		Name{},
+		true,
+	},
+	{
+		Name{C: "OK"},
+		false,
+	},
+	{
+		Name{ST: "OK"},
+		false,
+	},
+	{
+		Name{L: "OK"},
+		false,
+	},
+	{
+		Name{O: "OK"},
+		false,
+	},
+	{
+		Name{OU: "OK"},
+		false,
+	},
+}
+
+func TestIsNameEmpty(t *testing.T) {
+	for i, c := range testEmpty {
+		if IsNameEmpty(c.name) != c.ok {
+			t.Fatalf("%d: expected IsNameEmpty to return %v, but have %v", i, c.ok, !c.ok)
+		}
+	}
+}
