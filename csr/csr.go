@@ -194,12 +194,7 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
-		// The use of CertificateError was a matter of some
-		// debate; it is the one edge case in which a new
-		// error category specifically for CSRs might be
-		// useful, but it was deemed that one edge case did
-		// not a new category justify.
-		err = cferr.Wrap(cferr.CertificateError, cferr.BadRequest, err)
+		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
 		return
 	}
 	block := pem.Block{

@@ -49,6 +49,9 @@ const (
 
 	// OCSPError indicates a problem with OCSP signing
 	OCSPError // 8XXX
+
+	// CSRError indicates a problem with CSR parsing
+	CSRError // 9XXX
 )
 
 // None is a non-specified error.
@@ -307,6 +310,21 @@ func New(category Category, reason Reason) *Error {
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category APIClientError.",
 				reason))
 		}
+	case CSRError:
+		switch reason {
+		case Unknown:
+			msg = "CSR parsing failed due to unknown error"
+		case ReadFailed:
+			msg = "CSR file read failed"
+		case ParseFailed:
+			msg = "CSR Parsing failed"
+		case DecodeFailed:
+			msg = "CSR Decode failed"
+		case BadRequest:
+			msg = "CSR Bad request"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category APIClientError.", reason))
+		}
 
 	default:
 		panic(fmt.Sprintf("Unsupported CF-SSL error type: %d.",
@@ -342,7 +360,7 @@ func Wrap(category Category, reason Reason, err error) *Error {
 				errorCode += unknownAuthority
 			}
 		}
-	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError:
+	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError, CSRError:
 		// no-op, just use the error
 	default:
 		panic(fmt.Sprintf("Unsupported CF-SSL error type: %d.",

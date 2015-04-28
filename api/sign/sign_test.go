@@ -335,7 +335,7 @@ var signTests = []signTest{
 		CSRFile:            testBrokenCSRFile,
 		ExpectedHTTPStatus: http.StatusBadRequest,
 		ExpectedSuccess:    false,
-		ExpectedErrorCode:  1002,
+		ExpectedErrorCode:  9002,
 	},
 }
 

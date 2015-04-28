@@ -176,6 +176,31 @@ func TestNew(t *testing.T) {
 	if code != 7500 {
 		t.Fatal("Improper error code")
 	}
+
+	code = New(CSRError, Unknown).ErrorCode
+	if code != 9000 {
+		t.Fatal("Improper error code")
+	}
+	code = New(CSRError, ReadFailed).ErrorCode
+	if code != 9001 {
+		t.Fatal("Improper error code")
+	}
+	code = New(CSRError, DecodeFailed).ErrorCode
+	if code != 9002 {
+		t.Fatal("Improper error code")
+	}
+	code = New(CSRError, ParseFailed).ErrorCode
+	if code != 9003 {
+		t.Fatal("Improper error code")
+	}
+	code = New(CSRError, KeyMismatch).ErrorCode
+	if code != 9300 {
+		t.Fatal("Improper error code")
+	}
+	code = New(CSRError, BadRequest).ErrorCode
+	if code != 9300 {
+		t.Fatal("Improper error code")
+	}
 }
 
 func TestWrap(t *testing.T) {
