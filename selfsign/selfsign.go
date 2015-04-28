@@ -28,13 +28,13 @@ func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x50
 
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
-		err = cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
 		return
 	}
 
 	err = signer.CheckSignature(csr, csr.SignatureAlgorithm, csr.RawTBSCertificateRequest, csr.Signature)
 	if err != nil {
-		err = cferr.Wrap(cferr.CertificateError, cferr.KeyMismatch, err)
+		err = cferr.Wrap(cferr.CSRError, cferr.KeyMismatch, err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 
 	p, _ := pem.Decode(csrPEM)
 	if p == nil || p.Type != "CERTIFICATE REQUEST" {
-		return nil, cferr.New(cferr.CertificateError, cferr.BadRequest)
+		return nil, cferr.New(cferr.CSRError, cferr.BadRequest)
 	}
 
 	template, err := parseCertificateRequest(priv, p.Bytes)
@@ -108,7 +108,7 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 	now := time.Now()
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
-		err = cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
+		err = cferr.Wrap(cferr.CSRError, cferr.Unknown, err)
 		return nil, err
 	}
 
