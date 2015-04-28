@@ -1,4 +1,4 @@
-// Package csr implements certificate requests for CF-SSL.
+// Package csr implements certificate requests for CFSSL.
 package csr
 
 import (

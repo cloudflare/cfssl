@@ -1,5 +1,5 @@
 // Package helpers implements utility functionality common to many
-// CF-SSL packages.
+// CFSSL packages.
 package helpers
 
 import (

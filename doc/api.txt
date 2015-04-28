@@ -1,11 +1,11 @@
-CF-SSL API
+CFSSL API
 
 1. OVERVIEW
 
-The CF-SSL API allows applications to access the functionality of
-CF-SSL over an unauthenticated HTTP connection. Due to the fact that
+The CFSSL API allows applications to access the functionality of
+CFSSL over an unauthenticated HTTP connection. Due to the fact that
 the API is currently unauthenticated, it is important to understand
-that the CF-SSL API server must be running in a trusted environment.
+that the CFSSL API server must be running in a trusted environment.
 
 The API currently provides endpoints for the following functions:
 

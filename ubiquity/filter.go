@@ -1,4 +1,4 @@
-// Package ubiquity contains the ubiquity scoring logic for CF-SSL bundling.
+// Package ubiquity contains the ubiquity scoring logic for CFSSL bundling.
 package ubiquity
 
 // Ubiquity is addressed as selecting the chains that are most likely being accepted for different client systems.

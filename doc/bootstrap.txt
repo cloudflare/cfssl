@@ -1,11 +1,11 @@
-Bootstrapping CF-SSL
+Bootstrapping CFSSL
 ====================
 
-CF-SSL has no other dependencies besides a working Go 1.3 installation.
+CFSSL has no other dependencies besides a working Go 1.3 installation.
 It uses only standard library components, besides those packages
 included in the software.
 
-1. Installing CF-SSL
+1. Installing CFSSL
 
 ```
 go get -u github.com/cloudflare/cfssl/cmd/cfssl

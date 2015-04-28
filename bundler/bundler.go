@@ -1,5 +1,5 @@
 // Package bundler implements certificate bundling functionality for
-// CF-SSL.
+// CFSSL.
 package bundler
 
 import (
