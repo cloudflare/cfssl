@@ -38,7 +38,7 @@ func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(err)
 	}
 
-	key, cert, err := initca.New(req)
+	key, _, cert, err := initca.New(req)
 	if err != nil {
 		log.Warningf("failed to initialise new CA: %v", err)
 		return err

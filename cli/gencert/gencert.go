@@ -52,7 +52,7 @@ func gencertMain(args []string, c cli.Config) (err error) {
 		if err != nil {
 			log.Errorf("%v\n", err)
 			log.Infof("generating a new CA key and certificate from CSR")
-			cert, key, err = initca.New(&req)
+			cert, _, key, err = initca.New(&req)
 			if err != nil {
 				return
 			}

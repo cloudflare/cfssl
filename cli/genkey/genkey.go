@@ -41,13 +41,13 @@ func genkeyMain(args []string, c cli.Config) (err error) {
 	}
 
 	if c.IsCA {
-		var key, cert []byte
-		cert, key, err = initca.New(&req)
+		var key, csrPEM, cert []byte
+		cert, csrPEM, key, err = initca.New(&req)
 		if err != nil {
 			return
 		}
 
-		cli.PrintCert(key, nil, cert)
+		cli.PrintCert(key, csrPEM, cert)
 	} else {
 		if req.CA != nil {
 			err = errors.New("ca section only permitted in initca")
