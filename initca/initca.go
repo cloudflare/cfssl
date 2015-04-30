@@ -44,7 +44,7 @@ func validator(req *csr.CertificateRequest) error {
 }
 
 // New creates a new root certificate from the certificate request.
-func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
+func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
 			CAPolicy.Default.ExpiryString = req.CA.Expiry
@@ -57,7 +57,7 @@ func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
 	}
 
 	g := &csr.Generator{Validator: validator}
-	csr, key, err := g.ProcessRequest(req)
+	csrPEM, key, err = g.ProcessRequest(req)
 	if err != nil {
 		log.Errorf("failed to process request: %v", err)
 		key = nil
@@ -77,7 +77,7 @@ func New(req *csr.CertificateRequest) (cert, key []byte, err error) {
 	}
 	s.SetPolicy(CAPolicy)
 
-	signReq := signer.SignRequest{Hosts: req.Hosts, Request: string(csr)}
+	signReq := signer.SignRequest{Hosts: req.Hosts, Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
 
 	return

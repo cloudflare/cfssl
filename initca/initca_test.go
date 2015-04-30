@@ -93,7 +93,7 @@ func TestInitCA(t *testing.T) {
 				Size: param.keyLen,
 			},
 		}
-		certBytes, keyBytes, err := New(req)
+		certBytes, _, keyBytes, err := New(req)
 		if err != nil {
 			t.Fatal("InitCA failed:", err)
 		}
@@ -190,7 +190,7 @@ func TestInvalidCryptoParams(t *testing.T) {
 				Size: test.keyLen,
 			},
 		}
-		_, _, err := New(req)
+		_, _, _, err := New(req)
 		if err == nil {
 			t.Fatal("InitCA with bad params should fail:", err)
 		}
