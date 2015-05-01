@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/cli/bundle"
 	"github.com/cloudflare/cfssl/cli/gencert"
 	"github.com/cloudflare/cfssl/cli/genkey"
+	"github.com/cloudflare/cfssl/cli/info"
 	"github.com/cloudflare/cfssl/cli/ocspserve"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/scan"
@@ -54,6 +55,7 @@ func main() {
 		"ocspserve": ocspserve.Command,
 		"selfsign":  selfsign.Command,
 		"scan":      scan.Command,
+		"info":      info.Command,
 	}
 	// Register all command flags.
 	cli.Start(cmds)
