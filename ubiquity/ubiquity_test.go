@@ -10,13 +10,14 @@ import (
 )
 
 const (
-	rsa1024  = "testdata/rsa1024sha1.pem"
-	rsa2048  = "testdata/rsa2048sha2.pem"
-	rsa3072  = "testdata/rsa3072sha2.pem"
-	rsa4096  = "testdata/rsa4096sha2.pem"
-	ecdsa256 = "testdata/ecdsa256sha2.pem"
-	ecdsa384 = "testdata/ecdsa384sha2.pem"
-	ecdsa521 = "testdata/ecdsa521sha2.pem"
+	rsa1024    = "testdata/rsa1024sha1.pem"
+	rsa2048    = "testdata/rsa2048sha2.pem"
+	rsa3072    = "testdata/rsa3072sha2.pem"
+	rsa4096    = "testdata/rsa4096sha2.pem"
+	ecdsa256   = "testdata/ecdsa256sha2.pem"
+	ecdsa384   = "testdata/ecdsa384sha2.pem"
+	ecdsa521   = "testdata/ecdsa521sha2.pem"
+	caMetadata = "testdata/ca.pem.metadata"
 )
 
 var rsa1024Cert, rsa2048Cert, rsa3072Cert, rsa4096Cert, ecdsa256Cert, ecdsa384Cert, ecdsa521Cert *x509.Certificate
@@ -26,6 +27,7 @@ func readCert(filename string) *x509.Certificate {
 	cert, _ := helpers.ParseCertificatePEM(bytes)
 	return cert
 }
+
 func init() {
 	rsa1024Cert = readCert(rsa1024)
 	rsa2048Cert = readCert(rsa2048)
@@ -176,6 +178,55 @@ func TestChainKeyAlgoUbiquity(t *testing.T) {
 
 }
 
+func TestChainExpiryUbiquity(t *testing.T) {
+	// rsa1024Cert expires at year 2024
+	// rsa2048Cert expires at year 2019
+	// ecdsa256Cert expires at year 2019
+	chain1 := []*x509.Certificate{ecdsa256Cert, rsa2048Cert}
+	chain2 := []*x509.Certificate{ecdsa256Cert, rsa1024Cert}
+	if CompareExpiryUbiquity(chain1, chain2) >= 0 {
+		t.Fatal("Incorrect chain expiry ubiquity")
+	}
+
+	if CompareExpiryUbiquity(chain2, chain1) <= 0 {
+		t.Fatal("Incorrect chain expiry ubiquity")
+	}
+
+	if CompareExpiryUbiquity(chain1, chain1) != 0 {
+		t.Fatal("Incorrect chain expiry ubiquity")
+	}
+}
+
+func TestCompareChainExpiry(t *testing.T) {
+	// rsa1024Cert expires at 2024
+	// rsa2048Cert expires at 2019
+	// ecdsa256Cert expires at 2019
+	// both chain expires at year 2019.
+	chain1 := []*x509.Certificate{ecdsa256Cert, rsa2048Cert}
+	chain2 := []*x509.Certificate{ecdsa256Cert, rsa1024Cert}
+	if CompareChainExpiry(chain1, chain2) != 0 {
+		t.Fatal("Incorrect chain expiry")
+	}
+
+	if CompareExpiryUbiquity(chain1, chain1) != 0 {
+		t.Fatal("Incorrect chain expiry")
+	}
+}
+
+func TestCompareChainLength(t *testing.T) {
+	chain1 := []*x509.Certificate{ecdsa256Cert, rsa2048Cert}
+	chain2 := []*x509.Certificate{rsa1024Cert}
+	chain3 := []*x509.Certificate{rsa2048Cert}
+	// longer chain is ranked lower
+	if CompareChainLength(chain1, chain2) >= 0 {
+		t.Fatal("Incorrect chain length comparison")
+	}
+
+	if CompareChainLength(chain2, chain3) != 0 {
+		t.Fatal("Incorrect chain length comparison")
+	}
+}
+
 func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	cert1 := rsa1024Cert
 	cert2 := rsa2048Cert
@@ -184,14 +235,17 @@ func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	// "Macrosoft" has all three certs.
 	// "Godzilla" has two certs, cert1 and cert2.
 	// "Pinapple" has cert1.
+	// "Colorful" has no key store data, default to trust any cert
 	// All platforms support the same crypto suite.
 	platformA := Platform{Name: "MacroSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformB := Platform{Name: "Godzilla", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/godzilla.pem"}
 	platformC := Platform{Name: "Pineapple", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/pineapple.pem"}
+	platformD := Platform{Name: "Colorful", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: ""}
 	platformA.ParseAndLoad()
 	platformB.ParseAndLoad()
 	platformC.ParseAndLoad()
-	Platforms = []Platform{platformA, platformB, platformC}
+	platformD.ParseAndLoad()
+	Platforms = []Platform{platformA, platformB, platformC, platformD}
 	// chain1 with root cert1 (RSA1024, SHA1), has the largest platform coverage.
 	// chain2 with root cert2 (RSA2048, SHA2), has the second largest coverage.
 	// chain3 with root cert3 (ECDSA256, SHA2), has the least coverage.
@@ -203,6 +257,50 @@ func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	}
 	if CrossPlatformUbiquity(chain2) < CrossPlatformUbiquity(chain3) {
 		t.Fatal("Incorrect cross platform ubiquity")
+	}
+
+	if ComparePlatformUbiquity(chain1, chain2) < 0 {
+		t.Fatal("Incorrect cross platform ubiquity")
+	}
+
+	if ComparePlatformUbiquity(chain2, chain3) < 0 {
+		t.Fatal("Incorrect cross platform ubiquity")
+	}
+
+	// test UntrustedPlatforms()
+	u1 := UntrustedPlatforms(cert1)
+	if len(u1) != 0 {
+		t.Fatal("Incorrect UntrustedPlatforms")
+	}
+	u2 := UntrustedPlatforms(cert2)
+	if len(u2) != 1 {
+		t.Fatal("Incorrect UntrustedPlatforms")
+	}
+	u3 := UntrustedPlatforms(cert3)
+	if len(u3) != 2 {
+		t.Fatal("Incorrect UntrustedPlatforms")
+	}
+
+}
+
+func TestEmptyPlatformList(t *testing.T) {
+	Platforms = []Platform{}
+	cert := rsa1024Cert
+	chain := []*x509.Certificate{cert}
+	if CrossPlatformUbiquity(chain) != 0 {
+		t.Fatal("Incorrect cross platform ubiquity when Platforms is empty")
+	}
+	// test UntrustedPlatforms()
+	u1 := UntrustedPlatforms(cert)
+	if len(u1) != 0 {
+		t.Fatal("Incorrect UntrustedPlatforms when Platforms is empty")
+	}
+}
+
+func TestLoadPlatforms(t *testing.T) {
+	err := LoadPlatforms(caMetadata)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -215,9 +313,11 @@ func TestPlatformCryptoUbiquity(t *testing.T) {
 	platformA := Platform{Name: "TinySoft", Weight: 100, HashAlgo: "SHA1", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformB := Platform{Name: "SmallSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformC := Platform{Name: "LargeSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/macrosoft.pem"}
+	platformD := Platform{Name: "LargeSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA384", KeyStoreFile: "testdata/macrosoft.pem"}
 	platformA.ParseAndLoad()
 	platformB.ParseAndLoad()
 	platformC.ParseAndLoad()
+	platformD.ParseAndLoad()
 	Platforms = []Platform{platformA, platformB, platformC}
 	// chain1 with root cert1 (RSA1024, SHA1), has the largest platform coverage.
 	// chain2 with root cert2 (RSA2048, SHA2), has the second largest coverage.
@@ -231,49 +331,13 @@ func TestPlatformCryptoUbiquity(t *testing.T) {
 	if CrossPlatformUbiquity(chain2) < CrossPlatformUbiquity(chain3) {
 		t.Fatal("Incorrect cross platform ubiquity")
 	}
-}
 
-func TestPlatformCryptoDeprecation(t *testing.T) {
-	cert1 := rsa1024Cert
-	cert2 := rsa2048Cert
-	pweight1 := 1
-	pweight2 := 10
-	pweight3 := 100
-	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
-	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
-	DeprecationPolicy2014 := &CryptoDeprecationPolicy{Target: "SHA1", EffectiveDate: Jan1st2014, ExpiryDeadline: Jan1st2014}
-	DeprecationPolicy2100 := &CryptoDeprecationPolicy{Target: "SHA2", EffectiveDate: Jan1st2100, ExpiryDeadline: Jan1st2014}
-	// All platforms have the same trust store but are with various crypto suite and deprecation policy.
-	// platformA supports SHA1 only and has no deprecation plan of SHA1.
-	// platformB supports SHA1/SHA2 and will deprecate SHA1 at year 2100.
-	// platformC supports SHA1/SHA2 and will deprecate SHA1 at year 2014.
-	platformA := Platform{Name: "TinySoft", Weight: pweight1, HashAlgo: "SHA1", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem"}
-	platformB := Platform{Name: "SmallSoft", Weight: pweight2, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem", HashDeprecation: DeprecationPolicy2100}
-	platformC := Platform{Name: "LargeSoft", Weight: pweight3, HashAlgo: "SHA2", KeyAlgo: "RSA", KeyStoreFile: "testdata/macrosoft.pem", HashDeprecation: DeprecationPolicy2014}
-	platformA.ParseAndLoad()
-	platformB.ParseAndLoad()
-	platformC.ParseAndLoad()
-	Platforms = []Platform{platformA, platformB, platformC}
-	// chain1 is accepted by platform A, B and C. It's not rejected by platFormC because root cert is not subject to SHA1 deprecation.
-	chain1 := []*x509.Certificate{cert1}
-	// chain2 is accepted by platform A, B. It's rejected by platFormC because leaf cert is subject to SHA1 deprecation.
-	chain2 := []*x509.Certificate{cert1, cert1}
-	// chain3 is accepted by platformB and platFormC. It's rejected by platformA due to A's inablity to support SHA2.
-	chain3 := []*x509.Certificate{cert2, cert1}
-
-	if CrossPlatformUbiquity(chain1) != pweight1+pweight2+pweight3 {
-		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain1))
-	}
-	if CrossPlatformUbiquity(chain2) != pweight1+pweight2 {
-		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain2))
-	}
-	if CrossPlatformUbiquity(chain3) != pweight2+pweight3 {
-		t.Fatal("Incorrect cross platform ubiquity: ", CrossPlatformUbiquity(chain3))
+	if ComparePlatformUbiquity(chain1, chain2) < 0 {
+		t.Fatal("Incorrect cross platform ubiquity")
 	}
 
-	dplatforms := DeprecatedSHA1Platforms(chain2)
-	if len(dplatforms) != 1 || dplatforms[0] != "LargeSoft" {
-		t.Fatal("Incorrect deprecation checking: ", dplatforms)
+	if ComparePlatformUbiquity(chain1, chain2) < 0 {
+		t.Fatal("Incorrect cross platform ubiquity")
 	}
 }
 
@@ -327,6 +391,23 @@ func TestCompareSHA2Homogeneity(t *testing.T) {
 	}
 }
 
+func TestFilterTrivial(t *testing.T) {
+	var chain []*x509.Certificate
+	var chains [][]*x509.Certificate
+	ret := Filter(chains, CompareChainHashPriority)
+	if len(ret) != 0 {
+		t.Fatal("Incorrect filtering")
+	}
+
+	chain = []*x509.Certificate{rsa2048Cert}
+	chains = [][]*x509.Certificate{chain}
+
+	ret = Filter(chains, CompareChainHashPriority)
+	if len(ret) != 1 {
+		t.Fatal("Incorrect filtering")
+	}
+}
+
 func TestFilterChainHashPriority(t *testing.T) {
 	var chain1, chain2 []*x509.Certificate
 	chain1 = []*x509.Certificate{rsa2048Cert}  // SHA256
@@ -342,6 +423,7 @@ func TestFilterChainHashPriority(t *testing.T) {
 	if ret[0][0] != ecdsa384Cert {
 		t.Fatal("Incorrect chain hash priority filtering")
 	}
+
 }
 
 func TestFilterChainKeyAlgoPriority(t *testing.T) {
@@ -409,5 +491,67 @@ func TestFilterChainKeyAlgoUbiquity(t *testing.T) {
 	// check there is no reordering
 	if ret[0][0] != rsa2048Cert {
 		t.Fatal("Incorrect chain key algo priority filtering")
+	}
+}
+
+func TestRejectBySHA1Deprecated(t *testing.T) {
+	cert1 := rsa1024Cert
+	cert2 := rsa2048Cert
+	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
+	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
+	browser1 := SHA1Deprecated{Name: "SHA1 should be gone years ago", ExpiryDeadline: Jan1st2014}
+	browser2 := SHA1Deprecated{Name: "SHA1 is perfect for another century", ExpiryDeadline: Jan1st2100}
+	browser3 := SHA1Deprecated{Name: "effectively one century later, reject SHA1 expires on 2014", EffectiveDate: Jan1st2100, ExpiryDeadline: Jan1st2014}
+	// chain1 is accepted univerally. It's not rejected  because root cert is not subject to SHA1 deprecation.
+	chain1 := []*x509.Certificate{cert1}
+	// chain2 is accepted by browser2 and browser3. It's rejected by browser1 because leaf cert is subject to SHA1 deprecation.
+	chain2 := []*x509.Certificate{cert1, cert1}
+	// chain3 is accepted by universally since the leaf cert is signed by SHA-256
+	chain3 := []*x509.Certificate{cert2, cert1}
+
+	if browser1.Reject(chain1) || browser2.Reject(chain1) || browser3.Reject(chain1) {
+		t.Fatal("Incorrect SHA1 deprecation")
+	}
+
+	if !browser1.Reject(chain2) || browser2.Reject(chain2) || browser3.Reject(chain2) {
+		t.Fatal("Incorrect SHA1 deprecation")
+	}
+
+	if browser1.Reject(chain3) || browser2.Reject(chain3) || browser3.Reject(chain3) {
+		t.Fatal("Incorrect SHA1 deprecation")
+	}
+}
+
+func TestDeprecatedSHA1Platforms(t *testing.T) {
+	cert1 := rsa1024Cert
+	cert2 := rsa2048Cert
+	browserName1 := "SHA1 should be gone years ago"
+	browserName2 := "SHA1 is perfect for another century"
+	browserName3 := "No new SHA1 cert after 2014"
+	Jan1st2014 := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
+	Jan1st2100 := time.Date(2100, time.January, 1, 0, 0, 0, 0, time.UTC)
+	browser1 := SHA1Deprecated{Name: browserName1, ExpiryDeadline: Jan1st2014}
+	browser2 := SHA1Deprecated{Name: browserName2, ExpiryDeadline: Jan1st2100}
+	browser3 := SHA1Deprecated{Name: browserName3, NeverIssueAfter: Jan1st2014}
+	SHA1Deprecateds = []SHA1Deprecated{browser1, browser2, browser3}
+
+	// chain1 is accepted by all 3 browsers. Root certificate is not affected by SHA1 deprecation.
+	chain1 := []*x509.Certificate{cert1}
+	if len(DeprecatedSHA1Platforms(chain1)) != 0 {
+		t.Fatal("Incorrect SHA1 deprecation reporting")
+	}
+
+	// chain2 is accepted by browser2. It's rejected by browser1 because leaf cert is subject to SHA1 deprecation.
+	// And it is rejected by browser3 because it is issued after 01-01-2014.
+	chain2 := []*x509.Certificate{cert1, cert1}
+	list := DeprecatedSHA1Platforms(chain2)
+	if len(list) != 2 || list[0] != browserName1 || list[1] != browserName3 {
+		t.Fatal("Incorrect SHA1 deprecation reporting")
+	}
+
+	// chain3 is accepted by universally
+	chain3 := []*x509.Certificate{cert2, cert1}
+	if len(DeprecatedSHA1Platforms(chain3)) != 0 {
+		t.Fatal("Incorrect SHA1 deprecation reporting")
 	}
 }
