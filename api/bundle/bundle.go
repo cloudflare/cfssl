@@ -52,7 +52,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	var result *bundler.Bundle
 	switch matched[0] {
 	case "domain":
-		bundle, err := h.bundler.BundleFromRemote(blob["domain"], blob["ip"], bf)
+		bundle, err := h.bundler.BundleFromRemote(blob["domain"], blob["ip"], "443", bf)
 		if err != nil {
 			log.Warningf("couldn't bundle from remote: %v", err)
 			return err

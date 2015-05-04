@@ -60,7 +60,7 @@ func bundlerMain(args []string, c cli.Config) (err error) {
 			}
 		}
 	} else if c.Domain != "" {
-		bundle, err = b.BundleFromRemote(c.Domain, c.IP, flavor)
+		bundle, err = b.BundleFromRemote(c.Domain, c.IP, "443", flavor)
 		if err != nil {
 			return
 		}

@@ -218,9 +218,9 @@ func (b *Bundler) BundleFromPEMorDER(certsRaw, keyPEM []byte, flavor BundleFlavo
 // BundleFromRemote fetches the certificate served by the server at
 // serverName (or ip, if the ip argument is not the empty string). It
 // is expected that the method will be able to make a connection at
-// port 443. The certificate used by the server in this connection is
+// the input port. The certificate used by the server in this connection is
 // used to build the bundle, which will necessarily be keyless.
-func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (*Bundle, error) {
+func (b *Bundler) BundleFromRemote(serverName, ip, port string, flavor BundleFlavor) (*Bundle, error) {
 	config := &tls.Config{
 		RootCAs:    b.RootPool,
 		ServerName: serverName,
@@ -229,9 +229,9 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 	// Dial by IP if present
 	var dialName string
 	if ip != "" {
-		dialName = ip + ":443"
+		dialName = net.JoinHostPort(ip, port)
 	} else {
-		dialName = serverName + ":443"
+		dialName = net.JoinHostPort(serverName, port)
 	}
 
 	log.Debugf("bundling from remote %s", dialName)
