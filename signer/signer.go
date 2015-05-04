@@ -1,4 +1,4 @@
-// Package signer implements certificate signature functionality for CF-SSL.
+// Package signer implements certificate signature functionality for CFSSL.
 package signer
 
 import (

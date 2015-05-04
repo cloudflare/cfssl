@@ -1,4 +1,4 @@
-// Package config contains the configuration logic for CF-SSL.
+// Package config contains the configuration logic for CFSSL.
 package config
 
 import (

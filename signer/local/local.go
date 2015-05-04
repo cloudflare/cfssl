@@ -1,4 +1,4 @@
-// Package local implements certificate signature functionality for CF-SSL.
+// Package local implements certificate signature functionality for CFSSL.
 package local
 
 import (
