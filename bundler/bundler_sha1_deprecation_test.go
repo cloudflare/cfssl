@@ -57,20 +57,27 @@ func TestChromeWarning(t *testing.T) {
 	}
 
 	fullChain := append(bundle.Chain, bundle.Root)
-	rejectingPlatforms := ubiquity.DeprecatedSHA1Platforms(fullChain)
-	deprecationMessage := deprecateSHA1Warning(rejectingPlatforms)
-	if deprecationMessage == "" {
+	sha1Msgs := ubiquity.SHA1DeprecationMessages(fullChain)
+	// Since the new SHA-1 cert is expired after 2015, it definitely trigger Chrome's deprecation policies.
+	if len(sha1Msgs) == 0 {
 		t.Fatal("SHA1 Deprecation Message should not be empty")
 	}
 	// check SHA1 deprecation warnings
-	foundMsg := false
-	for _, message := range bundle.Status.Messages {
-		if message == deprecationMessage {
-			foundMsg = true
+	var sha1MsgNotFound bool
+	for _, sha1Msg := range sha1Msgs {
+		foundMsg := false
+		for _, message := range bundle.Status.Messages {
+			if message == sha1Msg {
+				foundMsg = true
+			}
+		}
+		if !foundMsg {
+			sha1MsgNotFound = true
+			break
 		}
 	}
-	if !foundMsg {
-		t.Fatalf("Incorrect bundle status messages. Bundle status messages:%s, expected: %s\n", bundle.Status.Messages, deprecationMessage)
+	if sha1MsgNotFound {
+		t.Fatalf("Incorrect bundle status messages. Bundle status messages:%v, expected to contain: %v\n", bundle.Status.Messages, sha1Msgs)
 	}
 
 }

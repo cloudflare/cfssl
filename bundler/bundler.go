@@ -47,12 +47,11 @@ const (
 )
 
 const (
-	sha2Warning              = "The bundle contains certs signed with advanced hash functions such as SHA2,  which are problematic at certain operating systems, e.g. Windows XP SP2."
-	ecdsaWarning             = "The bundle contains ECDSA signatures, which are problematic at certain operating systems, e.g. Windows XP SP2, Android 2.2 and Android 2.3."
-	expiringWarningStub      = "The bundle is expiring within 30 days. "
-	untrustedWarningStub     = "The bundle may not be trusted by the following platform(s):"
-	ubiquityWarning          = "The bundle trust ubiquity is not guaranteed: No platform metadata found."
-	deprecateSHA1WarningStub = "Due to SHA-1 deprecation, the bundle may not be trusted by the following platform(s):"
+	sha2Warning          = "The bundle contains certs signed with advanced hash functions such as SHA2,  which are problematic at certain operating systems, e.g. Windows XP SP2."
+	ecdsaWarning         = "The bundle contains ECDSA signatures, which are problematic at certain operating systems, e.g. Windows XP SP2, Android 2.2 and Android 2.3."
+	expiringWarningStub  = "The bundle is expiring within 30 days. "
+	untrustedWarningStub = "The bundle may not be trusted by the following platform(s):"
+	ubiquityWarning      = "The bundle trust ubiquity is not guaranteed: No platform metadata found."
 )
 
 // A Bundler contains the certificate pools for producing certificate
@@ -656,11 +655,11 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		messages = append(messages, untrustedMsg)
 	}
 	// Check if there is any platform that rejects the chain because of SHA1 deprecation.
-	deprecated := ubiquity.DeprecatedSHA1Platforms(matchingChains[0])
-	if len(deprecated) > 0 {
+	sha1Msgs := ubiquity.SHA1DeprecationMessages(matchingChains[0])
+	if len(sha1Msgs) > 0 {
 		log.Debug("Populate SHA1 deprecation warning.")
 		statusCode |= errors.BundleNotUbiquitousBit
-		messages = append(messages, deprecateSHA1Warning(deprecated))
+		messages = append(messages, sha1Msgs...)
 	}
 
 	bundle.Status = &BundleStatus{ExpiringSKIs: getSKIs(bundle.Chain, expiringCerts), Code: statusCode, Messages: messages, Untrusted: untrusted}
@@ -720,22 +719,6 @@ func untrustedPlatformsWarning(platforms []string) string {
 	}
 
 	msg := untrustedWarningStub
-	for i, platform := range platforms {
-		if i > 0 {
-			msg += ","
-		}
-		msg += " " + platform
-	}
-	msg += "."
-	return msg
-}
-
-// deprecateSHA1Warning generates a warning message with platform names which deprecates SHA1.
-func deprecateSHA1Warning(platforms []string) string {
-	if len(platforms) == 0 {
-		return ""
-	}
-	msg := deprecateSHA1WarningStub
 	for i, platform := range platforms {
 		if i > 0 {
 			msg += ","
