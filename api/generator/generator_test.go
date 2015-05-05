@@ -3,11 +3,19 @@ package generator
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/cloudflare/cfssl/csr"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+)
 
-	"github.com/cloudflare/cfssl/csr"
+const (
+	testCaFile    = "../testdata/ca.pem"
+	testCaKeyFile = "../testdata/ca_key.pem"
+
+	// second test CA for multiroot
+	testCaFile2    = "../testdata/ca2.pem"
+	testCaKeyFile2 = "../testdata/ca2-key.pem"
 )
 
 func csrData(t *testing.T) *bytes.Reader {
