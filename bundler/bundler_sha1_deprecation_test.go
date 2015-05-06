@@ -112,7 +112,7 @@ func TestSHA2Preferences(t *testing.T) {
 	b.IntermediatePool.AddCert(sha1Inter)
 	b.IntermediatePool.AddCert(sha2Inter)
 
-	bundle, err := b.BundleFromPEM(leafBytes, nil, Ubiquitous)
+	bundle, err := b.BundleFromPEMorDER(leafBytes, nil, Ubiquitous, "")
 	if err != nil {
 		t.Fatal("bundling failed: ", err)
 	}
