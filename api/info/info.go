@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/bundler"
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -50,8 +51,22 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
+	var profile *config.SigningProfile
+
+	policy := h.sign.Policy()
+	if policy != nil && policy.Profiles != nil && req.Profile != "" {
+		profile = policy.Profiles[req.Profile]
+	}
+
+	if profile == nil && policy != nil {
+		profile = policy.Default
+	}
+
 	resp := client.InfoResp{
-		Certificate: bundler.PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}),
+		Certificate:  bundler.PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}),
+		Usage:        profile.Usage,
+		ExpiryString: profile.ExpiryString,
 	}
 
 	response := api.NewSuccessResponse(resp)

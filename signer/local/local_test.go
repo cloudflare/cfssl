@@ -760,8 +760,8 @@ func TestWhitelistSign(t *testing.T) {
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
 			CA:           true,
-			CSRWhitelist:    &config.CSRWhitelist{
-				PublicKey: true,
+			CSRWhitelist: &config.CSRWhitelist{
+				PublicKey:          true,
 				PublicKeyAlgorithm: true,
 				SignatureAlgorithm: true,
 			},
@@ -786,7 +786,7 @@ func TestWhitelistSign(t *testing.T) {
 
 	name := cert.Subject
 	if name.CommonName != "" {
-		t.Fatalf("Expected empty certificate common name under policy without " +
+		t.Fatalf("Expected empty certificate common name under policy without "+
 			"Subject whitelist, got %v", name.CommonName)
 	}
 	// O is provided by the signing API request, not the CSR, so it's allowed to

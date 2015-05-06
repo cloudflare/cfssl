@@ -52,6 +52,7 @@ const (
 
 	// CSRError indicates a problem with CSR parsing
 	CSRError // 9XXX
+
 )
 
 // None is a non-specified error.
