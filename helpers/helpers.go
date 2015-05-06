@@ -10,11 +10,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	//"fmt"
 	"strings"
 	"time"
 
-	pkcs7 "github.com/cloudflare/cfssl/crypto/pkcs7"
+	"github.com/cloudflare/cfssl/crypto/pkcs12"
+	"github.com/cloudflare/cfssl/crypto/pkcs7"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -128,6 +131,7 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 		var cert []*x509.Certificate
 		cert, certsPEM, err = ParseOneCertificateFromPEM(certsPEM)
 		if err != nil {
+
 			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed)
 		} else if cert == nil {
 			break
@@ -139,6 +143,37 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	}
 	return certs, nil
+}
+
+// ParseCertificatesDER parses a DER encoding of a certificate object and possibly private key,
+// either PKCS #7, PKCS #12, or raw x509.
+func ParseCertificatesDER(certsDER []byte, password string) ([]*x509.Certificate, crypto.Signer, error) {
+	var certs []*x509.Certificate
+	var key crypto.Signer
+	certsDER = bytes.TrimSpace(certsDER)
+	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
+	if err != nil {
+		pkcs12data, err := pkcs12.ParsePKCS12(certsDER, []byte(password))
+		if err != nil {
+			certs, err = x509.ParseCertificates(certsDER)
+			if err != nil {
+				//fmt.Println("\n\n\n\n\n\nCRITICALZONE\n\n\n\n\n\n\n\n\n\n")
+				return nil, nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
+			}
+		} else {
+			key = pkcs12data.PrivateKey
+			certs = pkcs12data.Certificates
+		}
+	} else {
+		if pkcs7data.ContentInfo != "SignedData" {
+			return nil, nil, cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed, errors.New("Can only extract certificates from signed data content info"))
+		}
+		certs = pkcs7data.Content.SignedData.Certificates
+	}
+	if certs == nil {
+		return nil, key, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
+	}
+	return certs, key, nil
 }
 
 // ParseSelfSignedCertificatePEM parses a PEM-encoded certificate and check if it is self-signed.
@@ -189,9 +224,12 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 		if err != nil {
 			return nil, rest, err
 		}
-		certs := pkcs7data.Certificates
+		if pkcs7data.ContentInfo != "SignedData" {
+			return nil, rest, errors.New("Only PKCS #7 Signed Data Content Info supported for certificate parsing")
+		}
+		certs := pkcs7data.Content.SignedData.Certificates
 		if certs == nil {
-			return nil, rest, errors.New("Pkcs#7 structure contains no certificates")
+			return nil, rest, errors.New("PKCS #7 structure contains no certificates")
 		}
 		return certs, rest, nil
 	}
@@ -208,37 +246,7 @@ func ParsePrivateKeyPEM(keyPEM []byte) (key crypto.Signer, err error) {
 		return nil, err
 	}
 
-	return ParsePrivateKeyDER(keyDER)
-}
-
-// ParsePrivateKeyDER parses a PKCS #1, PKCS #8, or elliptic curve
-// DER-encoded private key. The key must not be in PEM format.
-func ParsePrivateKeyDER(keyDER []byte) (key crypto.Signer, err error) {
-	generalKey, err := x509.ParsePKCS8PrivateKey(keyDER)
-	if err != nil {
-		generalKey, err = x509.ParsePKCS1PrivateKey(keyDER)
-		if err != nil {
-			generalKey, err = x509.ParseECPrivateKey(keyDER)
-			if err != nil {
-				// We don't include the actual error into
-				// the final error. The reason might be
-				// we don't want to leak any info about
-				// the private key.
-				return nil, cferr.New(cferr.PrivateKeyError,
-					cferr.ParseFailed)
-			}
-		}
-	}
-
-	switch generalKey.(type) {
-	case *rsa.PrivateKey:
-		return generalKey.(*rsa.PrivateKey), nil
-	case *ecdsa.PrivateKey:
-		return generalKey.(*ecdsa.PrivateKey), nil
-	}
-
-	// should never reach here
-	return nil, cferr.New(cferr.PrivateKeyError, cferr.ParseFailed)
+	return derhelpers.ParsePrivateKeyDER(keyDER)
 }
 
 // GetKeyDERFromPEM parses a PEM-encoded private key and returns DER-format key bytes.

@@ -14,7 +14,7 @@ var bundlerUsageText = `cfssl bundle -- create a certificate bundle that contain
 
 Usage of bundle:
 	- Bundle local certificate files
-        cfssl bundle -cert file [-ca-bundle file] [-int-bundle file] [-metadata file] [-key keyfile] [-flavor optimal|ubiquitous|force]
+        cfssl bundle -cert file [-ca-bundle file] [-int-bundle file] [-metadata file] [-key keyfile] [-flavor optimal|ubiquitous|force] [-password password]
 	- Bundle certificate from remote server.
         cfssl bundle -domain domain_name [-ip ip_address] [-ca-bundle file] [-int-bundle file] [-metadata file]
 
@@ -22,7 +22,7 @@ Flags:
 `
 
 // flags used by 'cfssl bundle'
-var bundlerFlags = []string{"cert", "key", "ca-bundle", "int-bundle", "flavor", "metadata", "domain", "ip"}
+var bundlerFlags = []string{"cert", "key", "ca-bundle", "int-bundle", "flavor", "metadata", "domain", "ip", "password"}
 
 // bundlerMain is the main CLI of bundler functionality.
 func bundlerMain(args []string, c cli.Config) (err error) {
@@ -48,13 +48,13 @@ func bundlerMain(args []string, c cli.Config) (err error) {
 					return
 				}
 			}
-			bundle, err = b.BundleFromPEM(certPEM, keyPEM, flavor)
+			bundle, err = b.BundleFromPEMorDER(certPEM, keyPEM, flavor, "")
 			if err != nil {
 				return
 			}
 		} else {
 			// Bundle the client cert
-			bundle, err = b.BundleFromFile(c.CertFile, c.KeyFile, flavor)
+			bundle, err = b.BundleFromFile(c.CertFile, c.KeyFile, flavor, c.Password)
 			if err != nil {
 				return
 			}

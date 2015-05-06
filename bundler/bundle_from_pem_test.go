@@ -69,7 +69,7 @@ var pemTests = []pemTest{
 func TestBundleFromPEM(t *testing.T) {
 	for _, test := range pemTests {
 		b := test.bundlerConstructor(t)
-		bundle, err := b.BundleFromPEM(test.cert, test.key, Optimal)
+		bundle, err := b.BundleFromPEMorDER(test.cert, test.key, Optimal, "")
 		if test.errorCallback != nil {
 			test.errorCallback(t, err)
 		} else {

@@ -22,6 +22,7 @@ type Config struct {
 	IntBundleFile     string
 	Address           string
 	Port              int
+	Password          string
 	ConfigFile        string
 	CFG               *config.Config
 	Profile           string
@@ -84,6 +85,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
+	f.StringVar(&c.Password, "password", "", "Password for accessing PKCS #12 data passed to bundler")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")

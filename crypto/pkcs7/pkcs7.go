@@ -1,7 +1,7 @@
 // Package pkcs7 implements the subset of the CMS PKCS #7 datatype that is typically
 // used to package certificates and CRLs.  Using openssl, every certificate converted
 // to PKCS #7 format from another encoding such as PEM conforms to this implementation.
-// reference: https://www.openssl.org/docs/apps/crl2pkcs7.html)
+// reference: https://www.openssl.org/docs/apps/crl2pkcs7.html
 //
 //			PKCS #7 Data type, reference: https://tools.ietf.org/html/rfc2315
 //
@@ -16,10 +16,12 @@
 //			}
 //
 // There are 6 possible ContentTypes, data, signedData, envelopedData,
-// signedAndEnvelopedData, digestedData, and encryptedData.  Here onlysignedData is
-// implemented, as the degenerate case of signedData without a signature is the typical
-// format for transferring certificates and CRLS. The ContentType signedData has the
-// form:
+// signedAndEnvelopedData, digestedData, and encryptedData.  Here signedData, Data, and encrypted
+// Data are implemented, as the degenerate case of signedData without a signature is the typical
+// format for transferring certificates and CRLS, and Data and encryptedData are used in PKCS #12
+// formats.
+// The ContentType signedData has the form:
+//
 //
 //			signedData ::= SEQUENCE {
 //				version Version,
@@ -36,12 +38,21 @@
 // usage.  The ExtendedCertificatesAndCertificates type consists of a sequence of choices
 // between PKCS #6 extended certificates andx509 certificates.  Any sequence consisting
 // of any number of  extended certificates is not yet supported in this implementation
+//
+// The ContentType Data is simpy a raw octet string and is parsed directly into a Go []byte
+//
+// The ContentType encryptedData is the most complicated and its form can be gathered by
+// the go type below.  It essentially contains a raw octet string of encrypted data and an
+// algorithm identifier for use in decrypting this data
 package pkcs7
 
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"errors"
+
+	cferr "github.com/cloudflare/cfssl/errors"
 )
 
 // Types used for asn1 Unmarshaling
@@ -55,22 +66,64 @@ type signedData struct {
 	SignerInfos      asn1.RawValue
 }
 
-type content struct {
-	SignedData signedData
-}
-
 type initPKCS7 struct {
 	Raw         asn1.RawContent
 	ContentType asn1.ObjectIdentifier
-	Content     content `asn1:"tag:0"`
+	Content     asn1.RawValue `asn1:"tag:0,explicit,optional"`
 }
 
-// PKCS7 represents the ASN1 PKCS7 degenerate signedData content type
+// Object identifiers strings of the three implemented PKCS7 types
+const (
+	ObjIDData          = "1.2.840.113549.1.7.1"
+	ObjIDSignedData    = "1.2.840.113549.1.7.2"
+	ObjIDEncryptedData = "1.2.840.113549.1.7.6"
+)
+
+// PKCS7 represents the ASN1 PKCS #7 Content type.  It contains one of three
+// possible types of Content objects, as denoted by the object identifier in
+// the ContentInfo field, the other two being nil.  SignedData
+// is the degenerate SignedData Content info without signature used
+// to hold certificates and crls.  Data is raw bytes, and EncryptedData
+// is as defined in PKCS #7 standard
 type PKCS7 struct {
+	Raw         asn1.RawContent
+	ContentInfo string
+	Content     Content
+}
+
+// Content implements three of the six possible PKCS7 data types.  Only one is non-nil
+type Content struct {
+	Data          []byte
+	SignedData    SignedData
+	EncryptedData EncryptedData
+}
+
+// SignedData defines the typical carrier of certificates and crls
+type SignedData struct {
 	Raw          asn1.RawContent
 	Version      int
 	Certificates []*x509.Certificate
 	Crl          *pkix.CertificateList
+}
+
+// Data contains raw bytes.  Used as a subtype in PKCS12
+type Data struct {
+	Bytes []byte
+}
+
+// EncryptedData contains encrypted data.  Used as a subtype in PKCS12
+type EncryptedData struct {
+	Raw                  asn1.RawContent
+	Version              int
+	EncryptedContentInfo EncryptedContentInfo
+}
+
+// EncryptedContentInfo is a subtype of PKCS7EncryptedData
+type EncryptedContentInfo struct {
+	Raw                        asn1.RawContent
+	ContentType                asn1.ObjectIdentifier
+	ContentEncryptionAlgorithm pkix.AlgorithmIdentifier
+	EncryptedContent           []byte `asn1:"tag:0,optional"`
 }
 
 // ParsePKCS7 attempts to parse the DER encoded bytes of a
@@ -80,29 +133,54 @@ func ParsePKCS7(raw []byte) (msg *PKCS7, err error) {
 	var pkcs7 initPKCS7
 	_, err = asn1.Unmarshal(raw, &pkcs7)
 	if err != nil {
-		return nil, err
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 	}
 
 	msg = new(PKCS7)
 	msg.Raw = pkcs7.Raw
-	msg.Version = pkcs7.Content.SignedData.Version
-
-	if len(pkcs7.Content.SignedData.Certificates.Bytes) == 0 {
-		msg.Certificates = nil
-	} else {
-		msg.Certificates, err = x509.ParseCertificates(pkcs7.Content.SignedData.Certificates.Bytes)
+	msg.ContentInfo = pkcs7.ContentType.String()
+	switch {
+	case msg.ContentInfo == ObjIDData:
+		msg.ContentInfo = "Data"
+		_, err = asn1.Unmarshal(pkcs7.Content.Bytes, &msg.Content.Data)
 		if err != nil {
-			return nil, err
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		}
-	}
-
-	if len(pkcs7.Content.SignedData.Crls.Bytes) == 0 {
-		msg.Crl = nil
-	} else {
-		msg.Crl, err = x509.ParseDERCRL(pkcs7.Content.SignedData.Crls.Bytes)
+	case msg.ContentInfo == ObjIDSignedData:
+		msg.ContentInfo = "SignedData"
+		var signedData signedData
+		_, err = asn1.Unmarshal(pkcs7.Content.Bytes, &signedData)
 		if err != nil {
-			return nil, err
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 		}
+		if len(signedData.Certificates.Bytes) != 0 {
+			msg.Content.SignedData.Certificates, err = x509.ParseCertificates(signedData.Certificates.Bytes)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+			}
+		}
+		if len(signedData.Crls.Bytes) != 0 {
+			msg.Content.SignedData.Crl, err = x509.ParseDERCRL(signedData.Crls.Bytes)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+			}
+		}
+		msg.Content.SignedData.Version = signedData.Version
+		msg.Content.SignedData.Raw = pkcs7.Content.Bytes
+	case msg.ContentInfo == ObjIDEncryptedData:
+		msg.ContentInfo = "EncryptedData"
+		var encryptedData EncryptedData
+		_, err = asn1.Unmarshal(pkcs7.Content.Bytes, &encryptedData)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+		}
+		if encryptedData.Version != 0 {
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("Only support for PKCS #7 encryptedData version 0"))
+		}
+		msg.Content.EncryptedData = encryptedData
+
+	default:
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("Attempt to parse PKCS# 7 Content not of type data, signed data or encrypted data"))
 	}
 
 	return msg, nil
