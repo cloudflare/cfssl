@@ -14,23 +14,45 @@ import (
 )
 
 const (
-	testCertFile            = "testdata/cert.pem"
-	testBundleFile          = "testdata/bundle.pem"
-	testExtraWSCertFile     = "testdata/cert_with_whitespace.pem"
-	testExtraWSBundleFile   = "testdata/bundle_with_whitespace.pem"
-	testMessedUpBundleFile  = "testdata/messed_up_bundle.pem"
-	testMessedUpCertFile    = "testdata/messedupcert.pem"
-	testEmptyCertFile       = "testdata/emptycert.pem"
-	testPrivateRSAKey       = "testdata/priv_rsa_key.pem"
-	testPrivateECDSAKey     = "testdata/private_ecdsa_key.pem"
-	testUnsupportedECDSAKey = "testdata/secp256k1-key.pem"
-	testMessedUpPrivateKey  = "testdata/messed_up_priv_key.pem"
-	testEncryptedPrivateKey = "testdata/enc_priv_key.pem"
-	testEmptyPem            = "testdata/empty.pem"
-	testNoHeaderCert        = "testdata/noheadercert.pem"
-	testSinglePKCS7         = "testdata/cert_pkcs7.pem"
-	testMultiplePKCS7       = "testdata/bundle_pkcs7.pem"
+	testCertFile                 = "testdata/cert.pem"
+	testCertDERFile              = "testdata/cert.der"
+	testBundleFile               = "testdata/bundle.pem"
+	testExtraWSCertFile          = "testdata/cert_with_whitespace.pem"
+	testExtraWSBundleFile        = "testdata/bundle_with_whitespace.pem"
+	testMessedUpBundleFile       = "testdata/messed_up_bundle.pem"
+	testMessedUpCertFile         = "testdata/messedupcert.pem"
+	testEmptyCertFile            = "testdata/emptycert.pem"
+	testPrivateRSAKey            = "testdata/priv_rsa_key.pem"
+	testPrivateECDSAKey          = "testdata/private_ecdsa_key.pem"
+	testUnsupportedECDSAKey      = "testdata/secp256k1-key.pem"
+	testMessedUpPrivateKey       = "testdata/messed_up_priv_key.pem"
+	testEncryptedPrivateKey      = "testdata/enc_priv_key.pem"
+	testEmptyPem                 = "testdata/empty.pem"
+	testNoHeaderCert             = "testdata/noheadercert.pem"
+	testSinglePKCS7              = "testdata/cert_pkcs7.pem"
+	testMultiplePKCS7            = "testdata/bundle_pkcs7.pem"
+	testPKCS12EmptyPswd          = "testdata/emptypasswordpkcs12.p12"
+	testPKCS12Passwordispassword = "testdata/passwordpkcs12.p12"
+	testPKCS12MultipleCerts      = "testdata/multiplecerts.p12"
 )
+
+func TestParseCertificatesDER(t *testing.T) {
+	var password = []string{"password", "", "", "multiple"}
+	for i, testFile := range []string{testPKCS12Passwordispassword, testPKCS12EmptyPswd, testCertDERFile} {
+		testDER, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := ParseCertificatesDER(testDER, password[i]); err != nil {
+			t.Fatal(err)
+		}
+		// Incorrect Password for PKCS12 formatted files
+		if _, _, err := ParseCertificatesDER(testDER, "incorrectpassword"); err == nil && i != 2 {
+			t.Fatal(err)
+		}
+	}
+
+}
 
 func TestKeyLength(t *testing.T) {
 	expNil := 0

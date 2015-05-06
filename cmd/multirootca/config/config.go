@@ -15,6 +15,7 @@ import (
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -124,7 +125,7 @@ func parsePrivateKeySpec(spec string) (crypto.Signer, error) {
 		if err != nil {
 			log.Debug("file is not a PEM-encoded private key")
 			log.Debug("attempting to load DER-encoded private key")
-			priv, err = helpers.ParsePrivateKeyDER(in)
+			priv, err = derhelpers.ParsePrivateKeyDER(in)
 			if err != nil {
 				return nil, err
 			}
