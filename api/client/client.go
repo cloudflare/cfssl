@@ -145,22 +145,51 @@ func (srv *Server) Sign(jsonData []byte) ([]byte, error) {
 }
 
 // Info sends an info request to the remote CFSSL server, receiving a
-// certificate or an error in response.
+// response or an error in response.
 // It takes the serialized JSON request to send.
-func (srv *Server) Info(jsonData []byte) ([]byte, error) {
-	return srv.Req(jsonData, "info")
+func (srv *Server) Info(jsonData []byte) (*InfoResp, error) {
+	res, err := srv.getResultMap(jsonData, "info")
+	if err != nil {
+		return nil, err
+	}
+
+	cert := res["certificate"]
+	usages := res["usages"].([]interface{})
+	exp := res["expiry"]
+
+	usageStrings := make([]string, len(usages))
+	for i, s := range usages {
+		usageStrings[i] = s.(string)
+	}
+
+	return &InfoResp{
+		Certificate:  cert.(string),
+		Usage:        usageStrings,
+		ExpiryString: exp.(string),
+	}, nil
+}
+
+func (srv *Server) getResultMap(jsonData []byte, target string) (result map[string]interface{}, err error) {
+	url := srv.getURL(target)
+	response, err := srv.post(url, jsonData)
+	if err != nil {
+		return
+	}
+	result, ok := response.Result.(map[string]interface{})
+	if !ok {
+		err = errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New("response is formatted improperly"))
+		return
+	}
+	return
 }
 
 // Req performs the common logic for Sign and Info, performing the actual
 // request and returning the resultant certificate.
 func (srv *Server) Req(jsonData []byte, target string) ([]byte, error) {
-	url := srv.getURL(target)
-
-	response, err := srv.post(url, jsonData)
+	result, err := srv.getResultMap(jsonData, target)
 	if err != nil {
 		return nil, err
 	}
-	result := response.Result.(map[string]interface{})
 	cert := result["certificate"].(string)
 	if cert != "" {
 		return []byte(cert), nil

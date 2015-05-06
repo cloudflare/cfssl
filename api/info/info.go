@@ -13,6 +13,8 @@ import (
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+
+	goerr "errors"
 )
 
 // Handler is a type that contains the root certificates for the CA,
@@ -61,6 +63,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	if profile == nil && policy != nil {
 		profile = policy.Default
+	}
+
+	if profile == nil {
+		return errors.Wrap(errors.APIClientError, errors.ClientHTTPError, goerr.New("profile must not be nil"))
 	}
 
 	resp := client.InfoResp{
