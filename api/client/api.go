@@ -13,5 +13,7 @@ type InfoReq struct {
 
 // InfoResp is the response for an Info API request.
 type InfoResp struct {
-	Certificate string `json:"certificate"`
+	Certificate  string   `json:"certificate"`
+	Usage        []string `json:"usages"`
+	ExpiryString string   `json:"expiry"`
 }
