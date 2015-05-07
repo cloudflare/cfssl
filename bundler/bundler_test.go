@@ -23,18 +23,15 @@ const (
 	testIntCaBundle     = "testdata/int-bundle.pem"
 	testNSSRootBundle   = "testdata/nss.pem"
 	testMetadata        = "testdata/ca-bundle.crt.metadata"
-	firstdataPEM        = "testdata/firstdata.pem"
-	forcebundlePEM      = "testdata/forcebundle.pem"
-	draftkingsPEM       = "testdata/draftkings.pem" // expires in July 2015
-	riotPEM             = "testdata/riot.pem"
-	bunningsPEM         = "testdata/bunnings.pem"
 	testCFSSLRootBundle = "testdata/ca.pem"
 	testCAFile          = "testdata/ca.pem"
 	testCAKeyFile       = "testdata/ca.key"
 	testCFSSLIntBundle  = "testdata/intermediates.crt"
 	emptyPEM            = "testdata/empty.pem"
 	interL1SHA1         = "testdata/inter-L1-sha1.pem"
+	interL1Key          = "testdata/inter-L1.key"
 	interL2SHA1         = "testdata/inter-L2-sha1.pem"
+	interL2Key          = "testdata/inter-L2.key"
 )
 
 // Simply create a bundler
@@ -417,155 +414,78 @@ func checkUbiquityWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 	}
 }
 
-// FIXME: test case expires in July 2015
-// Regression test on ubiquity.
-// It is to make sure ubiquitous bundles are generated so they can be trusted by Android 2.2
-// and its variants.
-//
-// Leaf cert from DraftKings.com is issued by a GoDaddy intermediate cert,
-// which in turn is issued by a GoDaddy Root Certificate (CN: Go Daddy Root Certificate Authority
-// G2). The NSS library includes this root cert. So optimal bundle should only have two certs.
-// However,  that root cert is not present in trust stores of Android <= 2.2. Ubiquitous bundling
-// should be able to recognize this scenario and produces a bundle that includes the GoDaddy Root
-// cert as an intermediate, which is verified by older trust roots.
-func TestAndroidUbiquitousBundle(t *testing.T) {
-	leafs := []string{draftkingsPEM}
-	for _, leaf := range leafs {
-		b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
-		ubiquity.Platforms = nil
-		ubiquity.LoadPlatforms(testMetadata)
-
-		// Optimal bundle algorithm will use the Godaddy Root/GeoTrust CA.
-		optimalBundle, err := b.BundleFromFile(leaf, "", Optimal, "")
-		if err != nil {
-			t.Fatal("Optimal bundle failed:", err)
-		}
-		if len(optimalBundle.Chain) != 2 {
-			t.Fatal("Optimal bundle failed")
-		}
-		checkUbiquityWarningAndCode(t, optimalBundle, true)
-
-		// Ubiquitous bundle will include a 2nd intermediate CA.
-		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous, "")
-		if err != nil {
-			t.Fatal("Ubiquitous bundle failed")
-
-		}
-		if len(ubiquitousBundle.Chain) != 3 {
-			t.Fatal("Ubiquitous bundle failed")
-		}
-		if len(ubiquitousBundle.Status.Untrusted) != 0 {
-			t.Fatal("Regression: Ubiquitous bundle has untrusted platforms: ", ubiquitousBundle.Status.Untrusted)
-		}
-		checkUbiquityWarningAndCode(t, ubiquitousBundle, false)
-	}
-}
-
 // Regression test on bundle with flavor 'Force'.
 // Compare to ubiquitous bundle which will optimize bundle length given the platform ubiquity is the same, force bundle
 // with return the same bundle as long as the input bundle is verified.
 func TestForceBundle(t *testing.T) {
-	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
-	ubiquity.Platforms = nil
-	ubiquity.LoadPlatforms(testMetadata)
-	bundle, err := b.BundleFromFile(firstdataPEM, "", Ubiquitous, "")
+	// create a CA signer and signs a new intermediate with SHA-2
+	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
+	interL1Bytes := signCSRFile(caSigner, interL1CSR, t)
+
+	// create a inter L1 signer
+	interL1KeyBytes, err := ioutil.ReadFile(interL1Key)
 	if err != nil {
-		t.Fatal("ubiquitous bundling failed.", err)
+		t.Fatal(err)
 	}
 
-	if len(bundle.Chain) != 2 {
-		t.Fatal("ubiquitous bundling failed. Bundle length:", len(bundle.Chain))
-	}
+	interL1Signer := makeCASigner(interL1Bytes, interL1KeyBytes, x509.SHA256WithRSA, t)
 
-	if bundle.Status.IsRebundled == false {
-		t.Fatal("force bundling failed, incorrect bundle.Status", bundle.Status)
-	}
+	// sign a level 2 intermediate
+	interL2Bytes := signCSRFile(interL1Signer, interL2CSR, t)
 
-	bundle, err = b.BundleFromFile(firstdataPEM, "", Force, "")
+	// create a inter L2 signer
+	interL2KeyBytes, err := ioutil.ReadFile(interL2Key)
 	if err != nil {
-		t.Fatal("force bundling failed.", err)
+		t.Fatal(err)
 	}
 
-	if len(bundle.Chain) != 3 {
-		t.Fatal("force bundling failed. Bundle length:", len(bundle.Chain))
-	}
+	interL2Signer := makeCASigner(interL2Bytes, interL2KeyBytes, x509.ECDSAWithSHA256, t)
 
-	if bundle.Status.IsRebundled == true {
-		t.Fatal("force bundling failed, incorrect bundle.Status", bundle.Status)
-	}
+	// interL2 sign a leaf cert
+	leafBytes := signCSRFile(interL2Signer, leafCSR, t)
 
-}
-
-// TODO(nick): re-enable with non-expired certificate
-func testUpdateIntermediate(t *testing.T) {
-	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
-	ubiquity.Platforms = nil
-	ubiquity.LoadPlatforms(testMetadata)
-	// forcebundle.pem contains a newer intermediate, which should be used when bundling.
-	ub, err := b.BundleFromFile(forcebundlePEM, "", Ubiquitous, "")
-
+	// create two platforms
+	// both trust the CA cert and L1 intermediate
+	caBytes, err := ioutil.ReadFile(testCAFile)
 	if err != nil {
-		t.Fatal("ubiquitous bundling failed.", err)
+		t.Fatal(err)
 	}
 
-	// Ubiquitous bundle should use the intermediate from NSS since it will score higher.
-	if len(ub.Chain) != 2 {
-		t.Fatal("force bundling failed. Bundle length:", len(ub.Chain))
+	ca, _ := helpers.ParseCertificatePEM(caBytes)
+	interL1, _ := helpers.ParseCertificatePEM(interL1Bytes)
+	platformA := ubiquity.Platform{
+		Name:            "A",
+		Weight:          100,
+		KeyStore:        make(ubiquity.CertSet),
+		HashUbiquity:    ubiquity.SHA2Ubiquity,
+		KeyAlgoUbiquity: ubiquity.ECDSA521Ubiquity,
+	}
+	platformB := ubiquity.Platform{
+		Name:            "B",
+		Weight:          100,
+		KeyStore:        make(ubiquity.CertSet),
+		HashUbiquity:    ubiquity.SHA2Ubiquity,
+		KeyAlgoUbiquity: ubiquity.ECDSA521Ubiquity,
 	}
 
-	if ub.Status.IsRebundled == false {
-		t.Fatal("force bundling failed, incorrect bundle.Status", ub.Status)
-	}
+	platformA.KeyStore.Add(ca)
+	platformA.KeyStore.Add(interL1)
+	platformB.KeyStore.Add(ca)
+	platformB.KeyStore.Add(interL1)
+	ubiquity.Platforms = []ubiquity.Platform{platformA, platformB}
 
-	fb, err := b.BundleFromFile(forcebundlePEM, "", Force, "")
+	caBundle := string(caBytes) + string(interL1Bytes)
+	interBundle := string(interL2Bytes) + string(interL1Bytes)
+	fullChain := string(leafBytes) + string(interL2Bytes) + string(interL1Bytes)
 
+	// create bundler
+	b, err := NewBundlerFromPEM([]byte(caBundle), []byte(interBundle))
 	if err != nil {
-		t.Fatal("force bundling failed.", err)
+		t.Fatal(err)
 	}
 
-	// Force bundle should use the intermediate from input, indicating intermediate pool is updated.
-	if len(fb.Chain) != 2 {
-		t.Fatal("force bundling failed. Bundle length:", len(fb.Chain))
-	}
-
-	if fb.Status.IsRebundled == true {
-		t.Fatal("force bundling failed, incorrect bundle.Status", fb.Status)
-	}
-}
-
-// FIXME: test case expires in July 2015
-func TestForceBundleFallback(t *testing.T) {
-	leafs := []string{draftkingsPEM}
-	for _, leaf := range leafs {
-		b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
-		ubiquity.Platforms = nil
-		ubiquity.LoadPlatforms(testMetadata)
-
-		forceBundle, err := b.BundleFromFile(leaf, "", Force, "")
-		if err != nil {
-			t.Fatal("Force bundle failed:", err)
-		}
-
-		ubiquitousBundle, err := b.BundleFromFile(leaf, "", Ubiquitous, "")
-		if err != nil {
-			t.Fatal("Ubiquitous bundle failed")
-
-		}
-
-		if diff(ubiquitousBundle.Chain, forceBundle.Chain) {
-			t.Fatal("Force bundle fallback failed.")
-		}
-	}
-}
-
-// Regression test: ubiquity bundle test with SHA2-homogeneous preference should not override root ubiquity.
-func TestSHA2Homogeneity(t *testing.T) {
-	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
-	ubiquity.Platforms = nil
-	ubiquity.LoadPlatforms(testMetadata)
-	// The input PEM bundle is 3-cert chain with a cross-signed GeoTrust certificate,
-	// aimed to provide cert ubiquity to Android 2.2
-	bundle, err := b.BundleFromFile(bunningsPEM, "", Force, "")
+	// The input PEM bundle is 3-cert chain.
+	bundle, err := b.BundleFromPEMorDER([]byte(fullChain), nil, Force, "")
 	if err != nil {
 		t.Fatal("Force bundle failed:", err)
 	}
@@ -576,8 +496,202 @@ func TestSHA2Homogeneity(t *testing.T) {
 		t.Fatal("Force bundle failed:")
 	}
 
-	// With ubiquity flavor, we should not sacrifice Android 2.2 and rebundle with a shorter chain.
-	bundle, err = b.BundleFromFile(bunningsPEM, "", Ubiquitous, "")
+	// With ubiquity flavor, we should have a shorter chain, given L1 is ubiquitous trusted.
+	bundle, err = b.BundleFromPEMorDER([]byte(fullChain), nil, Ubiquitous, "")
+	if err != nil {
+		t.Fatal("Ubiquitous bundle failed:", err)
+	}
+	if len(bundle.Chain) != 2 {
+		t.Fatal("Ubiquitous bundle failed:")
+	}
+	if len(bundle.Status.Untrusted) != 0 {
+		t.Fatal("Ubiquitous bundle failed:")
+	}
+
+	// With optimal flavor, we should have a shorter chain as well.
+	bundle, err = b.BundleFromPEMorDER([]byte(fullChain), nil, Optimal, "")
+	if err != nil {
+		t.Fatal("Optimal bundle failed:", err)
+	}
+	if len(bundle.Chain) != 2 {
+		t.Fatal("Optimal bundle failed:")
+	}
+	if len(bundle.Status.Untrusted) != 0 {
+		t.Fatal("Optimal bundle failed:")
+	}
+}
+
+func TestUpdateIntermediate(t *testing.T) {
+	// create a CA signer and signs a new intermediate with SHA-2
+	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
+	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
+
+	interKeyBytes, err := ioutil.ReadFile(interL1Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create a intermediate signer from intermediate cert/key
+	sha2InterSigner := makeCASigner(sha2InterBytes, interKeyBytes, x509.SHA256WithRSA, t)
+	// sign a leaf cert
+	leafBytes := signCSRFile(sha2InterSigner, leafCSR, t)
+
+	// read CA cert bytes
+	caCertBytes, err := ioutil.ReadFile(testCAFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// create a bundler with the test root CA and no intermediates
+	b, err := NewBundlerFromPEM(caCertBytes, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create a cert bundle: leaf + inter
+	chainBytes := string(leafBytes) + string(sha2InterBytes)
+	bundle, err := b.BundleFromPEMorDER([]byte(chainBytes), nil, Ubiquitous, "")
+	if err != nil {
+		t.Fatal("Valid bundle should be accepted. error:", err)
+	}
+	if bundle.Status.IsRebundled {
+		t.Fatal("rebundle should never happen here")
+	}
+
+	// Now bundle with the leaf cert
+	bundle2, err := b.BundleFromPEMorDER(leafBytes, nil, Ubiquitous, "")
+	if err != nil {
+		t.Fatal("Valid bundle should be accepted. error:", err)
+	}
+	if !bundle2.Status.IsRebundled {
+		t.Fatal("rebundle should happen here")
+	}
+}
+
+func TestForceBundleFallback(t *testing.T) {
+	// create a CA signer and signs a new intermediate with SHA-2
+	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
+	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
+
+	interKeyBytes, err := ioutil.ReadFile(interL1Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create a intermediate signer from intermediate cert/key
+	sha2InterSigner := makeCASigner(sha2InterBytes, interKeyBytes, x509.SHA256WithRSA, t)
+	// sign a leaf cert
+	leafBytes := signCSRFile(sha2InterSigner, leafCSR, t)
+
+	// read CA cert bytes
+	caCertBytes, err := ioutil.ReadFile(testCAFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// create a bundler with the test root CA and the new intermediate
+	b, err := NewBundlerFromPEM(caCertBytes, sha2InterBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Now bundle with the leaf cert with Force
+	bundle, err := b.BundleFromPEMorDER(leafBytes, nil, Force, "")
+	if err != nil {
+		t.Fatal("Valid bundle should be generated, error:", err)
+	}
+
+	// Force bundle fallback to creating a valid bundle
+	if len(bundle.Chain) != 2 {
+		t.Fatal("incorrect bundling")
+	}
+	if !bundle.Status.IsRebundled {
+		t.Fatal("rebundle should happen here")
+	}
+
+}
+
+// Regression test: ubiquity bundle test with SHA2-homogeneous preference should not override root ubiquity.
+func TestSHA2HomogeneityAgainstUbiquity(t *testing.T) {
+	// create a CA signer and signs a new intermediate with SHA-1
+	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA1WithRSA, t)
+	interL1Bytes := signCSRFile(caSigner, interL1CSR, t)
+
+	// create a inter L1 signer
+	interL1KeyBytes, err := ioutil.ReadFile(interL1Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	interL1Signer := makeCASigner(interL1Bytes, interL1KeyBytes, x509.SHA256WithRSA, t)
+
+	// sign a level 2 intermediate
+	interL2Bytes := signCSRFile(interL1Signer, interL2CSR, t)
+
+	// create a inter L2 signer
+	interL2KeyBytes, err := ioutil.ReadFile(interL2Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	interL2Signer := makeCASigner(interL2Bytes, interL2KeyBytes, x509.ECDSAWithSHA256, t)
+
+	// interL2 sign a leaf cert
+	leafBytes := signCSRFile(interL2Signer, leafCSR, t)
+
+	// create two platforms
+	// platform A trusts the CA cert and L1 intermediate
+	// platform B trusts the CA cert
+	caBytes, err := ioutil.ReadFile(testCAFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ca, _ := helpers.ParseCertificatePEM(caBytes)
+	interL1, _ := helpers.ParseCertificatePEM(interL1Bytes)
+	platformA := ubiquity.Platform{
+		Name:            "A",
+		Weight:          100,
+		KeyStore:        make(ubiquity.CertSet),
+		HashUbiquity:    ubiquity.SHA2Ubiquity,
+		KeyAlgoUbiquity: ubiquity.ECDSA521Ubiquity,
+	}
+	platformB := ubiquity.Platform{
+		Name:            "B",
+		Weight:          100,
+		KeyStore:        make(ubiquity.CertSet),
+		HashUbiquity:    ubiquity.SHA2Ubiquity,
+		KeyAlgoUbiquity: ubiquity.ECDSA521Ubiquity,
+	}
+
+	platformA.KeyStore.Add(ca)
+	platformA.KeyStore.Add(interL1)
+	platformB.KeyStore.Add(ca)
+	ubiquity.Platforms = []ubiquity.Platform{platformA, platformB}
+
+	caBundle := string(caBytes) + string(interL1Bytes)
+	interBundle := string(interL2Bytes) + string(interL1Bytes)
+	fullChain := string(leafBytes) + string(interL2Bytes) + string(interL1Bytes)
+
+	// create bundler
+	b, err := NewBundlerFromPEM([]byte(caBundle), []byte(interBundle))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The input PEM bundle is 3-cert chain.
+	bundle, err := b.BundleFromPEMorDER([]byte(fullChain), nil, Force, "")
+	if err != nil {
+		t.Fatal("Force bundle failed:", err)
+	}
+	if len(bundle.Chain) != 3 {
+		t.Fatal("Force bundle failed:")
+	}
+	if len(bundle.Status.Untrusted) != 0 {
+		t.Fatal("Force bundle failed:")
+	}
+
+	// With ubiquity flavor, we should not sacrifice trust store ubiquity and rebundle with a shorter chain
+	// with SHA2 homogenity.
+	bundle, err = b.BundleFromPEMorDER([]byte(fullChain), nil, Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed:", err)
 	}
@@ -588,9 +702,8 @@ func TestSHA2Homogeneity(t *testing.T) {
 		t.Fatal("Ubiquitous bundle failed:")
 	}
 
-	// With optimal flavor, we should have a shorter chain with only SHA-2 intermediates. But Android 2.2
-	// is untrusted.
-	bundle, err = b.BundleFromFile(bunningsPEM, "", Optimal, "")
+	// With optimal flavor, we should have a shorter chain.
+	bundle, err = b.BundleFromPEMorDER([]byte(fullChain), nil, Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
@@ -640,16 +753,30 @@ func checkECDSAWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 // bundle uses SHA-256 which is not supported in Windows XP SP2. We should present a warning
 // on this.
 func TestSHA2Warning(t *testing.T) {
-	b := newCustomizedBundlerFromFile(t, testNSSRootBundle, testIntCaBundle, "")
-	// Optimal bundle algorithm will use the Godaddy Root/GeoTrust CA.
-	optimalBundle, err := b.BundleFromFile(riotPEM, "", Optimal, "")
+	// create a CA signer and signs a new intermediate with SHA-2
+	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
+	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
+
+	// read CA cert bytes
+	caCertBytes, err := ioutil.ReadFile(testCAFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create a bundler with the test root CA and no intermediates
+	b, err := NewBundlerFromPEM(caCertBytes, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	optimalBundle, err := b.BundleFromPEMorDER(sha2InterBytes, nil, Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
 	checkSHA2WarningAndCode(t, optimalBundle, true)
 
 	// Ubiquitous bundle will include a 2nd intermediate CA.
-	ubiquitousBundle, err := b.BundleFromFile(riotPEM, "", Ubiquitous, "")
+	ubiquitousBundle, err := b.BundleFromPEMorDER(sha2InterBytes, nil, Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed")
 
@@ -661,11 +788,12 @@ func TestSHA2Warning(t *testing.T) {
 // A test bundle that contains ECDSA384 but no SHA1. Expect ECDSA warning and no SHA-2 warning.
 func TestECDSAWarning(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCAFile, interL1SHA1, "")
-	// Optimal
+
 	optimalBundle, err := b.BundleFromFile(interL2SHA1, "", Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
+
 	checkSHA2WarningAndCode(t, optimalBundle, false)
 	checkECDSAWarningAndCode(t, optimalBundle, true)
 }
@@ -713,6 +841,8 @@ func createInterCert(t *testing.T, csrFile string, policy *config.Signing, profi
 	return
 
 }
+
+// newBundler creates bundler from byte slices of CA certs and intermediate certs in PEM format
 func newBundlerFromPEM(t *testing.T, caBundlePEM, intBundlePEM []byte) (b *Bundler) {
 	b, err := NewBundlerFromPEM(caBundlePEM, intBundlePEM)
 	if err != nil {
@@ -722,7 +852,7 @@ func newBundlerFromPEM(t *testing.T, caBundlePEM, intBundlePEM []byte) (b *Bundl
 }
 
 // newCustomizedBundleCreator is a helper function that returns a new Bundler
-// takes specified CA bundle, intermediate bundle, and any additional intermdiate certs  to generate a bundler.
+// takes specified CA bundle, intermediate bundle, and any additional intermdiate certs to generate a bundler.
 func newCustomizedBundlerFromFile(t *testing.T, caBundle, intBundle, adhocInters string) (b *Bundler) {
 	b, err := NewBundler(caBundle, intBundle)
 	if err != nil {
