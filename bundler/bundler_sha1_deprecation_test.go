@@ -97,7 +97,7 @@ func TestSHA2Preferences(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// create a intermediate signer from SHA-1 intermedate cert/key
+	// create a intermediate signer from SHA-1 intermediate cert/key
 	sha2InterSigner := makeCASigner(sha1InterBytes, interKeyBytes, x509.SHA256WithRSA, t)
 	// sign a leaf cert
 	leafBytes := signCSRFile(sha2InterSigner, leafCSR, t)

@@ -83,7 +83,7 @@ func TestBundleFromPEM(t *testing.T) {
 	}
 }
 
-// GoDaddy intermeidate cert valid until year 2034
+// GoDaddy intermediate cert valid until year 2034
 var GoDaddyRootCert = []byte(`-----BEGIN CERTIFICATE-----
 MIIEADCCAuigAwIBAgIBADANBgkqhkiG9w0BAQUFADBjMQswCQYDVQQGEwJVUzEh
 MB8GA1UEChMYVGhlIEdvIERhZGR5IEdyb3VwLCBJbmMuMTEwLwYDVQQLEyhHbyBE
@@ -109,7 +109,7 @@ dEr/VxqHD3VILs9RaRegAhJhldXRQLIQTO7ErBBDpqWeCtWVYpoNz4iCxTIM5Cuf
 ReYNnyicsbkqWletNw+vHX/bvZ8=
 -----END CERTIFICATE-----`)
 
-// GoDaddy intermeidate cert valid until year 2026
+// GoDaddy intermediate cert valid until year 2026
 var GoDaddyIntermediateCert = []byte(`-----BEGIN CERTIFICATE-----
 MIIE3jCCA8agAwIBAgICAwEwDQYJKoZIhvcNAQEFBQAwYzELMAkGA1UEBhMCVVMx
 ITAfBgNVBAoTGFRoZSBHbyBEYWRkeSBHcm91cCwgSW5jLjExMC8GA1UECxMoR28g
