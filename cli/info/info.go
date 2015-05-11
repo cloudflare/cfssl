@@ -38,6 +38,9 @@ func getInfoFromRemote(c cli.Config) (resp *client.InfoResp, err error) {
 
 	reqJSON, _ := json.Marshal(req)
 	resp, err = serv.Info(reqJSON)
+	if err != nil {
+		return
+	}
 
 	_, err = helpers.ParseCertificatePEM([]byte(resp.Certificate))
 	if err != nil {

@@ -153,20 +153,25 @@ func (srv *Server) Info(jsonData []byte) (*InfoResp, error) {
 		return nil, err
 	}
 
-	cert := res["certificate"]
-	usages := res["usages"].([]interface{})
-	exp := res["expiry"]
+	info := new(InfoResp)
+
+	if val, ok := res["certificate"]; ok {
+		info.Certificate = val.(string)
+	}
+	var usages []interface{}
+	if val, ok := res["usages"]; ok {
+		usages = val.([]interface{})
+	}
+	if val, ok := res["expiry"]; ok {
+		info.ExpiryString = val.(string)
+	}
 
 	usageStrings := make([]string, len(usages))
 	for i, s := range usages {
 		usageStrings[i] = s.(string)
 	}
 
-	return &InfoResp{
-		Certificate:  cert.(string),
-		Usage:        usageStrings,
-		ExpiryString: exp.(string),
-	}, nil
+	return info, nil
 }
 
 func (srv *Server) getResultMap(jsonData []byte, target string) (result map[string]interface{}, err error) {
