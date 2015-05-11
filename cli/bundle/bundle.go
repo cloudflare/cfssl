@@ -1,3 +1,4 @@
+// Package bundle implements the bundle command.
 package bundle
 
 import (

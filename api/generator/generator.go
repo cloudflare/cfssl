@@ -1,3 +1,4 @@
+// Package generator implements the HTTP handlers for certificate generation.
 package generator
 
 import (

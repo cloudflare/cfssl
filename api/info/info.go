@@ -1,3 +1,4 @@
+// Package info implements the HTTP handler for the info command.
 package info
 
 import (

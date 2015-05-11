@@ -1,3 +1,4 @@
+// Package genkey implements the genkey command.
 package genkey
 
 import (

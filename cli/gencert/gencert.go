@@ -1,3 +1,4 @@
+// Package gencert implements the gencert command.
 package gencert
 
 import (

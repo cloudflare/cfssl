@@ -1,3 +1,4 @@
+// Package info implements the info command.
 package info
 
 import (

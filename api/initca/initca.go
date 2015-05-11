@@ -1,3 +1,4 @@
+// Package initca implements the HTTP handler for the CA initialization command
 package initca
 
 import (

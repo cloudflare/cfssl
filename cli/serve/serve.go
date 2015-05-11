@@ -1,3 +1,4 @@
+// Package serve implements the serve command for CFSSL's API.
 package serve
 
 import (
