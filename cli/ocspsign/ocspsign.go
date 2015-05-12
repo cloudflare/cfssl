@@ -1,3 +1,4 @@
+// Package ocspsign implements the ocspsign command.
 package ocspsign
 
 import (

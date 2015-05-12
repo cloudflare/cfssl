@@ -1,3 +1,4 @@
+// Package sign implements the HTTP handler for the certificate signing command.
 package sign
 
 import (

@@ -1,3 +1,4 @@
+// Package scan implements the scan CLI.
 package scan
 
 import (

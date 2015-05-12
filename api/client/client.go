@@ -1,3 +1,4 @@
+// Package client implements the a Go client for CFSSL API commands.
 package client
 
 import (

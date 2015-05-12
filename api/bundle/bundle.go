@@ -1,3 +1,4 @@
+// Package bundle implements the HTTP handler for the bundle command.
 package bundle
 
 import (

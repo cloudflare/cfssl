@@ -1,3 +1,4 @@
+// Package cli provides the template for adding new cfssl commands
 package cli
 
 /*

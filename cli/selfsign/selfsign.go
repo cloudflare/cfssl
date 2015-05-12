@@ -1,3 +1,4 @@
+// Package selfsign implements the selfsign command.
 package selfsign
 
 import (
