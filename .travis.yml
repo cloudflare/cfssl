@@ -10,13 +10,15 @@ before_script:
   - go get github.com/mattn/goveralls
   - go get -v github.com/GeertJohan/fgt
 script:
-  - go get github.com/cloudflare/cfssl/... 
-  - go test github.com/cloudflare/cfssl/... 
+  - go get github.com/cloudflare/cfssl/...
+  - go test github.com/cloudflare/cfssl/...
   - go vet github.com/cloudflare/cfssl/...
   - fgt golint github.com/cloudflare/cfssl/...
   - go list -f '{{if len .TestGoFiles}}"go test -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"{{end}}' ./... | xargs -i sh -c {}
-  - gover 
-  - goveralls -coverprofile=gover.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN
+  - gover
+  - if [ "$($COVERALLS_TOKEN)" != "" ]; then
+      goveralls -coverprofile=gover.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN;
+    fi
 notifications:
   email:
     recipients:
