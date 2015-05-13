@@ -316,7 +316,7 @@ Example:
 
 2.7 SCAN
 
-The scan endpoint returns the output 
+The scaninfo endpoint returns the list of options for scanning
 
 Endpoint: "/api/v1/cfssl/scaninfo"
 Method: GET
@@ -327,7 +327,7 @@ Example:
     curl 127.0.0.1:8888/api/v1/cfssl/scaninfo
 
 
-The scan endpoint returns the output 
+The scan endpoint returns the output of the scan of a remote server
 
 Endpoint: "/api/v1/cfssl/scan"
 Method: GET
@@ -355,10 +355,14 @@ and currently have only one field:
           * default: the default profile to use for requests that do
             not explicitly set a profile.
           * profiles: a dictionary of signing profiles.
+        * auth_keys: a dictionary containing authentication keys
+        * remotes: a dictionary containing remote servers
 
 The following is an example of a valid configuration that defines a
 default expiry of one week, and a configuration that is applicable for a
-web server:
+web server. For if the profile "www" is chosen, it will connect to a
+remote server "cfsslserver.com:8888" with the standard authentication
+mechanism and key "00000000000000000000000000000000".
 
 {
     "signing": {
@@ -372,8 +376,19 @@ web server:
                     "key encipherment",
                     "server auth"
                 ]
+                "auth_key": "myauthkey",
+                "remote": "myremoteserver"
             }
         }
+    },
+    "auth_keys": {
+        "myauthkey": {
+            "type": "standard",
+            "key": "00000000000000000000000000000000"
+        }
+    },
+    "remotes": {
+        "myremoteserver": "cfsslserver.com:8888"
     }
 }
 
@@ -438,15 +453,15 @@ authentication), and one for intermediate certificates:
                                         "key encipherment",
                                         "server auth"
                                 ],
-				                "expiry": "168h"
+                                "expiry": "168h"
                         },
                         "client": {
                                 "usages": [
                                         "signing",
                                         "key encipherment",
                                         "client auth"
-				                ],
-				                "expiry": "168h"
+                                ],
+                               "expiry": "168h"
                         },
                         "intermediate": {
                                 "usages": [
