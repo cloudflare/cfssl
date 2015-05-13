@@ -47,11 +47,11 @@ const (
 )
 
 const (
-	sha2Warning          = "The bundle contains certs signed with advanced hash functions such as SHA2,  which are problematic at certain operating systems, e.g. Windows XP SP2."
-	ecdsaWarning         = "The bundle contains ECDSA signatures, which are problematic at certain operating systems, e.g. Windows XP SP2, Android 2.2 and Android 2.3."
-	expiringWarningStub  = "The bundle is expiring within 30 days. "
+	sha2Warning          = "The bundle contains certificates signed with advanced hash functions such as SHA2, which are problematic for certain operating systems, e.g. Windows XP SP2."
+	ecdsaWarning         = "The bundle contains ECDSA signatures, which are problematic for certain operating systems, e.g. Windows XP SP2, Android 2.2 and Android 2.3."
+	expiringWarningStub  = "The bundle is expiring within 30 days."
 	untrustedWarningStub = "The bundle may not be trusted by the following platform(s):"
-	ubiquityWarning      = "The bundle trust ubiquity is not guaranteed: No platform metadata found."
+	ubiquityWarning      = "Unable to measure bundle ubiquity: No platform metadata present."
 )
 
 // A Bundler contains the certificate pools for producing certificate
