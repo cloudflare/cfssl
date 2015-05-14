@@ -16,7 +16,7 @@ script:
   - fgt golint github.com/cloudflare/cfssl/...
   - go list -f '{{if len .TestGoFiles}}"go test -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"{{end}}' ./... | xargs -i sh -c {}
   - gover
-  - if [ "$($COVERALLS_TOKEN)" != "" ]; then
+  - if [ $COVERALLS_TOKEN != "" ]; then
       goveralls -coverprofile=gover.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN;
     fi
 notifications:
