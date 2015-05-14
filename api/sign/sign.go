@@ -71,7 +71,7 @@ func NewHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) 
 		Handler: &Handler{
 			signer: signer,
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}, nil
 }
 
@@ -232,7 +232,7 @@ func NewAuthHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
 		Handler: &AuthHandler{
 			signer: signer,
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}, nil
 }
 

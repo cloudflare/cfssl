@@ -340,7 +340,7 @@ func NewSignHandlerFromSigner(s signer.Signer) (h http.Handler, err error) {
 		Handler: &SignHandler{
 			signer: s,
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}, nil
 }
 

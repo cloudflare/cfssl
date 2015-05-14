@@ -16,10 +16,10 @@ type Handler interface {
 }
 
 // HTTPHandler is a wrapper that encapsulates Handler interface as http.Handler.
-// HttpHandler also enforces that the Handler only responds to requests with registered HTTP method.
+// HTTPHandler also enforces that the Handler only responds to requests with registered HTTP methods.
 type HTTPHandler struct {
-	Handler        // CFSSL handler
-	Method  string // The assoicated HTTP method
+	Handler          // CFSSL handler
+	Methods []string // The associated HTTP methods
 }
 
 // HandlerFunc is similar to the http.HandlerFunc type; it serves as
@@ -69,11 +69,17 @@ func handleError(w http.ResponseWriter, err error) (code int) {
 // and return the response with proper HTTP status code
 func (h HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
+	var match bool
 	// Throw 405 when requested with an unsupported verb.
-	if r.Method != h.Method {
-		err = errors.NewMethodNotAllowed(r.Method)
-	} else {
+	for _, m := range h.Methods {
+		if m == r.Method {
+			match = true
+		}
+	}
+	if match {
 		err = h.Handle(w, r)
+	} else {
+		err = errors.NewMethodNotAllowed(r.Method)
 	}
 	status := handleError(w, err)
 	log.Infof("%s - \"%s %s\" %d", r.RemoteAddr, r.Method, r.URL, status)

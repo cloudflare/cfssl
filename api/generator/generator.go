@@ -52,7 +52,7 @@ func NewHandler(validator Validator) (http.Handler, error) {
 		Handler: &Handler{
 			generator: &csr.Generator{Validator: validator},
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}, nil
 }
 
@@ -177,7 +177,7 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 
 	cg.generator = &csr.Generator{Validator: validator}
 
-	return api.HTTPHandler{Handler: cg, Method: "POST"}, nil
+	return api.HTTPHandler{Handler: cg, Methods: []string{"POST"}}, nil
 }
 
 // NewCertGeneratorHandlerFromSigner returns a handler directly from
@@ -188,7 +188,7 @@ func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer
 			generator: &csr.Generator{Validator: validator},
 			signer:    signer,
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}
 }
 

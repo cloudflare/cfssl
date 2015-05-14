@@ -51,7 +51,10 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 
 // NewHandler returns a new http.Handler that handles a scan request.
 func NewHandler() http.Handler {
-	return api.HTTPHandler{Handler: api.HandlerFunc(scanHandler), Method: "GET"}
+	return api.HTTPHandler{
+		Handler: api.HandlerFunc(scanHandler),
+		Methods: []string{"GET"},
+	}
 }
 
 // scanInfoHandler is an HTTP handler that returns a JSON blob result describing
@@ -66,5 +69,5 @@ func scanInfoHandler(w http.ResponseWriter, r *http.Request) error {
 
 // NewInfoHandler returns a new http.Handler that handles a request for scan info.
 func NewInfoHandler() http.Handler {
-	return api.HTTPHandler{Handler: api.HandlerFunc(scanInfoHandler), Method: "GET"}
+	return api.HTTPHandler{Handler: api.HandlerFunc(scanInfoHandler), Methods: []string{"GET"}}
 }
