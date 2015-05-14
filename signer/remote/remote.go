@@ -8,7 +8,6 @@ import (
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
-	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -104,19 +103,6 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (resp interfa
 func (s *Signer) SigAlgo() x509.SignatureAlgorithm {
 	// TODO: implement this as a remote info call
 	return x509.UnknownSignatureAlgorithm
-}
-
-// Certificate returns the signer's certificate.
-func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
-	resp, err := s.Info(info.Req{Label: label, Profile: profile})
-	if err != nil {
-		return nil, err
-	}
-	cert, err := helpers.ParseCertificatePEM([]byte(resp.Certificate))
-	if err != nil {
-		return nil, err
-	}
-	return cert, nil
 }
 
 // SetPolicy sets the signer's signature policy.

@@ -2,6 +2,7 @@
 package local
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -224,6 +226,43 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
 	return s.sign(&safeTemplate, profile, serialSeq)
+}
+
+// GetProfile gets the specific profile from the signer
+func (s *Signer) GetProfile(profile string) (*config.SigningProfile, error) {
+	var p *config.SigningProfile
+	policy := s.Policy()
+	if policy != nil && policy.Profiles != nil && profile != "" {
+		p = policy.Profiles[profile]
+	}
+
+	if p == nil && policy != nil {
+		p = policy.Default
+	}
+
+	if p == nil {
+		return nil, cferr.Wrap(cferr.APIClientError, cferr.ClientHTTPError, errors.New("profile must not be nil"))
+	}
+	return p, nil
+}
+
+// Info return a populated info.Resp struct or an error.
+func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
+	cert, err := s.Certificate(req.Label, req.Profile)
+	if err != nil {
+		return
+	}
+
+	profile, err := s.GetProfile(req.Profile)
+	if err != nil {
+		return
+	}
+
+	resp.Certificate = string(bytes.TrimSpace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+	resp.Usage = profile.Usage
+	resp.ExpiryString = profile.ExpiryString
+
+	return
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

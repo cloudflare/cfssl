@@ -3,14 +3,12 @@ package info
 
 import (
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/sign"
-	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
@@ -31,7 +29,6 @@ Flags:
 var infoFlags = []string{"remote", "label", "profile", "config"}
 
 func getInfoFromRemote(c cli.Config) (resp *info.Resp, err error) {
-
 	req := new(info.Req)
 	req.Label = c.Label
 	req.Profile = c.Profile
@@ -58,34 +55,13 @@ func getInfoFromConfig(c cli.Config) (resp *info.Resp, err error) {
 		return
 	}
 
-	cert, err := s.Certificate(c.Label, c.Profile)
+	req := new(info.Req)
+	req.Label = c.Label
+	req.Profile = c.Profile
+
+	resp, err = s.Info(*req)
 	if err != nil {
 		return
-	}
-
-	blk := pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Raw,
-	}
-
-	certPem := pem.EncodeToMemory(&blk)
-
-	var profile *config.SigningProfile
-
-	policy := s.Policy()
-
-	if policy != nil && policy.Profiles != nil && c.Profile != "" {
-		profile = policy.Profiles[c.Profile]
-	}
-
-	if profile == nil && policy != nil {
-		profile = policy.Default
-	}
-
-	resp = &info.Resp{
-		Certificate:  string(certPem),
-		Usage:        profile.Usage,
-		ExpiryString: profile.ExpiryString,
 	}
 
 	return
@@ -103,7 +79,6 @@ func infoMain(args []string, c cli.Config) (err error) {
 		if err != nil {
 			return
 		}
-
 	} else if c.CFG != nil {
 		resp, err = getInfoFromConfig(c)
 		if err != nil {
