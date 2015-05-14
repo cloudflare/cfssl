@@ -68,13 +68,9 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (resp interfa
 		return nil, cferr.Wrap(cferr.APIClientError, cferr.JSONError, err)
 	}
 
-	var p *config.SigningProfile
-	if s.policy.Profiles != nil && profile != "" {
-		p = s.policy.Profiles[profile]
-	}
-
-	if p == nil {
-		p = s.policy.Default
+	p, err := signer.Profile(s, profile)
+	if err != nil {
+		return
 	}
 
 	server := client.NewServer(p.RemoteServer)

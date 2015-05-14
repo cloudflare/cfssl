@@ -149,15 +149,9 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var cert []byte
-	var profile *config.SigningProfile
-
-	policy := h.signer.Policy()
-	if policy != nil && policy.Profiles != nil && req.Profile != "" {
-		profile = policy.Profiles[req.Profile]
-	}
-
-	if profile == nil && policy != nil {
-		profile = policy.Default
+	profile, err := signer.Profile(h.signer, req.Profile)
+	if err != nil {
+		return err
 	}
 
 	if profile.Provider != nil {
@@ -268,15 +262,10 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		log.Critical("signer was initialised without a signing policy")
 		return errors.NewBadRequestString("invalid policy")
 	}
-	profile := policy.Default
 
-	if policy.Profiles != nil && req.Profile != "" {
-		profile = policy.Profiles[req.Profile]
-	}
-
-	if profile == nil {
-		log.Critical("signer was initialised without any valid profiles")
-		return errors.NewBadRequestString("invalid profile")
+	profile, err := signer.Profile(h.signer, req.Profile)
+	if err != nil {
+		return err
 	}
 
 	if profile.Provider == nil {

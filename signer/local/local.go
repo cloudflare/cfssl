@@ -170,9 +170,9 @@ func OverrideHosts(template *x509.Certificate, hosts []string) {
 // certificate or certificate request with the signing profile,
 // specified by profileName.
 func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
-	profile := s.policy.Profiles[req.Profile]
-	if profile == nil {
-		profile = s.policy.Default
+	profile, err := signer.Profile(s, req.Profile)
+	if err != nil {
+		return
 	}
 
 	serialSeq := ""
@@ -228,24 +228,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	return s.sign(&safeTemplate, profile, serialSeq)
 }
 
-// GetProfile gets the specific profile from the signer
-func (s *Signer) GetProfile(profile string) (*config.SigningProfile, error) {
-	var p *config.SigningProfile
-	policy := s.Policy()
-	if policy != nil && policy.Profiles != nil && profile != "" {
-		p = policy.Profiles[profile]
-	}
-
-	if p == nil && policy != nil {
-		p = policy.Default
-	}
-
-	if p == nil {
-		return nil, cferr.Wrap(cferr.APIClientError, cferr.ClientHTTPError, errors.New("profile must not be nil"))
-	}
-	return p, nil
-}
-
 // Info return a populated info.Resp struct or an error.
 func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
 	cert, err := s.Certificate(req.Label, req.Profile)
@@ -253,12 +235,15 @@ func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
 		return
 	}
 
-	profile, err := s.GetProfile(req.Profile)
+	profile, err := signer.Profile(s, req.Profile)
 	if err != nil {
 		return
 	}
 
-	resp.Certificate = string(bytes.TrimSpace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+	resp = new(info.Resp)
+	if cert.Raw != nil {
+		resp.Certificate = string(bytes.TrimSpace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+	}
 	resp.Usage = profile.Usage
 	resp.ExpiryString = profile.ExpiryString
 

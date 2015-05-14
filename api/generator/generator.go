@@ -235,16 +235,6 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	var profile *config.SigningProfile
-	policy := cg.signer.Policy()
-	if policy != nil && policy.Profiles != nil && req.Profile != "" {
-		profile = policy.Profiles[req.Profile]
-	}
-
-	if profile == nil && policy != nil {
-		profile = policy.Default
-	}
-
 	// This API does not override the subject because it was already added to the CSR
 	signReq := signer.SignRequest{
 		Hosts:   signer.SplitHosts(req.Hostname),

@@ -95,6 +95,24 @@ type Signer interface {
 	Sign(req SignRequest) (cert []byte, err error)
 }
 
+// Profile gets the specific profile from the signer
+func Profile(s Signer, profile string) (*config.SigningProfile, error) {
+	var p *config.SigningProfile
+	policy := s.Policy()
+	if policy != nil && policy.Profiles != nil && profile != "" {
+		p = policy.Profiles[profile]
+	}
+
+	if p == nil && policy != nil {
+		p = policy.Default
+	}
+
+	if p == nil {
+		return nil, cferr.Wrap(cferr.APIClientError, cferr.ClientHTTPError, errors.New("profile must not be nil"))
+	}
+	return p, nil
+}
+
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
 // the CA's private key.
 func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
