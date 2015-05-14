@@ -13,6 +13,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/info"
 
 	goerr "errors"
 )
@@ -29,9 +30,9 @@ Flags:
 
 var infoFlags = []string{"remote", "label", "profile", "config"}
 
-func getInfoFromRemote(c cli.Config) (resp *client.InfoResp, err error) {
+func getInfoFromRemote(c cli.Config) (resp *info.Resp, err error) {
 
-	req := new(client.InfoReq)
+	req := new(info.Req)
 	req.Label = c.Label
 	req.Profile = c.Profile
 
@@ -51,7 +52,7 @@ func getInfoFromRemote(c cli.Config) (resp *client.InfoResp, err error) {
 	return
 }
 
-func getInfoFromConfig(c cli.Config) (resp *client.InfoResp, err error) {
+func getInfoFromConfig(c cli.Config) (resp *info.Resp, err error) {
 	s, err := sign.SignerFromConfig(c)
 	if err != nil {
 		return
@@ -81,7 +82,7 @@ func getInfoFromConfig(c cli.Config) (resp *client.InfoResp, err error) {
 		profile = policy.Default
 	}
 
-	resp = &client.InfoResp{
+	resp = &info.Resp{
 		Certificate:  string(certPem),
 		Usage:        profile.Usage,
 		ExpiryString: profile.ExpiryString,
@@ -95,7 +96,7 @@ func infoMain(args []string, c cli.Config) (err error) {
 		return goerr.New("argument is provided but not defined; please refer to the usage by flag -h.")
 	}
 
-	var resp *client.InfoResp
+	var resp *info.Resp
 
 	if c.Remote != "" {
 		resp, err = getInfoFromRemote(c)

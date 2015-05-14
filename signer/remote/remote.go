@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/signer"
 )
 
@@ -38,17 +39,31 @@ func NewSigner(policy *config.Signing) (*Signer, error) {
 // csr, and profileName are used as with a local signing operation, and
 // the label is used to select a signing root in a multi-root CA.
 func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
-	return s.remoteOp(req, req.Profile, "sign")
+	resp, err := s.remoteOp(req, req.Profile, "sign")
+	if err != nil {
+		return
+	}
+	if cert, ok := resp.([]byte); ok {
+		return cert, nil
+	}
+	return
 }
 
-// Info sends an info request to the remote CFSSL server, receiving a signed
-// certificate or an error in response.
-func (s *Signer) Info(req client.InfoReq) (cert []byte, err error) {
-	return s.remoteOp(req, req.Profile, "info")
+// Info sends an info request to the remote CFSSL server, receiving an
+// Resp struct or an error in response.
+func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
+	respInterface, err := s.remoteOp(req, req.Profile, "info")
+	if err != nil {
+		return
+	}
+	if resp, ok := respInterface.(*info.Resp); ok {
+		return resp, nil
+	}
+	return
 }
 
 // Helper function to perform a remote sign or info request.
-func (s *Signer) remoteOp(req interface{}, profile, target string) (cert []byte, err error) {
+func (s *Signer) remoteOp(req interface{}, profile, target string) (resp interface{}, err error) {
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.APIClientError, cferr.JSONError, err)
@@ -69,19 +84,20 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (cert []byte,
 			errors.New("failed to connect to remote"))
 	}
 
-	// There's no server-side auth provider for the "info" method
-	// TODO: Revert this change once there is an AuthInfo provider.
-	if p.Provider != nil && target != "info" {
-		cert, err = server.AuthReq(jsonData, nil, p.Provider, target)
+	// There's no auth provider for the "info" method
+	if target == "info" {
+		resp, err = server.Info(jsonData)
+	} else if p.Provider != nil {
+		resp, err = server.AuthReq(jsonData, nil, p.Provider, target)
 	} else {
-		cert, err = server.Req(jsonData, target)
+		resp, err = server.Req(jsonData, target)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(cert), nil
+	return
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.
@@ -92,11 +108,11 @@ func (s *Signer) SigAlgo() x509.SignatureAlgorithm {
 
 // Certificate returns the signer's certificate.
 func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
-	certStr, err := s.Info(client.InfoReq{Label: label, Profile: profile})
+	resp, err := s.Info(info.Req{Label: label, Profile: profile})
 	if err != nil {
 		return nil, err
 	}
-	cert, err := helpers.ParseCertificatePEM(certStr)
+	cert, err := helpers.ParseCertificatePEM([]byte(resp.Certificate))
 	if err != nil {
 		return nil, err
 	}

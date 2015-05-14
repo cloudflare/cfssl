@@ -8,10 +8,10 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 
@@ -38,7 +38,7 @@ func NewHandler(s signer.Signer) (http.Handler, error) {
 // Handle listens for incoming requests for CA information, and returns
 // a list containing information on each root certificate.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	req := new(client.InfoReq)
+	req := new(info.Req)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
@@ -70,7 +70,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(errors.APIClientError, errors.ClientHTTPError, goerr.New("profile must not be nil"))
 	}
 
-	resp := client.InfoResp{
+	resp := info.Resp{
 		Certificate:  bundler.PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}),
 		Usage:        profile.Usage,
 		ExpiryString: profile.ExpiryString,
@@ -107,7 +107,7 @@ func NewMultiHandler(signers map[string]signer.Signer, defaultLabel string) (htt
 // look up the signer whose public certificate should be retrieved. If
 // the label is empty, the default label is used.
 func (h *MultiHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	req := new(client.InfoReq)
+	req := new(info.Req)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
@@ -136,7 +136,7 @@ func (h *MultiHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	resp := client.InfoResp{
+	resp := info.Resp{
 		Certificate: bundler.PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}),
 	}
 

@@ -15,6 +15,7 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/info"
 )
 
 // A Server points to a remote CFSSL instance.
@@ -148,13 +149,13 @@ func (srv *Server) Sign(jsonData []byte) ([]byte, error) {
 // Info sends an info request to the remote CFSSL server, receiving a
 // response or an error in response.
 // It takes the serialized JSON request to send.
-func (srv *Server) Info(jsonData []byte) (*InfoResp, error) {
+func (srv *Server) Info(jsonData []byte) (*info.Resp, error) {
 	res, err := srv.getResultMap(jsonData, "info")
 	if err != nil {
 		return nil, err
 	}
 
-	info := new(InfoResp)
+	info := new(info.Resp)
 
 	if val, ok := res["certificate"]; ok {
 		info.Certificate = val.(string)
