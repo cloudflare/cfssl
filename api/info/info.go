@@ -31,7 +31,7 @@ func NewHandler(s signer.Signer) (http.Handler, error) {
 		Handler: &Handler{
 			sign: s,
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}, nil
 }
 
@@ -99,7 +99,7 @@ func NewMultiHandler(signers map[string]signer.Signer, defaultLabel string) (htt
 			signers:      signers,
 			defaultLabel: defaultLabel,
 		},
-		Method: "POST",
+		Methods: []string{"POST"},
 	}, nil
 }
 

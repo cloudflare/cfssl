@@ -73,7 +73,7 @@ func get(t *testing.T, ts *httptest.Server) (resp *http.Response, body []byte) {
 }
 
 func TestRigidHandle(t *testing.T) {
-	ts := httptest.NewServer(HTTPHandler{Handler: HandlerFunc(simpleHandle), Method: "POST"})
+	ts := httptest.NewServer(HTTPHandler{Handler: HandlerFunc(simpleHandle), Methods: []string{"POST"}})
 	defer ts.Close()
 
 	// Response to compliment
@@ -143,7 +143,7 @@ func TestRigidHandle(t *testing.T) {
 }
 
 func TestCleverHandle(t *testing.T) {
-	ts := httptest.NewServer(HTTPHandler{Handler: HandlerFunc(cleverHandle), Method: "POST"})
+	ts := httptest.NewServer(HTTPHandler{Handler: HandlerFunc(cleverHandle), Methods: []string{"POST"}})
 	defer ts.Close()
 
 	// Response ty to compliment
