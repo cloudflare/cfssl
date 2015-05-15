@@ -1,3 +1,4 @@
+// Package sign implements the sign command.
 package sign
 
 import (

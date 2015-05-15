@@ -1,3 +1,4 @@
+// Package serve implements the serve command for CFSSL's API.
 package serve
 
 import (
@@ -24,13 +25,13 @@ var serverUsageText = `cfssl serve -- set up a HTTP server handles CF SSL reques
 Usage of serve:
         cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
                     [-ca-key key] [-int-bundle bundle] [-port port] [-metadata file] \
-                    [-remote remote_host] [-config config]
+                    [-remote remote_host] [-config config] [-uselocal]
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config"}
+var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "uselocal"}
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers(c cli.Config) error {
@@ -94,6 +95,9 @@ func registerHandlers(c cli.Config) error {
 
 	log.Info("Setting up scaninfo endpoint")
 	http.Handle("/api/v1/cfssl/scaninfo", scan.NewInfoHandler())
+
+	log.Info("Setting up static endpoints")
+	http.Handle("/", http.FileServer(FS(c.UseLocal)))
 
 	log.Info("Handler set up complete.")
 	return nil

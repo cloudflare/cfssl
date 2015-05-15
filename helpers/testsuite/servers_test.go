@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/bundler"
@@ -136,19 +135,6 @@ func TestStartCFSSLServer(t *testing.T) {
 		err = server.Kill()
 		checkError(err, t)
 	}()
-
-	// Try to start up a second server at the same address and port number. We
-	// should get an 'address in use' error.
-	server2 := CFSSLServer{
-		Addr:  server.Addr,
-		Port:  server.Port,
-		CA:    CACert,
-		CAKey: CAKey,
-	}
-	err = server2.Start()
-	if err == nil || !strings.Contains(err.Error(), "Error occurred on server: address") {
-		t.Fatal("Two servers allowed on same address and port.")
-	}
 
 	// Now make a request of our server and check that no error occurred.
 
