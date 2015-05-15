@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/cloudflare/cf-tls/tls"
@@ -85,6 +86,15 @@ func chainExpiration(host string) (grade Grade, output Output, err error) {
 func chainValidation(host string) (grade Grade, output Output, err error) {
 	chain, err := getChain(host, defaultTLSConfig(host))
 	if err != nil {
+		return
+	}
+
+	h, _, err := net.SplitHostPort(host)
+	if err != nil {
+		return
+	}
+
+	if err = chain[0].VerifyHostname(h); err != nil {
 		return
 	}
 
