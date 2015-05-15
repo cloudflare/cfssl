@@ -2,6 +2,7 @@
 package local
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -168,9 +170,9 @@ func OverrideHosts(template *x509.Certificate, hosts []string) {
 // certificate or certificate request with the signing profile,
 // specified by profileName.
 func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
-	profile := s.policy.Profiles[req.Profile]
-	if profile == nil {
-		profile = s.policy.Default
+	profile, err := signer.Profile(s, req.Profile)
+	if err != nil {
+		return
 	}
 
 	serialSeq := ""
@@ -224,6 +226,28 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
 	return s.sign(&safeTemplate, profile, serialSeq)
+}
+
+// Info return a populated info.Resp struct or an error.
+func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
+	cert, err := s.Certificate(req.Label, req.Profile)
+	if err != nil {
+		return
+	}
+
+	profile, err := signer.Profile(s, req.Profile)
+	if err != nil {
+		return
+	}
+
+	resp = new(info.Resp)
+	if cert.Raw != nil {
+		resp.Certificate = string(bytes.TrimSpace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+	}
+	resp.Usage = profile.Usage
+	resp.ExpiryString = profile.ExpiryString
+
+	return
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

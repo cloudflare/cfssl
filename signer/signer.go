@@ -21,6 +21,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/info"
 )
 
 // MaxPathLen is the default path length for a new CA certificate.
@@ -87,11 +88,29 @@ func SplitHosts(hostList string) []string {
 // A Signer contains a CA's certificate and private key for signing
 // certificates, a Signing policy to refer to and a SignatureAlgorithm.
 type Signer interface {
-	Certificate(label, profile string) (*x509.Certificate, error)
+	Info(info.Req) (*info.Resp, error)
 	Policy() *config.Signing
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)
+}
+
+// Profile gets the specific profile from the signer
+func Profile(s Signer, profile string) (*config.SigningProfile, error) {
+	var p *config.SigningProfile
+	policy := s.Policy()
+	if policy != nil && policy.Profiles != nil && profile != "" {
+		p = policy.Profiles[profile]
+	}
+
+	if p == nil && policy != nil {
+		p = policy.Default
+	}
+
+	if p == nil {
+		return nil, cferr.Wrap(cferr.APIClientError, cferr.ClientHTTPError, errors.New("profile must not be nil"))
+	}
+	return p, nil
 }
 
 // DefaultSigAlgo returns an appropriate X.509 signature algorithm given
