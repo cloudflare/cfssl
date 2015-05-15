@@ -168,9 +168,9 @@ func (srv *Server) Info(jsonData []byte) (*info.Resp, error) {
 		info.ExpiryString = val.(string)
 	}
 
-	usageStrings := make([]string, len(usages))
+	info.Usage = make([]string, len(usages))
 	for i, s := range usages {
-		usageStrings[i] = s.(string)
+		info.Usage[i] = s.(string)
 	}
 
 	return info, nil
