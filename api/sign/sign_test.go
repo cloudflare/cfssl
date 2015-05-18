@@ -319,9 +319,9 @@ var signTests = []signTest{
 	{
 		Hosts:              nil,
 		CSRFile:            testCSRFile,
-		ExpectedHTTPStatus: http.StatusBadRequest,
-		ExpectedSuccess:    false,
-		ExpectedErrorCode:  http.StatusBadRequest,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
 	},
 	{
 		Hosts:              []string{testDomainName},
