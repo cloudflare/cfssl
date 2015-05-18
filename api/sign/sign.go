@@ -140,9 +140,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	signReq := jsonReqToTrue(req)
-	if signReq.Hosts == nil {
-		return errors.NewBadRequestString("missing parameter 'hostname' or 'hosts'")
-	}
 
 	if req.Request == "" {
 		return errors.NewBadRequestString("missing parameter 'certificate_request'")
@@ -279,9 +276,6 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	signReq := jsonReqToTrue(req)
-	if signReq.Hosts == nil {
-		return errors.NewBadRequestString("missing parameter 'hostname' or 'hosts'")
-	}
 
 	if signReq.Request == "" {
 		return errors.NewBadRequestString("missing parameter 'certificate_request'")
