@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -760,8 +761,8 @@ func TestWhitelistSign(t *testing.T) {
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
 			CA:           true,
-			CSRWhitelist:    &config.CSRWhitelist{
-				PublicKey: true,
+			CSRWhitelist: &config.CSRWhitelist{
+				PublicKey:          true,
 				PublicKeyAlgorithm: true,
 				SignatureAlgorithm: true,
 			},
@@ -786,7 +787,7 @@ func TestWhitelistSign(t *testing.T) {
 
 	name := cert.Subject
 	if name.CommonName != "" {
-		t.Fatalf("Expected empty certificate common name under policy without " +
+		t.Fatalf("Expected empty certificate common name under policy without "+
 			"Subject whitelist, got %v", name.CommonName)
 	}
 	// O is provided by the signing API request, not the CSR, so it's allowed to
@@ -806,4 +807,76 @@ func TestWhitelistSign(t *testing.T) {
 		t.Fatalf("Expected public key algorithm to be ECDSAWithSHA256, got %v",
 			cert.SignatureAlgorithm)
 	}
+}
+
+func TestNameWhitelistSign(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	subInvalid := &signer.Subject{
+		CN: "localhost.com",
+	}
+	subValid := &signer.Subject{
+		CN: "1lab41.cf",
+	}
+
+	wl := regexp.MustCompile("^1[a-z]*[0-9]*\\.cf$")
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+	// Whitelist only key-related fields. Subject, DNSNames, etc shouldn't get
+	// passed through from CSR.
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:         []string{"cert sign", "crl sign"},
+			ExpiryString:  "1h",
+			Expiry:        1 * time.Hour,
+			CA:            true,
+			NameWhitelist: wl,
+		},
+	}
+
+	request := signer.SignRequest{
+		Hosts:   []string{"127.0.0.1", "1machine23.cf"},
+		Request: string(csrPEM),
+	}
+
+	_, err = s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	request = signer.SignRequest{
+		Hosts:   []string{"invalid.cf", "1machine23.cf"},
+		Request: string(csrPEM),
+	}
+
+	_, err = s.Sign(request)
+	if err == nil {
+		t.Fatalf("expected a policy error")
+	}
+
+	request = signer.SignRequest{
+		Hosts:   []string{"1machine23.cf"},
+		Request: string(csrPEM),
+		Subject: subInvalid,
+	}
+
+	_, err = s.Sign(request)
+	if err == nil {
+		t.Fatalf("expected a policy error")
+	}
+
+	request = signer.SignRequest{
+		Hosts:   []string{"1machine23.cf"},
+		Request: string(csrPEM),
+		Subject: subValid,
+	}
+
+	_, err = s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
 }

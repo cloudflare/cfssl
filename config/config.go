@@ -29,7 +29,7 @@ import (
 // mechanism.
 type CSRWhitelist struct {
 	Subject, PublicKeyAlgorithm, PublicKey, SignatureAlgorithm bool
-	DNSNames, IPAddresses bool
+	DNSNames, IPAddresses                                      bool
 }
 
 // A SigningProfile stores information that the CA needs to store
@@ -49,13 +49,14 @@ type SigningProfile struct {
 	NotBefore      time.Time `json:"not_before"`
 	NotAfter       time.Time `json:"not_after"`
 
-	Policies     []asn1.ObjectIdentifier
-	Expiry       time.Duration
-	Backdate     time.Duration
-	Provider     auth.Provider
-	RemoteServer string
-	UseSerialSeq bool
-	CSRWhitelist *CSRWhitelist
+	Policies      []asn1.ObjectIdentifier
+	Expiry        time.Duration
+	Backdate      time.Duration
+	Provider      auth.Provider
+	RemoteServer  string
+	UseSerialSeq  bool
+	CSRWhitelist  *CSRWhitelist
+	NameWhitelist *regexp.Regexp
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
@@ -409,7 +410,7 @@ func LoadConfig(config []byte) (*Config, error) {
 	err := json.Unmarshal(config, &cfg)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
-			errors.New("failed to unmarshal configuration: " + err.Error()))
+			errors.New("failed to unmarshal configuration: "+err.Error()))
 	}
 
 	if cfg.Signing.Default == nil {
