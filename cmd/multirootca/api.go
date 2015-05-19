@@ -146,6 +146,10 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 
 	if policy.Profiles != nil && sigRequest.Profile != "" {
 		profile = policy.Profiles[sigRequest.Profile]
+		if profile == nil {
+			fail(w, req, http.StatusBadRequest, 1, "invalid profile", "failed to look up profile with name: "+sigRequest.Profile)
+			return
+		}
 	}
 
 	if profile == nil {
