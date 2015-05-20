@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -88,8 +87,7 @@ func infoMain(args []string, c cli.Config) (err error) {
 		return goerr.New("Either -remote or -config must be given. Refer to cfssl info -h for usage.")
 	}
 
-	response := api.NewSuccessResponse(resp)
-	respJSON, err := json.Marshal(response)
+	respJSON, err := json.Marshal(resp)
 	if err != nil {
 		return errors.NewBadRequest(err)
 	}
