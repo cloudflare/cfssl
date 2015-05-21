@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"crypto/x509"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/cloudflare/cf-tls/tls"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/revoke"
 )
 
 // PKI contains scanners for the Public Key Infrastructure.
@@ -89,19 +89,19 @@ func chainValidation(host string) (grade Grade, output Output, err error) {
 		return
 	}
 
-	h, _, err := net.SplitHostPort(host)
-	if err != nil {
-		return
-	}
-
-	if err = chain[0].VerifyHostname(h); err != nil {
-		return
-	}
-
 	var warnings []string
 
 	for i := 0; i < len(chain)-1; i++ {
 		cert, parent := chain[i], chain[i+1]
+
+		revoked, ok := revoke.VerifyCertificate(cert)
+		if !ok {
+			warnings = append(warnings, fmt.Sprintf("couldn't check if %s is revoked", cert.Subject.CommonName))
+		}
+		if revoked {
+			err = fmt.Errorf("%s is revoked", cert.Subject.CommonName)
+			return
+		}
 
 		if !parent.IsCA {
 			err = fmt.Errorf("%s is not a CA", parent.Subject.CommonName)
@@ -116,8 +116,6 @@ func chainValidation(host string) (grade Grade, output Output, err error) {
 		if err = cert.CheckSignatureFrom(parent); err != nil {
 			return
 		}
-
-		// TODO: Check CRL and OCSP revocation.
 
 		switch cert.SignatureAlgorithm {
 		case x509.ECDSAWithSHA1:
