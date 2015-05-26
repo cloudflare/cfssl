@@ -29,7 +29,7 @@ import (
 // mechanism.
 type CSRWhitelist struct {
 	Subject, PublicKeyAlgorithm, PublicKey, SignatureAlgorithm bool
-	DNSNames, IPAddresses bool
+	DNSNames, IPAddresses                                      bool
 }
 
 // A SigningProfile stores information that the CA needs to store
@@ -409,7 +409,7 @@ func LoadConfig(config []byte) (*Config, error) {
 	err := json.Unmarshal(config, &cfg)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
-			errors.New("failed to unmarshal configuration: " + err.Error()))
+			errors.New("failed to unmarshal configuration: "+err.Error()))
 	}
 
 	if cfg.Signing.Default == nil {
