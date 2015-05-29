@@ -38,10 +38,6 @@ For each pair of crypto algorithm X and key size Y, a CA chain is constructed:
 	                                    |-> cfssl-leaf-rsa4096
 
 Test_root_CA is a RSA cert, inter-L1 is RSA 4096 cert, inter-L2 is ecdsa-384 cert.
-In addition, we construct another mixed chain of RSA->ECDSA->RSA->ECDSA
-	Test_root_CA -> inter-L1-v2 -> inter-L2-v2 --> cfssl-leaf-ecdsa256-v2
-	                                           |-> cfssl-leaf-ecdsa384-v2
-	                                           |-> cfssl-leaf-ecdsa521-v2
 
 The max path length is set to be 1 for non-root CAs.
 Two inter-* certs are assembled in intermediates.crt
@@ -71,11 +67,6 @@ const (
 	interL1Expired  = "testdata/inter-L1-expired.pem"
 	interL1CSR      = "testdata/inter-L1.csr"
 	interL2         = "testdata/inter-L2.pem"
-	interL1v2       = "testdata/inter-L1-v2.pem"
-	interL2v2       = "testdata/inter-L2-v2.pem"
-	leafECDSA256v2  = "testdata/cfssl-leaf-ecdsa256-v2.pem"
-	leafECDSA384v2  = "testdata/cfssl-leaf-ecdsa384-v2.pem"
-	leafECDSA521v2  = "testdata/cfssl-leaf-ecdsa521-v2.pem"
 
 	interL2Direct = "testdata/inter-L2-direct.pem"
 	partialBundle = "testdata/partial-bundle.pem"         // partialBundle is a partial cert chain {leaf-ecds256,  inter-L2}
@@ -144,30 +135,6 @@ var fileTests = []fileTest{
 		intBundleFile:  testCFSSLIntBundle,
 		errorCallback:  nil,
 		bundleChecking: ExpectBundleLength(3),
-	},
-	{
-		cert:               leafECDSA256v2,
-		caBundleFile:       testCFSSLRootBundle,
-		intBundleFile:      interL1v2,
-		extraIntermediates: interL2v2,
-		errorCallback:      nil,
-		bundleChecking:     ExpectBundleLength(3),
-	},
-	{
-		cert:               leafECDSA384v2,
-		caBundleFile:       testCFSSLRootBundle,
-		intBundleFile:      interL1v2,
-		extraIntermediates: interL2v2,
-		errorCallback:      nil,
-		bundleChecking:     ExpectBundleLength(3),
-	},
-	{
-		cert:               leafECDSA521v2,
-		caBundleFile:       testCFSSLRootBundle,
-		intBundleFile:      interL1v2,
-		extraIntermediates: interL2v2,
-		errorCallback:      nil,
-		bundleChecking:     ExpectBundleLength(3),
 	},
 
 	// Normal bundling with private key for all supported key types
