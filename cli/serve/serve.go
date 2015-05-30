@@ -24,8 +24,8 @@ var serverUsageText = `cfssl serve -- set up a HTTP server handles CF SSL reques
 
 Usage of serve:
         cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
-                    [-ca-key key] [-int-bundle bundle] [-port port] [-metadata file] \
-                    [-remote remote_host] [-config config] [-uselocal]
+                    [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
+                    [-metadata file] [-remote remote_host] [-config config] [-uselocal]
 
 Flags:
 `
