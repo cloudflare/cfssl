@@ -13,11 +13,7 @@ import (
 // scanHandler is an HTTP handler that accepts GET parameters for host (required)
 // family and scanner, and uses these to perform scans, returning a JSON blob result.
 func scanHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Info("setting up scan handler")
-
-	err := r.ParseForm()
-	log.Info(r.Form)
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		log.Warningf("failed to parse body: %v", err)
 		return errors.NewBadRequest(err)
 	}
@@ -45,8 +41,7 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 
 	response := api.NewSuccessResponse(results)
 	enc := json.NewEncoder(w)
-	err = enc.Encode(response)
-	return err
+	return enc.Encode(response)
 }
 
 // NewHandler returns a new http.Handler that handles a scan request.
