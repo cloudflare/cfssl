@@ -16,6 +16,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/ubiquity"
 )
 
@@ -33,74 +34,84 @@ Flags:
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "uselocal"}
 
+var (
+	c cli.Config
+	s signer.Signer
+)
+
+var errBadSigner = errors.New("signer not initialized")
+
+var v1Endpoints = map[string]func() (http.Handler, error){
+	"sign": func() (http.Handler, error) {
+		if s == nil {
+			return nil, errBadSigner
+		}
+		return apisign.NewHandlerFromSigner(s)
+	},
+
+	"authsign": func() (http.Handler, error) {
+		if s == nil {
+			return nil, errBadSigner
+		}
+		return apisign.NewAuthHandlerFromSigner(s)
+	},
+
+	"info": func() (http.Handler, error) {
+		if s == nil {
+			return nil, errBadSigner
+		}
+		return info.NewHandler(s)
+	},
+
+	"newcert": func() (http.Handler, error) {
+		if s == nil {
+			return nil, errBadSigner
+		}
+		return generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, s), nil
+	},
+
+	"bundle": func() (http.Handler, error) {
+		return bundle.NewHandler(c.CABundleFile, c.IntBundleFile)
+	},
+
+	"newkey": func() (http.Handler, error) {
+		return generator.NewHandler(generator.CSRValidate)
+	},
+
+	"init_ca": func() (http.Handler, error) {
+		return initca.NewHandler(), nil
+	},
+
+	"scan": func() (http.Handler, error) {
+		return scan.NewHandler(), nil
+	},
+
+	"scaninfo": func() (http.Handler, error) {
+		return scan.NewInfoHandler(), nil
+	},
+
+	"/": func() (http.Handler, error) {
+		return http.FileServer(FS(c.UseLocal)), nil
+	},
+}
+
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
-func registerHandlers(c cli.Config) error {
-	log.Info("Setting up signer endpoint")
-	s, err := sign.SignerFromConfig(c)
-	if err != nil {
-		log.Warningf("sign and authsign endpoints are disabled: %v", err)
-	} else {
-		if signHandler, err := apisign.NewHandlerFromSigner(s); err == nil {
-			log.Info("Assigning handler to /sign")
-			http.Handle("/api/v1/cfssl/sign", signHandler)
-		} else {
-			log.Warningf("endpoint '/api/v1/cfssl/sign' is disabled: %v", err)
+func registerHandlers() {
+	for path, getHandler := range v1Endpoints {
+		if path != "/" {
+			path = fmt.Sprintf("/api/v1/cfssl/%s", path)
 		}
 
-		if signHandler, err := apisign.NewAuthHandlerFromSigner(s); err == nil {
-			log.Info("Assigning handler to /authsign")
-			http.Handle("/api/v1/cfssl/authsign", signHandler)
+		log.Infof("Setting up '%s' endpoint", path)
+
+		if handler, err := getHandler(); err != nil {
+			log.Warningf("endpoint '%s' is disabled: %v", path, err)
 		} else {
-			log.Warningf("endpoint '/api/v1/cfssl/authsign' is disabled: %v", err)
+			http.Handle(path, handler)
 		}
 	}
-
-	log.Info("Setting up info endpoint")
-	infoHandler, err := info.NewHandler(s)
-	if err != nil {
-		log.Warningf("endpoint '/api/v1/cfssl/info' is disabled: %v", err)
-	} else {
-		http.Handle("/api/v1/cfssl/info", infoHandler)
-	}
-
-	log.Info("Setting up new cert endpoint")
-	if err != nil {
-		log.Errorf("endpoint '/api/v1/cfssl/newcert' is disabled")
-	} else {
-		newCertGenerator := generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, s)
-		http.Handle("/api/v1/cfssl/newcert", newCertGenerator)
-	}
-
-	log.Info("Setting up bundler endpoint")
-	bundleHandler, err := bundle.NewHandler(c.CABundleFile, c.IntBundleFile)
-	if err != nil {
-		log.Warningf("endpoint '/api/v1/cfssl/bundle' is disabled: %v", err)
-	} else {
-		http.Handle("/api/v1/cfssl/bundle", bundleHandler)
-	}
-
-	log.Info("Setting up CSR endpoint")
-	generatorHandler, err := generator.NewHandler(generator.CSRValidate)
-	if err != nil {
-		log.Errorf("Failed to set up CSR endpoint: %v", err)
-		return err
-	}
-	http.Handle("/api/v1/cfssl/newkey", generatorHandler)
-
-	log.Info("Setting up initial CA endpoint")
-	http.Handle("/api/v1/cfssl/init_ca", initca.NewHandler())
-
-	log.Info("Setting up scan endpoint")
-	http.Handle("/api/v1/cfssl/scan", scan.NewHandler())
-
-	log.Info("Setting up scaninfo endpoint")
-	http.Handle("/api/v1/cfssl/scaninfo", scan.NewInfoHandler())
-
-	log.Info("Setting up static endpoints")
-	http.Handle("/", http.FileServer(FS(c.UseLocal)))
 
 	log.Info("Handler set up complete.")
-	return nil
 }
 
 // serverMain is the command line entry point to the API server. It sets up a
@@ -112,15 +123,18 @@ func serverMain(args []string, c cli.Config) error {
 	}
 
 	bundler.IntermediateStash = c.IntDir
-	err := ubiquity.LoadPlatforms(c.Metadata)
-	if err != nil {
+	var err error
+
+	if err = ubiquity.LoadPlatforms(c.Metadata); err != nil {
 		log.Error(err)
 	}
 
-	err = registerHandlers(c)
-	if err != nil {
-		return err
+	log.Info("Initializing signer")
+	if s, err = sign.SignerFromConfig(c); err != nil {
+		log.Warningf("couldn't initialize signer: %v", err)
 	}
+
+	registerHandlers()
 
 	addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
 	log.Info("Now listening on ", addr)

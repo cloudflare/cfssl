@@ -4,12 +4,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/cloudflare/cfssl/cli"
 )
 
 func TestServe(t *testing.T) {
-	registerHandlers(cli.Config{})
+	registerHandlers()
 	ts := httptest.NewServer(http.DefaultServeMux)
 	// Soft-enable endpoints should be all disabled due to empty config files.
 	urlSign := ts.URL + "/api/v1/cfssl/sign"
