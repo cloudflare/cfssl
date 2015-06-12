@@ -12,7 +12,7 @@ certificates. It requires Go 1.4 to build.
 Note that certain linux distributions have certain algorithms removed
 (RHEL-based distributions in particular), so the golang from the
 official repositories will not work. Users of these distributions should
-[install go manually](golang.org) to install CFSSL.
+[install go manually](//golang.org) to install CFSSL.
 
 ### Installation
 
