@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/generator"
@@ -94,6 +96,15 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 	"/": func() (http.Handler, error) {
 		return http.FileServer(FS(conf.UseLocal)), nil
 	},
+}
+
+// v1APIPath prepends the V1 API prefix to endpoints not
+func v1APIPath(endpoint string) string {
+	prefix := "/api/v1/cfssl/"
+	if strings.HasPrefix(endpoint, "/") {
+		prefix = ""
+	}
+	return (&url.URL{Path: prefix + endpoint}).String()
 }
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
