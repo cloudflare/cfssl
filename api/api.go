@@ -30,6 +30,7 @@ type HandlerFunc func(http.ResponseWriter, *http.Request) error
 
 // Handle calls f(w, r)
 func (f HandlerFunc) Handle(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "application/json")
 	return f(w, r)
 }
 
