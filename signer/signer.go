@@ -352,7 +352,7 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 }
 
 type policyQualifier struct {
-	PolicyQualifierId asn1.ObjectIdentifier
+	PolicyQualifierID asn1.ObjectIdentifier
 	Qualifier string `asn1:"tag:optional,ia5"`
 }
 type policyInformation struct {
@@ -364,10 +364,10 @@ var (
 	// Per https://tools.ietf.org/html/rfc3280.html#page-106, this represents:
 	// iso(1) identified-organization(3) dod(6) internet(1) security(5)
 	//   mechanisms(5) pkix(7) id-qt(2) id-qt-cps(1)
-	IDQTCertificationPracticeStatement = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 1}
+	iDQTCertificationPracticeStatement = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 1}
 	// iso(1) identified-organization(3) dod(6) internet(1) security(5)
 	//   mechanisms(5) pkix(7) id-qt(2) id-qt-unotice(2)
-	IDQTUserNotice = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 2}
+	iDQTUserNotice = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 2}
 )
 
 // addPolicies adds Certificate Policies and optional Policy Qualifiers to a
@@ -386,14 +386,14 @@ func addPolicies(template *x509.Certificate, policies []config.CertificatePolicy
 			case "id-qt-unotice":
 				pi.PolicyQualifiers = []policyQualifier{
 					policyQualifier{
-						PolicyQualifierId: IDQTUserNotice,
+						PolicyQualifierID: iDQTUserNotice,
 						Qualifier: policy.Qualifier,
 					},
 				}
 			case "id-qt-cps":
 				pi.PolicyQualifiers = []policyQualifier{
 					policyQualifier{
-						PolicyQualifierId: IDQTCertificationPracticeStatement,
+						PolicyQualifierID: iDQTCertificationPracticeStatement,
 						Qualifier: policy.Qualifier,
 					},
 				}
