@@ -6,6 +6,7 @@ import (
 	"encoding/asn1"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strconv"
@@ -84,14 +85,7 @@ func (oid *OID) UnmarshalJSON(data []byte) (err error) {
 }
 
 func (oid OID) MarshalJSON() ([]byte, error) {
-	ret := ""
-	for _, item := range asn1.ObjectIdentifier(oid) {
-		if ret != "" {
-			ret = ret + "."
-		}
-		ret = ret + strconv.Itoa(item)
-	}
-	return []byte("\"" + ret + "\""), nil
+	return []byte(fmt.Sprintf(`"%v"`, oid)), nil
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
