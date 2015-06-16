@@ -34,9 +34,11 @@ type CSRWhitelist struct {
 	DNSNames, IPAddresses                                      bool
 }
 
+// OID is our own version of asn1's ObjectIdentifier, so we can define a custom
+// JSON marshal / unmarshal.
 type OID asn1.ObjectIdentifier
 
-// A flattening of the ASN.1 PolicyInformation structure from
+// CertificatePolicy is a flattening of the ASN.1 PolicyInformation structure from
 // https://tools.ietf.org/html/rfc3280.html#page-106.
 // Valid values of Type are "id-qt-unotice" and "id-qt-cps"
 type CertificatePolicy struct {
@@ -70,6 +72,7 @@ type SigningProfile struct {
 	CSRWhitelist *CSRWhitelist
 }
 
+// UnmarshalJSON unmarshals a JSON string into an OID.
 func (oid *OID) UnmarshalJSON(data []byte) (err error) {
 	if data[0] != '"' || data[len(data) - 1] != '"' {
 		return errors.New("OID JSON string not wrapped in quotes." + string(data))
@@ -84,6 +87,7 @@ func (oid *OID) UnmarshalJSON(data []byte) (err error) {
 	return
 }
 
+// MarshalJSON marshals an oid into a JSON string.
 func (oid OID) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%v"`, oid)), nil
 }
