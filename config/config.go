@@ -6,6 +6,7 @@ import (
 	"encoding/asn1"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strconv"
@@ -33,6 +34,19 @@ type CSRWhitelist struct {
 	DNSNames, IPAddresses                                      bool
 }
 
+// OID is our own version of asn1's ObjectIdentifier, so we can define a custom
+// JSON marshal / unmarshal.
+type OID asn1.ObjectIdentifier
+
+// CertificatePolicy is a flattening of the ASN.1 PolicyInformation structure from
+// https://tools.ietf.org/html/rfc3280.html#page-106.
+// Valid values of Type are "id-qt-unotice" and "id-qt-cps"
+type CertificatePolicy struct {
+	ID OID
+	Type string
+	Qualifier string
+}
+
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
@@ -41,7 +55,6 @@ type SigningProfile struct {
 	OCSP           string    `json:"ocsp_url"`
 	CRL            string    `json:"crl_url"`
 	CA             bool      `json:"is_ca"`
-	PolicyStrings  []string  `json:"policies"`
 	OCSPNoCheck    bool      `json:"ocsp_no_check"`
 	ExpiryString   string    `json:"expiry"`
 	BackdateString string    `json:"backdate"`
@@ -50,13 +63,33 @@ type SigningProfile struct {
 	NotBefore      time.Time `json:"not_before"`
 	NotAfter       time.Time `json:"not_after"`
 
-	Policies     []asn1.ObjectIdentifier
+	Policies     []CertificatePolicy
 	Expiry       time.Duration
 	Backdate     time.Duration
 	Provider     auth.Provider
 	RemoteServer string
 	UseSerialSeq bool
 	CSRWhitelist *CSRWhitelist
+}
+
+// UnmarshalJSON unmarshals a JSON string into an OID.
+func (oid *OID) UnmarshalJSON(data []byte) (err error) {
+	if data[0] != '"' || data[len(data) - 1] != '"' {
+		return errors.New("OID JSON string not wrapped in quotes." + string(data))
+	}
+	data = data[1:len(data) - 1]
+	parsedOid, err := parseObjectIdentifier(string(data))
+	if err != nil {
+		return err
+	}
+	*oid = OID(parsedOid)
+	log.Debugf("Parsed OID %v", *oid)
+	return
+}
+
+// MarshalJSON marshals an oid into a JSON string.
+func (oid OID) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%v"`, oid)), nil
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
@@ -127,11 +160,9 @@ func (p *SigningProfile) populate(cfg *Config) error {
 			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
 		}
 
-		if len(p.PolicyStrings) > 0 {
-			p.Policies = make([]asn1.ObjectIdentifier, len(p.PolicyStrings))
-			for i, oidString := range p.PolicyStrings {
-				p.Policies[i], err = parseObjectIdentifier(oidString)
-				if err != nil {
+		if len(p.Policies) > 0 {
+			for _, policy := range p.Policies {
+				if policy.Type != "" && policy.Type != "id-qt-unotice" && policy.Type != "id-qt-cps" {
 					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
 				}
 			}

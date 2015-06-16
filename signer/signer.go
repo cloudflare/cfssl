@@ -334,7 +334,10 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		template.IssuingCertificateURL = profile.IssuerURL
 	}
 	if len(profile.Policies) != 0 {
-		template.PolicyIdentifiers = profile.Policies
+		err = addPolicies(template, profile.Policies)
+		if err != nil {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+		}
 	}
 	if profile.OCSPNoCheck {
 		ocspNoCheckExtension := pkix.Extension{
@@ -345,5 +348,73 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		template.ExtraExtensions = append(template.ExtraExtensions, ocspNoCheckExtension)
 	}
 
+	return nil
+}
+
+type policyQualifier struct {
+	PolicyQualifierID asn1.ObjectIdentifier
+	Qualifier string `asn1:"tag:optional,ia5"`
+}
+type policyInformation struct {
+	PolicyIdentifier asn1.ObjectIdentifier
+	PolicyQualifiers []policyQualifier `asn1:"omitempty"`
+}
+
+var (
+	// Per https://tools.ietf.org/html/rfc3280.html#page-106, this represents:
+	// iso(1) identified-organization(3) dod(6) internet(1) security(5)
+	//   mechanisms(5) pkix(7) id-qt(2) id-qt-cps(1)
+	iDQTCertificationPracticeStatement = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 1}
+	// iso(1) identified-organization(3) dod(6) internet(1) security(5)
+	//   mechanisms(5) pkix(7) id-qt(2) id-qt-unotice(2)
+	iDQTUserNotice = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 2}
+)
+
+// addPolicies adds Certificate Policies and optional Policy Qualifiers to a
+// certificate, based on the input config. Go's x509 library allows setting
+// Certificate Policies easily, but does not support nested Policy Qualifiers
+// under those policies. So we need to construct the ASN.1 structure ourselves.
+func addPolicies(template *x509.Certificate, policies []config.CertificatePolicy) error {
+	asn1PolicyList := []policyInformation{}
+
+	for _, policy := range policies {
+		pi := policyInformation{
+			// The PolicyIdentifier is an OID assigned to a given issuer.
+			PolicyIdentifier: asn1.ObjectIdentifier(policy.ID),
+		}
+		switch policy.Type {
+			case "id-qt-unotice":
+				pi.PolicyQualifiers = []policyQualifier{
+					policyQualifier{
+						PolicyQualifierID: iDQTUserNotice,
+						Qualifier: policy.Qualifier,
+					},
+				}
+			case "id-qt-cps":
+				pi.PolicyQualifiers = []policyQualifier{
+					policyQualifier{
+						PolicyQualifierID: iDQTCertificationPracticeStatement,
+						Qualifier: policy.Qualifier,
+					},
+				}
+			case "":
+				// Empty qualifier type is fine: Include this Certificate Policy, but
+				// don't include a Policy Qualifier.
+			default:
+				return errors.New("Invalid qualifier type in Policies " + policy.Type)
+		}
+		asn1PolicyList = append(asn1PolicyList, pi)
+	}
+
+	asn1Bytes, err := asn1.Marshal(asn1PolicyList)
+	if err != nil {
+		return err
+	}
+
+	template.ExtraExtensions = append(template.ExtraExtensions, pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 32},
+		Critical: false,
+		Value:    asn1Bytes,
+	})
 	return nil
 }
