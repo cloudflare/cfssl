@@ -89,7 +89,7 @@ func (oid *OID) UnmarshalJSON(data []byte) (err error) {
 
 // MarshalJSON marshals an oid into a JSON string.
 func (oid OID) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%v"`, oid)), nil
+	return []byte(fmt.Sprintf(`"%v"`, asn1.ObjectIdentifier(oid))), nil
 }
 
 func parseObjectIdentifier(oidString string) (oid asn1.ObjectIdentifier, err error) {
