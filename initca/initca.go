@@ -85,7 +85,7 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 }
 
 // NewFromPEM creates a new root certificate from the key file passed in.
-func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err error) {
+func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byte, err error) {
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
 			CAPolicy.Default.ExpiryString = req.CA.Expiry
@@ -99,12 +99,12 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err e
 
 	privData, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	priv, err := helpers.ParsePrivateKeyPEM(privData)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var sigAlgo x509.SignatureAlgorithm
@@ -142,7 +142,7 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err e
 		DNSNames:           req.Hosts,
 	}
 
-	certReq, err := x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
+	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		// The use of CertificateError was a matter of some
@@ -156,9 +156,9 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err e
 
 	p := &pem.Block{
 		Type:  "CERTIFICATE REQUEST",
-		Bytes: certReq,
+		Bytes: csrPEM,
 	}
-	certReq = pem.EncodeToMemory(p)
+	csrPEM = pem.EncodeToMemory(p)
 
 	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
 	if err != nil {
@@ -167,7 +167,7 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert []byte, err e
 	}
 	s.SetPolicy(CAPolicy)
 
-	signReq := signer.SignRequest{Request: string(certReq)}
+	signReq := signer.SignRequest{Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
 	return
 }
