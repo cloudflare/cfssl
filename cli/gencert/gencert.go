@@ -48,19 +48,18 @@ func gencertMain(args []string, c cli.Config) (err error) {
 	}
 
 	if c.IsCA {
-		var key, cert []byte
-		cert, err = initca.NewFromPEM(&req, c.CAKeyFile)
+		var key, csrPEM, cert []byte
+		cert, csrPEM, err = initca.NewFromPEM(&req, c.CAKeyFile)
 		if err != nil {
 			log.Errorf("%v\n", err)
 			log.Infof("generating a new CA key and certificate from CSR")
-			cert, _, key, err = initca.New(&req)
+			cert, csrPEM, key, err = initca.New(&req)
 			if err != nil {
 				return
 			}
 
 		}
-		cli.PrintCert(key, nil, cert)
-
+		cli.PrintCert(key, csrPEM, cert)
 	} else {
 		if req.CA != nil {
 			err = errors.New("ca section only permitted in initca")
