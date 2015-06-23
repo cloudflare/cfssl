@@ -9,6 +9,7 @@ import (
 func TestServe(t *testing.T) {
 	registerHandlers()
 	ts := httptest.NewServer(http.DefaultServeMux)
+	defer ts.Close()
 	expected := make(map[string]int)
 	for endpoint := range v1Endpoints {
 		expected[endpoint] = http.StatusOK
