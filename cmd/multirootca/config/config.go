@@ -17,6 +17,9 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
+
+	"github.com/cloudflare/redoctober/client"
+	"github.com/cloudflare/redoctober/core"
 )
 
 // configMap is shorthand for the type used as a config struct.
@@ -100,7 +103,7 @@ type Root struct {
 // ErrUnsupportedScheme indicates a private key scheme that is not currently supported.
 var ErrUnsupportedScheme = errors.New("config: unsupported private key scheme")
 
-func parsePrivateKeySpec(spec string) (crypto.Signer, error) {
+func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, error) {
 	specURL, err := url.Parse(spec)
 	if err != nil {
 		return nil, err
@@ -131,6 +134,50 @@ func parsePrivateKeySpec(spec string) (crypto.Signer, error) {
 			}
 		}
 		log.Debug("loaded private key")
+		return priv, nil
+	case "rofile":
+		log.Warning("Red October support is currently experimental")
+		path := filepath.Join(specURL.Host, specURL.Path)
+		in, err := ioutil.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+
+		roServer := cfg["ro_server"]
+		if roServer == "" {
+			return nil, errors.New("config: no RedOctober server available")
+		}
+
+		// roCAPath can be empty; if it is, the client uses
+		// the system default CA roots.
+		roCAPath := cfg["ro_ca"]
+
+		roUser := cfg["ro_user"]
+		if roUser == "" {
+			return nil, errors.New("config: no RedOctober user available")
+		}
+
+		roPass := cfg["ro_pass"]
+		if roPass == "" {
+			return nil, errors.New("config: no RedOctober passphrase available")
+		}
+
+		log.Debug("decrypting key via RedOctober Server")
+		roClient, err := client.NewRemoteServer(roServer, roCAPath)
+		if err != nil {
+			return nil, err
+		}
+
+		req := core.DecryptRequest{
+			Name:     roUser,
+			Password: roPass,
+			Data:     in,
+		}
+		in, err = roClient.DecryptIntoData(req)
+		if err != nil {
+			return nil, err
+		}
+
 		return priv, nil
 	default:
 		return nil, ErrUnsupportedScheme
@@ -183,7 +230,10 @@ func Parse(filename string) (RootList, error) {
 			return nil, ErrMissingConfigPath
 		}
 
-		root.PrivateKey, err = parsePrivateKeySpec(spec)
+		// Entries is provided for any additional
+		// configuration data that may need to come from the
+		// section.
+		root.PrivateKey, err = parsePrivateKeySpec(spec, entries)
 		if err != nil {
 			return nil, err
 		}
