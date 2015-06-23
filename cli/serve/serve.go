@@ -3,8 +3,11 @@ package serve
 
 import (
 	"errors"
-	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/generator"
@@ -35,8 +38,8 @@ Flags:
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "uselocal"}
 
 var (
-	c cli.Config
-	s signer.Signer
+	conf cli.Config
+	s    signer.Signer
 )
 
 var errBadSigner = errors.New("signer not initialized")
@@ -71,7 +74,7 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"bundle": func() (http.Handler, error) {
-		return bundle.NewHandler(c.CABundleFile, c.IntBundleFile)
+		return bundle.NewHandler(conf.CABundleFile, conf.IntBundleFile)
 	},
 
 	"newkey": func() (http.Handler, error) {
@@ -91,15 +94,24 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"/": func() (http.Handler, error) {
-		return http.FileServer(FS(c.UseLocal)), nil
+		return http.FileServer(FS(conf.UseLocal)), nil
 	},
+}
+
+// v1APIPath prepends the V1 API prefix to endpoints not
+func v1APIPath(endpoint string) string {
+	prefix := "/api/v1/cfssl/"
+	if strings.HasPrefix(endpoint, "/") {
+		prefix = ""
+	}
+	return (&url.URL{Path: prefix + endpoint}).String()
 }
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
 	for path, getHandler := range v1Endpoints {
 		if path != "/" {
-			path = fmt.Sprintf("/api/v1/cfssl/%s", path)
+			path = "/api/v1/cfssl/" + path
 		}
 
 		log.Infof("Setting up '%s' endpoint", path)
@@ -117,15 +129,16 @@ func registerHandlers() {
 // serverMain is the command line entry point to the API server. It sets up a
 // new HTTP server to handle sign, bundle, and validate requests.
 func serverMain(args []string, c cli.Config) error {
+	conf = c
 	// serve doesn't support arguments.
 	if len(args) > 0 {
 		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
 	}
 
-	bundler.IntermediateStash = c.IntDir
+	bundler.IntermediateStash = conf.IntDir
 	var err error
 
-	if err = ubiquity.LoadPlatforms(c.Metadata); err != nil {
+	if err = ubiquity.LoadPlatforms(conf.Metadata); err != nil {
 		log.Error(err)
 	}
 
@@ -136,7 +149,7 @@ func serverMain(args []string, c cli.Config) error {
 
 	registerHandlers()
 
-	addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
+	addr := net.JoinHostPort(conf.Address, strconv.Itoa(conf.Port))
 	log.Info("Now listening on ", addr)
 	return http.ListenAndServe(addr, nil)
 }

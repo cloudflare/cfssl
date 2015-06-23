@@ -9,38 +9,37 @@ import (
 func TestServe(t *testing.T) {
 	registerHandlers()
 	ts := httptest.NewServer(http.DefaultServeMux)
-	// Soft-enable endpoints should be all disabled due to empty config files.
-	urlSign := ts.URL + "/api/v1/cfssl/sign"
-	urlGencert := ts.URL + "/api/v1/cfssl/gencert"
-	urlBundle := ts.URL + "/api/v1/cfssl/bundle"
-	urlInitCA := ts.URL + "/api/v1/cfssl/init_ca"
-	urlCSR := ts.URL + "/api/v1/cfssl/newkey"
-
-	// Disabled endpoint should return "404: Not Found"
-	resp, _ := http.Get(urlSign)
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatal(resp.Status)
+	defer ts.Close()
+	expected := make(map[string]int)
+	for endpoint := range v1Endpoints {
+		expected[endpoint] = http.StatusOK
+	}
+	for staticEndpoint := range _escData {
+		expected[staticEndpoint] = http.StatusOK
 	}
 
-	resp, _ = http.Get(urlGencert)
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatal(resp.Status)
-	}
+	// Disabled endpoints should return '404 Not Found'
+	expected["sign"] = http.StatusNotFound
+	expected["authsign"] = http.StatusNotFound
+	expected["newcert"] = http.StatusNotFound
+	expected["info"] = http.StatusNotFound
+	expected["bundle"] = http.StatusNotFound
 
-	resp, _ = http.Get(urlBundle)
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatal(resp.Status)
-	}
+	// Enabled endpoints should return '405 Method Not Allowed'
+	expected["init_ca"] = http.StatusMethodNotAllowed
+	expected["newkey"] = http.StatusMethodNotAllowed
 
-	// Enabled endpoint should return "405 Method Not Allowed"
-	resp, _ = http.Get(urlInitCA)
-	if resp.StatusCode != http.StatusMethodNotAllowed {
-		t.Fatal(resp.Status)
-	}
+	// POST-only endpoints should return '400 Bad Request'
+	expected["scan"] = http.StatusBadRequest
 
-	resp, _ = http.Get(urlCSR)
-	if resp.StatusCode != http.StatusMethodNotAllowed {
-		t.Fatal(resp.Status)
-	}
+	// Non-existent endpoints should return '404 Not Found'
+	expected["bad_endpoint"] = http.StatusNotFound
+	expected["/bad_endpoint"] = http.StatusNotFound
 
+	for endpoint, status := range expected {
+		resp, _ := http.Get(ts.URL + v1APIPath(endpoint))
+		if resp.StatusCode != expected[endpoint] {
+			t.Fatalf("%s: '%s' (expected '%s')", v1APIPath(endpoint), resp.Status, http.StatusText(status))
+		}
+	}
 }
