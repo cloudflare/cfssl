@@ -358,6 +358,18 @@ type policyQualifier struct {
 type policyInformation struct {
 	PolicyIdentifier asn1.ObjectIdentifier
 	PolicyQualifiers []policyQualifier `asn1:"omitempty"`
+	// User Notice policy qualifiers have a slightly different ASN.1 structure
+	// from that used for CPS policy qualifiers. At most one of PolicyQualifiers
+	// or UserNoticePolicyQualifiers should be filled.
+	UserNoticePolicyQualifiers []userNoticePolicyQualifier `asn1:"omitempty"`
+}
+
+type userNotice struct {
+	ExplicitText string `asn1:"tag:optional,utf8"`
+}
+type userNoticePolicyQualifier struct {
+	PolicyQualifierID asn1.ObjectIdentifier
+	Qualifier         userNotice
 }
 
 var (
@@ -384,13 +396,21 @@ func addPolicies(template *x509.Certificate, policies []config.CertificatePolicy
 		}
 		switch policy.Type {
 			case "id-qt-unotice":
+				pi.UserNoticePolicyQualifiers = []userNoticePolicyQualifier{
+					userNoticePolicyQualifier{
+						PolicyQualifierID: iDQTUserNotice,
+						Qualifier:         userNotice{
+							ExplicitText: policy.Qualifier,
+						},
+					},
+				}
+			case "id-qt-cps":
 				pi.PolicyQualifiers = []policyQualifier{
 					policyQualifier{
 						PolicyQualifierID: iDQTUserNotice,
 						Qualifier: policy.Qualifier,
 					},
 				}
-			case "id-qt-cps":
 				pi.PolicyQualifiers = []policyQualifier{
 					policyQualifier{
 						PolicyQualifierID: iDQTCertificationPracticeStatement,
