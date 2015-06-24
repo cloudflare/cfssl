@@ -8,15 +8,18 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/whitelist"
 
 	"github.com/cloudflare/redoctober/client"
 	"github.com/cloudflare/redoctober/core"
@@ -98,6 +101,7 @@ type Root struct {
 	PrivateKey  crypto.Signer
 	Certificate *x509.Certificate
 	Config      *config.Signing
+	ACL         whitelist.NetACL
 }
 
 // ErrUnsupportedScheme indicates a private key scheme that is not currently supported.
@@ -184,6 +188,22 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 	}
 }
 
+func parseACL(nets string) (whitelist.NetACL, error) {
+	wl := whitelist.NewBasicNet()
+	netList := strings.Split(nets, ",")
+	for i := range netList {
+		netList[i] = strings.TrimSpace(netList[i])
+		_, n, err := net.ParseCIDR(netList[i])
+		if err != nil {
+			return nil, err
+		}
+
+		wl.Add(n)
+	}
+
+	return wl, nil
+}
+
 // A RootList associates a set of labels with the appropriate private
 // keys and their certificates.
 type RootList map[string]*Root
@@ -253,6 +273,14 @@ func Parse(filename string) (RootList, error) {
 			return nil, err
 		}
 		root.Config = conf.Signing
+
+		nets := entries["nets"]
+		if nets != "" {
+			root.ACL, err = parseACL(nets)
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		rootList[label] = &root
 	}

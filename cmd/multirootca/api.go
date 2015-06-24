@@ -12,6 +12,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/whitelist"
 	metrics "github.com/cloudflare/go-metrics"
 )
 
@@ -124,6 +125,20 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 
 	if sigRequest.Label == "" {
 		sigRequest.Label = defaultLabel
+	}
+
+	acl := whitelists[sigRequest.Label]
+	if acl != nil {
+		ip, err := whitelist.HTTPRequestLookup(req)
+		if err != nil {
+			fail(w, req, http.StatusInternalServerError, 1, err.Error(), "while getting request IP")
+			return
+		}
+
+		if !acl.Permitted(ip) {
+			fail(w, req, http.StatusForbidden, 1, "not authorised", "because IP is not whitelisted")
+			return
+		}
 	}
 
 	s, ok := signers[sigRequest.Label]

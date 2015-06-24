@@ -142,6 +142,7 @@ func TestLoadBadRootConfs(t *testing.T) {
 		"testdata/roots_badspec.conf",
 		"testdata/roots_badspec2.conf",
 		"testdata/roots_badspec3.conf",
+		"testdata/roots_bad_whitelist.conf",
 		"testdata/roots_missing_certificate.conf",
 		"testdata/roots_missing_certificate_entry.conf",
 		"testdata/roots_missing_private_key.conf",
@@ -154,5 +155,48 @@ func TestLoadBadRootConfs(t *testing.T) {
 			t.Fatalf("expected config file %s to fail", cf)
 		}
 		log.Debugf("%s: %v", cf, err)
+	}
+}
+
+const confWhitelist = "testdata/roots_whitelist.conf"
+
+func TestLoadWhitelist(t *testing.T) {
+	roots, err := Parse(confWhitelist)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if roots["backup"].ACL != nil {
+		t.Fatal("Expected a nil ACL for the backup root")
+	}
+
+	if roots["primary"].ACL == nil {
+		t.Fatal("Expected a non-nil ACL for the primary root")
+	}
+
+	validIPs := [][]byte{
+		{10, 0, 2, 3},
+		{10, 0, 2, 247},
+		{172, 16, 3, 9},
+		{192, 168, 3, 15},
+	}
+	badIPs := [][]byte{
+		{192, 168, 0, 1},
+		{127, 0, 0, 1},
+		{192, 168, 3, 14},
+		{192, 168, 3, 16},
+	}
+
+	wl := roots["primary"].ACL
+	for i := range validIPs {
+		if !wl.Permitted(validIPs[i]) {
+			t.Fatalf("ACL should have permitted IP %v", validIPs[i])
+		}
+	}
+
+	for i := range badIPs {
+		if wl.Permitted(badIPs[i]) {
+			t.Fatalf("ACL should not have permitted IP %v", badIPs[i])
+		}
 	}
 }

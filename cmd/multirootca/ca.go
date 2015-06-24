@@ -14,7 +14,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
-	"github.com/kisom/whitelist"
+	"github.com/cloudflare/cfssl/whitelist"
 )
 
 func parseSigner(root *config.Root) (signer.Signer, error) {
@@ -35,6 +35,7 @@ func parseSigner(root *config.Root) (signer.Signer, error) {
 var (
 	defaultLabel string
 	signers      = map[string]signer.Signer{}
+	whitelists   = map[string]whitelist.NetACL{}
 )
 
 func main() {
@@ -61,6 +62,9 @@ func main() {
 			log.Criticalf("%v", err)
 		}
 		signers[label] = s
+		if root.ACL != nil {
+			whitelists[label] = root.ACL
+		}
 		log.Info("loaded signer ", label)
 	}
 
