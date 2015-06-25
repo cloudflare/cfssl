@@ -1,7 +1,8 @@
 {
     "signing": {
         "default": {
-            "expiry": "168h"
+            "expiry": "168h",
+            "name_whitelist": "^.*cloudflare.com"
         },
         "profiles": {
             "www": {
@@ -9,7 +10,8 @@
                     "signing",
                     "key encipherment",
                     "server auth"
-                ]
+                ],
+                "name_whitelist": "^.*cloudflare.com"
             }
         }
     }
