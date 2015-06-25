@@ -9,7 +9,8 @@
                     "signing",
                     "key encipherment",
                     "server auth"
-                ]
+                ],
+                "name_whitelist": "^.*\\.cloudflare.com$"
             }
         }
     }

@@ -42,42 +42,45 @@ type OID asn1.ObjectIdentifier
 // https://tools.ietf.org/html/rfc3280.html#page-106.
 // Valid values of Type are "id-qt-unotice" and "id-qt-cps"
 type CertificatePolicy struct {
-	ID OID
-	Type string
+	ID        OID
+	Type      string
 	Qualifier string
 }
 
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
-	Usage          []string  `json:"usages"`
-	IssuerURL      []string  `json:"issuer_urls"`
-	OCSP           string    `json:"ocsp_url"`
-	CRL            string    `json:"crl_url"`
-	CA             bool      `json:"is_ca"`
-	OCSPNoCheck    bool      `json:"ocsp_no_check"`
-	ExpiryString   string    `json:"expiry"`
-	BackdateString string    `json:"backdate"`
-	AuthKeyName    string    `json:"auth_key"`
-	RemoteName     string    `json:"remote"`
-	NotBefore      time.Time `json:"not_before"`
-	NotAfter       time.Time `json:"not_after"`
+	Usage               []string  `json:"usages"`
+	IssuerURL           []string  `json:"issuer_urls"`
+	OCSP                string    `json:"ocsp_url"`
+	CRL                 string    `json:"crl_url"`
+	CA                  bool      `json:"is_ca"`
+	PolicyStrings       []string  `json:"policies"`
+	OCSPNoCheck         bool      `json:"ocsp_no_check"`
+	ExpiryString        string    `json:"expiry"`
+	BackdateString      string    `json:"backdate"`
+	AuthKeyName         string    `json:"auth_key"`
+	RemoteName          string    `json:"remote"`
+	NotBefore           time.Time `json:"not_before"`
+	NotAfter            time.Time `json:"not_after"`
+	NameWhitelistString string    `json:"name_whitelist"`
 
-	Policies     []CertificatePolicy
-	Expiry       time.Duration
-	Backdate     time.Duration
-	Provider     auth.Provider
-	RemoteServer string
-	UseSerialSeq bool
-	CSRWhitelist *CSRWhitelist
+	Policies      []CertificatePolicy
+	Expiry        time.Duration
+	Backdate      time.Duration
+	Provider      auth.Provider
+	RemoteServer  string
+	UseSerialSeq  bool
+	CSRWhitelist  *CSRWhitelist
+	NameWhitelist *regexp.Regexp
 }
 
 // UnmarshalJSON unmarshals a JSON string into an OID.
 func (oid *OID) UnmarshalJSON(data []byte) (err error) {
-	if data[0] != '"' || data[len(data) - 1] != '"' {
+	if data[0] != '"' || data[len(data)-1] != '"' {
 		return errors.New("OID JSON string not wrapped in quotes." + string(data))
 	}
-	data = data[1:len(data) - 1]
+	data = data[1 : len(data)-1]
 	parsedOid, err := parseObjectIdentifier(string(data))
 	if err != nil {
 		return err
@@ -198,6 +201,16 @@ func (p *SigningProfile) populate(cfg *Config) error {
 			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
 				errors.New("failed to find auth_key in auth_keys section"))
 		}
+	}
+
+	if p.NameWhitelistString != "" {
+		log.Debug("compiling whitelist regular expression")
+		rule, err := regexp.Compile(p.NameWhitelistString)
+		if err != nil {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to compile name whitelist section"))
+		}
+		p.NameWhitelist = rule
 	}
 
 	return nil
