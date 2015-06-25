@@ -1,7 +1,7 @@
 Bootstrapping CFSSL
 ====================
 
-CFSSL has no other dependencies besides a working Go 1.3 installation.
+CFSSL has no other dependencies besides a working Go 1.4 installation.
 It uses only standard library components, besides those packages
 included in the software.
 
