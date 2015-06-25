@@ -225,6 +225,20 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	OverrideHosts(&safeTemplate, req.Hosts)
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
+	// If there is a whitelist, ensure that both the Common Name and SAN DNSNames match
+	if profile.NameWhitelist != nil {
+		if safeTemplate.Subject.CommonName != "" {
+			if profile.NameWhitelist.Find([]byte(safeTemplate.Subject.CommonName)) == nil {
+				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+			}
+		}
+		for _, name := range safeTemplate.DNSNames {
+			if profile.NameWhitelist.Find([]byte(name)) == nil {
+				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+			}
+		}
+	}
+
 	return s.sign(&safeTemplate, profile, serialSeq)
 }
 

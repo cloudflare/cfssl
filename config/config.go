@@ -42,8 +42,8 @@ type OID asn1.ObjectIdentifier
 // https://tools.ietf.org/html/rfc3280.html#page-106.
 // Valid values of Type are "id-qt-unotice" and "id-qt-cps"
 type CertificatePolicy struct {
-	ID OID
-	Type string
+	ID        OID
+	Type      string
 	Qualifier string
 }
 
@@ -63,21 +63,22 @@ type SigningProfile struct {
 	NotBefore      time.Time `json:"not_before"`
 	NotAfter       time.Time `json:"not_after"`
 
-	Policies     []CertificatePolicy
-	Expiry       time.Duration
-	Backdate     time.Duration
-	Provider     auth.Provider
-	RemoteServer string
-	UseSerialSeq bool
-	CSRWhitelist *CSRWhitelist
+	Policies      []asn1.ObjectIdentifier
+	Expiry        time.Duration
+	Backdate      time.Duration
+	Provider      auth.Provider
+	RemoteServer  string
+	UseSerialSeq  bool
+	CSRWhitelist  *CSRWhitelist
+	NameWhitelist *regexp.Regexp
 }
 
 // UnmarshalJSON unmarshals a JSON string into an OID.
 func (oid *OID) UnmarshalJSON(data []byte) (err error) {
-	if data[0] != '"' || data[len(data) - 1] != '"' {
+	if data[0] != '"' || data[len(data)-1] != '"' {
 		return errors.New("OID JSON string not wrapped in quotes." + string(data))
 	}
-	data = data[1:len(data) - 1]
+	data = data[1 : len(data)-1]
 	parsedOid, err := parseObjectIdentifier(string(data))
 	if err != nil {
 		return err
