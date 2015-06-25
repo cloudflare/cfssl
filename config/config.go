@@ -65,7 +65,7 @@ type SigningProfile struct {
 	NotAfter            time.Time `json:"not_after"`
 	NameWhitelistString string    `json:"name_whitelist"`
 
-	Policies      []asn1.ObjectIdentifier
+	Policies      []CertificatePolicy
 	Expiry        time.Duration
 	Backdate      time.Duration
 	Provider      auth.Provider

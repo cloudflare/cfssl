@@ -376,6 +376,7 @@ mechanism and key "00000000000000000000000000000000".
                     "key encipherment",
                     "server auth"
                 ]
+                "name_whitelist": "^.*\\.cloudflare.com$",
                 "auth_key": "myauthkey",
                 "remote": "myremoteserver"
             }
