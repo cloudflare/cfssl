@@ -1,4 +1,4 @@
-## Compiling and serviving static files using esc
+## Compiling and serving static files using esc
 
 ```
 go install github.com/mjibson/esc
