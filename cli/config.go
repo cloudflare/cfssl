@@ -2,6 +2,7 @@ package cli
 
 import (
 	"flag"
+	"os"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
@@ -92,7 +93,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
 		f.StringVar(&c.Token, "pkcs11-token", "", "PKCS #11 token")
-		f.StringVar(&c.PIN, "pkcs11-pin", "", "PKCS #11 user PIN")
+		f.StringVar(&c.PIN, "pkcs11-pin", os.Getenv("USER_PIN"), "PKCS #11 user PIN")
 		f.StringVar(&c.PKCS11Label, "pkcs11-label", "", "PKCS #11 label")
 	}
 }
