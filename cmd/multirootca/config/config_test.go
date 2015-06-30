@@ -143,6 +143,7 @@ func TestLoadBadRootConfs(t *testing.T) {
 		"testdata/roots_badspec2.conf",
 		"testdata/roots_badspec3.conf",
 		"testdata/roots_bad_whitelist.conf",
+		"testdata/roots_bad_whitelist.conf2",
 		"testdata/roots_missing_certificate.conf",
 		"testdata/roots_missing_certificate_entry.conf",
 		"testdata/roots_missing_private_key.conf",
@@ -185,6 +186,8 @@ func TestLoadWhitelist(t *testing.T) {
 		{127, 0, 0, 1},
 		{192, 168, 3, 14},
 		{192, 168, 3, 16},
+		{255, 255, 0, 1},
+		{0, 0, 0, 0},
 	}
 
 	wl := roots["primary"].ACL
