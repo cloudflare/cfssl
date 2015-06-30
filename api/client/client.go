@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/api"
@@ -18,16 +19,41 @@ import (
 	"github.com/cloudflare/cfssl/info"
 )
 
-// A Server points to a remote CFSSL instance.
-type Server struct {
+// A server points to a single remote CFSSL instance.
+type server struct {
 	Address string
 	Port    int
 }
 
+// A Remote points to at least one (but possibly multiple) remote CFSSL instances.
+type Remote interface {
+	AuthSign(req, id []byte, provider auth.Provider) ([]byte, error)
+	Sign(jsonData []byte) ([]byte, error)
+	Info(jsonData []byte) (*info.Resp, error)
+}
+
 // NewServer sets up a new server target. The address should be the
 // DNS name (or "name:port") of the remote CFSSL instance. If no port
-// is specified, the CFSSL default port (8888) is used.
-func NewServer(addr string) *Server {
+// is specified, the CFSSL default port (8888) is used. If the name is
+// a comma-separated list of hosts, an ordered group will be returned.
+func NewServer(addr string) Remote {
+	addrs := strings.Split(addr, ",")
+
+	var remote Remote
+
+	if len(addrs) > 1 {
+		remote, _ = NewGroup(addrs, StrategyOrderedList)
+	} else {
+		srv := newServer(addr)
+		if srv != nil {
+			remote = srv
+		}
+	}
+	return remote
+}
+
+func newServer(addr string) *server {
+	addr = strings.TrimSpace(addr)
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		host, port, err = net.SplitHostPort(addr + ":8888")
@@ -46,15 +72,15 @@ func NewServer(addr string) *Server {
 		}
 	}
 
-	return &Server{host, portno}
+	return &server{host, portno}
 }
 
-func (srv *Server) getURL(endpoint string) string {
+func (srv *server) getURL(endpoint string) string {
 	return fmt.Sprintf("http://%s:%d/api/v1/cfssl/%s", srv.Address, srv.Port, endpoint)
 }
 
 // post connects to the remote server and returns a Response struct
-func (srv *Server) post(url string, jsonData []byte) (*api.Response, error) {
+func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	buf := bytes.NewBuffer(jsonData)
 	resp, err := http.Post(url, "application/json", buf)
 	if err != nil {
@@ -86,22 +112,22 @@ func (srv *Server) post(url string, jsonData []byte) (*api.Response, error) {
 // receiving a certificate or error in response.
 // It takes the serialized JSON request to send, remote address and
 // authentication provider.
-func (srv *Server) AuthSign(req, id []byte, provider auth.Provider) ([]byte, error) {
-	return srv.AuthReq(req, id, provider, "sign")
+func (srv *server) AuthSign(req, id []byte, provider auth.Provider) ([]byte, error) {
+	return srv.authReq(req, id, provider, "sign")
 }
 
 // AuthInfo fills out an authenticated info request to the server,
 // receiving a certificate or error in response.
 // It takes the serialized JSON request to send, remote address and
 // authentication provider.
-func (srv *Server) AuthInfo(req, id []byte, provider auth.Provider) ([]byte, error) {
-	return srv.AuthReq(req, id, provider, "info")
+func (srv *server) AuthInfo(req, id []byte, provider auth.Provider) ([]byte, error) {
+	return srv.authReq(req, id, provider, "info")
 }
 
-// AuthReq is the common logic for AuthSign and AuthInfo -- perform the given
+// authReq is the common logic for AuthSign and AuthInfo -- perform the given
 // request, and return the resultant certificate.
 // The target is either 'sign' or 'info'.
-func (srv *Server) AuthReq(req, ID []byte, provider auth.Provider, target string) ([]byte, error) {
+func (srv *server) authReq(req, ID []byte, provider auth.Provider, target string) ([]byte, error) {
 	url := srv.getURL("auth" + target)
 
 	token, err := provider.Token(req)
@@ -142,14 +168,14 @@ func (srv *Server) AuthReq(req, ID []byte, provider auth.Provider, target string
 // Sign sends a signature request to the remote CFSSL server,
 // receiving a signed certificate or an error in response.
 // It takes the serialized JSON request to send.
-func (srv *Server) Sign(jsonData []byte) ([]byte, error) {
-	return srv.Req(jsonData, "sign")
+func (srv *server) Sign(jsonData []byte) ([]byte, error) {
+	return srv.request(jsonData, "sign")
 }
 
 // Info sends an info request to the remote CFSSL server, receiving a
 // response or an error in response.
 // It takes the serialized JSON request to send.
-func (srv *Server) Info(jsonData []byte) (*info.Resp, error) {
+func (srv *server) Info(jsonData []byte) (*info.Resp, error) {
 	res, err := srv.getResultMap(jsonData, "info")
 	if err != nil {
 		return nil, err
@@ -176,7 +202,7 @@ func (srv *Server) Info(jsonData []byte) (*info.Resp, error) {
 	return info, nil
 }
 
-func (srv *Server) getResultMap(jsonData []byte, target string) (result map[string]interface{}, err error) {
+func (srv *server) getResultMap(jsonData []byte, target string) (result map[string]interface{}, err error) {
 	url := srv.getURL(target)
 	response, err := srv.post(url, jsonData)
 	if err != nil {
@@ -190,9 +216,9 @@ func (srv *Server) getResultMap(jsonData []byte, target string) (result map[stri
 	return
 }
 
-// Req performs the common logic for Sign and Info, performing the actual
+// request performs the common logic for Sign and Info, performing the actual
 // request and returning the resultant certificate.
-func (srv *Server) Req(jsonData []byte, target string) ([]byte, error) {
+func (srv *server) request(jsonData []byte, target string) ([]byte, error) {
 	result, err := srv.getResultMap(jsonData, target)
 	if err != nil {
 		return nil, err

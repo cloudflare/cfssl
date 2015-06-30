@@ -8,10 +8,19 @@ import (
 	"github.com/cloudflare/cfssl/info"
 )
 
+// Strategy is the means by which the server to use as a remote should
+// be selected.
 type Strategy int
 
 const (
+	// StrategyInvalid indicates any strategy that is unsupported
+	// or returned when no strategy is applicable.
 	StrategyInvalid = iota
+
+	// StrategyOrderedList is a sequential list of servers: if the
+	// first server cannot be reached, the next is used. The
+	// client will proceed in this manner until the list of
+	// servers is exhausted, and then an error is returned.
 	StrategyOrderedList
 )
 
@@ -21,7 +30,7 @@ var strategyStrings = map[string]Strategy{
 
 // StrategyFromString takes a string describing a
 func StrategyFromString(s string) Strategy {
-	s := strings.TrimSpace(strings.ToLower(s))
+	s = strings.TrimSpace(strings.ToLower(s))
 	strategy, ok := strategyStrings[s]
 	if !ok {
 		return StrategyInvalid
@@ -29,16 +38,12 @@ func StrategyFromString(s string) Strategy {
 	return strategy
 }
 
-type Group interface {
-	AuthSign(req, id []byte, provider auth.Provider) ([]byte, error)
-	Sign(jsonData []byte) ([]byte, error)
-	Info(jsonData []byte) (*info.Resp, error)
-}
-
-func NewGroup(remotes []string, strategy Strategy) (Group, error) {
-	var servers = make([]*Server, len(remotes))
+// NewGroup will use the collection of remotes specified with the
+// given strategy.
+func NewGroup(remotes []string, strategy Strategy) (Remote, error) {
+	var servers = make([]*server, len(remotes))
 	for i := range remotes {
-		servers[i] = NewServer(remotes[i])
+		servers[i] = newServer(remotes[i])
 	}
 
 	switch strategy {
@@ -50,10 +55,10 @@ func NewGroup(remotes []string, strategy Strategy) (Group, error) {
 }
 
 type orderedListGroup struct {
-	remotes []*Server
+	remotes []*server
 }
 
-func newOrdererdListGroup(remotes []*Server) (Group, error) {
+func newOrdererdListGroup(remotes []*server) (Remote, error) {
 	return &orderedListGroup{
 		remotes: remotes,
 	}, nil
