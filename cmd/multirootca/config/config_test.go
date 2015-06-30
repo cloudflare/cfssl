@@ -203,3 +203,52 @@ func TestLoadWhitelist(t *testing.T) {
 		}
 	}
 }
+
+const confWhitelistIPv6 = "testdata/roots_whitelist_ipv6.conf"
+
+func TestLoadIPv6Whitelist(t *testing.T) {
+	roots, err := Parse(confWhitelistIPv6)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if roots["backup"].ACL != nil {
+		t.Fatal("Expected a nil ACL for the backup root")
+	}
+
+	if roots["primary"].ACL == nil {
+		t.Fatal("Expected a non-nil ACL for the primary root")
+	}
+
+	validIPs := [][]byte{
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		{253, 77, 152, 85, 16, 29, 230, 139, 0, 0, 0, 0, 0, 0, 0, 1},
+		{253, 77, 152, 85, 16, 29, 230, 139, 0, 0, 0, 0, 32, 0, 0, 1},
+		{10, 0, 4, 18},
+	}
+
+	badIPs := [][]byte{
+		{192, 168, 0, 1},
+		{127, 0, 0, 1},
+		{192, 168, 3, 14},
+		{192, 168, 3, 16},
+		{255, 255, 0, 1},
+		{0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+		{253, 77, 152, 85, 16, 29, 230, 140, 0, 0, 0, 0, 0, 0, 0, 1},
+		{254, 77, 152, 85, 16, 29, 230, 139, 0, 0, 0, 0, 0, 0, 0, 1},
+	}
+
+	wl := roots["primary"].ACL
+	for i := range validIPs {
+		if !wl.Permitted(validIPs[i]) {
+			t.Fatalf("ACL should have permitted IP %v", validIPs[i])
+		}
+	}
+
+	for i := range badIPs {
+		if wl.Permitted(badIPs[i]) {
+			t.Fatalf("ACL should not have permitted IP %v", badIPs[i])
+		}
+	}
+}
