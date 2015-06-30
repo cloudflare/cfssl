@@ -38,13 +38,19 @@ type CSRWhitelist struct {
 // JSON marshal / unmarshal.
 type OID asn1.ObjectIdentifier
 
-// CertificatePolicy is a flattening of the ASN.1 PolicyInformation structure from
+// CertificatePolicy represents the ASN.1 PolicyInformation structure from
 // https://tools.ietf.org/html/rfc3280.html#page-106.
 // Valid values of Type are "id-qt-unotice" and "id-qt-cps"
 type CertificatePolicy struct {
-	ID        OID
-	Type      string
-	Qualifier string
+	ID         OID
+	Qualifiers []CertificatePolicyQualifier
+}
+
+// CertificatePolicyQualifier represents a single qualifier from an ASN.1
+// PolicyInformation structure.
+type CertificatePolicyQualifier struct {
+	Type  string
+	Value string
 }
 
 // A SigningProfile stores information that the CA needs to store
@@ -165,8 +171,11 @@ func (p *SigningProfile) populate(cfg *Config) error {
 
 		if len(p.Policies) > 0 {
 			for _, policy := range p.Policies {
-				if policy.Type != "" && policy.Type != "id-qt-unotice" && policy.Type != "id-qt-cps" {
-					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+				for _, qualifier := range policy.Qualifiers {
+					if qualifier.Type != "" && qualifier.Type != "id-qt-unotice" && qualifier.Type != "id-qt-cps" {
+						return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+							errors.New("invalid policy qualifier type"))
+					}
 				}
 			}
 		}
