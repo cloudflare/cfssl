@@ -351,17 +351,18 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	return nil
 }
 
-type policyQualifier struct {
-	PolicyQualifierID asn1.ObjectIdentifier
-	Qualifier string `asn1:"tag:optional,ia5"`
-}
 type policyInformation struct {
-	PolicyIdentifier asn1.ObjectIdentifier
-	PolicyQualifiers []policyQualifier `asn1:"omitempty"`
+	PolicyIdentifier    asn1.ObjectIdentifier
+	Qualifiers          []interface{}
+	CPSPolicyQualifiers []cpsPolicyQualifier `asn1:"omitempty"`
 	// User Notice policy qualifiers have a slightly different ASN.1 structure
-	// from that used for CPS policy qualifiers. At most one of PolicyQualifiers
-	// or UserNoticePolicyQualifiers should be filled.
+	// from that used for CPS policy qualifiers.
 	UserNoticePolicyQualifiers []userNoticePolicyQualifier `asn1:"omitempty"`
+}
+
+type cpsPolicyQualifier struct {
+	PolicyQualifierID asn1.ObjectIdentifier
+	Qualifier         string `asn1:"tag:optional,ia5"`
 }
 
 type userNotice struct {
@@ -394,34 +395,25 @@ func addPolicies(template *x509.Certificate, policies []config.CertificatePolicy
 			// The PolicyIdentifier is an OID assigned to a given issuer.
 			PolicyIdentifier: asn1.ObjectIdentifier(policy.ID),
 		}
-		switch policy.Type {
+		for _, qualifier := range policy.Qualifiers {
+			switch qualifier.Type {
 			case "id-qt-unotice":
-				pi.UserNoticePolicyQualifiers = []userNoticePolicyQualifier{
+				pi.Qualifiers = append(pi.Qualifiers,
 					userNoticePolicyQualifier{
 						PolicyQualifierID: iDQTUserNotice,
-						Qualifier:         userNotice{
-							ExplicitText: policy.Qualifier,
+						Qualifier: userNotice{
+							ExplicitText: qualifier.Value,
 						},
-					},
-				}
+					})
 			case "id-qt-cps":
-				pi.PolicyQualifiers = []policyQualifier{
-					policyQualifier{
-						PolicyQualifierID: iDQTUserNotice,
-						Qualifier: policy.Qualifier,
-					},
-				}
-				pi.PolicyQualifiers = []policyQualifier{
-					policyQualifier{
+				pi.Qualifiers = append(pi.Qualifiers,
+					cpsPolicyQualifier{
 						PolicyQualifierID: iDQTCertificationPracticeStatement,
-						Qualifier: policy.Qualifier,
-					},
-				}
-			case "":
-				// Empty qualifier type is fine: Include this Certificate Policy, but
-				// don't include a Policy Qualifier.
+						Qualifier:         qualifier.Value,
+					})
 			default:
-				return errors.New("Invalid qualifier type in Policies " + policy.Type)
+				return errors.New("Invalid qualifier type in Policies " + qualifier.Type)
+			}
 		}
 		asn1PolicyList = append(asn1PolicyList, pi)
 	}
