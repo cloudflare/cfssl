@@ -69,3 +69,28 @@ func TestNewServerGroup(t *testing.T) {
 		t.Fatalf("expected the remote to have two servers, but it has %d", len(ogl.remotes))
 	}
 }
+
+func TestNewOGLGroup(t *testing.T) {
+	strategy := StrategyFromString("ordered_list")
+	if strategy == StrategyInvalid {
+		t.Fatal("expected StrategyOrderedList as selected strategy but have StrategyInvalid")
+	}
+
+	if strategy != StrategyOrderedList {
+		t.Fatalf("expected StrategyOrderedList (%d) but have %d", StrategyOrderedList, strategy)
+	}
+
+	rem, err := NewGroup([]string{"ca1.local,", "ca2.local"}, strategy)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	ogl, ok := rem.(*orderedListGroup)
+	if !ok {
+		t.Fatalf("expected to get an orderedListGroup but got %T", rem)
+	}
+
+	if len(ogl.remotes) != 2 {
+		t.Fatalf("expected two remotes in the ordered group list but have %d", len(ogl.remotes))
+	}
+}
