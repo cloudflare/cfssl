@@ -61,7 +61,6 @@ type SigningProfile struct {
 	OCSP                string    `json:"ocsp_url"`
 	CRL                 string    `json:"crl_url"`
 	CA                  bool      `json:"is_ca"`
-	PolicyStrings       []string  `json:"policies"`
 	OCSPNoCheck         bool      `json:"ocsp_no_check"`
 	ExpiryString        string    `json:"expiry"`
 	BackdateString      string    `json:"backdate"`
