@@ -22,6 +22,7 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/bundle"
@@ -57,6 +58,11 @@ func main() {
 		"scan":      scan.Command,
 		"info":      info.Command,
 	}
-	// Register all command flags.
-	cli.Start(cmds)
+
+	// If the CLI returns an error, exit with an appropriate status
+	// code.
+	err := cli.Start(cmds)
+	if err != nil {
+		os.Exit(1)
+	}
 }
