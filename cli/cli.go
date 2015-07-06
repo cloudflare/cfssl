@@ -101,7 +101,7 @@ func Start(cmds map[string]*Command) {
 	if flag.NArg() < 1 {
 		fmt.Fprintf(os.Stderr, "No command is given.\n")
 		flag.Usage()
-		return
+		os.Exit(1)
 	}
 
 	// Clip out the command name and args for the command
@@ -111,7 +111,7 @@ func Start(cmds map[string]*Command) {
 	if !found {
 		fmt.Fprintf(os.Stderr, "Command %s is not defined.\n", cmdName)
 		flag.Usage()
-		return
+		os.Exit(1)
 	}
 	// The usage of each individual command is re-written to mention
 	// flags defined and referenced only in that command.
@@ -137,6 +137,7 @@ func Start(cmds map[string]*Command) {
 
 	if err := cmd.Main(args, c); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
