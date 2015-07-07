@@ -56,21 +56,21 @@ func main() {
 	fileData, err := readFile(*inFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read input: %v\n", err)
-		return
+		os.Exit(1)
 	}
 
 	if *bare {
 		err = json.Unmarshal(fileData, &input)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
-			return
+			os.Exit(1)
 		}
 	} else {
 		var response Response
 		err = json.Unmarshal(fileData, &response)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
-			return
+			os.Exit(1)
 		}
 
 		if !response.Success {
@@ -78,7 +78,7 @@ func main() {
 			for _, msg := range response.Errors {
 				fmt.Fprintf(os.Stderr, "\t%s\n", msg.Message)
 			}
-			return
+			os.Exit(1)
 		}
 
 		input = response.Result
