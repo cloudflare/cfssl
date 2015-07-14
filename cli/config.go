@@ -51,6 +51,7 @@ type Config struct {
 	Responses         string
 	Path              string
 	UseLocal          bool
+	Usage             string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -89,6 +90,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "", "Password for accessing PKCS #12 data passed to bundler")
 	f.BoolVar(&c.UseLocal, "uselocal", false, "serve local static files as opposed to compiled ones")
+	f.StringVar(&c.Usage, "usage", "dev", "usage of private key")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
