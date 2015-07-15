@@ -21,6 +21,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/ubiquity"
+
+	rice "github.com/GeertJohan/go.rice"
 )
 
 // Usage text of 'cfssl serve'
@@ -94,7 +96,7 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"/": func() (http.Handler, error) {
-		return http.FileServer(FS(conf.UseLocal)), nil
+		return http.FileServer(rice.MustFindBox("static").HTTPBox()), nil
 	},
 }
 

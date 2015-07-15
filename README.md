@@ -308,6 +308,19 @@ filenames in the following way:
 * if there is a "bundle" field, the file "basename-bundle.pem" will
   be producd.
 
+### Static Builds
+
+By default, the web assets are accessed from disk, based on their relative
+locations.  If you’re wishing to distribute a single, statically-linked, cfssl
+binary, you’ll want to embed these resources before building.  This can by done
+with the [go.rice](https://github.com/GeertJohan/go.rice) tool.
+
+```
+pushd cli/serve && rice embed-go && popd
+```
+
+Then building with `go build` will use the embedded resources.
+
 ### Additional Documentation
 
 Additional documentation can be found in the "doc/" directory:
