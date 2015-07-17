@@ -391,6 +391,7 @@ var KeyUsage = map[string]x509.KeyUsage{
 	"digital signature":   x509.KeyUsageDigitalSignature,
 	"content committment": x509.KeyUsageContentCommitment,
 	"key encipherment":    x509.KeyUsageKeyEncipherment,
+	"key agreement":       x509.KeyUsageKeyAgreement,
 	"data encipherment":   x509.KeyUsageDataEncipherment,
 	"cert sign":           x509.KeyUsageCertSign,
 	"crl sign":            x509.KeyUsageCRLSign,
