@@ -33,7 +33,7 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 		scanner = r.Form["scanner"][0]
 	}
 
-	results, err := scan.Default.RunScans(host, family, scanner)
+	results, err := scan.Default.RunScans(host, family, scanner, 0)
 	if err != nil {
 		log.Warningf("%v", err)
 		return errors.NewBadRequest(err)

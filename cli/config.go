@@ -47,6 +47,7 @@ type Config struct {
 	Interval          int64
 	List              bool
 	Family            string
+	Timeout           int64
 	Scanner           string
 	Responses         string
 	Path              string
@@ -86,6 +87,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.BoolVar(&c.List, "list", false, "list possible scanners")
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
+	f.Int64Var(&c.Timeout, "timeout", 10000, "seconds to scan each host before timing out")
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "", "Password for accessing PKCS #12 data passed to bundler")
