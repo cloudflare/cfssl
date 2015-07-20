@@ -5,6 +5,8 @@ WORKDIR /go/src/github.com/cloudflare/cfssl
 ENV GOPATH /go/src/github.com/cloudflare/cfssl:/go
 ENV USER root
 
+EXPOSE 8888
+
 ENTRYPOINT ["cfssl"]
 
 RUN go get github.com/cloudflare/cf-tls/tls
