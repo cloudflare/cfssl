@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
@@ -47,7 +48,7 @@ type Config struct {
 	Interval          int64
 	List              bool
 	Family            string
-	Timeout           int64
+	Timeout           time.Duration
 	Scanner           string
 	Responses         string
 	Path              string
@@ -87,10 +88,10 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.BoolVar(&c.List, "list", false, "list possible scanners")
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
-	f.Int64Var(&c.Timeout, "timeout", 10000, "seconds to scan each host before timing out")
+	f.DurationVar(&c.Timeout, "timeout", 0, "duration (ns, us, ms, s, m, h) to scan each host before timing out")
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
-	f.StringVar(&c.Password, "password", "", "Password for accessing PKCS #12 data passed to bundler")
+	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
 	f.BoolVar(&c.UseLocal, "uselocal", false, "serve local static files as opposed to compiled ones")
 	f.StringVar(&c.Usage, "usage", "dev", "usage of private key")
 

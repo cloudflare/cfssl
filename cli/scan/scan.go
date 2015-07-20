@@ -10,7 +10,7 @@ import (
 
 var scanUsageText = `cfssl scan -- scan a host for issues
 Usage of scan:
-        cfssl scan [-family regexp] [-scanner regexp] [-timeout seconds] HOST+
+        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] HOST+
         cfssl scan -list
 
 Arguments:

@@ -134,7 +134,7 @@ type FamilyResult map[string]ScannerResult
 
 // RunScans iterates over AllScans, running scans matching the family and scanner
 // regular expressions.
-func (fs FamilySet) RunScans(host, family, scanner string, t int64) (map[string]FamilyResult, error) {
+func (fs FamilySet) RunScans(host, family, scanner string, dur time.Duration) (map[string]FamilyResult, error) {
 	if _, _, err := net.SplitHostPort(host); err != nil {
 		host = net.JoinHostPort(host, "443")
 	}
@@ -152,8 +152,9 @@ func (fs FamilySet) RunScans(host, family, scanner string, t int64) (map[string]
 	results := make(chan map[string]FamilyResult)
 	timeout := make(chan bool)
 
-	dur := time.Duration(t) * time.Second
-	go startTimer(dur, timeout)
+	if dur > 0 {
+		go startTimer(dur, timeout)
+	}
 
 	familyResults := make(map[string]FamilyResult)
 
