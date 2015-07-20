@@ -132,9 +132,9 @@ type ScannerResult struct {
 // FamilyResult contains a scan response for a single Family
 type FamilyResult map[string]ScannerResult
 
-// RunScans interates over AllScans, running scans matching the family and scanner
+// RunScans iterates over AllScans, running scans matching the family and scanner
 // regular expressions.
-func (fs FamilySet) RunScans(host, family, scanner string) (map[string]FamilyResult, error) {
+func (fs FamilySet) RunScans(host, family, scanner string, dur time.Duration) (map[string]FamilyResult, error) {
 	if _, _, err := net.SplitHostPort(host); err != nil {
 		host = net.JoinHostPort(host, "443")
 	}
@@ -149,32 +149,54 @@ func (fs FamilySet) RunScans(host, family, scanner string) (map[string]FamilyRes
 		return nil, err
 	}
 
+	results := make(chan map[string]FamilyResult)
+	timeout := make(chan bool)
+
+	if dur > 0 {
+		go startTimer(dur, timeout)
+	}
+
 	familyResults := make(map[string]FamilyResult)
 
-	for familyName, family := range fs {
-		if familyRegexp.MatchString(familyName) {
-			scannerResults := make(map[string]ScannerResult)
+	go func() {
+		for familyName, family := range fs {
+			if familyRegexp.MatchString(familyName) {
+				scannerResults := make(map[string]ScannerResult)
 
-			for scannerName, scanner := range family.Scanners {
-				if scannerRegexp.MatchString(scannerName) {
-					grade, output, err := scanner.Scan(host)
+				for scannerName, scanner := range family.Scanners {
+					if scannerRegexp.MatchString(scannerName) {
+						grade, output, err := scanner.Scan(host)
 
-					result := ScannerResult{
-						Grade:  grade.String(),
-						Output: output,
+						result := ScannerResult{
+							Grade:  grade.String(),
+							Output: output,
+						}
+						if err != nil {
+							result.Error = err.Error()
+						}
+
+						scannerResults[scannerName] = result
 					}
-					if err != nil {
-						result.Error = err.Error()
-					}
-
-					scannerResults[scannerName] = result
 				}
+				familyResults[familyName] = scannerResults
 			}
-
-			familyResults[familyName] = scannerResults
 		}
+		results <- familyResults
+	}()
+
+	select {
+	case <-timeout:
+		log.Warningf("scan: %s timed out after %v", host, dur)
+		return nil, nil
+	case res := <-results:
+		return res, nil
 	}
-	return familyResults, nil
+}
+
+func startTimer(t time.Duration, timeout chan bool) {
+	time.AfterFunc(t, func() {
+		timeout <- true
+	})
 }
 
 func defaultTLSConfig(host string) *tls.Config {

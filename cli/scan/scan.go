@@ -1,4 +1,3 @@
-// Package scan implements the scan CLI.
 package scan
 
 import (
@@ -11,14 +10,14 @@ import (
 
 var scanUsageText = `cfssl scan -- scan a host for issues
 Usage of scan:
-        cfssl scan [-family regexp] [-scanner regexp] HOST+
+        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] HOST+
         cfssl scan -list
 
 Arguments:
         HOST:    Host(s) to scan (including port)
 Flags:
 `
-var scanFlags = []string{"list", "family", "scanner"}
+var scanFlags = []string{"list", "family", "scanner", "timeout"}
 
 func printJSON(v interface{}) {
 	b, _ := json.MarshalIndent(v, "", "  ")
@@ -40,12 +39,13 @@ func scanMain(args []string, c cli.Config) (err error) {
 			fmt.Printf("Scanning %s...\n", host)
 
 			var results map[string]scan.FamilyResult
-			results, err = scan.Default.RunScans(host, c.Family, c.Scanner)
+			results, err = scan.Default.RunScans(host, c.Family, c.Scanner, c.Timeout)
 			if err != nil {
 				return
 			}
-
-			printJSON(results)
+			if results != nil {
+				printJSON(results)
+			}
 		}
 	}
 	return
