@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+if [ -z "$1" ]; then
+    OS_PLATFORM_ARG=(-os="darwin linux windows")
+else
+    OS_PLATFORM_ARG=($1)
+fi
+
+if [ -z "$2" ]; then
+    OS_ARCH_ARG=(-arch="386 amd64 arm")
+else
+    OS_ARCH_ARG=($2)
+fi
+
+# Build Docker image unless we opt out of it
+if [[ -z "$SKIP_BUILD" ]]; then
+    docker build -t cfssl-build -f Dockerfile.build .
+fi
+
+# Get rid of existing binaries
+rm -f cfssl*
+docker run --rm -v `pwd`:/go/src/github.com/cloudflare/cfssl cfssl-build gox "${OS_PLATFORM_ARG[@]}" "${OS_ARCH_ARG[@]}" -output="cfssl_{{.OS}}-{{.Arch}}" -ldflags="-w" ./cmd/...
