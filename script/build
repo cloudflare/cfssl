@@ -19,5 +19,6 @@ if [[ -z "$SKIP_BUILD" ]]; then
 fi
 
 # Get rid of existing binaries
-rm -f cfssl*
+rm -f *-386
+rm -f *-amd64
 docker run --rm -v `pwd`:/go/src/github.com/cloudflare/cfssl cfssl-build gox "${OS_PLATFORM_ARG[@]}" "${OS_ARCH_ARG[@]}" -output="{{.Dir}}_{{.OS}}-{{.Arch}}" -ldflags="-w" ./cmd/...
