@@ -2,6 +2,7 @@ package scan
 
 import (
 	"net"
+	"net/http"
 	"regexp"
 	"time"
 
@@ -14,6 +15,8 @@ var (
 	Network = "tcp"
 	// Dialer is the default dialer to use, with a 1s timeout.
 	Dialer = &net.Dialer{Timeout: time.Second}
+	// Client is the default HTTP Client.
+	Client = &http.Client{Transport: &http.Transport{Dial: Dialer.Dial}}
 )
 
 // Grade gives a subjective rating of the host's success in a scan.

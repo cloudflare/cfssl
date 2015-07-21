@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"strings"
 
 	"github.com/cloudflare/cf-tls/tls"
@@ -55,24 +54,34 @@ func dnsLookupScan(host string) (grade Grade, output Output, err error) {
 	return
 }
 
-var cloudflareNets []*net.IPNet
+var (
+	cfNets    []*net.IPNet
+	cfNetsErr error
+)
 
-func initOnCloudFlareScan() error {
+func initOnCloudFlareScan() ([]*net.IPNet, error) {
+	// Propogate previous errors and don't attempt to re-download.
+	if cfNetsErr != nil {
+		return nil, cfNetsErr
+	}
+
 	// Don't re-download ranges if we already have them.
-	if len(cloudflareNets) > 0 {
-		return nil
+	if len(cfNets) > 0 {
+		return cfNets, nil
 	}
 
 	// Download CloudFlare CIDR ranges and parse them.
-	v4resp, err := http.Get("https://www.cloudflare.com/ips-v4")
+	v4resp, err := Client.Get("https://www.cloudflare.com/ips-v4")
 	if err != nil {
-		return fmt.Errorf("Couldn't download CloudFlare IPs: %v", err)
+		cfNetsErr = fmt.Errorf("Couldn't download CloudFlare IPs: %v", err)
+		return nil, cfNetsErr
 	}
 	defer v4resp.Body.Close()
 
-	v6resp, err := http.Get("https://www.cloudflare.com/ips-v6")
+	v6resp, err := Client.Get("https://www.cloudflare.com/ips-v6")
 	if err != nil {
-		return fmt.Errorf("Couldn't download CloudFlare IPs: %v", err)
+		cfNetsErr = fmt.Errorf("Couldn't download CloudFlare IPs: %v", err)
+		return nil, cfNetsErr
 	}
 	defer v6resp.Body.Close()
 
@@ -80,19 +89,22 @@ func initOnCloudFlareScan() error {
 	for scanner.Scan() {
 		_, ipnet, err := net.ParseCIDR(scanner.Text())
 		if err != nil {
-			return fmt.Errorf("Couldn't parse CIDR range: %v", err)
+			cfNetsErr = fmt.Errorf("Couldn't parse CIDR range: %v", err)
+			return nil, cfNetsErr
 		}
-		cloudflareNets = append(cloudflareNets, ipnet)
+		cfNets = append(cfNets, ipnet)
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("Couldn't read IP bodies: %v", err)
+		cfNetsErr = fmt.Errorf("Couldn't read IP bodies: %v", err)
+		return nil, cfNetsErr
 	}
 
-	return nil
+	return cfNets, nil
 }
 
 func onCloudFlareScan(host string) (grade Grade, output Output, err error) {
-	if err = initOnCloudFlareScan(); err != nil {
+	var cloudflareNets []*net.IPNet
+	if cloudflareNets, err = initOnCloudFlareScan(); err != nil {
 		grade = Skipped
 		return
 	}
