@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+BUILD_DIR=$(cd "$(dirname $0)"; cd ..; pwd)
+
+relabel() {
+  chcon -R -t "${1}" "${BUILD_DIR}"
+}
+
 if [ -z "$1" ]; then
     OS_PLATFORM_ARG=(-os="darwin linux windows")
 else
@@ -16,6 +22,15 @@ fi
 # Build Docker image unless we opt out of it
 if [[ -z "$SKIP_BUILD" ]]; then
     docker build -t cfssl-build -f Dockerfile.build .
+fi
+
+# Temporarily change SELinux context of build directory
+if [[ "$(command getenforce 2>&1)" == "Enforcing" ]]; then
+  USER_CONTEXT="$(getfattr --only-values -n security.selinux "${BUILD_DIR}" | awk -F':' '{ print $3 }')"
+  CONTAINER_CONTEXT="svirt_sandbox_file_t"
+
+  trap "relabel '${USER_CONTEXT}'" EXIT
+  relabel "${CONTAINER_CONTEXT}"
 fi
 
 # Get rid of existing binaries
