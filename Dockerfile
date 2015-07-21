@@ -5,7 +5,9 @@ WORKDIR /go/src/github.com/cloudflare/cfssl
 ENV GOPATH /go/src/github.com/cloudflare/cfssl:/go
 ENV USER root
 
-ENTRYPOINT ["cfssl"]
+EXPOSE 8888
+
+CMD ["cfssl"]
 
 RUN go get github.com/cloudflare/cf-tls/tls
 RUN go get github.com/cloudflare/go-metrics
@@ -15,6 +17,8 @@ RUN go get golang.org/x/crypto/ocsp
 
 ADD . /go/src/github.com/cloudflare/cfssl
 
-RUN go build cmd/cfssl/cfssl.go && cp cfssl /usr/local/bin
+RUN go build cmd/... && \
+  cp cfssl /usr/local/bin && \
+  cp multirootca /usr/local/bin
 
 WORKDIR /opt

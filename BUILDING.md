@@ -13,6 +13,10 @@ To build, run:
 
 This is will build by default all the cfssl command line utilities for darwin (OSX), linux, and windows for i386 and amd64 and output the binaries in the current path.
 
+To build a specific platform and OS, run:
+
+    $ script/build -os="darwin" -arch="amd64"
+
 ## Without Docker
 
 The requirements to build without docker are:
