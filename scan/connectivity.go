@@ -3,8 +3,8 @@ package scan
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -35,35 +35,6 @@ var Connectivity = &Family{
 	},
 }
 
-var cloudflareNets []*net.IPNet
-
-func init() {
-	// Download CloudFlare CIDR ranges and parse them.
-	v4resp, err := http.Get("https://www.cloudflare.com/ips-v4")
-	if err != nil {
-		log.Fatalf("Couldn't download CloudFlare IPs: %v", err)
-	}
-	defer v4resp.Body.Close()
-
-	v6resp, err := http.Get("https://www.cloudflare.com/ips-v6")
-	if err != nil {
-		log.Fatalf("Couldn't download CloudFlare IPs: %v", err)
-	}
-	defer v6resp.Body.Close()
-
-	scanner := bufio.NewScanner(io.MultiReader(v4resp.Body, strings.NewReader("\n"), v6resp.Body))
-	for scanner.Scan() {
-		_, ipnet, err := net.ParseCIDR(scanner.Text())
-		if err != nil {
-			log.Fatalf("Couldn't parse CIDR range: %v", err)
-		}
-		cloudflareNets = append(cloudflareNets, ipnet)
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("Couldn't read IP bodies: %v", err)
-	}
-}
-
 // dnsLookupScan tests that DNS resolution of the host returns at least one address
 func dnsLookupScan(host string) (grade Grade, output Output, err error) {
 	host, _, err = net.SplitHostPort(host)
@@ -84,7 +55,48 @@ func dnsLookupScan(host string) (grade Grade, output Output, err error) {
 	return
 }
 
+var cloudflareNets []*net.IPNet
+
+func initOnCloudFlareScan() error {
+	// Don't re-download ranges if we already have them.
+	if len(cloudflareNets) > 0 {
+		return nil
+	}
+
+	// Download CloudFlare CIDR ranges and parse them.
+	v4resp, err := http.Get("https://www.cloudflare.com/ips-v4")
+	if err != nil {
+		return fmt.Errorf("Couldn't download CloudFlare IPs: %v", err)
+	}
+	defer v4resp.Body.Close()
+
+	v6resp, err := http.Get("https://www.cloudflare.com/ips-v6")
+	if err != nil {
+		return fmt.Errorf("Couldn't download CloudFlare IPs: %v", err)
+	}
+	defer v6resp.Body.Close()
+
+	scanner := bufio.NewScanner(io.MultiReader(v4resp.Body, strings.NewReader("\n"), v6resp.Body))
+	for scanner.Scan() {
+		_, ipnet, err := net.ParseCIDR(scanner.Text())
+		if err != nil {
+			return fmt.Errorf("Couldn't parse CIDR range: %v", err)
+		}
+		cloudflareNets = append(cloudflareNets, ipnet)
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("Couldn't read IP bodies: %v", err)
+	}
+
+	return nil
+}
+
 func onCloudFlareScan(host string) (grade Grade, output Output, err error) {
+	if err = initOnCloudFlareScan(); err != nil {
+		grade = Skipped
+		return
+	}
+
 	_, addrs, err := dnsLookupScan(host)
 	if err != nil {
 		return
