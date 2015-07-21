@@ -1,3 +1,4 @@
 cfssl_*
 *-amd64
 *-386
+dist/*

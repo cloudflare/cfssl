@@ -21,4 +21,5 @@ fi
 # Get rid of existing binaries
 rm -f *-386
 rm -f *-amd64
-docker run --rm -v `pwd`:/go/src/github.com/cloudflare/cfssl cfssl-build gox "${OS_PLATFORM_ARG[@]}" "${OS_ARCH_ARG[@]}" -output="{{.Dir}}_{{.OS}}-{{.Arch}}" -ldflags="-w" ./cmd/...
+rm -f dist/*
+docker run --rm -v `pwd`:/go/src/github.com/cloudflare/cfssl cfssl-build gox "${OS_PLATFORM_ARG[@]}" "${OS_ARCH_ARG[@]}" -output="dist/{{.Dir}}_{{.OS}}-{{.Arch}}" -ldflags="-w" ./cmd/...
