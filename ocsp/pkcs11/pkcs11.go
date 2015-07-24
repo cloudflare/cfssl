@@ -1,8 +1,7 @@
-// Package pkcs11 in the ocsp directory provides a way to construct a
-// PKCS#11-based OCSP signer. It is only available in binaries built with the
-// pkcs11 tag, i.e. `go build -tags pkcs11 ./cmd/cfssl`.
-// +build pkcs11
+// +build !nopkcs11
 
+// Package pkcs11 in the ocsp directory provides a way to construct a
+// PKCS#11-based OCSP signer.
 package pkcs11
 
 import (
@@ -18,7 +17,7 @@ import (
 // Enabled is set to true if PKCS #11 support is present.
 const Enabled = true
 
-// New returns a new PKCS #11 signer.
+// NewPKCS11Signer returns a new PKCS #11 signer.
 func NewPKCS11Signer(cfg ocspConfig.Config) (ocsp.Signer, error) {
 	log.Debugf("Loading PKCS #11 module %s", cfg.PKCS11.Module)
 	certData, err := ioutil.ReadFile(cfg.CACertFile)

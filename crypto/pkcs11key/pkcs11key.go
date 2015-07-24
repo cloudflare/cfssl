@@ -1,4 +1,4 @@
-// +build pkcs11
+// +build !nopkcs11
 
 // Package pkcs11key implements crypto.Signer for PKCS #11 private
 // keys. Currently, only RSA keys are support.
@@ -131,7 +131,10 @@ func New(module, slot, pin, privLabel string) (ps *PKCS11Key, err error) {
 		ps.Destroy()
 		return
 	}
-	ps.publicKey = rsa.PublicKey{n, e}
+	ps.publicKey = rsa.PublicKey{
+		N: n,
+		E: e,
+	}
 
 	return
 }
