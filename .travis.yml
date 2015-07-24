@@ -5,10 +5,11 @@ go:
 before_script:
   - go get golang.org/x/tools/cmd/vet
   - go get golang.org/x/tools/cmd/goimports
+  - go get github.com/onsi/gomega
+  - go get github.com/onsi/ginkgo
   - go get -u github.com/golang/lint/golint
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/modocache/gover
-  - go get github.com/mattn/goveralls
   - go get -v github.com/GeertJohan/fgt
 script:
   - go get github.com/cloudflare/cfssl/...
@@ -16,10 +17,7 @@ script:
   - go vet github.com/cloudflare/cfssl/...
   - fgt golint github.com/cloudflare/cfssl/...
   - go list -f '{{if len .TestGoFiles}}"go test -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"{{end}}' ./... | xargs -i sh -c {}
-  - gover
-  - if [ "$COVERALLS_TOKEN" != "" ]; then
-      goveralls -coverprofile=gover.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN;
-    fi
+  - gover . coverprofile.txt
 notifications:
   email:
     recipients:
@@ -30,3 +28,5 @@ notifications:
     on_failure: change
 env:
   - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -f coverprofile.txt
