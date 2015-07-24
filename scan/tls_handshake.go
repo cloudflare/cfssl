@@ -21,6 +21,10 @@ var TLSHandshake = &Family{
 			"Determines host's cipher suites accepted and prefered order",
 			cipherSuiteScan,
 		},
+		"SigAlgs": {
+			"Determines host's accepted signature and hash algorithms",
+			sigAlgsScan,
+		},
 	},
 }
 
@@ -48,7 +52,7 @@ func getCurveIndex(curves []tls.CurveID, serverCurve tls.CurveID) (curveIndex in
 	return
 }
 
-func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16) (cipherIndex, curveIndex int, err error) {
+func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, sigAlgs []tls.SignatureAndHash) (cipherIndex, curveIndex int, err error) {
 	tcpConn, err := net.Dial(Network, host)
 	if err != nil {
 		return
@@ -56,8 +60,21 @@ func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16) 
 	config := defaultTLSConfig(host)
 	config.MinVersion = vers
 	config.MaxVersion = vers
+	if ciphers == nil {
+		ciphers = allCiphersIDs()
+	}
 	config.CipherSuites = ciphers
+
+	if curves == nil {
+		curves = allCurvesIDs()
+	}
 	config.CurvePreferences = curves
+
+	if sigAlgs == nil {
+		sigAlgs = tls.AllSignatureAndHashAlgorithms
+	}
+	tls.SetSupportedSKXSignatureAlgorithms(sigAlgs)
+
 	conn := tls.Client(tcpConn, config)
 	serverCipher, serverCurveType, serverCurve, serverVersion, err := conn.SayHello()
 	conn.Close()
@@ -165,7 +182,7 @@ func doCurveScan(host string, vers, cipherID uint16, ciphers []uint16) (supporte
 	copy(curves, allCurves)
 	for len(curves) > 0 {
 		var curveIndex int
-		_, curveIndex, err = sayHello(host, []uint16{cipherID}, curves, vers)
+		_, curveIndex, err = sayHello(host, []uint16{cipherID}, curves, vers, nil)
 		if err != nil {
 			// This case is expected, because eventually we ask only for curves the server doesn't support
 			if err == errHelloFailed {
@@ -193,7 +210,7 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 		copy(ciphers, allCiphers)
 		for len(ciphers) > 0 {
 			var cipherIndex int
-			cipherIndex, _, err = sayHello(host, ciphers, nil, vers)
+			cipherIndex, _, err = sayHello(host, ciphers, nil, vers, nil)
 			if err != nil {
 				if err == errHelloFailed {
 					err = nil
@@ -236,5 +253,24 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 	}
 
 	output = cvList
+	return
+}
+
+// sigAlgsScan returns the accepted signature and hash algorithms of the host
+func sigAlgsScan(host string) (grade Grade, output Output, err error) {
+	var supportedSigAlgs []tls.SignatureAndHash
+	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
+		_, _, e := sayHello(host, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
+		if e == nil {
+			supportedSigAlgs = append(supportedSigAlgs, sigAlg)
+		}
+	}
+
+	if len(supportedSigAlgs) > 0 {
+		grade = Good
+		output = supportedSigAlgs
+	} else {
+		err = errors.New("no SigAlgs supported")
+	}
 	return
 }
