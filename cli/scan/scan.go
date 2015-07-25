@@ -3,9 +3,9 @@ package scan
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/scan"
+	"time"
 )
 
 var scanUsageText = `cfssl scan -- scan a host for issues
@@ -28,6 +28,9 @@ func scanMain(args []string, c cli.Config) (err error) {
 	if c.List {
 		printJSON(scan.Default)
 	} else {
+		hosts := 0
+		done := make(chan bool)
+
 		// Execute for each HOST argument given
 		for len(args) > 0 {
 			var host string
@@ -35,17 +38,43 @@ func scanMain(args []string, c cli.Config) (err error) {
 			if err != nil {
 				return
 			}
-
+			hosts++
 			fmt.Printf("Scanning %s...\n", host)
 
-			var results map[string]scan.FamilyResult
-			results, err = scan.Default.RunScans(host, c.Family, c.Scanner, c.Timeout)
-			if err != nil {
-				return
-			}
-			if results != nil {
+			resChan := make(chan scan.PackagedFamilyResult)
+			errChan := make(chan error)
+			results := make(map[string]scan.FamilyResult)
+
+			go scan.Default.RunScans(host, c.Family, c.Scanner, resChan, errChan)
+
+			go func() {
+				time.AfterFunc(c.Timeout, func() {
+					fmt.Printf("%s timed out after % v...available results:\n", host, c.Timeout)
+					printJSON(results)
+					done <- true
+				})
+
+				for res := range resChan {
+					results[res.FamilyName] = res.Result
+				}
+
+				fmt.Printf("Results for %s:\n", host)
 				printJSON(results)
-			}
+				done <- true
+			}()
+
+			go func() {
+				e := <-errChan
+				if e != nil {
+					done <- true
+				}
+			}()
+		}
+
+		// Block until feedback received for each host
+		for hosts > 0 {
+			<-done
+			hosts--
 		}
 	}
 	return

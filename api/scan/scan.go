@@ -33,11 +33,25 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 		scanner = r.Form["scanner"][0]
 	}
 
-	results, err := scan.Default.RunScans(host, family, scanner, 0)
-	if err != nil {
-		log.Warningf("%v", err)
-		return errors.NewBadRequest(err)
+	resChan := make(chan scan.PackagedFamilyResult)
+	errChan := make(chan error)
+	done := make(chan bool)
+
+	results := make(map[string]scan.FamilyResult)
+	go scan.Default.RunScans(host, family, scanner, resChan, errChan)
+
+	go func() {
+		for res := range resChan {
+			results[res.FamilyName] = res.Result
+		}
+		done <- true
+	}()
+
+	e := <-errChan
+	if e != nil {
+		return errors.NewBadRequest(e)
 	}
+	<-done
 
 	response := api.NewSuccessResponse(results)
 	enc := json.NewEncoder(w)
@@ -58,8 +72,7 @@ func scanInfoHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Info("setting up scaninfo handler")
 	response := api.NewSuccessResponse(scan.Default)
 	enc := json.NewEncoder(w)
-	err := enc.Encode(response)
-	return err
+	return enc.Encode(response)
 }
 
 // NewInfoHandler returns a new http.Handler that handles a request for scan info.
