@@ -14,6 +14,7 @@ RUN go get github.com/cloudflare/go-metrics
 RUN go get github.com/cloudflare/redoctober/core
 RUN go get github.com/dgryski/go-rc2
 RUN go get golang.org/x/crypto/ocsp
+RUN go get github.com/GeertJohan/go.rice
 
 ADD . /go/src/github.com/cloudflare/cfssl
 
