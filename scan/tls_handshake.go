@@ -74,6 +74,7 @@ func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, 
 		sigAlgs = tls.AllSignatureAndHashAlgorithms
 	}
 	tls.SetSupportedSKXSignatureAlgorithms(sigAlgs)
+	defer tls.ResetSupportedSKXSignatureAlgorithms()
 
 	conn := tls.Client(tcpConn, config)
 	serverCipher, serverCurveType, serverCurve, serverVersion, err := conn.SayHello()
