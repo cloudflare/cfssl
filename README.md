@@ -22,6 +22,10 @@ See [BUILDING](BUILDING.md)
 
 Installation requires a [working Go
 installation](http://golang.org/doc/install) and a properly set `GOPATH`.
+The default behaviour is to build with PKCS #11, which  requires the
+`gcc` compiler and the libtool development library and header files. On
+Ubuntu, this is `libltdl-dev`. Alternately, you can pass `-tags nopkcs11` to the
+below go get commands.
 
 ```
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssl
