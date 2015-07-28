@@ -1,4 +1,4 @@
-// Package ocspserve implements the oscpserve function.
+// Package ocspserve implements the ocspserve function.
 package ocspserve
 
 import (
