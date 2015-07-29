@@ -55,6 +55,44 @@ func ExpiryTime(chain []*x509.Certificate) *time.Time {
 	return &notAfter
 }
 
+// MonthsValid returns the number of months for which a certificate is valid.
+func MonthsValid(c *x509.Certificate) int {
+	issued := c.NotBefore
+	expiry := c.NotAfter
+	years := (expiry.Year() - issued.Year())
+	months := years*12 + int(expiry.Month()) - int(issued.Month())
+
+	// Round up if valid for less than a full month
+	if expiry.Day() > issued.Day() {
+		months++
+	}
+	return months
+}
+
+// ValidExpiry determines if a certificate is valid for an acceptable
+// length of time per the CA/Browser Forum baseline requirements.
+// See https://cabforum.org/wp-content/uploads/CAB-Forum-BR-1.3.0.pdf
+func ValidExpiry(c *x509.Certificate) bool {
+	issued := c.NotBefore
+	jul2012 := time.Date(2012, time.July, 01, 0, 0, 0, 0, time.UTC)
+	apr2015 := time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC)
+
+	var maxMonths int
+	switch {
+	case issued.Equal(apr2015) || issued.After(apr2015):
+		maxMonths = 39
+	case issued.Equal(jul2012) || issued.After(jul2012):
+		maxMonths = 60
+	case issued.Before(jul2012):
+		maxMonths = 120
+	}
+
+	if MonthsValid(c) > maxMonths {
+		return false
+	}
+	return true
+}
+
 // SignatureString returns the TLS signature string corresponding to
 // an X509 signature algorithm.
 func SignatureString(alg x509.SignatureAlgorithm) string {
