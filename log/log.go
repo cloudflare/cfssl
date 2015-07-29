@@ -8,6 +8,7 @@ package log
 import (
 	"fmt"
 	golog "log"
+	"os"
 )
 
 // The following constants represent logging levels in increasing levels of seriousness.
@@ -17,6 +18,7 @@ const (
 	LevelWarning
 	LevelError
 	LevelCritical
+	LevelFatal
 )
 
 var levelPrefix = [...]string{
@@ -25,6 +27,7 @@ var levelPrefix = [...]string{
 	LevelWarning:  "[WARNING] ",
 	LevelError:    "[ERROR] ",
 	LevelCritical: "[CRITICAL] ",
+	LevelFatal:    "[FATAL] ",
 }
 
 // Level stores the current logging level.
@@ -40,6 +43,19 @@ func output(l int, v []interface{}) {
 	if l >= Level {
 		golog.Print(levelPrefix[l], fmt.Sprint(v...))
 	}
+}
+
+// Fatalf logs a formatted message at the "fatal" level and then exits. The
+// arguments are handled in the same manner as fmt.Printf.
+func Fatalf(format string, v ...interface{}) {
+	outputf(LevelFatal, format, v)
+	os.Exit(1)
+}
+
+// Fatal logs its arguments at the "fatal" level and then exits.
+func Fatal(v ...interface{}) {
+	output(LevelFatal, v)
+	os.Exit(1)
 }
 
 // Criticalf logs a formatted message at the "critical" level. The
