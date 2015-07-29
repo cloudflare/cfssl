@@ -27,6 +27,15 @@ const OneYear = 8760 * time.Hour
 // OneDay is a time.Duration representing a day's worth of seconds.
 const OneDay = 24 * time.Hour
 
+// InclusiveDate returns the time.Time representation of a date - 1
+// nanosecond. This allows time.After to be used inclusively.
+func InclusiveDate(year int, month time.Month, day int) time.Time {
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC).Add(-1 * time.Nanosecond)
+}
+
+var Jul2012 = InclusiveDate(2012, time.July, 01)
+var Apr2015 = InclusiveDate(2015, time.April, 01)
+
 // KeyLength returns the bit size of ECDSA or RSA PublicKey
 func KeyLength(key interface{}) int {
 	if key == nil {
@@ -74,16 +83,14 @@ func MonthsValid(c *x509.Certificate) int {
 // See https://cabforum.org/wp-content/uploads/CAB-Forum-BR-1.3.0.pdf
 func ValidExpiry(c *x509.Certificate) bool {
 	issued := c.NotBefore
-	jul2012 := time.Date(2012, time.July, 01, 0, 0, 0, 0, time.UTC)
-	apr2015 := time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC)
 
 	var maxMonths int
 	switch {
-	case issued.Equal(apr2015) || issued.After(apr2015):
+	case issued.After(Apr2015):
 		maxMonths = 39
-	case issued.Equal(jul2012) || issued.After(jul2012):
+	case issued.After(Jul2012):
 		maxMonths = 60
-	case issued.Before(jul2012):
+	case issued.Before(Jul2012):
 		maxMonths = 120
 	}
 
