@@ -7,7 +7,6 @@ import (
 	"flag"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/cmd/multirootca/config"
@@ -46,14 +45,12 @@ func main() {
 	flag.Parse()
 
 	if *flagRootFile == "" {
-		log.Criticalf("no root file specified")
-		os.Exit(1)
+		log.Fatal("no root file specified")
 	}
 
 	roots, err := config.Parse(*flagRootFile)
 	if err != nil {
-		log.Criticalf("%v", err)
-		os.Exit(1)
+		log.Fatalf("%v", err)
 	}
 
 	for label, root := range roots {
