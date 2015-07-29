@@ -94,6 +94,11 @@ func chainValidation(host string) (grade Grade, output Output, err error) {
 	for i := 0; i < len(chain)-1; i++ {
 		cert, parent := chain[i], chain[i+1]
 
+		valid := helpers.ValidExpiry(cert)
+		if !valid {
+			warnings = append(warnings, fmt.Sprintf("Certificate for %s is valid for too long", cert.Subject.CommonName))
+		}
+
 		revoked, ok := revoke.VerifyCertificate(cert)
 		if !ok {
 			warnings = append(warnings, fmt.Sprintf("couldn't check if %s is revoked", cert.Subject.CommonName))
