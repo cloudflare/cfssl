@@ -1,0 +1,69 @@
+THE CFSSL PROGRAM
+
+The CFSSL program is a TLS / PKI tool that provides command line
+tools for
+
+      * bundling certificates
+      * create private keys, certificate signing requests, and certificates
+      * signing certificate signing requests
+      * scanning a host to evaluate it's TLS security
+      * signing OCSP requests
+      * running a CA server
+      * running an OCSP server
+
+The cfssl server can be used either as a standalone server or as a set
+of locally-running instances that talk to a remote CA. For example, a
+set of servers might run the cfssl program locally to facilitate
+generating certificates for services on the server. These local
+servers can be configured to send their certificate signing requests
+to a remote cfssl or multirootca server that actually contains the
+signing key(s).
+
+
+CONFIGURATION
+
+The configuration file for cfssl is a JSON dictionary with keys for
+signing profiles, OCSP configuration, authentication, and remote
+servers.
+
+AUTHENTICATION
+
+See also: authentication.txt
+
+Authentication is used to restrict access to the signing keys when
+cfssl is run as a server. A client making a request generates an
+authentication token for their request, submitting this token
+alongside the request. The authentication section is used to tell
+cfssl that authentication is required and how to authenticate.
+
+This section consists of a dictionary of authenticators under the key
+"auth_keys"; each authenticator should have the keys "type" and "key",
+both strings. For example, to use the standard authenticator with the
+(hex-encoded) key "0123456789ABCDEF0123456789ABCDEF" as the "primary"
+authenticator, the "auth_keys" section might look like
+
+    "auth_keys": {
+        "primary": {
+            "type":"standard",
+            "key":"0123456789ABCDEF0123456789ABCDEF"
+	}
+    }
+
+The authentication documentation covers available authenticators and
+their key formats.
+
+
+REMOTE SIGNERS
+
+A local cfssl instance can forward signing requests to another
+instance; this might be useful where the CA keys should remain on only
+one machine.
+
+A remote is specified as a host:port, or as a comma-separated list of
+host:ports. If the remote is a comma-separated list, each server will
+be tried in sequence until one succeeds. That is, if the list is
+
+   "ca1.example.org:8888, ca2.example.org:8888, ca3.example.org:8888"
+
+each signing request will first go to ca1, falling back to ca2 if this
+fails, and finally falling back to ca3.

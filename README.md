@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/cloudflare/cfssl.png?branch=master)](https://travis-ci.org/cloudflare/cfssl)
 [![Coverage Status](http://codecov.io/github/cloudflare/cfssl/coverage.svg?branch=master)](http://codecov.io/github/cloudflare/cfssl?branch=master)
 [![GoDoc](https://godoc.org/github.com/cloudflare/cfssl?status.png)](https://godoc.org/github.com/cloudflare/cfssl)
+
 ## CloudFlare's PKI/TLS toolkit
 
 CFSSL is CloudFlare's PKI/TLS swiss army knife. It is both a command line
@@ -14,18 +15,31 @@ Note that certain linux distributions have certain algorithms removed
 official repositories will not work. Users of these distributions should
 [install go manually](//golang.org) to install CFSSL.
 
+CFSSL consists of:
+
+* a set of packages useful for building custom TLS PKI tools
+* the `cfssl` program, which is the canonical command line utility
+  using the CFSSL packages.
+* the `multirootca` program, which is a certificate authority server
+  that can use multiple signing keys.
+* the `mkbundle` program is used to build certificate pool bundles.
+* the `cfssljson` program, which takes the JSON output from the
+  `cfssl` and `multirootca` programs and writes certificates, keys,
+  CSRs, and bundles to disk.
+
 ### Building
 
 See [BUILDING](BUILDING.md)
 
 ### Installation
 
-Installation requires a [working Go
-installation](http://golang.org/doc/install) and a properly set `GOPATH`.
-The default behaviour is to build with PKCS #11, which  requires the
-`gcc` compiler and the libtool development library and header files. On
-Ubuntu, this is `libltdl-dev`. Alternately, you can pass `-tags nopkcs11` to the
-below go get commands.
+Installation requires a
+[working Go installation](http://golang.org/doc/install) and a
+properly set `GOPATH`.  The default behaviour is to build with PKCS
+#11, which requires the `gcc` compiler and the libtool development
+library and header files. On Ubuntu, this is
+`libltdl-dev`. Alternately, you can pass `-tags nopkcs11` to the below
+go get commands.
 
 ```
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssl
@@ -45,8 +59,8 @@ This will download, build, and install `cfssl`, `cfssljson`, and
 
 ### Using the Command Line Tool
 
-The command line tool takes a command to specify what operation it
-should carry out:
+The `cfssl` command line tool takes a command to specify what
+operation it should carry out:
 
        sign             signs a certificate
        bundle           build a certificate bundle
@@ -265,6 +279,13 @@ The levels are:
 * 3. ERROR
 * 4. CRITICAL
 
+### The multirootca
+
+The `cfssl` program can act as an online certificate authority, but it
+only uses a single key. If multiple signing keys are needed, the
+`multirootca` program can be used. It only provides the sign,
+authsign, and info endpoints. The documentation contains instructions
+for configuring and running the CA.
 
 ### The mkbundle Utility
 
@@ -314,10 +335,11 @@ filenames in the following way:
 
 ### Static Builds
 
-By default, the web assets are accessed from disk, based on their relative
-locations.  If you’re wishing to distribute a single, statically-linked, cfssl
-binary, you’ll want to embed these resources before building.  This can by done
-with the [go.rice](https://github.com/GeertJohan/go.rice) tool.
+By default, the web assets are accessed from disk, based on their
+relative locations.  If you’re wishing to distribute a single,
+statically-linked, cfssl binary, you’ll want to embed these resources
+before building.  This can by done with the
+[go.rice](https://github.com/GeertJohan/go.rice) tool.
 
 ```
 pushd cli/serve && rice embed-go && popd
