@@ -193,10 +193,9 @@ func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer
 }
 
 type genSignRequest struct {
-	Hostname string                  `json:"hostname"`
-	Request  *csr.CertificateRequest `json:"request"`
-	Profile  string                  `json:"profile"`
-	Label    string                  `json:"label"`
+	Request *csr.CertificateRequest `json:"request"`
+	Profile string                  `json:"profile"`
+	Label   string                  `json:"label"`
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -235,9 +234,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	// This API does not override the subject because it was already added to the CSR
 	signReq := signer.SignRequest{
-		Hosts:   signer.SplitHosts(req.Hostname),
 		Request: string(csr),
 		Profile: req.Profile,
 		Label:   req.Label,

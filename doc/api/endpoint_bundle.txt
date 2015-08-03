@@ -19,7 +19,7 @@ Required parameters:
         * private_key: the PEM-encoded private key to be included with
         the bundle. This is valid only if the server is not running in
         "keyless" mode.
-	* flavor: one of "ubiquitous", "force", or "optimal", with a
+        * flavor: one of "ubiquitous", "force", or "optimal", with a
         default value of "ubiquitous". A ubiquitous bundle is one that
         has a higher probability of being verified everywhere, even by
         clients using outdated or unusual trust stores. Force will
@@ -35,7 +35,7 @@ Required parameters:
 
         * ip: the IP address of the remote host; this will fetch the
         certificate from the IP, and verify that it is valid for the
-	domain name.
+        domain name.
 
 Result:
 
