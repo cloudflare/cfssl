@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"github.com/cloudflare/cfssl/helpers"
 	"math"
 )
 
@@ -139,9 +140,22 @@ func CompareExpiryUbiquity(chain1, chain2 []*x509.Certificate) int {
 		if i >= len(chain1) || i >= len(chain2) {
 			break
 		}
-		// Compare expiry dates, later is ranked higher.
-		t1 := &chain1[len(chain1)-1-i].NotAfter
-		t2 := &chain2[len(chain2)-1-i].NotAfter
+		c1 := chain1[len(chain1)-1-i]
+		c2 := chain2[len(chain2)-1-i]
+		t1 := &c1.NotAfter
+		t2 := &c2.NotAfter
+
+		// Check if expiry dates valid. Return if one or other is invalid.
+		// Otherwise rank by expiry date. Later is ranked higher.
+		c1Valid := helpers.ValidExpiry(c1)
+		c2Valid := helpers.ValidExpiry(c2)
+		if c1Valid && !c2Valid {
+			return 1
+		}
+		if !c1Valid && c2Valid {
+			return -1
+		}
+
 		r := compareTime(t1, t2)
 		// Return when we find rank difference.
 		if r != 0 {
