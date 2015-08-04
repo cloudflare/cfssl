@@ -69,6 +69,7 @@ operation it should carry out:
        serve            start the API server
        version          prints out the current version
        selfsign         generates a self-signed certificate
+       print-defaults	print default configurations
 
 Use "cfssl [command] -help" to find out more about a command.
 The version command takes no arguments.

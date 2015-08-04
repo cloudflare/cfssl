@@ -31,6 +31,7 @@ import (
 	"github.com/cloudflare/cfssl/cli/info"
 	"github.com/cloudflare/cfssl/cli/ocspserve"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
+	"github.com/cloudflare/cfssl/cli/printdefault"
 	"github.com/cloudflare/cfssl/cli/scan"
 	"github.com/cloudflare/cfssl/cli/selfsign"
 	"github.com/cloudflare/cfssl/cli/serve"
@@ -46,17 +47,18 @@ func main() {
 	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 	// Register commands.
 	cmds := map[string]*cli.Command{
-		"bundle":    bundle.Command,
-		"sign":      sign.Command,
-		"serve":     serve.Command,
-		"version":   version.Command,
-		"genkey":    genkey.Command,
-		"gencert":   gencert.Command,
-		"ocspsign":  ocspsign.Command,
-		"ocspserve": ocspserve.Command,
-		"selfsign":  selfsign.Command,
-		"scan":      scan.Command,
-		"info":      info.Command,
+		"bundle":         bundle.Command,
+		"sign":           sign.Command,
+		"serve":          serve.Command,
+		"version":        version.Command,
+		"genkey":         genkey.Command,
+		"gencert":        gencert.Command,
+		"ocspsign":       ocspsign.Command,
+		"ocspserve":      ocspserve.Command,
+		"selfsign":       selfsign.Command,
+		"scan":           scan.Command,
+		"info":           info.Command,
+		"print-defaults": printdefaults.Command,
 	}
 
 	// If the CLI returns an error, exit with an appropriate status
