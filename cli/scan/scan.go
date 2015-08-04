@@ -20,7 +20,10 @@ Flags:
 var scanFlags = []string{"list", "family", "scanner", "timeout"}
 
 func printJSON(v interface{}) {
-	b, _ := json.MarshalIndent(v, "", "  ")
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+	}
 	fmt.Printf("%s\n\n", b)
 }
 
