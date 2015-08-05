@@ -77,7 +77,7 @@ func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, 
 	defer tls.ResetSupportedSKXSignatureAlgorithms()
 
 	conn := tls.Client(tcpConn, config)
-	serverCipher, serverCurveType, serverCurve, serverVersion, err := conn.SayHello()
+	serverCipher, serverCurveType, serverCurve, serverVersion, _, err := conn.SayHello()
 	conn.Close()
 	if err != nil {
 		err = errHelloFailed
