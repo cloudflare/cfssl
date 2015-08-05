@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cf-tls/tls"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 // Sentinel for failures in sayHello. Should always be caught.
@@ -24,6 +25,14 @@ var TLSHandshake = &Family{
 		"SigAlgs": {
 			"Determines host's accepted signature and hash algorithms",
 			sigAlgsScan,
+		},
+		"CertsBySigAlgs": {
+			"Determines host's certificate signature algorithm matching client's accepted signature and hash algorithms",
+			certSigAlgsScan,
+		},
+		"CertsByCiphers": {
+			"Determines host's certificate signature algorithm matching client's accepted ciphers",
+			certSigAlgsScanByCipher,
 		},
 	},
 }
@@ -52,7 +61,7 @@ func getCurveIndex(curves []tls.CurveID, serverCurve tls.CurveID) (curveIndex in
 	return
 }
 
-func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, sigAlgs []tls.SignatureAndHash) (cipherIndex, curveIndex int, err error) {
+func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, sigAlgs []tls.SignatureAndHash) (cipherIndex, curveIndex int, certs [][]byte, err error) {
 	tcpConn, err := net.Dial(Network, host)
 	if err != nil {
 		return
@@ -77,7 +86,8 @@ func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, 
 	defer tls.ResetSupportedSKXSignatureAlgorithms()
 
 	conn := tls.Client(tcpConn, config)
-	serverCipher, serverCurveType, serverCurve, serverVersion, _, err := conn.SayHello()
+	serverCipher, serverCurveType, serverCurve, serverVersion, certificates, err := conn.SayHello()
+	certs = certificates
 	conn.Close()
 	if err != nil {
 		err = errHelloFailed
@@ -183,7 +193,7 @@ func doCurveScan(host string, vers, cipherID uint16, ciphers []uint16) (supporte
 	copy(curves, allCurves)
 	for len(curves) > 0 {
 		var curveIndex int
-		_, curveIndex, err = sayHello(host, []uint16{cipherID}, curves, vers, nil)
+		_, curveIndex, _, err = sayHello(host, []uint16{cipherID}, curves, vers, nil)
 		if err != nil {
 			// This case is expected, because eventually we ask only for curves the server doesn't support
 			if err == errHelloFailed {
@@ -211,7 +221,7 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 		copy(ciphers, allCiphers)
 		for len(ciphers) > 0 {
 			var cipherIndex int
-			cipherIndex, _, err = sayHello(host, ciphers, nil, vers, nil)
+			cipherIndex, _, _, err = sayHello(host, ciphers, nil, vers, nil)
 			if err != nil {
 				if err == errHelloFailed {
 					err = nil
@@ -261,7 +271,7 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 func sigAlgsScan(host string) (grade Grade, output Output, err error) {
 	var supportedSigAlgs []tls.SignatureAndHash
 	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
-		_, _, e := sayHello(host, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
+		_, _, _, e := sayHello(host, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
 		if e == nil {
 			supportedSigAlgs = append(supportedSigAlgs, sigAlg)
 		}
@@ -272,6 +282,63 @@ func sigAlgsScan(host string) (grade Grade, output Output, err error) {
 		output = supportedSigAlgs
 	} else {
 		err = errors.New("no SigAlgs supported")
+	}
+	return
+}
+
+// certSigAlgScan returns the server certificate with various sigature and hash algorithms in the ClientHello
+func certSigAlgsScan(host string) (grade Grade, output Output, err error) {
+	var certSigAlgs = make(map[string]string)
+	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
+		_, _, derCerts, e := sayHello(host, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
+		if e == nil {
+			if len(derCerts) == 0 {
+				return Bad, nil, errors.New("no certs returned")
+			}
+			certs, _, err := helpers.ParseCertificatesDER(derCerts[0], "")
+			if err != nil {
+				return Bad, nil, err
+			}
+
+			certSigAlgs[sigAlg.String()] = helpers.SignatureString(certs[0].SignatureAlgorithm)
+			//certSigAlgs = append(certSigAlgs, certs[0].SignatureAlgorithm)
+		}
+	}
+
+	if len(certSigAlgs) > 0 {
+		grade = Good
+		output = certSigAlgs
+	} else {
+		err = errors.New("no SigAlgs supported")
+	}
+	return
+
+}
+
+// certSigAlgScan returns the server certificate with various ciphers in the ClientHello
+func certSigAlgsScanByCipher(host string) (grade Grade, output Output, err error) {
+	var certSigAlgs = make(map[string]string)
+	for cipherID := range tls.CipherSuites {
+		_, _, derCerts, e := sayHello(host, []uint16{cipherID}, nil, tls.VersionTLS12, []tls.SignatureAndHash{})
+		if e == nil {
+			if len(derCerts) == 0 {
+				return Bad, nil, errors.New("no certs returned")
+			}
+			certs, _, err := helpers.ParseCertificatesDER(derCerts[0], "")
+			if err != nil {
+				return Bad, nil, err
+			}
+
+			certSigAlgs[tls.CipherSuites[cipherID].Name] = helpers.SignatureString(certs[0].SignatureAlgorithm)
+			//certSigAlgs = append(certSigAlgs, certs[0].SignatureAlgorithm)
+		}
+	}
+
+	if len(certSigAlgs) > 0 {
+		grade = Good
+		output = certSigAlgs
+	} else {
+		err = errors.New("no cipher supported")
 	}
 	return
 }
