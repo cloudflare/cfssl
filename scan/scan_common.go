@@ -165,23 +165,26 @@ func (fs FamilySet) RunScans(host, family, scanner string, dur time.Duration) (m
 		for familyName, family := range fs {
 			if familyRegexp.MatchString(familyName) {
 				scannerResults := make(map[string]ScannerResult)
-
 				for scannerName, scanner := range family.Scanners {
 					if scannerRegexp.MatchString(scannerName) {
 						grade, output, err := scanner.Scan(host)
+						if grade != Skipped {
+							result := ScannerResult{
+								Grade:  grade.String(),
+								Output: output,
+							}
+							if err != nil {
+								result.Error = err.Error()
+							}
 
-						result := ScannerResult{
-							Grade:  grade.String(),
-							Output: output,
+							scannerResults[scannerName] = result
 						}
-						if err != nil {
-							result.Error = err.Error()
-						}
-
-						scannerResults[scannerName] = result
 					}
 				}
-				familyResults[familyName] = scannerResults
+
+				if len(scannerResults) > 0 {
+					familyResults[familyName] = scannerResults
+				}
 			}
 		}
 		results <- familyResults
@@ -190,7 +193,7 @@ func (fs FamilySet) RunScans(host, family, scanner string, dur time.Duration) (m
 	select {
 	case <-timeout:
 		log.Warningf("scan: %s timed out after %v", host, dur)
-		return nil, nil
+		return familyResults, nil
 	case res := <-results:
 		return res, nil
 	}
