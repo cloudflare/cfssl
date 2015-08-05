@@ -111,7 +111,58 @@ func TestExpiryTime(t *testing.T) {
 	if *out != expected {
 		t.Fatalf("Expected %v, got %v", expected, *out)
 	}
+}
 
+func TestMonthsValid(t *testing.T) {
+	var cert = &x509.Certificate{
+		NotBefore: time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
+		NotAfter:  time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
+	}
+
+	if MonthsValid(cert) != 0 {
+		t.Fail()
+	}
+
+	cert.NotAfter = time.Date(2016, time.April, 01, 0, 0, 0, 0, time.UTC)
+	if MonthsValid(cert) != 12 {
+		t.Fail()
+	}
+
+	// extra days should be rounded up to 1 month
+	cert.NotAfter = time.Date(2016, time.April, 02, 0, 0, 0, 0, time.UTC)
+	if MonthsValid(cert) != 13 {
+		t.Fail()
+	}
+}
+
+func HasValidExpiry(t *testing.T) {
+	// Issue period > April 1, 2015
+	var cert = &x509.Certificate{
+		NotBefore: time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
+		NotAfter:  time.Date(2016, time.April, 01, 0, 0, 0, 0, time.UTC),
+	}
+
+	if !ValidExpiry(cert) {
+		t.Fail()
+	}
+
+	cert.NotAfter = time.Date(2019, time.April, 01, 01, 0, 0, 0, time.UTC)
+	if ValidExpiry(cert) {
+		t.Fail()
+	}
+
+	// Issue period < July 1, 2012
+	cert.NotBefore = time.Date(2009, time.March, 01, 0, 0, 0, 0, time.UTC)
+	if ValidExpiry(cert) {
+		t.Fail()
+	}
+
+	// Issue period July 1, 2012 - April 1, 2015
+	cert.NotBefore = time.Date(2012, time.July, 01, 0, 0, 0, 0, time.UTC)
+	cert.NotAfter = time.Date(2017, time.July, 01, 0, 0, 0, 0, time.UTC)
+	if !ValidExpiry(cert) {
+		t.Fail()
+	}
 }
 
 func TestHashAlgoString(t *testing.T) {

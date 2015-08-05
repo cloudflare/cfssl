@@ -185,11 +185,16 @@ func TestChainExpiryUbiquity(t *testing.T) {
 	// ecdsa256Cert expires at year 2019
 	chain1 := []*x509.Certificate{ecdsa256Cert, rsa2048Cert}
 	chain2 := []*x509.Certificate{ecdsa256Cert, rsa1024Cert}
-	if CompareExpiryUbiquity(chain1, chain2) >= 0 {
+
+	// CompareExpiryUbiquity should return > 0 because chain1
+	// has a better expiry ubiquity than chain2.
+	if CompareExpiryUbiquity(chain1, chain2) <= 0 {
 		t.Fatal("Incorrect chain expiry ubiquity")
 	}
 
-	if CompareExpiryUbiquity(chain2, chain1) <= 0 {
+	// CompareExpiryUbiquity should return < 0 because chain1 has
+	// a better expiry ubiquity than chain2.
+	if CompareExpiryUbiquity(chain2, chain1) >= 0 {
 		t.Fatal("Incorrect chain expiry ubiquity")
 	}
 
