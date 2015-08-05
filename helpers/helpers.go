@@ -33,7 +33,12 @@ func InclusiveDate(year int, month time.Month, day int) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC).Add(-1 * time.Nanosecond)
 }
 
+// Jul2012 is the July 2012 CAB Forum deadline for when CAs must stop
+// issuing certificates valid for more than 5 years.
 var Jul2012 = InclusiveDate(2012, time.July, 01)
+
+// April2015 is the April 2015 CAB Forum deadline for when CAs must stop
+// issuing certificates valid for more than 39 months.
 var Apr2015 = InclusiveDate(2015, time.April, 01)
 
 // KeyLength returns the bit size of ECDSA or RSA PublicKey
@@ -202,7 +207,6 @@ func ParseCertificatesDER(certsDER []byte, password string) ([]*x509.Certificate
 		if err != nil {
 			certs, err = x509.ParseCertificates(certsDER)
 			if err != nil {
-				//fmt.Println("\n\n\n\n\n\nCRITICALZONE\n\n\n\n\n\n\n\n\n\n")
 				return nil, nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 			}
 		} else {
@@ -211,7 +215,7 @@ func ParseCertificatesDER(certsDER []byte, password string) ([]*x509.Certificate
 		}
 	} else {
 		if pkcs7data.ContentInfo != "SignedData" {
-			return nil, nil, cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed, errors.New("Can only extract certificates from signed data content info"))
+			return nil, nil, cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed, errors.New("can only extract certificates from signed data content info"))
 		}
 		certs = pkcs7data.Content.SignedData.Certificates
 	}
@@ -245,9 +249,9 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	} else if cert == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	} else if len(rest) > 0 {
-		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("The PEM file should contain only one object."))
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("the PEM file should contain only one object"))
 	} else if len(cert) > 1 {
-		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("The PKCS7 object in the PEM file should contain only one certificate"))
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("the PKCS7 object in the PEM file should contain only one certificate"))
 	}
 	return cert[0], nil
 }
@@ -270,7 +274,7 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 			return nil, rest, err
 		}
 		if pkcs7data.ContentInfo != "SignedData" {
-			return nil, rest, errors.New("Only PKCS #7 Signed Data Content Info supported for certificate parsing")
+			return nil, rest, errors.New("only PKCS #7 Signed Data Content Info supported for certificate parsing")
 		}
 		certs := pkcs7data.Content.SignedData.Certificates
 		if certs == nil {
