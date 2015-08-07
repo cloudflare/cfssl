@@ -28,16 +28,14 @@ func sessionResumeScan(host string) (grade Grade, output Output, err error) {
 	}
 
 	return multiscan(host, func(addrport string) (g Grade, o Output, e error) {
-		g = Good
-		conn, e1 := tls.DialWithDialer(Dialer, Network, addrport, config)
-		if e1 != nil {
+		var conn *tls.Conn
+		if conn, e = tls.DialWithDialer(Dialer, Network, addrport, config); e != nil {
 			return
 		}
 		conn.Close()
 
-		o = conn.ConnectionState().DidResume
-		if !conn.ConnectionState().DidResume {
-			grade = Bad
+		if o = conn.ConnectionState().DidResume; o.(bool) {
+			g = Good
 		}
 		return
 	})
