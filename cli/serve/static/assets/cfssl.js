@@ -38,6 +38,13 @@
 
   // > i18n support
   var phrases = {
+    'bundle.title': 'Bundle',
+    'bundle.action': 'Bundle',
+    'bundle.flavor': 'Flavor',
+    'bundle.ubiquitous': 'Ubiquitous',
+    'bundle.optimal': 'Optimal',
+    'bundle.force': 'Force',
+    'bundle.bundle.title': 'Bundled',
     'common.server': 'Server',
     'common.cipher': 'Cipher',
     'common.packages': 'Packages',
@@ -101,7 +108,8 @@
           ]),
           m('.collapse.navbar-collapse', [
             m('ul.nav.navbar-nav', [
-              navLink('a', '/scan', Tformat('scan.title'))
+              navLink('a', '/scan', Tformat('scan.title')),
+              navLink('a', '/bundle', Tformat('bundle.title'))
             ]),
             m('ul.nav.navbar-nav.navbar-right', [
               m('li', m('a[href="https://pkg.cfssl.org"]', Tformat('common.packages'))),
@@ -155,6 +163,14 @@
           default:
             return 'panel-default';
         }
+      }
+
+      if (!args.grade) {
+        return m('.panel.panel-default', [
+          m('.panel-heading', args.title),
+          m('.panel-body', args.body),
+          children
+        ])
       }
 
       return m('.panel.' + gradeToPanel(args.grade), [
@@ -541,13 +557,151 @@
     return m.deferred.reject();
   };
 
+  var bundle = {
+    vm: {
+      init: function(domain) {
+        bundle.vm.domain = m.prop(domain ? domain : '');
+        bundle.vm.flavor = m.prop('ubiquitous');
+        bundle.vm.loading = m.prop(false);
+        bundle.vm.Bundle = m.prop(false);
+        bundle.vm.bundle = function(evt) {
+          var domain = bundle.vm.domain();
+          var flavor = bundle.vm.flavor();
+          bundle.vm.Bundle(false);
+          bundle.vm.loading(true);
+
+          if (evt) {
+            evt.preventDefault();
+          }
+
+          setTimeout(function() {
+            bundle.Model.bundle(domain, flavor).then(function(result) {
+              bundle.vm.loading(false);
+              bundle.vm.Bundle(result);
+            });
+          }, 0);
+        };
+
+        // TODO: remove!
+        if (domain) {
+          bundle.vm.loading(true);
+          setTimeout(function() {
+            bundle.Model.bundle(domain, bundle.vm.flavor()).then(function(result) {
+              bundle.vm.loading(false);
+              bundle.vm.Bundle(result);
+            });
+          }, 0);
+        }
+      }
+    },
+    Model: function(data) {
+      this.domain = m.prop(data.domain);
+      this.bundle = m.prop(data.bundle);
+      this.expires = m.prop(data.expires);
+      this.messages = m.prop(data.messages);
+      this.oscp = m.prop(data.oscp);
+    },
+    controller: function() {
+      bundle.vm.init(m.route.param('domain'));
+      page.title(Tformat('bundle.title'))
+      return;
+    },
+    view: function() {
+      var results = bundle.vm.Bundle();
+      return appWrapper([
+        m('h1.page-header', Tformat('bundle.title')),
+        m('form.form-horizontal', [
+          m('.form-group', [
+            m('label.col-sm-2.control-label[for=bundlehost]', Tformat('common.host')),
+            m('.col-sm-8', [
+              m('input.form-control#bundlehost[placeholder="cfssl.org"]', {
+                value: bundle.vm.domain(),
+                onchange: m.withAttr('value', bundle.vm.domain)
+              })
+            ])
+          ]),
+          m('.form-group', [
+            m('label.col-sm-2.control-label[for=bundleflavor]', Tformat('bundle.flavor')),
+            m('.col-sm-8', [
+              m('select#bundleflavor', {
+                value: bundle.vm.flavor(),
+                onchange: m.withAttr('value', bundle.vm.flavor)
+              }, [
+                m('option[value="ubiquitous"]', Tformat('bundle.ubiquitous')),
+                m('option[value="optimal"]', Tformat('bundle.optimal')),
+                m('option[value="force"]', Tformat('bundle.force'))
+              ])
+            ])
+          ]),
+          m('.form-group', [
+            m('.col-sm-offset-2 col-sm-10', [
+              m('button.btn.btn-default[type="submit"]', {
+                onclick: bundle.vm.bundle,
+                disabled: bundle.vm.loading()
+              }, Tformat('bundle.action'))
+            ])
+          ])
+        ]),
+        !bundle.vm.loading() ? '' : [
+          m('p', 'Bundling ' + bundle.vm.domain())
+        ],
+        !results ? '' : [
+          m('h2.page-header', 'Results for ' + bundle.vm.Bundle().domain()),
+          m.component(panel, {
+            title: Tformat('bundle.bundle.title'),
+            body: m('pre', results.bundle())
+          }, !results.messages().length ? '' : m.component(listGroup, results.messages())),
+        ]
+      ]);
+    }
+  };
+
+  bundle.Model.bundle = function(domain, flavor) {
+    if (domain && flavor) {
+      return m.request({
+        method: 'POST',
+        url: '/api/v1/cfssl/bundle',
+        data: {
+          domain: domain,
+          flavor: flavor
+        },
+        unwrapSuccess: function(response) {
+          if (!response.success) {
+            throw new Error(response.messages.join(', '));
+          }
+
+          return response.result;
+        },
+        unwrapError: function(response) {
+          return response.errors;
+        }
+      })
+      .then(function(response) {
+        var results = new bundle.Model({
+          domain: domain,
+          bundle: response.bundle,
+          expires: response.expires,
+          messages: response.status && response.status.messages || [],
+          oscp: response.oscp_support
+        });
+
+        return results;
+      });
+    }
+
+    return m.deferred.reject();
+  }
+
   m.route.mode = 'pathname';
 
   m.route(document.body, '/', {
     '/': home,
+    '/bundle': bundle,
+    '/bundle/:domain': bundle,
     '/scan': scan,
     '/scan/:domain': scan
   });
 
   window.scan = scan;
+  window.bundle = bundle;
 }());
