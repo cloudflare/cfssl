@@ -566,60 +566,55 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 
 	bundle.buildHostnames()
 
-	// verify and store input intermediates to the intermediate pool.
-	// Ignore the returned error here, will treat it in the second call.
-	b.fetchIntermediates(certs)
-
-	chains, err := cert.Verify(b.VerifyOptions())
-	if err != nil {
-		log.Debugf("verification failed: %v", err)
-		// If the error was an unknown authority, try to fetch
-		// the intermediate specified in the AIA and add it to
-		// the intermediates bundle.
-		switch err := err.(type) {
-		case x509.UnknownAuthorityError:
-			// Do nothing -- have the default case return out.
-		default:
-			return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
-		}
-
-		log.Debugf("searching for intermediates via AIA issuer")
-		err = b.fetchIntermediates(certs)
-		if err != nil {
-			log.Debugf("search failed: %v", err)
-			return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
-		}
-
-		log.Debugf("verifying new chain")
-		chains, err = cert.Verify(b.VerifyOptions())
-		if err != nil {
-			log.Debugf("failed to verify chain: %v", err)
-			return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
-		}
-		log.Debugf("verify ok")
-	}
-	var matchingChains [][]*x509.Certificate
-	switch flavor {
-	case Optimal:
-		matchingChains = optimalChains(chains)
-	case Ubiquitous:
-		if len(ubiquity.Platforms) == 0 {
-			log.Warning("No metadata, Ubiquitous falls back to Optimal.")
-		}
-		matchingChains = ubiquitousChains(chains)
-	case Force:
-		matchingChains = forceChains(certs, chains)
-	default:
-		matchingChains = ubiquitousChains(chains)
-	}
-
-	bundle.Chain = matchingChains[0]
-	// Include at least one intermediate if the leaf has enabled OCSP and is not CA.
-	if bundle.Cert.OCSPServer != nil && !bundle.Cert.IsCA && len(bundle.Chain) <= 2 {
-		// No op. Return one intermediate if there is one.
+	if flavor == Force {
+		bundle.Chain = certs
 	} else {
-		// do not include the root.
-		bundle.Chain = bundle.Chain[:len(bundle.Chain)-1]
+		// verify and store input intermediates to the intermediate pool.
+		// Ignore the returned error here, will treat it in the second call.
+		b.fetchIntermediates(certs)
+
+		chains, err := cert.Verify(b.VerifyOptions())
+		if err != nil {
+			log.Debugf("verification failed: %v", err)
+			// If the error was an unknown authority, try to fetch
+			// the intermediate specified in the AIA and add it to
+			// the intermediates bundle.
+			switch err := err.(type) {
+			case x509.UnknownAuthorityError:
+				// Do nothing -- have the default case return out.
+			default:
+				return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
+			}
+
+			log.Debugf("searching for intermediates via AIA issuer")
+			err = b.fetchIntermediates(certs)
+			if err != nil {
+				log.Debugf("search failed: %v", err)
+				return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
+			}
+
+			log.Debugf("verifying new chain")
+			chains, err = cert.Verify(b.VerifyOptions())
+			if err != nil {
+				log.Debugf("failed to verify chain: %v", err)
+				return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
+			}
+			log.Debugf("verify ok")
+		}
+		var matchingChains [][]*x509.Certificate
+		switch flavor {
+		case Optimal:
+			matchingChains = optimalChains(chains)
+		case Ubiquitous:
+			if len(ubiquity.Platforms) == 0 {
+				log.Warning("No metadata, Ubiquitous falls back to Optimal.")
+			}
+			matchingChains = ubiquitousChains(chains)
+		default:
+			matchingChains = ubiquitousChains(chains)
+		}
+
+		bundle.Chain = matchingChains[0]
 	}
 
 	statusCode := int(errors.Success)
@@ -632,30 +627,37 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		messages = append(messages, expirationWarning(expiringCerts))
 	}
 	// Check if bundle contains SHA2 certs.
-	if ubiquity.ChainHashUbiquity(matchingChains[0]) <= ubiquity.SHA2Ubiquity {
+	if ubiquity.ChainHashUbiquity(bundle.Chain) <= ubiquity.SHA2Ubiquity {
 		statusCode |= errors.BundleNotUbiquitousBit
 		messages = append(messages, sha2Warning)
 	}
 	// Check if bundle contains ECDSA signatures.
-	if ubiquity.ChainKeyAlgoUbiquity(matchingChains[0]) <= ubiquity.ECDSA256Ubiquity {
+	if ubiquity.ChainKeyAlgoUbiquity(bundle.Chain) <= ubiquity.ECDSA256Ubiquity {
 		statusCode |= errors.BundleNotUbiquitousBit
 		messages = append(messages, ecdsaWarning)
 	}
-	// Add root store presence info
-	root := matchingChains[0][len(matchingChains[0])-1]
-	bundle.Root = root
-	log.Infof("the anchoring root is %v", root.Subject)
-	// Check if there is any platform that doesn't trust the chain.
-	// Also, an warning will be generated if ubiquity.Platforms is nil,
-	untrusted := ubiquity.UntrustedPlatforms(root)
-	untrustedMsg := untrustedPlatformsWarning(untrusted)
-	if len(untrustedMsg) > 0 {
-		log.Debug("Populate untrusted platform warning.")
-		statusCode |= errors.BundleNotUbiquitousBit
-		messages = append(messages, untrustedMsg)
+
+	// when forcing a bundle, bundle ubiquity doesn't matter
+	// also we don't retrieve the anchoring root of the bundle
+	var untrusted []string
+	if flavor != Force {
+		// Add root store presence info
+		root := bundle.Chain[len(bundle.Chain)-1]
+		bundle.Root = root
+		log.Infof("the anchoring root is %v", root.Subject)
+		// Check if there is any platform that doesn't trust the chain.
+		// Also, an warning will be generated if ubiquity.Platforms is nil,
+		untrusted = ubiquity.UntrustedPlatforms(root)
+		untrustedMsg := untrustedPlatformsWarning(untrusted)
+		if len(untrustedMsg) > 0 {
+			log.Debug("Populate untrusted platform warning.")
+			statusCode |= errors.BundleNotUbiquitousBit
+			messages = append(messages, untrustedMsg)
+		}
 	}
+
 	// Check if there is any platform that rejects the chain because of SHA1 deprecation.
-	sha1Msgs := ubiquity.SHA1DeprecationMessages(matchingChains[0])
+	sha1Msgs := ubiquity.SHA1DeprecationMessages(bundle.Chain)
 	if len(sha1Msgs) > 0 {
 		log.Debug("Populate SHA1 deprecation warning.")
 		statusCode |= errors.BundleNotUbiquitousBit
@@ -664,7 +666,19 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 
 	bundle.Status = &BundleStatus{ExpiringSKIs: getSKIs(bundle.Chain, expiringCerts), Code: statusCode, Messages: messages, Untrusted: untrusted}
 
+	// attempt to not to include the root certificate for optimization
+	if flavor != Force {
+		// Include at least one intermediate if the leaf has enabled OCSP and is not CA.
+		if bundle.Cert.OCSPServer != nil && !bundle.Cert.IsCA && len(bundle.Chain) <= 2 {
+			// No op. Return one intermediate if there is one.
+		} else {
+			// do not include the root.
+			bundle.Chain = bundle.Chain[:len(bundle.Chain)-1]
+		}
+	}
+
 	bundle.Status.IsRebundled = diff(bundle.Chain, certs)
+
 	log.Debugf("bundle complete")
 	return bundle, nil
 }
@@ -757,26 +771,6 @@ func ubiquitousChains(chains [][]*x509.Certificate) [][]*x509.Certificate {
 	chains = ubiquity.Filter(chains, ubiquity.CompareExpiryUbiquity)
 	// Use the optimal strategy as final tie breaker.
 	return optimalChains(chains)
-}
-
-// Force chains returns the input bundle (plus one verified root CA)  as the highest ranked ones if possible.
-// If there doesn't exist such bundle, fall back to the most ubiquitous bundle.
-func forceChains(input []*x509.Certificate, chains [][]*x509.Certificate) [][]*x509.Certificate {
-	// Filter out chains that are the same as the input certs.
-	var candidateChains [][]*x509.Certificate
-
-	for _, chain := range chains {
-		if !diff(chain[:len(chain)-1], input) {
-			candidateChains = append(candidateChains, chain)
-		}
-	}
-
-	if len(candidateChains) == 0 {
-		candidateChains = chains
-	}
-
-	// Filter out chains with highest cross platform ubiquity.
-	return ubiquity.Filter(candidateChains, ubiquity.ComparePlatformUbiquity)
 }
 
 // diff checkes if two input cert chains are not identical

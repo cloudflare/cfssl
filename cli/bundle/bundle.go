@@ -30,10 +30,16 @@ func bundlerMain(args []string, c cli.Config) (err error) {
 	bundler.IntermediateStash = c.IntDir
 	ubiquity.LoadPlatforms(c.Metadata)
 	flavor := bundler.BundleFlavor(c.Flavor)
-	// Initialize a bundler with CA bundle and intermediate bundle.
-	b, err := bundler.NewBundler(c.CABundleFile, c.IntBundleFile)
-	if err != nil {
-		return
+	var b *bundler.Bundler
+	// If it is a force bundle, don't require ca bundle and intermediate bundle
+	// Otherwise, initialize a bundler with CA bundle and intermediate bundle.
+	if flavor == bundler.Force {
+		b = &bundler.Bundler{}
+	} else {
+		b, err = bundler.NewBundler(c.CABundleFile, c.IntBundleFile)
+		if err != nil {
+			return
+		}
 	}
 
 	var bundle *bundler.Bundle

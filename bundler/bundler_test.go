@@ -414,9 +414,9 @@ func checkUbiquityWarningAndCode(t *testing.T, bundle *Bundle, expected bool) {
 	}
 }
 
-// Regression test on bundle with flavor 'Force'.
-// Compare to ubiquitous bundle which will optimize bundle length given the platform ubiquity is the same, force bundle
-// with return the same bundle as long as the input bundle is verified.
+// Regression test on bundle with all flavors:
+// Ubiquitous bundle optimizes bundle length given the platform ubiquity is the same; Force bundle
+// with return the same bundle; Optimal bundle always chooses shortest bundle length.
 func TestForceBundle(t *testing.T) {
 	// create a CA signer and signs a new intermediate with SHA-2
 	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
@@ -554,7 +554,7 @@ func TestUpdateIntermediate(t *testing.T) {
 		t.Fatal("Valid bundle should be accepted. error:", err)
 	}
 	if bundle.Status.IsRebundled {
-		t.Fatal("rebundle should never happen here")
+		t.Fatal("rebundle should never happen here", bundle.Status)
 	}
 
 	// Now bundle with the leaf cert
@@ -567,7 +567,7 @@ func TestUpdateIntermediate(t *testing.T) {
 	}
 }
 
-func TestForceBundleFallback(t *testing.T) {
+func TestForceBundleNoFallback(t *testing.T) {
 	// create a CA signer and signs a new intermediate with SHA-2
 	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
 	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
@@ -600,10 +600,10 @@ func TestForceBundleFallback(t *testing.T) {
 	}
 
 	// Force bundle fallback to creating a valid bundle
-	if len(bundle.Chain) != 2 {
+	if len(bundle.Chain) != 1 {
 		t.Fatal("incorrect bundling")
 	}
-	if !bundle.Status.IsRebundled {
+	if bundle.Status.IsRebundled {
 		t.Fatal("rebundle should happen here")
 	}
 
