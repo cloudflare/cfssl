@@ -67,19 +67,34 @@ Result:
         * signature contains the signature type used in the
         certificate, e.g. 'SHA1WithRSA'.
         * status contains a number of elements:
+          * code is bit-encoded error code. 1st bit indicates whether
+          there is a expiring certificate in the bundle. 2nd bit indicates
+          whether there is a ubiquity issue with the bundle.
           * expiring_SKIs contains the SKIs (subject key identifiers)
           for any certificates that might expire soon (within 30
           days).
+          * messages is a list of human-readable warnings on bundle
+          ubiquity and certificate expiration. For example, an expiration
+          warning can be "The expiring cert is #1 in the chain", indicating
+          the leaf certificate is expiring. Ubiquity warnings
+          include SHA-1 deprecation warning (if the bundle triggers
+          any major browser's SHA-1 deprecation policy), SHA-2 compatibility
+          warning (if the bundle contains signatures using SHA-2 hash
+          algorithms, it will be rejected by Windows XP SP2), ECDSA
+          compatibility warning (if the bundle contains ECDSA certificates,
+          it will be rejected by Windows XP, Android 2.2 and Android 2.3
+          etc) and root trust warnning (if the bundle cannot be trusted
+          by some major OSes or browsers).
           * rebundled indicates whether the server had to rebundle the
           certificate. The server will rebundle the uploaded
           certificate as needed; for example, if the certificate
           contains none of the required intermediates or a better set
           of intermediates was found. In this case, the server will
           mark rebundled as true.
-          * untrusted_root_stores contains the names of any new root
-          stores found while building a trust chain. New roots cannot
-          be trusted while the server is running, but this might be
-          useful in discovering new certificate authorities.
+          * untrusted_root_stores contains the names of any major
+          OSes and browsers that doesn't trust the bundle. The names
+          are used to contruct the root trust warnings in the messages
+          list
         * subject contains the X.509 subject identifier from the
         certificate.
 
