@@ -52,7 +52,6 @@ type Config struct {
 	Scanner           string
 	Responses         string
 	Path              string
-	UseLocal          bool
 	Usage             string
 }
 
@@ -92,7 +91,6 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
-	f.BoolVar(&c.UseLocal, "uselocal", false, "serve local static files as opposed to compiled ones")
 	f.StringVar(&c.Usage, "usage", "dev", "usage of private key")
 
 	if pkcs11.Enabled {
