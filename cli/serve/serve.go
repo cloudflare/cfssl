@@ -23,6 +23,7 @@ import (
 	"github.com/cloudflare/cfssl/ubiquity"
 
 	rice "github.com/GeertJohan/go.rice"
+	"io"
 )
 
 // Usage text of 'cfssl serve'
@@ -45,6 +46,20 @@ var (
 )
 
 var errBadSigner = errors.New("signer not initialized")
+
+type SPABox struct {
+	*rice.Box
+}
+
+func (rb *SPABox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	file, err := rb.Box.Open("/index.html")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	io.Copy(w, file)
+}
 
 var v1Endpoints = map[string]func() (http.Handler, error){
 	"sign": func() (http.Handler, error) {
@@ -95,8 +110,14 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 		return scan.NewInfoHandler(), nil
 	},
 
-	"/": func() (http.Handler, error) {
+	"/assets/": func() (http.Handler, error) {
 		return http.FileServer(rice.MustFindBox("static").HTTPBox()), nil
+	},
+
+	"/": func() (http.Handler, error) {
+		box := rice.MustFindBox("static")
+		rb := &SPABox{box}
+		return rb, nil
 	},
 }
 
@@ -112,7 +133,7 @@ func v1APIPath(endpoint string) string {
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
 	for path, getHandler := range v1Endpoints {
-		if path != "/" {
+		if !strings.HasPrefix(path, "/") {
 			path = "/api/v1/cfssl/" + path
 		}
 
