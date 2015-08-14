@@ -2,49 +2,82 @@ package genkey
 
 import (
 	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"os"
-	"os/exec"
-	"path"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
 )
 
-func TestGenkey(t *testing.T) {
-	//testing through console
-	gopath := os.Getenv("GOPATH")
-	cfssl := path.Join(gopath, "bin", "cfssl")
-	testdata := path.Join(gopath, "src", "github.com", "cloudflare", "cfssl", "testdata")
+type stdoutRedirect struct {
+	r     *os.File
+	w     *os.File
+	saved *os.File
+}
 
-	out, err := exec.Command(cfssl, "genkey", path.Join(testdata, "csr.json")).Output()
+func newStdoutRedirect() (*stdoutRedirect, error) {
+	r, w, err := os.Pipe()
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
+	pipe := &stdoutRedirect{r, w, os.Stdout}
+	os.Stdout = pipe.w
+	return pipe, nil
+}
+
+func (pipe *stdoutRedirect) readAll() ([]byte, error) {
+	pipe.w.Close()
+	os.Stdout = pipe.saved
+	return ioutil.ReadAll(pipe.r)
+}
+
+func checkResponse(out []byte) error {
 	var response map[string]interface{}
-	err = json.Unmarshal(out, &response)
-	if err != nil {
-		t.Fatal(err)
+	if err := json.Unmarshal(out, &response); err != nil {
+		return err
 	}
 
 	if response["key"] == nil {
-		t.Fatal("No key is outputted.")
+		return errors.New("No key is outputted.")
 	}
+
 	if response["csr"] == nil {
-		t.Fatal("No csr is outputted.")
+		return errors.New("No csr is outputted.")
 	}
 
-	c := cli.Config{}
+	return nil
+}
 
-	err = genkeyMain([]string{path.Join(testdata, "csr.json")}, c)
-	if err != nil {
+func TestGenkey(t *testing.T) {
+	var pipe *stdoutRedirect
+	var out []byte
+	var err error
+
+	if pipe, err = newStdoutRedirect(); err != nil {
+		t.Fatal(err)
+	}
+	if err := genkeyMain([]string{"testdata/csr.json"}, cli.Config{}); err != nil {
+		t.Fatal(err)
+	}
+	if out, err = pipe.readAll(); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkResponse(out); err != nil {
 		t.Fatal(err)
 	}
 
-	c.IsCA = true
-
-	err = genkeyMain([]string{path.Join(testdata, "csr.json")}, c)
-	if err != nil {
+	if pipe, err = newStdoutRedirect(); err != nil {
+		t.Fatal(err)
+	}
+	if err := genkeyMain([]string{"testdata/csr.json"}, cli.Config{IsCA: true}); err != nil {
+		t.Fatal(err)
+	}
+	if out, err = pipe.readAll(); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkResponse(out); err != nil {
 		t.Fatal(err)
 	}
 }
