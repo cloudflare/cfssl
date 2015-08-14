@@ -18,7 +18,6 @@ func TestServe(t *testing.T) {
 		expected[v1APIPath(endpoint)] = http.StatusOK
 	}
 
-	staticDir := "static"
 	err := rice.MustFindBox(staticDir).Walk("", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

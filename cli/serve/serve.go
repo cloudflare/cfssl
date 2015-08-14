@@ -31,17 +31,18 @@ var serverUsageText = `cfssl serve -- set up a HTTP server handles CF SSL reques
 Usage of serve:
         cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
-                    [-metadata file] [-remote remote_host] [-config config] [-uselocal]
+                    [-metadata file] [-remote remote_host] [-config config]
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "uselocal"}
+var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config"}
 
 var (
-	conf cli.Config
-	s    signer.Signer
+	conf      cli.Config
+	s         signer.Signer
+	staticDir = "static"
 )
 
 var errBadSigner = errors.New("signer not initialized")
@@ -94,9 +95,23 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 	"scaninfo": func() (http.Handler, error) {
 		return scan.NewInfoHandler(), nil
 	},
+}
 
+var staticEndpoints = map[string]func() (http.Handler, error){
 	"/": func() (http.Handler, error) {
-		return http.FileServer(rice.MustFindBox("static").HTTPBox()), nil
+		//the default rice order doesn't include working directory
+		order := []rice.LocateMethod{
+			rice.LocateEmbedded,
+			rice.LocateAppended,
+			rice.LocateFS,
+			rice.LocateWorkingDirectory,
+		}
+		c := &rice.Config{LocateOrder: order}
+		box, err := c.FindBox(staticDir)
+		if err != nil {
+			return nil, err
+		}
+		return http.FileServer(box.HTTPBox()), nil
 	},
 }
 
@@ -112,12 +127,16 @@ func v1APIPath(endpoint string) string {
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
 	for path, getHandler := range v1Endpoints {
-		if path != "/" {
-			path = "/api/v1/cfssl/" + path
-		}
-
+		path = "/api/v1/cfssl/" + path
 		log.Infof("Setting up '%s' endpoint", path)
-
+		if handler, err := getHandler(); err != nil {
+			log.Warningf("endpoint '%s' is disabled: %v", path, err)
+		} else {
+			http.Handle(path, handler)
+		}
+	}
+	for path, getHandler := range staticEndpoints {
+		log.Infof("Setting up '%s' endpoint", path)
 		if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)
 		} else {

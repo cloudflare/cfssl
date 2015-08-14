@@ -9,5 +9,5 @@ esc -pkg serve -prefix cli/serve/static cli/serve/static > cli/serve/static.go
 
 # Build and run CFSSL
 go build ./cmd/cfssl/...
-./cfssl serve # -uselocal # Optionally use updating files on local filesystem
+./cfssl serve
 ```
