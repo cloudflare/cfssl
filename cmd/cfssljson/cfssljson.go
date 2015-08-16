@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -39,9 +40,17 @@ type Response struct {
 	Messages []ResponseMessage      `json:"messages"`
 }
 
+type outputFile struct {
+	Filename string
+	Contents string
+	IsBinary bool
+	Perms    os.FileMode
+}
+
 func main() {
 	bare := flag.Bool("bare", false, "the response from CFSSL is not wrapped in the API standard response")
 	inFile := flag.String("f", "-", "JSON input")
+	output := flag.Bool("stdout", false, "output the response instead of saving to a file")
 	flag.Parse()
 
 	var baseName string
@@ -52,6 +61,10 @@ func main() {
 	}
 
 	var input = map[string]interface{}{}
+	var outs []outputFile
+	var cert string
+	var key string
+	var csr string
 
 	fileData, err := readFile(*inFile)
 	if err != nil {
@@ -85,24 +98,75 @@ func main() {
 	}
 
 	if contents, ok := input["cert"]; ok {
-		writeFile(baseName+".pem", contents.(string), 0644)
+		cert = contents.(string)
 	} else if contents, ok = input["certificate"]; ok {
-		writeFile(baseName+".pem", contents.(string), 0644)
+		cert = contents.(string)
+	}
+	if cert != "" {
+		outs = append(outs, outputFile{
+			Filename: baseName + ".pem",
+			Contents: cert,
+			Perms:    0664,
+		})
 	}
 
 	if contents, ok := input["key"]; ok {
-		writeFile(baseName+"-key.pem", contents.(string), 0600)
+		key = contents.(string)
 	} else if contents, ok = input["private_key"]; ok {
-		writeFile(baseName+"-key.pem", contents.(string), 0600)
+		key = contents.(string)
+	}
+	if key != "" {
+		outs = append(outs, outputFile{
+			Filename: baseName + "-key.pem",
+			Contents: key,
+			Perms:    0600,
+		})
 	}
 
 	if contents, ok := input["csr"]; ok {
-		writeFile(baseName+".csr", contents.(string), 0644)
+		csr = contents.(string)
 	} else if contents, ok = input["certificate_request"]; ok {
-		writeFile(baseName+".csr", contents.(string), 0644)
+		csr = contents.(string)
+	}
+	if csr != "" {
+		outs = append(outs, outputFile{
+			Filename: baseName + ".csr",
+			Contents: csr,
+			Perms:    0644,
+		})
 	}
 
 	if contents, ok := input["bundle"]; ok {
-		writeFile(baseName+"-bundle.pem", contents.(string), 0644)
+		outs = append(outs, outputFile{
+			Filename: baseName + "-bundle.pem",
+			Contents: contents.(string),
+			Perms:    0644,
+		})
+	}
+
+	if contents, ok := input["ocspResponse"]; ok {
+		//ocspResponse is base64 encoded
+		resp, err := base64.StdEncoding.DecodeString(contents.(string))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse ocspResponse: %v\n", err)
+			os.Exit(1)
+		}
+		outs = append(outs, outputFile{
+			Filename: baseName + "-response.der",
+			Contents: string(resp),
+			IsBinary: true,
+			Perms:    0644,
+		})
+	}
+
+	for _, e := range outs {
+		if *output {
+			if e.IsBinary {
+				e.Contents = base64.StdEncoding.EncodeToString([]byte(e.Contents))
+			}
+			fmt.Fprintf(os.Stdout, "%s\n", e.Contents)
+		} else {
+			writeFile(e.Filename, e.Contents, e.Perms)
+		}
 	}
 }

@@ -25,13 +25,13 @@ Use "cfssl [command] -help" to find out more about a command.
 
 import (
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 
+	"encoding/base64"
 	"github.com/cloudflare/cfssl/config"
 )
 
@@ -174,11 +174,11 @@ func PrintCert(key, csrBytes, cert []byte) {
 }
 
 // PrintOCSPResponse outputs an OCSP response to stdout
+// ocspResponse is base64 encoded
 func PrintOCSPResponse(resp []byte) {
-	pemResponse := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: resp})
+	b64Resp := base64.StdEncoding.EncodeToString(resp)
 
-	out := map[string]string{}
-	out["ocspResponse"] = string(pemResponse)
+	out := map[string]string{"ocspResponse": b64Resp}
 	jsonOut, err := json.Marshal(out)
 	if err != nil {
 		return

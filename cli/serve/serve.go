@@ -13,12 +13,15 @@ import (
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
+	apiocsp "github.com/cloudflare/cfssl/api/ocsp"
 	"github.com/cloudflare/cfssl/api/scan"
 	apisign "github.com/cloudflare/cfssl/api/sign"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/cli"
+	ocspsign "github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/ubiquity"
 
@@ -31,18 +34,20 @@ var serverUsageText = `cfssl serve -- set up a HTTP server handles CF SSL reques
 Usage of serve:
         cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
-                    [-metadata file] [-remote remote_host] [-config config]
+                    [-metadata file] [-remote remote_host] [-config config] \
+                    [-responder cert] [-responder-key key]
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config"}
+var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "responder", "responder-key"}
 
 var (
-	conf      cli.Config
-	s         signer.Signer
-	staticDir = "static"
+	conf       cli.Config
+	s          signer.Signer
+	ocspSigner ocsp.Signer
+	staticDir  = "static"
 )
 
 var errBadSigner = errors.New("signer not initialized")
@@ -94,6 +99,13 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 
 	"scaninfo": func() (http.Handler, error) {
 		return scan.NewInfoHandler(), nil
+	},
+
+	"ocspsign": func() (http.Handler, error) {
+		if ocspSigner == nil {
+			return nil, errBadSigner
+		}
+		return apiocsp.NewHandler(ocspSigner), nil
 	},
 }
 
@@ -166,6 +178,10 @@ func serverMain(args []string, c cli.Config) error {
 	log.Info("Initializing signer")
 	if s, err = sign.SignerFromConfig(c); err != nil {
 		log.Warningf("couldn't initialize signer: %v", err)
+	}
+
+	if ocspSigner, err = ocspsign.SignerFromConfig(c); err != nil {
+		log.Warningf("couldn't initialize ocsp signer: %v", err)
 	}
 
 	registerHandlers()

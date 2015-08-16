@@ -188,7 +188,7 @@ The bundle output form should follow the example
 #### Generating certificate signing request and private key
 
 ```
-cfssl genkey csrjson
+cfssl genkey csr.json
 ```
 
 To generate a private key and corresponding certificate request, specify
@@ -219,7 +219,7 @@ the key request as a JSON file. This file should follow the form
 #### Generating self-signed root CA certificate and private key
 
 ```
-cfssl genkey -initca csrjson | cfssljson -bare ca
+cfssl genkey -initca csr.json | cfssljson -bare ca
 ```
 
 To generate a self-signed root CA certificate, specify the key request as
@@ -230,7 +230,7 @@ certificate.
 #### Generating a remote-issued certificate and private key.
 
 ```
-cfssl gencert -remote=remote_server [-hostname=comma,separated,hostnames] csrjson
+cfssl gencert -remote=remote_server [-hostname=comma,separated,hostnames] csr.json
 ```
 
 This is calls genkey, but has a remote CFSSL server sign and issue
@@ -239,11 +239,23 @@ a certificate. You may use `-hostname` to override certificate SANs.
 #### Generating a local-issued certificate and private key.
 
 ```
-cfssl gencert -ca cert -ca-key key [-hostname=comma,separated,hostnames] csrjson
+cfssl gencert -ca cert -ca-key key [-hostname=comma,separated,hostnames] csr.json
 ```
 
 This is generates and issues a certificate and private key from a local CA
 via a JSON request. You may use `-hostname` to override certificate SANs.
+
+
+#### Updating a OCSP responses file with a newly issued certificate
+
+```
+cfssl ocspsign -ca cert -responder key -responder-key key -cert cert \
+ | cfssljson -bare -stdout >> responses
+```
+
+This will generate a OCSP response for the `cert` and add it to the
+`responses` file. You can then pass `responses` to `ocspserve` to start a
+OCSP server.
 
 ### Starting the API Server
 
@@ -332,7 +344,12 @@ filenames in the following way:
 * if there is a "csr" (or if not, if there's a "certificate_request") field,
   the file "basename.csr" will be produced.
 * if there is a "bundle" field, the file "basename-bundle.pem" will
-  be producd.
+  be produced.
+* if there is a "ocspResponse" field, the file "basename-response.der" will
+  be produced.
+
+Instead of saving to a file, you can pass `-stdout` to output the encoded
+contents.
 
 ### Static Builds
 

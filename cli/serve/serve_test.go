@@ -38,6 +38,7 @@ func TestServe(t *testing.T) {
 	expected[v1APIPath("newcert")] = http.StatusNotFound
 	expected[v1APIPath("info")] = http.StatusNotFound
 	expected[v1APIPath("bundle")] = http.StatusNotFound
+	expected[v1APIPath("ocspsign")] = http.StatusNotFound
 
 	// Enabled endpoints should return '405 Method Not Allowed'
 	expected[v1APIPath("init_ca")] = http.StatusMethodNotAllowed

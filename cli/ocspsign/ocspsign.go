@@ -12,16 +12,17 @@ import (
 )
 
 // Usage text of 'cfssl ocspsign'
-var ocspSignerUsageText = `cfssl ocspsign -- signs an OCSP response for a given CA, cert, and status"
+var ocspSignerUsageText = `cfssl ocspsign -- signs an OCSP response for a given CA, cert, and status.
+Returns a base64-encoded OCSP response.
 
 Usage of ocspsign:
-        cfssl ocspsign -ca cert -responder cert -key key -cert cert [-reason code]
+        cfssl ocspsign -ca cert -responder cert -responder-key key -cert cert [-status status] [-reason code] [-revoked-at YYYY-MM-DD]
 
 Flags:
 `
 
 // Flags of 'cfssl ocspsign'
-var ocspSignerFlags = []string{"ca", "responder", "key", "reason", "status", "revoked-at", "interval"}
+var ocspSignerFlags = []string{"ca", "responder", "responder-key", "reason", "status", "revoked-at", "interval"}
 
 // ocspSignerMain is the main CLI of OCSP signer functionality.
 func ocspSignerMain(args []string, c cli.Config) (err error) {
@@ -55,7 +56,7 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 		}
 	}
 
-	s, err := ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, c.KeyFile, time.Duration(c.Interval))
+	s, err := SignerFromConfig(c)
 	if err != nil {
 		log.Critical("Unable to create OCSP signer: ", err)
 		return
@@ -69,6 +70,17 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 
 	cli.PrintOCSPResponse(resp)
 	return
+}
+
+// SignerFromConfig creates a signer from a cli.Config as a helper for cli and serve
+func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
+	//if this is called from serve then we need to use the specific responder key file
+	//fallback to key for backwards-compatibility
+	k := c.ResponderKeyFile
+	if k == "" {
+		k = c.KeyFile
+	}
+	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval))
 }
 
 // CLISigner assembles the definition of Command 'sign'
