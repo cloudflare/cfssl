@@ -118,8 +118,8 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 		return nil, cferr.New(cferr.OCSPError, cferr.IssuerMismatch)
 	}
 
-	// Round thisUpdate times to the nearest hour
-	thisUpdate := time.Now().Round(time.Hour)
+	// Round thisUpdate times down to the nearest hour
+	thisUpdate := time.Now().Truncate(time.Hour)
 	nextUpdate := thisUpdate.Add(s.interval)
 
 	status, ok := statusCode[req.Status]
