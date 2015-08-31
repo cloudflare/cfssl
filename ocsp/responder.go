@@ -52,6 +52,10 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 	responsesB64 := regexp.MustCompile("\\s").Split(string(fileContents), -1)
 	src := InMemorySource{}
 	for _, b64 := range responsesB64 {
+		// if the line/space is empty just skip
+		if b64 == "" {
+			continue
+		}
 		der, tmpErr := base64.StdEncoding.DecodeString(b64)
 		if tmpErr != nil {
 			log.Errorf("Base64 decode error on: %s", b64)

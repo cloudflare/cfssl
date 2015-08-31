@@ -42,6 +42,7 @@ type Config struct {
 	PIN               string
 	PKCS11Label       string
 	ResponderFile     string
+	ResponderKeyFile  string
 	Status            string
 	Reason            int
 	RevokedAt         string
@@ -80,6 +81,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Label, "label", "", "key label to use in remote CFSSL server")
 	f.StringVar(&c.AuthKey, "authkey", "", "key to authenticate requests to remote CFSSL server")
 	f.StringVar(&c.ResponderFile, "responder", "", "Certificate for OCSP responder")
+	f.StringVar(&c.ResponderKeyFile, "responder-key", "", "private key for OCSP responder certificate")
 	f.StringVar(&c.Status, "status", "good", "Status of the certificate: good, revoked, unknown")
 	f.IntVar(&c.Reason, "reason", 0, "Reason code for revocation")
 	f.StringVar(&c.RevokedAt, "revoked-at", "now", "Date of revocation (YYYY-MM-DD)")

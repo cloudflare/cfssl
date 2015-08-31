@@ -20,7 +20,9 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-var statusCode = map[string]int{
+// StatusCode is a map between string statuses sent by cli/api
+// to ocsp int statuses
+var StatusCode = map[string]int{
 	"good":    ocsp.Good,
 	"revoked": ocsp.Revoked,
 	"unknown": ocsp.Unknown,
@@ -122,7 +124,7 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 	thisUpdate := time.Now().Truncate(time.Hour)
 	nextUpdate := thisUpdate.Add(s.interval)
 
-	status, ok := statusCode[req.Status]
+	status, ok := StatusCode[req.Status]
 	if !ok {
 		return nil, cferr.New(cferr.OCSPError, cferr.InvalidStatus)
 	}
