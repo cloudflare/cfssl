@@ -17,6 +17,7 @@ import (
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/info"
+	"github.com/cloudflare/cfssl/log"
 )
 
 // A server points to a single remote CFSSL instance.
@@ -92,9 +93,14 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	}
 	resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New(string(body)))
+	}
+
 	var response api.Response
 	err = json.Unmarshal(body, &response)
 	if err != nil {
+		log.Debug("Unable to parse response body:", string(body))
 		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
