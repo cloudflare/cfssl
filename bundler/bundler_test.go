@@ -239,7 +239,7 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 // Test marshal to JSON on hostnames
 func TestBundleHostnamesMarshalJSON(t *testing.T) {
 	b := newBundler(t)
-	bundle, _ := b.BundleFromRemote("www.cloudflare.com", "", Ubiquitous)
+	bundle, _ := b.BundleFromRemote("www.cloudflare.com", "", "443", Ubiquitous)
 	hostnames, _ := json.Marshal(bundle.Hostnames)
 	expectedOne := []byte(`["www.cloudflare.com","cloudflare.com"]`)
 	expectedTheOther := []byte(`["cloudflare.com","www.cloudflare.com"]`)

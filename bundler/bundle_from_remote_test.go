@@ -3,8 +3,12 @@ package bundler
 // This test file contains tests on checking the correctness of BundleFromRemote
 import (
 	"flag"
+	"io/ioutil"
+	"net"
+	"net/http"
 	"testing"
 
+	"github.com/cloudflare/cfssl/helpers/testsuite"
 	"github.com/cloudflare/cfssl/ubiquity"
 )
 
@@ -37,6 +41,14 @@ const (
 	SNISANWildcard         = "*.sni.velox.ch"
 	ValidSNIIP             = "85.25.46.13"
 	InvalidIP              = "300.300.300.300"
+)
+
+var (
+	certFile = "testdata/cert/cert_chain.crt"
+	keyFile  = "testdata/cert/decrypted.ssl.key"
+
+	addr = "127.0.0.1"
+	port = "7050"
 )
 
 func getBundleHostnameChecker(hostname string) func(*testing.T, *Bundle) {
@@ -100,7 +112,7 @@ func TestBundleFromRemote(t *testing.T) {
 	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
 		for _, test := range remoteTests {
 			b := test.bundlerConstructor(t)
-			bundle, err := b.BundleFromRemote(test.hostname, test.ip, bf)
+			bundle, err := b.BundleFromRemote(test.hostname, test.ip, "443", bf)
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -112,6 +124,38 @@ func TestBundleFromRemote(t *testing.T) {
 				}
 			}
 		}
+	}
+
+	// Test bundler against a local test server.
+	cert, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	key, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tlsServer := testsuite.NewTestServer(
+		http.Server{Addr: net.JoinHostPort(addr, port)})
+	err = tlsServer.UseDefaultTLSConfig(cert, key)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = tlsServer.Start()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	defer tlsServer.Kill()
+
+	newBundler, err := NewBundler(certFile, certFile)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = newBundler.BundleFromRemote("harryharpham.me", addr, port, Optimal)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 }
 
@@ -152,7 +196,7 @@ func TestBundleFromRemoteSNI(t *testing.T) {
 	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
 		for _, test := range remoteSNITests {
 			b := test.bundlerConstructor(t)
-			bundle, err := b.BundleFromRemote(test.hostname, test.ip, bf)
+			bundle, err := b.BundleFromRemote(test.hostname, test.ip, "443", bf)
 			if test.errorCallback != nil {
 				test.errorCallback(t, err)
 			} else {
@@ -172,7 +216,7 @@ func TestBundleFromRemoteFlavor(t *testing.T) {
 	ubiquity.Platforms = nil
 	ubiquity.LoadPlatforms(testMetadata)
 
-	bundle, err := b.BundleFromRemote(ECCCertSite, "", Ubiquitous)
+	bundle, err := b.BundleFromRemote(ECCCertSite, "", "443", Ubiquitous)
 	if err != nil {
 		t.Errorf("expected no error. but an error occurred: %s", err.Error())
 	}
@@ -183,7 +227,7 @@ func TestBundleFromRemoteFlavor(t *testing.T) {
 		t.Error("expected no untrusted platforms. Got ", bundle.Status.Untrusted)
 	}
 
-	bundle, err = b.BundleFromRemote(ECCCertSite, "", Optimal)
+	bundle, err = b.BundleFromRemote(ECCCertSite, "", "443", Optimal)
 	if err != nil {
 		t.Errorf("expected no error. but an error occurred: %s", err.Error())
 	}
