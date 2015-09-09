@@ -27,9 +27,9 @@ const (
 )
 
 var (
-	keyRequest = csr.KeyRequest{
-		Algo: "rsa",
-		Size: 2048,
+	keyRequest = csr.BasicKeyRequest{
+		A: "rsa",
+		S: 2048,
 	}
 	CAConfig = csr.CAConfig{
 		PathLength: 1,
@@ -249,33 +249,8 @@ func TestCreateSelfSignedCert(t *testing.T) {
 
 	// --- TEST: Create a self-signed certificate from a CSR. --- //
 
-	// Make the request we will use to generate the certificate.
-	keyRequest := csr.KeyRequest{
-		Algo: "rsa",
-		Size: 2048,
-	}
-	CAConfig := csr.CAConfig{
-		PathLength: 1,
-		Expiry:     "1/1/2015",
-	}
-	request := csr.CertificateRequest{
-		CN: "example.com",
-		Names: []csr.Name{
-			{
-				C:  "US",
-				ST: "California",
-				L:  "San Francisco",
-				O:  "Internet Widgets, LLC",
-				OU: "Certificate Authority",
-			},
-		},
-		Hosts:      []string{"ca.example.com"},
-		KeyRequest: &keyRequest,
-		CA:         &CAConfig,
-	}
-
 	// Generate a self-signed certificate from the request.
-	encodedCertFromCode, _, err := CreateSelfSignedCert(request)
+	encodedCertFromCode, _, err := CreateSelfSignedCert(CARequest)
 	checkError(err, t)
 
 	// Now compare to a pre-made certificate made using a JSON file with the

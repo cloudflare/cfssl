@@ -2,6 +2,7 @@
 package csr
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -32,33 +33,51 @@ type Name struct {
 	OU string // OrganisationalUnitName
 }
 
-// A KeyRequest contains the algorithm and key size for a new private
-// key.
-type KeyRequest struct {
-	Algo string `json:"algo"`
-	Size int    `json:"size"`
+// A KeyRequest is a generic request for a new key.
+type KeyRequest interface {
+	Algo() string
+	Size() int
+	Generate() (crypto.PrivateKey, error)
+	SigAlgo() x509.SignatureAlgorithm
 }
 
-// The DefaultKeyRequest is used when no key request data is provided
-// in the request. This should be a safe default.
-var DefaultKeyRequest = KeyRequest{
-	Algo: "ecdsa",
-	Size: curveP256,
+// A BasicKeyRequest contains the algorithm and key size for a new private key.
+type BasicKeyRequest struct {
+	A string `json:"algo"`
+	S int    `json:"size"`
+}
+
+// NewBasicKeyRequest returns a default BasicKeyRequest.
+func NewBasicKeyRequest() *BasicKeyRequest {
+	return &BasicKeyRequest{"ecdsa", curveP256}
+}
+
+// Algo returns the requested key algorithm represented as a string.
+func (kr *BasicKeyRequest) Algo() string {
+	return kr.A
+}
+
+// Size returns the requested key size.
+func (kr *BasicKeyRequest) Size() int {
+	return kr.S
 }
 
 // Generate generates a key as specified in the request. Currently,
 // only ECDSA and RSA are supported.
-func (kr *KeyRequest) Generate() (interface{}, error) {
+func (kr *BasicKeyRequest) Generate() (crypto.PrivateKey, error) {
 	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo, kr.Size)
-	switch kr.Algo {
+	switch kr.Algo() {
 	case "rsa":
-		if kr.Size < 2048 {
+		if kr.Size() < 2048 {
 			return nil, errors.New("RSA key is too weak")
 		}
-		return rsa.GenerateKey(rand.Reader, kr.Size)
+		if kr.Size() > 8192 {
+			return nil, errors.New("RSA key size too large")
+		}
+		return rsa.GenerateKey(rand.Reader, kr.Size())
 	case "ecdsa":
 		var curve elliptic.Curve
-		switch kr.Size {
+		switch kr.Size() {
 		case curveP256:
 			curve = elliptic.P256()
 		case curveP384:
@@ -76,26 +95,26 @@ func (kr *KeyRequest) Generate() (interface{}, error) {
 
 // SigAlgo returns an appropriate X.509 signature algorithm given the
 // key request's type and size.
-func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
-	switch kr.Algo {
+func (kr *BasicKeyRequest) SigAlgo() x509.SignatureAlgorithm {
+	switch kr.Algo() {
 	case "rsa":
 		switch {
-		case kr.Size >= 4096:
+		case kr.Size() >= 4096:
 			return x509.SHA512WithRSA
-		case kr.Size >= 3072:
+		case kr.Size() >= 3072:
 			return x509.SHA384WithRSA
-		case kr.Size >= 2048:
+		case kr.Size() >= 2048:
 			return x509.SHA256WithRSA
 		default:
 			return x509.SHA1WithRSA
 		}
 	case "ecdsa":
-		switch {
-		case kr.Size == curveP521:
+		switch kr.Size() {
+		case curveP521:
 			return x509.ECDSAWithSHA512
-		case kr.Size == curveP384:
+		case curveP384:
 			return x509.ECDSAWithSHA384
-		case kr.Size == curveP256:
+		case curveP256:
 			return x509.ECDSAWithSHA256
 		default:
 			return x509.ECDSAWithSHA1
@@ -117,7 +136,7 @@ type CertificateRequest struct {
 	CN         string
 	Names      []Name      `json:"names"`
 	Hosts      []string    `json:"hosts"`
-	KeyRequest *KeyRequest `json:"key,omitempty"`
+	KeyRequest KeyRequest  `json:"key,omitempty"`
 	CA         *CAConfig   `json:"ca,omitempty"`
 }
 
@@ -152,13 +171,10 @@ func (cr *CertificateRequest) Name() pkix.Name {
 func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	log.Info("received CSR")
 	if req.KeyRequest == nil {
-		req.KeyRequest = &KeyRequest{
-			Algo: DefaultKeyRequest.Algo,
-			Size: DefaultKeyRequest.Size,
-		}
+		req.KeyRequest = NewBasicKeyRequest()
 	}
 
-	log.Infof("generating key: %s-%d", req.KeyRequest.Algo, req.KeyRequest.Size)
+	log.Infof("generating key: %s-%d", req.KeyRequest.Algo(), req.KeyRequest.Size())
 	priv, err := req.KeyRequest.Generate()
 	if err != nil {
 		err = cferr.Wrap(cferr.PrivateKeyError, cferr.GenerationFailed, err)

@@ -15,36 +15,13 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 )
 
-type KeyRequest struct {
-	keyAlgo string
-	keyLen  int
-}
-
-var validKeyParams = []KeyRequest{
-	{
-		keyAlgo: "rsa",
-		keyLen:  2048,
-	},
-	{
-		keyAlgo: "rsa",
-		keyLen:  3072,
-	},
-	{
-		keyAlgo: "rsa",
-		keyLen:  4096,
-	},
-	{
-		keyAlgo: "ecdsa",
-		keyLen:  256,
-	},
-	{
-		keyAlgo: "ecdsa",
-		keyLen:  384,
-	},
-	{
-		keyAlgo: "ecdsa",
-		keyLen:  521,
-	},
+var validKeyParams = []csr.BasicKeyRequest{
+	{"rsa", 2048},
+	{"rsa", 3072},
+	{"rsa", 4096},
+	{"ecdsa", 256},
+	{"ecdsa", 384},
+	{"ecdsa", 521},
 }
 
 var csrFiles = []string{
@@ -55,21 +32,12 @@ var csrFiles = []string{
 	"testdata/ecdsa384.csr",
 	"testdata/ecdsa521.csr",
 }
-var invalidCryptoParams = []KeyRequest{
+var invalidCryptoParams = []csr.BasicKeyRequest{
 	// Weak Key
-	{
-		keyAlgo: "rsa",
-		keyLen:  1024,
-	},
+	{"rsa", 1024},
 	// Bad param
-	{
-		keyAlgo: "rsaCrypto",
-		keyLen:  2048,
-	},
-	{
-		keyAlgo: "ecdsa",
-		keyLen:  2000,
-	},
+	{"rsaCrypto", 2048},
+	{"ecdsa", 2000},
 }
 
 func TestInitCA(t *testing.T) {
@@ -88,10 +56,7 @@ func TestInitCA(t *testing.T) {
 			},
 			CN:    hostname,
 			Hosts: []string{hostname, "www." + hostname},
-			KeyRequest: &csr.KeyRequest{
-				Algo: param.keyAlgo,
-				Size: param.keyLen,
-			},
+			KeyRequest: &param,
 		}
 		certBytes, _, keyBytes, err := New(req)
 		if err != nil {
@@ -107,19 +72,19 @@ func TestInitCA(t *testing.T) {
 		}
 
 		// Verify key parameters.
-		switch req.KeyRequest.Algo {
+		switch req.KeyRequest.Algo() {
 		case "rsa":
-			if cert.PublicKey.(*rsa.PublicKey).N.BitLen() != param.keyLen {
+			if cert.PublicKey.(*rsa.PublicKey).N.BitLen() != param.Size() {
 				t.Fatal("Cert key length mismatch.")
 			}
-			if key.(*rsa.PrivateKey).N.BitLen() != param.keyLen {
+			if key.(*rsa.PrivateKey).N.BitLen() != param.Size() {
 				t.Fatal("Private key length mismatch.")
 			}
 		case "ecdsa":
-			if cert.PublicKey.(*ecdsa.PublicKey).Curve.Params().BitSize != param.keyLen {
+			if cert.PublicKey.(*ecdsa.PublicKey).Curve.Params().BitSize != param.Size() {
 				t.Fatal("Cert key length mismatch.")
 			}
-			if key.(*ecdsa.PrivateKey).Curve.Params().BitSize != param.keyLen {
+			if key.(*ecdsa.PrivateKey).Curve.Params().BitSize != param.Size() {
 				t.Fatal("Private key length mismatch.")
 			}
 		}
@@ -172,7 +137,7 @@ func TestInitCA(t *testing.T) {
 func TestInvalidCryptoParams(t *testing.T) {
 	var req *csr.CertificateRequest
 	hostname := "cloudflare.com"
-	for _, test := range invalidCryptoParams {
+	for _, invalidParam := range invalidCryptoParams {
 		req = &csr.CertificateRequest{
 			Names: []csr.Name{
 				{
@@ -185,10 +150,7 @@ func TestInvalidCryptoParams(t *testing.T) {
 			},
 			CN:    hostname,
 			Hosts: []string{hostname, "www." + hostname},
-			KeyRequest: &csr.KeyRequest{
-				Algo: test.keyAlgo,
-				Size: test.keyLen,
-			},
+			KeyRequest: &invalidParam,
 		}
 		_, _, _, err := New(req)
 		if err == nil {

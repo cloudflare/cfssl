@@ -26,13 +26,14 @@ type NewCA struct {
 // suitable for creating intermediate certificates.
 func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Info("setting up initial CA handler")
-	req := new(csr.CertificateRequest)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)
 	}
 
+	req := new(csr.CertificateRequest)
+	req.KeyRequest = csr.NewBasicKeyRequest()
 	err = json.Unmarshal(body, req)
 	if err != nil {
 		log.Warningf("failed to unmarshal request: %v", err)
