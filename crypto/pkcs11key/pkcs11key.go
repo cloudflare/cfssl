@@ -8,6 +8,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
@@ -34,9 +35,13 @@ type PKCS11Key struct {
 	// The PKCS#11 library to use
 	module *pkcs11.Ctx
 
-	// The name of the slot to be used.
+	// The slot id of the token to be used. Both this and tokenLabel must match to
+	// be used.
+	slotID int
+
+	// The label of the token to be used.
 	// We will automatically search for this in the slot list.
-	slotDescription string
+	tokenLabel string
 
 	// The PIN to be used to log in to the device
 	pin string
@@ -49,7 +54,7 @@ type PKCS11Key struct {
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
-func New(module, slot, pin, privLabel string) (ps *PKCS11Key, err error) {
+func New(module, tokenLabel, pin, privLabel string, slotID int) (ps *PKCS11Key, err error) {
 	// Set up a new pkcs11 object and initialize it
 	p := pkcs11.New(module)
 	if p == nil {
@@ -63,9 +68,10 @@ func New(module, slot, pin, privLabel string) (ps *PKCS11Key, err error) {
 
 	// Initialize a partial key
 	ps = &PKCS11Key{
-		module:          p,
-		slotDescription: slot,
-		pin:             pin,
+		module:     p,
+		slotID:     slotID,
+		tokenLabel: tokenLabel,
+		pin:        pin,
 	}
 
 	// Look up the private key
@@ -159,35 +165,38 @@ func (ps *PKCS11Key) Destroy() {
 }
 
 func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, err error) {
-	// Find slot by description
-	slots, err := ps.module.GetSlotList(true)
+	// Check if there is a PCKS11 token with slots. It has side-effects that
+	// allow the rest of the code here to work.
+	_, err = ps.module.GetSlotList(true)
 	if err != nil {
 		return
 	}
-	for _, slot := range slots {
-		slotInfo, err := ps.module.GetSlotInfo(slot)
-		if err != nil {
-			continue
-		}
 
-		if slotInfo.SlotDescription == ps.slotDescription {
-			// Open session
-			session, err = ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
-			if err != nil {
-				return session, err
-			}
-
-			// Login
-			if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
-				return session, err
-			}
-
-			return session, err
-		}
+	slotID := uint(ps.slotID)
+	// Look up slot by id
+	tokenInfo, err := ps.module.GetTokenInfo(slotID)
+	if err != nil {
+		return
 	}
 
-	err = errors.New("slot not found")
-	return
+	// Check that token label matches.
+	if tokenInfo.Label != ps.tokenLabel {
+		err = fmt.Errorf("Token label in slot %d was '%s', expected '%s'",
+			slotID, tokenInfo.Label, ps.tokenLabel)
+		return
+	}
+	// Open session
+	session, err = ps.module.OpenSession(slotID, pkcs11.CKF_SERIAL_SESSION)
+	if err != nil {
+		return session, err
+	}
+
+	// Login
+	if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
+		return session, err
+	}
+
+	return session, err
 }
 
 func (ps *PKCS11Key) closeSession(session pkcs11.SessionHandle) {
