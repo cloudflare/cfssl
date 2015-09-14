@@ -38,7 +38,8 @@ Installation requires a
 properly set `GOPATH`.  The default behaviour is to build with PKCS
 \#11, which requires the `gcc` compiler and the libtool development
 library and header files. On Ubuntu, this is
-`libltdl-dev`. On Centos/RHEL, this is 'libtool' and 'libtool-ltdl'. Alternately, you can pass `-tags nopkcs11` to the below
+`libltdl-dev`. On Centos/RHEL, this is 'libtool' and 'libtool-ltdl'.
+If these are not installed, you can pass `-tags nopkcs11` to the below
 go get commands.
 
 ```
