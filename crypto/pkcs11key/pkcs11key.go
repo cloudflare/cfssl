@@ -8,7 +8,6 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 
@@ -141,24 +140,20 @@ func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, keyHandle pkcs
 		slotInfo, err2 := ps.module.GetSlotInfo(slot)
 		if err2 != nil {
 			err = err2
-			fmt.Printf(">>> [%u] Couldn't get slot description\n", slot)
 			continue
 		}
 		if ps.slotDescription != "" && slotInfo.SlotDescription != ps.slotDescription {
-			fmt.Printf(">>> [%u] slotDescription didn't match [%s] != [%s]\n", slot, slotInfo.SlotDescription, ps.slotDescription)
 			continue
 		}
 
 		// Open session
 		session, err = ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
 		if err != nil {
-			fmt.Printf(">>> [%u] Couldn't open session [%v]\n", slot, err)
 			continue
 		}
 
 		// Login
 		if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
-			fmt.Printf(">>> [%u] Couldn't log in with pin [%s] [%v]\n", slot, ps.pin, err)
 			ps.closeSession(session)
 			continue
 		}
@@ -169,19 +164,16 @@ func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, keyHandle pkcs
 			pkcs11.NewAttribute(pkcs11.CKA_LABEL, ps.privateKeyLabel),
 		}
 		if err = ps.module.FindObjectsInit(session, template); err != nil {
-			fmt.Printf(">>> [%u] Couldn't FindObjectsInit\n", slot)
 			ps.closeSession(session)
 			continue
 		}
 		objs, _, err2 := ps.module.FindObjects(session, 2)
 		if err != nil {
 			err = err2
-			fmt.Printf(">>> [%u] Couldn't FindObjects\n", slot)
 			ps.closeSession(session)
 			continue
 		}
 		if err = ps.module.FindObjectsFinal(session); err != nil {
-			fmt.Printf(">>> [%u] Couldn't FindObjectsFinal\n", slot)
 			ps.closeSession(session)
 			continue
 		}
