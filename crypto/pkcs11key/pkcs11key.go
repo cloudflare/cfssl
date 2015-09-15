@@ -140,9 +140,8 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 	}
 	for _, slot := range slots {
 		// If ps.slotDescription is provided, we will only check matching slots
-		slotInfo, err2 := ps.module.GetSlotInfo(slot)
-		if err2 != nil {
-			err = err2
+		slotInfo, err := ps.module.GetSlotInfo(slot)
+		if err != nil {
 			continue
 		}
 		if ps.slotDescription != "" && slotInfo.SlotDescription != ps.slotDescription {
@@ -170,9 +169,8 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 			ps.closeSession(session)
 			continue
 		}
-		objs, _, err2 := ps.module.FindObjects(session, 2)
+		objs, _, err := ps.module.FindObjects(session, 2)
 		if err != nil {
-			err = err2
 			ps.closeSession(session)
 			continue
 		}
