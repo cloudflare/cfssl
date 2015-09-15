@@ -37,9 +37,11 @@ type PKCS11Key struct {
 	// The PIN to be used to log in to the device
 	pin string
 
-	// The name of the slot to be used
-	// We will automatically search for this in the slot list.
+	// The name of the slot to be used, or "" to use any slot
 	slotDescription string
+
+	// The label of the token to be used, or "" to use any token
+	tokenLabel string
 
 	// The label of the private key to be used.
 	privateKeyLabel string
@@ -49,7 +51,7 @@ type PKCS11Key struct {
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
-func New(module, slotDescription, pin, privLabel string) (ps *PKCS11Key, err error) {
+func New(module, slotDescription, tokenLabel, pin, privLabel string) (ps *PKCS11Key, err error) {
 	// Set up a new pkcs11 object and initialize it
 	p := pkcs11.New(module)
 	if p == nil {
@@ -66,6 +68,7 @@ func New(module, slotDescription, pin, privLabel string) (ps *PKCS11Key, err err
 		module:          p,
 		pin:             pin,
 		slotDescription: slotDescription,
+		tokenLabel:      tokenLabel,
 		privateKeyLabel: privLabel,
 	}
 
@@ -139,13 +142,26 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 		return emptySession, emptyHandle, err
 	}
 	for _, slot := range slots {
-		// If ps.slotDescription is provided, we will only check matching slots
-		slotInfo, err := ps.module.GetSlotInfo(slot)
-		if err != nil {
-			continue
+		// If ps.slotDescription is provided, only check matching slots
+		if ps.slotDescription != "" {
+			slotInfo, err := ps.module.GetSlotInfo(slot)
+			if err != nil {
+				continue
+			}
+			if slotInfo.SlotDescription != ps.slotDescription {
+				continue
+			}
 		}
-		if ps.slotDescription != "" && slotInfo.SlotDescription != ps.slotDescription {
-			continue
+
+		// If ps.tokenLabel is provided, only check matching slots
+		if ps.tokenLabel != "" {
+			tokenInfo, err := ps.module.GetTokenInfo(slot)
+			if err != nil {
+				continue
+			}
+			if tokenInfo.Label != ps.tokenLabel {
+				continue
+			}
 		}
 
 		// Open session
