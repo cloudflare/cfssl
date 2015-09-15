@@ -129,11 +129,14 @@ func (ps *PKCS11Key) Destroy() {
 }
 
 // Look up the token that contains the desired private key
-func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, keyHandle pkcs11.ObjectHandle, err error) {
+func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, error) {
+	var emptySession pkcs11.SessionHandle
+	var emptyHandle pkcs11.ObjectHandle
+
 	// Find slot by description
 	slots, err := ps.module.GetSlotList(true)
 	if err != nil {
-		return
+		return emptySession, emptyHandle, err
 	}
 	for _, slot := range slots {
 		// If ps.slotDescription is provided, we will only check matching slots
@@ -147,7 +150,7 @@ func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, keyHandle pkcs
 		}
 
 		// Open session
-		session, err = ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
+		session, err := ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
 		if err != nil {
 			continue
 		}
@@ -179,14 +182,11 @@ func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, keyHandle pkcs
 		}
 
 		if len(objs) > 0 {
-			// session and err have already been set above
-			keyHandle = objs[0]
-			return
+			return session, objs[0], nil
 		}
 	}
 
-	err = errors.New("slot not found")
-	return
+	return emptySession, emptyHandle, errors.New("slot not found")
 }
 
 func (ps *PKCS11Key) closeSession(session pkcs11.SessionHandle) {
