@@ -21,6 +21,7 @@ type Config struct {
 // signer.
 type PKCS11Config struct {
 	Module string
+	Slot   string
 	Token  string
 	PIN    string
 	Label  string
