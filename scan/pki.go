@@ -31,9 +31,9 @@ var PKI = &Family{
 }
 
 // getChain is a helper function that retreives the host's certificate chain.
-func getChain(host string, config *tls.Config) (chain []*x509.Certificate, err error) {
+func getChain(addr string, config *tls.Config) (chain []*x509.Certificate, err error) {
 	var conn *tls.Conn
-	conn, err = tls.DialWithDialer(Dialer, Network, host, config)
+	conn, err = tls.DialWithDialer(Dialer, Network, addr, config)
 	if err != nil {
 		return
 	}
@@ -45,7 +45,7 @@ func getChain(host string, config *tls.Config) (chain []*x509.Certificate, err e
 
 	chain = conn.ConnectionState().PeerCertificates
 	if len(chain) == 0 {
-		err = fmt.Errorf("%s returned empty certificate chain", host)
+		err = fmt.Errorf("%s returned empty certificate chain", addr)
 	}
 	return
 }
@@ -56,8 +56,8 @@ func (e expiration) String() string {
 	return time.Time(e).Format("Jan 2 15:04:05 2006 MST")
 }
 
-func chainExpiration(host string) (grade Grade, output Output, err error) {
-	chain, err := getChain(host, defaultTLSConfig(host))
+func chainExpiration(addr, hostname string) (grade Grade, output Output, err error) {
+	chain, err := getChain(addr, defaultTLSConfig(hostname))
 	if err != nil {
 		return
 	}
@@ -83,8 +83,8 @@ func chainExpiration(host string) (grade Grade, output Output, err error) {
 	return
 }
 
-func chainValidation(host string) (grade Grade, output Output, err error) {
-	chain, err := getChain(host, defaultTLSConfig(host))
+func chainValidation(addr, hostname string) (grade Grade, output Output, err error) {
+	chain, err := getChain(addr, defaultTLSConfig(hostname))
 	if err != nil {
 		return
 	}
@@ -139,15 +139,15 @@ func chainValidation(host string) (grade Grade, output Output, err error) {
 	return
 }
 
-func multipleCerts(host string) (grade Grade, output Output, err error) {
-	config := defaultTLSConfig(host)
+func multipleCerts(addr, hostname string) (grade Grade, output Output, err error) {
+	config := defaultTLSConfig(hostname)
 
-	firstChain, err := getChain(host, config)
+	firstChain, err := getChain(addr, config)
 	if err != nil {
 		return
 	}
 
-	grade, _, err = multiscan(host, func(addrport string) (g Grade, o Output, e error) {
+	grade, _, err = multiscan(addr, func(addrport string) (g Grade, o Output, e error) {
 		g = Good
 		chain, e1 := getChain(addrport, config)
 		if e1 != nil {

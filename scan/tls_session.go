@@ -15,11 +15,11 @@ var TLSSession = &Family{
 }
 
 // SessionResumeScan tests that host is able to resume sessions across all addresses.
-func sessionResumeScan(host string) (grade Grade, output Output, err error) {
-	config := defaultTLSConfig(host)
+func sessionResumeScan(addr, hostname string) (grade Grade, output Output, err error) {
+	config := defaultTLSConfig(hostname)
 	config.ClientSessionCache = tls.NewLRUClientSessionCache(1)
 
-	conn, err := tls.DialWithDialer(Dialer, Network, host, config)
+	conn, err := tls.DialWithDialer(Dialer, Network, addr, config)
 	if err != nil {
 		return
 	}
@@ -27,7 +27,7 @@ func sessionResumeScan(host string) (grade Grade, output Output, err error) {
 		return
 	}
 
-	return multiscan(host, func(addrport string) (g Grade, o Output, e error) {
+	return multiscan(addr, func(addrport string) (g Grade, o Output, e error) {
 		var conn *tls.Conn
 		if conn, e = tls.DialWithDialer(Dialer, Network, addrport, config); e != nil {
 			return

@@ -37,8 +37,8 @@ var (
 )
 
 // intermediateCAScan scans for new intermediate CAs not in the trust store.
-func intermediateCAScan(host string) (grade Grade, output Output, err error) {
-	cidr, port, _ := net.SplitHostPort(host)
+func intermediateCAScan(addr, hostname string) (grade Grade, output Output, err error) {
+	cidr, port, _ := net.SplitHostPort(addr)
 	_, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return Skipped, nil, nil

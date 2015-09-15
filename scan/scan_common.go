@@ -52,11 +52,9 @@ func (g Grade) String() string {
 // Output is the result of a scan, to be stored for potential use by later Scanners.
 type Output interface{}
 
-type scanFunc func(string) (Grade, Output, error)
-
 // multiscan scans all DNS addresses returned for the host, returning the lowest grade
 // and the concatenation of all the output.
-func multiscan(host string, scan scanFunc) (grade Grade, output Output, err error) {
+func multiscan(host string, scan func(string) (Grade, Output, error)) (grade Grade, output Output, err error) {
 	domain, port, _ := net.SplitHostPort(host)
 	var addrs []string
 	addrs, err = net.LookupHost(domain)
@@ -92,12 +90,12 @@ type Scanner struct {
 	// Description describes the nature of the scan to be performed.
 	Description string `json:"description"`
 	// scan is the function that scans the given host and provides a Grade and Output.
-	scan scanFunc
+	scan func(string, string) (Grade, Output, error)
 }
 
 // Scan performs the scan to be performed on the given host and stores its result.
-func (s *Scanner) Scan(host string) (Grade, Output, error) {
-	grade, output, err := s.scan(host)
+func (s *Scanner) Scan(addr, hostname string) (Grade, Output, error) {
+	grade, output, err := s.scan(addr, hostname)
 	if err != nil {
 		log.Infof("scan: %v", err)
 		return grade, output, err
@@ -137,9 +135,18 @@ type FamilyResult map[string]ScannerResult
 
 // RunScans iterates over AllScans, running scans matching the family and scanner
 // regular expressions.
-func (fs FamilySet) RunScans(host, family, scanner string, dur time.Duration) (map[string]FamilyResult, error) {
-	if _, _, err := net.SplitHostPort(host); err != nil {
-		host = net.JoinHostPort(host, "443")
+func (fs FamilySet) RunScans(host, ip, family, scanner string, dur time.Duration) (map[string]FamilyResult, error) {
+	hostname, port, err := net.SplitHostPort(host)
+	if err != nil {
+		hostname = host
+		port = "443"
+	}
+
+	var addr string
+	if net.ParseIP(ip) != nil {
+		addr = net.JoinHostPort(ip, port)
+	} else {
+		addr = net.JoinHostPort(hostname, port)
 	}
 
 	familyRegexp, err := regexp.Compile(family)
@@ -167,7 +174,7 @@ func (fs FamilySet) RunScans(host, family, scanner string, dur time.Duration) (m
 				scannerResults := make(map[string]ScannerResult)
 				for scannerName, scanner := range family.Scanners {
 					if scannerRegexp.MatchString(scannerName) {
-						grade, output, err := scanner.Scan(host)
+						grade, output, err := scanner.Scan(addr, hostname)
 						if grade != Skipped {
 							result := ScannerResult{
 								Grade:  grade.String(),
@@ -205,10 +212,6 @@ func startTimer(t time.Duration, timeout chan bool) {
 	})
 }
 
-func defaultTLSConfig(host string) *tls.Config {
-	h, _, err := net.SplitHostPort(host)
-	if err != nil {
-		h = host
-	}
-	return &tls.Config{ServerName: h, InsecureSkipVerify: true}
+func defaultTLSConfig(hostname string) *tls.Config {
+	return &tls.Config{ServerName: hostname, InsecureSkipVerify: true}
 }

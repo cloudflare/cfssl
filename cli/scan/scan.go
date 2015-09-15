@@ -10,14 +10,14 @@ import (
 
 var scanUsageText = `cfssl scan -- scan a host for issues
 Usage of scan:
-        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] HOST+
+        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] HOST+
         cfssl scan -list
 
 Arguments:
         HOST:    Host(s) to scan (including port)
 Flags:
 `
-var scanFlags = []string{"list", "family", "scanner", "timeout"}
+var scanFlags = []string{"list", "family", "scanner", "timeout", "ip"}
 
 func printJSON(v interface{}) {
 	b, err := json.MarshalIndent(v, "", "  ")
@@ -42,7 +42,7 @@ func scanMain(args []string, c cli.Config) (err error) {
 			fmt.Printf("Scanning %s...\n", host)
 
 			var results map[string]scan.FamilyResult
-			results, err = scan.Default.RunScans(host, c.Family, c.Scanner, c.Timeout)
+			results, err = scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
 			if err != nil {
 				return
 			}

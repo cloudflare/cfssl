@@ -18,22 +18,17 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequest(err)
 	}
 
-	if len(r.Form["host"]) == 0 {
+	family := r.Form.Get("family")
+	scanner := r.Form.Get("scanner")
+	ip := r.Form.Get("ip")
+	host := r.Form.Get("host")
+	if host == "" {
 		log.Warningf("no host given")
 		return errors.NewBadRequestString("no host given")
 	}
-	host := r.Form["host"][0]
 
-	var family, scanner string
-	if len(r.Form["family"]) > 0 {
-		family = r.Form["family"][0]
-	}
 
-	if len(r.Form["scanner"]) > 0 {
-		scanner = r.Form["scanner"][0]
-	}
-
-	results, err := scan.Default.RunScans(host, family, scanner, 0)
+	results, err := scan.Default.RunScans(host, ip, family, scanner, 0)
 	if err != nil {
 		log.Warningf("%v", err)
 		return errors.NewBadRequest(err)
