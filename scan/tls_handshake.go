@@ -61,12 +61,12 @@ func getCurveIndex(curves []tls.CurveID, serverCurve tls.CurveID) (curveIndex in
 	return
 }
 
-func sayHello(host string, ciphers []uint16, curves []tls.CurveID, vers uint16, sigAlgs []tls.SignatureAndHash) (cipherIndex, curveIndex int, certs [][]byte, err error) {
-	tcpConn, err := net.Dial(Network, host)
+func sayHello(addr, hostname string, ciphers []uint16, curves []tls.CurveID, vers uint16, sigAlgs []tls.SignatureAndHash) (cipherIndex, curveIndex int, certs [][]byte, err error) {
+	tcpConn, err := net.Dial(Network, addr)
 	if err != nil {
 		return
 	}
-	config := defaultTLSConfig(host)
+	config := defaultTLSConfig(hostname)
 	config.MinVersion = vers
 	config.MaxVersion = vers
 	if ciphers == nil {
@@ -187,13 +187,13 @@ func (cvList cipherVersionList) MarshalJSON() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func doCurveScan(host string, vers, cipherID uint16, ciphers []uint16) (supportedCurves []tls.CurveID, err error) {
+func doCurveScan(addr, hostname string, vers, cipherID uint16, ciphers []uint16) (supportedCurves []tls.CurveID, err error) {
 	allCurves := allCurvesIDs()
 	curves := make([]tls.CurveID, len(allCurves))
 	copy(curves, allCurves)
 	for len(curves) > 0 {
 		var curveIndex int
-		_, curveIndex, _, err = sayHello(host, []uint16{cipherID}, curves, vers, nil)
+		_, curveIndex, _, err = sayHello(addr, hostname, []uint16{cipherID}, curves, vers, nil)
 		if err != nil {
 			// This case is expected, because eventually we ask only for curves the server doesn't support
 			if err == errHelloFailed {
@@ -211,7 +211,7 @@ func doCurveScan(host string, vers, cipherID uint16, ciphers []uint16) (supporte
 
 // cipherSuiteScan returns, by TLS Version, the sort list of cipher suites
 // supported by the host
-func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
+func cipherSuiteScan(addr, hostname string) (grade Grade, output Output, err error) {
 	var cvList cipherVersionList
 	allCiphers := allCiphersIDs()
 
@@ -221,7 +221,7 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 		copy(ciphers, allCiphers)
 		for len(ciphers) > 0 {
 			var cipherIndex int
-			cipherIndex, _, _, err = sayHello(host, ciphers, nil, vers, nil)
+			cipherIndex, _, _, err = sayHello(addr, hostname, ciphers, nil, vers, nil)
 			if err != nil {
 				if err == errHelloFailed {
 					err = nil
@@ -237,7 +237,7 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 			// If this is an EC cipher suite, do a second scan for curve support
 			var supportedCurves []tls.CurveID
 			if tls.CipherSuites[cipherID].EllipticCurve {
-				supportedCurves, err = doCurveScan(host, vers, cipherID, ciphers)
+				supportedCurves, err = doCurveScan(addr, hostname, vers, cipherID, ciphers)
 				if len(supportedCurves) == 0 {
 					err = errors.New("couldn't negotiate any curves")
 				}
@@ -268,10 +268,10 @@ func cipherSuiteScan(host string) (grade Grade, output Output, err error) {
 }
 
 // sigAlgsScan returns the accepted signature and hash algorithms of the host
-func sigAlgsScan(host string) (grade Grade, output Output, err error) {
+func sigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) {
 	var supportedSigAlgs []tls.SignatureAndHash
 	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
-		_, _, _, e := sayHello(host, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
+		_, _, _, e := sayHello(addr, hostname, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
 		if e == nil {
 			supportedSigAlgs = append(supportedSigAlgs, sigAlg)
 		}
@@ -287,10 +287,10 @@ func sigAlgsScan(host string) (grade Grade, output Output, err error) {
 }
 
 // certSigAlgScan returns the server certificate with various sigature and hash algorithms in the ClientHello
-func certSigAlgsScan(host string) (grade Grade, output Output, err error) {
+func certSigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) {
 	var certSigAlgs = make(map[string]string)
 	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
-		_, _, derCerts, e := sayHello(host, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
+		_, _, derCerts, e := sayHello(addr, hostname, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
 		if e == nil {
 			if len(derCerts) == 0 {
 				return Bad, nil, errors.New("no certs returned")
@@ -316,10 +316,10 @@ func certSigAlgsScan(host string) (grade Grade, output Output, err error) {
 }
 
 // certSigAlgScan returns the server certificate with various ciphers in the ClientHello
-func certSigAlgsScanByCipher(host string) (grade Grade, output Output, err error) {
+func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output, err error) {
 	var certSigAlgs = make(map[string]string)
 	for cipherID := range tls.CipherSuites {
-		_, _, derCerts, e := sayHello(host, []uint16{cipherID}, nil, tls.VersionTLS12, []tls.SignatureAndHash{})
+		_, _, derCerts, e := sayHello(addr, hostname, []uint16{cipherID}, nil, tls.VersionTLS12, []tls.SignatureAndHash{})
 		if e == nil {
 			if len(derCerts) == 0 {
 				return Bad, nil, errors.New("no certs returned")
