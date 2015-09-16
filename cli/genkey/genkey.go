@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/csr"
-	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/initca"
 )
 
@@ -58,7 +57,7 @@ func genkeyMain(args []string, c cli.Config) (err error) {
 		}
 
 		var key, csrPEM []byte
-		g := &csr.Generator{Validator: Validator}
+		g := &csr.Generator{Validator: func(*csr.CertificateRequest) error {return nil}}
 		csrPEM, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
@@ -66,14 +65,6 @@ func genkeyMain(args []string, c cli.Config) (err error) {
 		}
 
 		cli.PrintCert(key, csrPEM, nil)
-	}
-	return nil
-}
-
-// Validator returns true if the csr has at least one host
-func Validator(req *csr.CertificateRequest) error {
-	if len(req.Hosts) == 0 {
-		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing hosts field"))
 	}
 	return nil
 }

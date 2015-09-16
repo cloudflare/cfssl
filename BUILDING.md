@@ -31,7 +31,7 @@ The requirements to build without Docker are:
 3. A properly configured GOPATH
 4. The default behaviour is to build with PKCS #11, which  requires the
    `gcc` compiler and the libtool development library and header files. On
-   Ubuntu, this is `libltdl-dev`.
+   Ubuntu, this is `libltdl-dev`. On Centos/RHEL, this is `libtool-ltdl-devel`.
 
 To build with PKCS #11 support, run:
 

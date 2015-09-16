@@ -49,7 +49,7 @@ type BasicKeyRequest struct {
 
 // NewBasicKeyRequest returns a default BasicKeyRequest.
 func NewBasicKeyRequest() *BasicKeyRequest {
-	return &BasicKeyRequest{"ecdsa", curveP256}
+	return &BasicKeyRequest{"rsa", 2048}
 }
 
 // Algo returns the requested key algorithm represented as a string.

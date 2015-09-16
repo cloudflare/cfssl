@@ -7,7 +7,7 @@ var defaults = map[string]string{
             "expiry": "168h"
         },
         "profiles": {
-            "www": {
+            "server": {
                 "expiry": "8760h",
                 "usages": [
                     "signing",
