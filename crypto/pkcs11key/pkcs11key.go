@@ -75,7 +75,7 @@ type PKCS11Key struct {
 	sessionMu sync.Mutex
 }
 
-var modules map[string]*pkcs11.Ctx = make(map[string]*pkcs11.Ctx);
+var modules = make(map[string]*pkcs11.Ctx);
 var modulesMu sync.Mutex;
 
 // initialize loads the given PKCS#11 module (shared library) if it is not
