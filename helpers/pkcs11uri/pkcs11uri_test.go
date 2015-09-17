@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudflare/cfssl/signer/pkcs11"
+	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 )
 
 type pkcs11UriTest struct {
 	URI    string
-	Config *pkcs11.Config
+	Config *pkcs11key.Config
 }
 
-func cmpConfigs(a, b *pkcs11.Config) bool {
+func cmpConfigs(a, b *pkcs11key.Config) bool {
 	if a == nil {
 		if b == nil {
 			return true
@@ -25,12 +25,12 @@ func cmpConfigs(a, b *pkcs11.Config) bool {
 	}
 
 	return (a.Module == b.Module) &&
-		(a.Token == b.Token) &&
+		(a.TokenLabel == b.TokenLabel) &&
 		(a.PIN == b.PIN) &&
-		(a.Label == b.Label)
+		(a.PrivateKeyLabel == b.PrivateKeyLabel)
 }
 
-func diffConfigs(want, have *pkcs11.Config) {
+func diffConfigs(want, have *pkcs11key.Config) {
 	if have == nil && want != nil {
 		fmt.Printf("Expected config, have nil.")
 		return
@@ -45,9 +45,9 @@ func diffConfigs(want, have *pkcs11.Config) {
 	}
 
 	diff("Module", want.Module, have.Module)
-	diff("Token", want.Token, have.Token)
+	diff("TokenLabel", want.TokenLabel, have.TokenLabel)
 	diff("PIN", want.PIN, have.PIN)
-	diff("Label", want.Label, have.Label)
+	diff("PrivateKeyLabel", want.PrivateKeyLabel, have.PrivateKeyLabel)
 }
 
 /* Config from PKCS #11 signer
@@ -61,20 +61,20 @@ type Config struct {
 
 var pkcs11UriCases = []pkcs11UriTest{
 	{"pkcs11:token=Software%20PKCS%2311%20softtoken;manufacturer=Snake%20Oil,%20Inc.?pin-value=the-pin",
-		&pkcs11.Config{
-			Token: "Software PKCS#11 softtoken",
-			PIN:   "the-pin",
+		&pkcs11key.Config{
+			TokenLabel: "Software PKCS#11 softtoken",
+			PIN:        "the-pin",
 		}},
 	{"pkcs11:slot-description=Sun%20Metaslot",
-		&pkcs11.Config{
-			Label: "Sun Metaslot",
+		&pkcs11key.Config{
+			SlotDescription: "Sun Metaslot",
 		}},
 	{"pkcs11:slot-description=test-label;token=test-token?pin-source=file:testdata/pin&module-name=test-module",
-		&pkcs11.Config{
-			Label:  "test-label",
-			Token:  "test-token",
-			PIN:    "123456",
-			Module: "test-module",
+		&pkcs11key.Config{
+			SlotDescription: "test-label",
+			TokenLabel:      "test-token",
+			PIN:             "123456",
+			Module:          "test-module",
 		}},
 }
 
