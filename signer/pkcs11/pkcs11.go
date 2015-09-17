@@ -17,11 +17,11 @@ import (
 // Config contains configuration information required to use a PKCS
 // #11 key.
 type Config struct {
-	Module string
-	Slot   string
-	Token  string
-	PIN    string
-	Label  string
+	Module          string
+	SlotDescription string
+	TokenLabel      string
+	PIN             string
+	PrivateKeyLabel string
 }
 
 // Enabled is set to true if PKCS #11 support is present.

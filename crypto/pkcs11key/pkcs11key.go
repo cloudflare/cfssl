@@ -51,7 +51,15 @@ type PKCS11Key struct {
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
+// The slotDescription and tokenLabel parameters are optional (i.e., if
+// they are set to "", they will be ignored).  However, at least one of
+// them must be set.
 func New(module, slotDescription, tokenLabel, pin, privLabel string) (ps *PKCS11Key, err error) {
+	if slotDescription == "" && tokenLabel == "" {
+		err = errors.New("either slotDescription or tokenLabel must be specified")
+		return
+	}
+
 	// Set up a new pkcs11 object and initialize it
 	p := pkcs11.New(module)
 	if p == nil {
@@ -146,7 +154,7 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 		if ps.slotDescription != "" {
 			slotInfo, err := ps.module.GetSlotInfo(slot)
 			if err != nil {
-				continue
+				return emptySession, emptyHandle, err
 			}
 			if slotInfo.SlotDescription != ps.slotDescription {
 				continue
@@ -157,7 +165,7 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 		if ps.tokenLabel != "" {
 			tokenInfo, err := ps.module.GetTokenInfo(slot)
 			if err != nil {
-				continue
+				return emptySession, emptyHandle, err
 			}
 			if tokenInfo.Label != ps.tokenLabel {
 				continue
@@ -167,7 +175,7 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 		// Open session
 		session, err := ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
 		if err != nil {
-			continue
+			return emptySession, emptyHandle, err
 		}
 
 		// Login
@@ -183,16 +191,16 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, e
 		}
 		if err = ps.module.FindObjectsInit(session, template); err != nil {
 			ps.closeSession(session)
-			continue
+			return emptySession, emptyHandle, err
 		}
 		objs, _, err := ps.module.FindObjects(session, 2)
 		if err != nil {
 			ps.closeSession(session)
-			continue
+			return emptySession, emptyHandle, err
 		}
 		if err = ps.module.FindObjectsFinal(session); err != nil {
 			ps.closeSession(session)
-			continue
+			return emptySession, emptyHandle, err
 		}
 
 		if len(objs) > 0 {
