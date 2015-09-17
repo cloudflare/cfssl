@@ -34,22 +34,32 @@ type PKCS11Key struct {
 	// The PKCS#11 library to use
 	module *pkcs11.Ctx
 
-	// The name of the slot to be used.
-	// We will automatically search for this in the slot list.
-	slotDescription string
-
 	// The PIN to be used to log in to the device
 	pin string
 
+	// The name of the slot to be used, or "" to use any slot
+	slotDescription string
+
+	// The label of the token to be used, or "" to use any token
+	tokenLabel string
+
+	// The label of the private key to be used.
+	privateKeyLabel string
+
 	// The public key corresponding to the private key.
 	publicKey rsa.PublicKey
-
-	// The an ObjectHandle pointing to the private key on the HSM.
-	privateKeyHandle pkcs11.ObjectHandle
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
-func New(module, slot, pin, privLabel string) (ps *PKCS11Key, err error) {
+// The slotDescription and tokenLabel parameters are optional (i.e., if
+// they are set to "", they will be ignored).  However, at least one of
+// them must be set.
+func New(module, slotDescription, tokenLabel, pin, privLabel string) (ps *PKCS11Key, err error) {
+	if slotDescription == "" && tokenLabel == "" {
+		err = errors.New("either slotDescription or tokenLabel must be specified")
+		return
+	}
+
 	// Set up a new pkcs11 object and initialize it
 	p := pkcs11.New(module)
 	if p == nil {
@@ -64,54 +74,25 @@ func New(module, slot, pin, privLabel string) (ps *PKCS11Key, err error) {
 	// Initialize a partial key
 	ps = &PKCS11Key{
 		module:          p,
-		slotDescription: slot,
 		pin:             pin,
+		slotDescription: slotDescription,
+		tokenLabel:      tokenLabel,
+		privateKeyLabel: privLabel,
 	}
-
-	// Look up the private key
-	session, err := ps.openSession()
-	if err != nil {
-		ps.Destroy()
-		return
-	}
-	defer ps.closeSession(session)
-
-	template := []*pkcs11.Attribute{
-		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PRIVATE_KEY),
-		pkcs11.NewAttribute(pkcs11.CKA_LABEL, privLabel),
-	}
-	if err = p.FindObjectsInit(session, template); err != nil {
-		ps.Destroy()
-		return
-	}
-	objs, _, err := p.FindObjects(session, 2)
-	if err != nil {
-		ps.Destroy()
-		return
-	}
-	if err = p.FindObjectsFinal(session); err != nil {
-		ps.Destroy()
-		return
-	}
-
-	if len(objs) == 0 {
-		err = errors.New("private key not found")
-		ps.Destroy()
-		return
-	}
-	ps.privateKeyHandle = objs[0]
 
 	// Populate the pubic key from the private key
 	// TODO: Add support for non-RSA keys, switching on CKA_KEY_TYPE
-	template = []*pkcs11.Attribute{
+	session, keyHandle, err := ps.openSession()
+	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
 		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, nil),
 	}
-	attr, err := p.GetAttributeValue(session, ps.privateKeyHandle, template)
+	attr, err := p.GetAttributeValue(session, keyHandle, template)
 	if err != nil {
 		ps.Destroy()
 		return
 	}
+	ps.closeSession(session)
 
 	n := big.NewInt(0)
 	e := int(0)
@@ -158,36 +139,76 @@ func (ps *PKCS11Key) Destroy() {
 	}
 }
 
-func (ps *PKCS11Key) openSession() (session pkcs11.SessionHandle, err error) {
+// Look up the token that contains the desired private key
+func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, pkcs11.ObjectHandle, error) {
+	var emptySession pkcs11.SessionHandle
+	var emptyHandle pkcs11.ObjectHandle
+
 	// Find slot by description
 	slots, err := ps.module.GetSlotList(true)
 	if err != nil {
-		return
+		return emptySession, emptyHandle, err
 	}
 	for _, slot := range slots {
-		slotInfo, err := ps.module.GetSlotInfo(slot)
+		// If ps.slotDescription is provided, only check matching slots
+		if ps.slotDescription != "" {
+			slotInfo, err := ps.module.GetSlotInfo(slot)
+			if err != nil {
+				return emptySession, emptyHandle, err
+			}
+			if slotInfo.SlotDescription != ps.slotDescription {
+				continue
+			}
+		}
+
+		// If ps.tokenLabel is provided, only check matching slots
+		if ps.tokenLabel != "" {
+			tokenInfo, err := ps.module.GetTokenInfo(slot)
+			if err != nil {
+				return emptySession, emptyHandle, err
+			}
+			if tokenInfo.Label != ps.tokenLabel {
+				continue
+			}
+		}
+
+		// Open session
+		session, err := ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
 		if err != nil {
+			return emptySession, emptyHandle, err
+		}
+
+		// Login
+		if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
+			ps.closeSession(session)
 			continue
 		}
 
-		if slotInfo.SlotDescription == ps.slotDescription {
-			// Open session
-			session, err = ps.module.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION)
-			if err != nil {
-				return session, err
-			}
+		// See if the private key is present
+		template := []*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PRIVATE_KEY),
+			pkcs11.NewAttribute(pkcs11.CKA_LABEL, ps.privateKeyLabel),
+		}
+		if err = ps.module.FindObjectsInit(session, template); err != nil {
+			ps.closeSession(session)
+			return emptySession, emptyHandle, err
+		}
+		objs, _, err := ps.module.FindObjects(session, 2)
+		if err != nil {
+			ps.closeSession(session)
+			return emptySession, emptyHandle, err
+		}
+		if err = ps.module.FindObjectsFinal(session); err != nil {
+			ps.closeSession(session)
+			return emptySession, emptyHandle, err
+		}
 
-			// Login
-			if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
-				return session, err
-			}
-
-			return session, err
+		if len(objs) > 0 {
+			return session, objs[0], nil
 		}
 	}
 
-	err = errors.New("slot not found")
-	return
+	return emptySession, emptyHandle, errors.New("slot not found")
 }
 
 func (ps *PKCS11Key) closeSession(session pkcs11.SessionHandle) {
@@ -221,14 +242,14 @@ func (ps *PKCS11Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (s
 	signatureInput := append(prefix, msg...)
 
 	// Open a session
-	session, err := ps.openSession()
+	session, keyHandle, err := ps.openSession()
 	if err != nil {
 		return
 	}
 	defer ps.closeSession(session)
 
 	// Perform the sign operation
-	err = ps.module.SignInit(session, mechanism, ps.privateKeyHandle)
+	err = ps.module.SignInit(session, mechanism, keyHandle)
 	if err != nil {
 		return
 	}

@@ -25,9 +25,10 @@ func cmpConfigs(a, b *pkcs11.Config) bool {
 	}
 
 	return (a.Module == b.Module) &&
-		(a.Token == b.Token) &&
+		(a.TokenLabel == b.TokenLabel) &&
+		(a.SlotDescription == b.SlotDescription) &&
 		(a.PIN == b.PIN) &&
-		(a.Label == b.Label)
+		(a.PrivateKeyLabel == b.PrivateKeyLabel)
 }
 
 func diffConfigs(want, have *pkcs11.Config) {
@@ -45,9 +46,10 @@ func diffConfigs(want, have *pkcs11.Config) {
 	}
 
 	diff("Module", want.Module, have.Module)
-	diff("Token", want.Token, have.Token)
+	diff("SlotDescription", want.SlotDescription, have.SlotDescription)
+	diff("TokenLabel", want.TokenLabel, have.TokenLabel)
 	diff("PIN", want.PIN, have.PIN)
-	diff("Label", want.Label, have.Label)
+	diff("PrivateKeyLabel", want.PrivateKeyLabel, have.PrivateKeyLabel)
 }
 
 /* Config from PKCS #11 signer
@@ -62,19 +64,27 @@ type Config struct {
 var pkcs11UriCases = []pkcs11UriTest{
 	{"pkcs11:token=Software%20PKCS%2311%20softtoken;manufacturer=Snake%20Oil,%20Inc.?pin-value=the-pin",
 		&pkcs11.Config{
-			Token: "Software PKCS#11 softtoken",
-			PIN:   "the-pin",
+			TokenLabel: "Software PKCS#11 softtoken",
+			PIN:        "the-pin",
 		}},
 	{"pkcs11:slot-description=Sun%20Metaslot",
 		&pkcs11.Config{
-			Label: "Sun Metaslot",
+			SlotDescription: "Sun Metaslot",
 		}},
 	{"pkcs11:slot-description=test-label;token=test-token?pin-source=file:testdata/pin&module-name=test-module",
 		&pkcs11.Config{
-			Label:  "test-label",
-			Token:  "test-token",
-			PIN:    "123456",
-			Module: "test-module",
+			SlotDescription: "test-label",
+			TokenLabel:      "test-token",
+			PIN:             "123456",
+			Module:          "test-module",
+		}},
+	{"pkcs11:slot-description=test-label;object=test-label2;token=test-token?pin-source=file:testdata/pin&module-name=test-module",
+		&pkcs11.Config{
+			SlotDescription: "test-label",
+			TokenLabel:      "test-token",
+			PIN:             "123456",
+			Module:          "test-module",
+			PrivateKeyLabel: "test-label2",
 		}},
 }
 

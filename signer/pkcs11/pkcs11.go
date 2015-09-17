@@ -17,10 +17,11 @@ import (
 // Config contains configuration information required to use a PKCS
 // #11 key.
 type Config struct {
-	Module string
-	Token  string
-	PIN    string
-	Label  string
+	Module          string
+	SlotDescription string
+	TokenLabel      string
+	PIN             string
+	PrivateKeyLabel string
 }
 
 // Enabled is set to true if PKCS #11 support is present.
@@ -43,7 +44,7 @@ func New(caCertFile string, policy *config.Signing, cfg *Config) (signer.Signer,
 		return nil, err
 	}
 
-	priv, err := pkcs11key.New(cfg.Module, cfg.Token, cfg.PIN, cfg.Label)
+	priv, err := pkcs11key.New(cfg.Module, cfg.SlotDescription, cfg.TokenLabel, cfg.PIN, cfg.PrivateKeyLabel)
 	if err != nil {
 		return nil, errors.New(errors.PrivateKeyError, errors.ReadFailed)
 	}

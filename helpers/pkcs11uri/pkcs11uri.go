@@ -44,11 +44,12 @@ func ParsePKCS11URI(uri string) (*pkcs11.Config, error) {
 	if err != nil {
 		return nil, ErrInvalidURI
 	}
-	setIfPresent(pk11PAttr, "token", &c.Token)
+	setIfPresent(pk11PAttr, "slot-description", &c.SlotDescription)
+	setIfPresent(pk11PAttr, "token", &c.TokenLabel)
 	setIfPresent(pk11QAttr, "module-name", &c.Module)
 	setIfPresent(pk11QAttr, "module-path", &c.Module)
 	setIfPresent(pk11QAttr, "pin-value", &c.PIN)
-	setIfPresent(pk11PAttr, "slot-description", &c.Label)
+	setIfPresent(pk11PAttr, "object", &c.PrivateKeyLabel)
 
 	var pinSourceURI string
 	setIfPresent(pk11QAttr, "pin-source", &pinSourceURI)
