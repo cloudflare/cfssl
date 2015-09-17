@@ -38,12 +38,13 @@ func fileBackedSigner(root *Root, policy *config.Signing) (signer.Signer, bool, 
 // options in the root.
 func pkcs11Signer(root *Root, policy *config.Signing) (signer.Signer, bool, error) {
 	module := root.Config["pkcs11-module"]
-	token := root.Config["pkcs11-token"]
-	label := root.Config["pkcs11-label"]
+	slotDescription := root.Config["pkcs11-slot"]
+	tokenLabel := root.Config["pkcs11-token"]
+	privateKeyLabel := root.Config["pkcs11-label"]
 	userPIN := root.Config["pkcs11-user-pin"]
 	certFile := root.Config["cert-file"]
 
-	if module == "" && token == "" && label == "" && userPIN == "" {
+	if module == "" && slotDescription == "" && tokenLabel == "" && privateKeyLabel == "" && userPIN == "" {
 		return nil, false, nil
 	}
 
@@ -52,10 +53,11 @@ func pkcs11Signer(root *Root, policy *config.Signing) (signer.Signer, bool, erro
 	}
 
 	conf := pkcs11.Config{
-		Module: module,
-		Token:  token,
-		Label:  label,
-		PIN:    userPIN,
+		Module:          module,
+		SlotDescription: slotDescription,
+		TokenLabel:      tokenLabel,
+		PrivateKeyLabel: privateKeyLabel,
+		PIN:             userPIN,
 	}
 
 	s, err := pkcs11.New(certFile, policy, &conf)

@@ -38,9 +38,10 @@ type Config struct {
 	Label             string
 	AuthKey           string
 	Module            string
-	Token             string
+	SlotDescription   string
+	TokenLabel        string
 	PIN               string
-	PKCS11Label       string
+	PrivateKeyLabel   string
 	ResponderFile     string
 	ResponderKeyFile  string
 	Status            string
@@ -96,10 +97,11 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Usage, "usage", "dev", "usage of private key")
 
 	if pkcs11.Enabled {
-		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
-		f.StringVar(&c.Token, "pkcs11-token", "", "PKCS #11 token")
-		f.StringVar(&c.PIN, "pkcs11-pin", os.Getenv("USER_PIN"), "PKCS #11 user PIN")
-		f.StringVar(&c.PKCS11Label, "pkcs11-label", "", "PKCS #11 label")
+		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS#11 module")
+		f.StringVar(&c.SlotDescription, "pkcs11-slot", "", "PKCS#11 slot description")
+		f.StringVar(&c.TokenLabel, "pkcs11-token", "", "PKCS#11 token label")
+		f.StringVar(&c.PIN, "pkcs11-pin", os.Getenv("USER_PIN"), "PKCS#11 user PIN")
+		f.StringVar(&c.PrivateKeyLabel, "pkcs11-label", "", "PKCS#11 private key label")
 	}
 }
 
@@ -109,8 +111,9 @@ func RootFromConfig(c *Config) universal.Root {
 	return universal.Root{
 		Config: map[string]string{
 			"pkcs11-module":   c.Module,
-			"pkcs11-token":    c.Token,
-			"pkcs11-label":    c.PKCS11Label,
+			"pkcs11-slot":     c.SlotDescription,
+			"pkcs11-token":    c.TokenLabel,
+			"pkcs11-label":    c.PrivateKeyLabel,
 			"pkcs11-user-pin": c.PIN,
 			"cert-file":       c.CAFile,
 			"key-file":        c.CAKeyFile,

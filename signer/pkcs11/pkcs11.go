@@ -44,7 +44,7 @@ func New(caCertFile string, policy *config.Signing, cfg *Config) (signer.Signer,
 		return nil, err
 	}
 
-	priv, err := pkcs11key.New(cfg.Module, cfg.Slot, cfg.Token, cfg.PIN, cfg.Label)
+	priv, err := pkcs11key.New(cfg.Module, cfg.SlotDescription, cfg.TokenLabel, cfg.PIN, cfg.PrivateKeyLabel)
 	if err != nil {
 		return nil, errors.New(errors.PrivateKeyError, errors.ReadFailed)
 	}
