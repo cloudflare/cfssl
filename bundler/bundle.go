@@ -98,8 +98,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	}
 	var keyBytes, rootBytes []byte
 	var keyLength int
-	var typeString string
-	var keyType string
+	var keyType, keyString string
 	keyLength = helpers.KeyLength(b.Cert.PublicKey)
 	switch b.Cert.PublicKeyAlgorithm {
 	case x509.ECDSA:
@@ -111,13 +110,18 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	default:
 		keyType = "Unknown"
 	}
-	if rsaKey, ok := b.Key.(*rsa.PrivateKey); ok {
-		keyBytes = x509.MarshalPKCS1PrivateKey(rsaKey)
-		typeString = "RSA PRIVATE KEY"
-	} else if ecdsaKey, ok := b.Key.(*ecdsa.PrivateKey); ok {
-		keyBytes, _ = x509.MarshalECPrivateKey(ecdsaKey)
-		typeString = "EC PRIVATE KEY"
+
+	switch key := b.Key.(type) {
+	case *rsa.PrivateKey:
+		keyBytes = x509.MarshalPKCS1PrivateKey(key)
+		keyString = PemBlockToString(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: keyBytes})
+	case *ecdsa.PrivateKey:
+		keyBytes, _ = x509.MarshalECPrivateKey(key)
+		keyString = PemBlockToString(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes})
+	case fmt.Stringer:
+		keyString = key.String()
 	}
+
 	if len(b.Hostnames) == 0 {
 		b.buildHostnames()
 	}
@@ -137,7 +141,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		"bundle":       chain(b.Chain),
 		"root":         PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: rootBytes}),
 		"crt":          PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Cert.Raw}),
-		"key":          PemBlockToString(&pem.Block{Type: typeString, Bytes: keyBytes}),
+		"key":          keyString,
 		"key_type":     keyType,
 		"key_size":     keyLength,
 		"issuer":       names(b.Issuer.Names),
