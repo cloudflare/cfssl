@@ -30,6 +30,12 @@ func TestNewServer(t *testing.T) {
 		t.Fatalf("%v", port)
 
 	}
+
+	s = NewServer("127.0.0.1:8888")
+	hosts := s.Hosts()
+	if len(hosts) != 1 && hosts[0] != "127.0.0.1:8888" {
+		t.Fatalf("expected [127.0.0.1:8888], but have %v", hosts)
+	}
 }
 
 func TestInvalidPort(t *testing.T) {
@@ -67,6 +73,21 @@ func TestNewServerGroup(t *testing.T) {
 
 	if len(ogl.remotes) != 2 {
 		t.Fatalf("expected the remote to have two servers, but it has %d", len(ogl.remotes))
+	}
+
+	hosts := ogl.Hosts()
+	if len(hosts) != 2 {
+		t.Fatalf("expected 2 hosts in the group, but have %d", len(hosts))
+	}
+
+	if hosts[0] != "cfssl1.local:8888" {
+		t.Fatalf("expected to see cfssl1.local:8888, but saw %s",
+			hosts[0])
+	}
+
+	if hosts[1] != "cfssl2.local:8888" {
+		t.Fatalf("expected to see cfssl2.local:8888, but saw %s",
+			hosts[1])
 	}
 }
 

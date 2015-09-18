@@ -58,6 +58,15 @@ type orderedListGroup struct {
 	remotes []*server
 }
 
+func (g *orderedListGroup) Hosts() []string {
+	var hosts = make([]string, 0, len(g.remotes))
+	for _, srv := range g.remotes {
+		srvHosts := srv.Hosts()
+		hosts = append(hosts, srvHosts[0])
+	}
+	return hosts
+}
+
 func newOrdererdListGroup(remotes []*server) (Remote, error) {
 	return &orderedListGroup{
 		remotes: remotes,
