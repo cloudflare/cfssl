@@ -219,14 +219,14 @@ func getPublicKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, privateKeyHa
 
 // Destroy tears down a PKCS11Key by closing the session. It should be
 // called before the key gets GC'ed, to avoid leaving dangling sessions.
-// NOTE: We do not want to call module.Logout here. module.Logout applies
-// application-wide. So if there are multiple sessions active, the other ones
-// would be logged out as well, causing CKR_OBJECT_HANDLE_INVALID next
-// time they try to sign something. It's also unnecessary to log out explicitly:
-// module.CloseSession will log out once the last session in the application is
-// closed.
 func (ps *PKCS11Key) Destroy() {
 	if ps.session != nil {
+		// NOTE: We do not want to call module.Logout here. module.Logout applies
+		// application-wide. So if there are multiple sessions active, the other ones
+		// would be logged out as well, causing CKR_OBJECT_HANDLE_INVALID next
+		// time they try to sign something. It's also unnecessary to log out explicitly:
+		// module.CloseSession will log out once the last session in the application is
+		// closed.
 		ps.sessionMu.Lock()
 		ps.module.CloseSession(*ps.session)
 		ps.session = nil
