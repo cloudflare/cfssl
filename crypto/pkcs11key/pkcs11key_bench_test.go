@@ -58,6 +58,10 @@ func BenchmarkPKCS11(b *testing.B) {
 	// Reset the benchmarking timer so we don't include setup time.
 	b.ResetTimer()
 
+	// Start recording total time. Go's benchmarking code is interested in
+	// nanoseconds per op, but we're also interested in the total throughput.
+	start := time.Now()
+
 	b.RunParallel(func(pb *testing.PB) {
 		p, err := New(*module, *tokenLabel, *pin, *privateKeyLabel)
 		if err != nil {
@@ -74,6 +78,9 @@ func BenchmarkPKCS11(b *testing.B) {
 			}
 		}
 	})
+
+	elapsedTime := time.Now().Sub(start)
+	b.Logf("Time, count, ops / second: %s, %d, %g", elapsedTime, b.N, float64(b.N)*float64(time.Second)/float64(elapsedTime))
 }
 
 // Dummy test to avoid getting "warning: no tests found"
