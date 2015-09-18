@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"flag"
 	"math/big"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -14,6 +15,8 @@ var module = flag.String("module", "", "Path to PKCS11 module")
 var tokenLabel = flag.String("tokenLabel", "", "Token label")
 var pin = flag.String("pin", "", "PIN")
 var privateKeyLabel = flag.String("privateKeyLabel", "", "Private key label")
+var sessionCount = flag.Int("sessions", runtime.GOMAXPROCS(-1), `Number of PKCS#11 sessions to use.
+For SoftHSM, GOMAXPROCS is appropriate, but for an external HSM the optimum session count depends on the HSM's parallelism.`)
 
 // BenchmarkPKCS11 signs a certificate repeatedly using a PKCS11 token and
 // measures speed. To run (with SoftHSM):
@@ -46,14 +49,12 @@ func BenchmarkPKCS11(b *testing.B) {
 		},
 	}
 
-	// Login once to make sure the PIN works. This avoids repeatedly logging in
-	// with bad credentials, which would pin-lock the token.
-	firstKey, err := New(*module, *tokenLabel, *pin, *privateKeyLabel)
+	pool, err := NewPool(*sessionCount, *module, *tokenLabel, *pin, *privateKeyLabel)
 	if err != nil {
 		b.Fatal(err)
 		return
 	}
-	firstKey.Destroy()
+	defer pool.Destroy()
 
 	// Reset the benchmarking timer so we don't include setup time.
 	b.ResetTimer()
@@ -63,15 +64,8 @@ func BenchmarkPKCS11(b *testing.B) {
 	start := time.Now()
 
 	b.RunParallel(func(pb *testing.PB) {
-		p, err := New(*module, *tokenLabel, *pin, *privateKeyLabel)
-		if err != nil {
-			b.Fatal(err)
-			return
-		}
-		defer p.Destroy()
-
 		for pb.Next() {
-			_, err = x509.CreateCertificate(rand.Reader, &template, &template, template.PublicKey, p)
+			_, err = x509.CreateCertificate(rand.Reader, &template, &template, template.PublicKey, pool)
 			if err != nil {
 				b.Fatal(err)
 				return
