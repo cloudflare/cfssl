@@ -21,6 +21,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
 )
 
@@ -147,7 +148,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		return
 	}
 
-	err = csr.CheckSignature()
+	err = helpers.CheckSignature(csr, csr.SignatureAlgorithm, csr.RawTBSCertificateRequest, csr.Signature)
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.KeyMismatch, err)
 		return
