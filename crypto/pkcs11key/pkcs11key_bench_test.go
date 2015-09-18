@@ -48,7 +48,7 @@ func BenchmarkPKCS11(b *testing.B) {
 
 	// Login once to make sure the PIN works. This avoids repeatedly logging in
 	// with bad credentials, which would pin-lock the token.
-	firstKey, err := New(*module, "", *tokenLabel, *pin, *privateKeyLabel)
+	firstKey, err := New(*module, *tokenLabel, *pin, *privateKeyLabel)
 	if err != nil {
 		b.Fatal(err)
 		return
@@ -59,7 +59,7 @@ func BenchmarkPKCS11(b *testing.B) {
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
-		p, err := New(*module, "", *tokenLabel, *pin, *privateKeyLabel)
+		p, err := New(*module, *tokenLabel, *pin, *privateKeyLabel)
 		if err != nil {
 			b.Fatal(err)
 			return

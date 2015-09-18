@@ -4,7 +4,6 @@ package pkcs11key
 // #11 key.
 type Config struct {
 	Module          string
-	SlotDescription string
 	TokenLabel      string
 	PIN             string
 	PrivateKeyLabel string

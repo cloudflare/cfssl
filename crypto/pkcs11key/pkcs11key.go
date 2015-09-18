@@ -54,9 +54,6 @@ type PKCS11Key struct {
 	// The path to the PKCS#11 library
 	modulePath string
 
-	// The name of the slot to be used, or "" to use any slot
-	slotDescription string
-
 	// The label of the token to be used (mandatory).
 	// We will automatically search for this in the slot list.
 	tokenLabel string
@@ -111,7 +108,7 @@ func initialize(modulePath string) (*pkcs11.Ctx, error) {
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
-func New(modulePath, slotDescription, tokenLabel, pin, privateKeyLabel string) (ps *PKCS11Key, err error) {
+func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *PKCS11Key, err error) {
 	module, err := initialize(modulePath)
 	if err != nil {
 		return
@@ -125,7 +122,6 @@ func New(modulePath, slotDescription, tokenLabel, pin, privateKeyLabel string) (
 	ps = &PKCS11Key{
 		module:          module,
 		modulePath:      modulePath,
-		slotDescription: slotDescription,
 		tokenLabel:      tokenLabel,
 		pin:             pin,
 	}
@@ -242,17 +238,6 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, error) {
 	}
 
 	for _, slot := range slots {
-		// If ps.slotDescription is provided, only check matching slots
-		if ps.slotDescription != "" {
-			slotInfo, err := ps.module.GetSlotInfo(slot)
-			if err != nil {
-				return noSession, err
-			}
-			if slotInfo.SlotDescription != ps.slotDescription {
-				continue
-			}
-		}
-
 		// Check that token label matches.
 		tokenInfo, err := ps.module.GetTokenInfo(slot)
 		if err != nil {

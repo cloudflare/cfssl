@@ -65,13 +65,13 @@ var pkcs11UriCases = []pkcs11UriTest{
 			TokenLabel: "Software PKCS#11 softtoken",
 			PIN:        "the-pin",
 		}},
-	{"pkcs11:slot-description=Sun%20Metaslot",
+	{"pkcs11:token=Sun%20Token",
 		&pkcs11key.Config{
-			SlotDescription: "Sun Metaslot",
+			TokenLabel: "Sun Token",
 		}},
-	{"pkcs11:slot-description=test-label;token=test-token?pin-source=file:testdata/pin&module-name=test-module",
+	{"pkcs11:object=test-privkey;token=test-token?pin-source=file:testdata/pin&module-name=test-module",
 		&pkcs11key.Config{
-			SlotDescription: "test-label",
+			PrivateKeyLabel: "test-privkey",
 			TokenLabel:      "test-token",
 			PIN:             "123456",
 			Module:          "test-module",

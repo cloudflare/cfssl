@@ -49,7 +49,6 @@ func ParsePKCS11URI(uri string) (*pkcs11key.Config, error) {
 	setIfPresent(pk11QAttr, "module-name", &c.Module)
 	setIfPresent(pk11QAttr, "module-path", &c.Module)
 	setIfPresent(pk11QAttr, "pin-value", &c.PIN)
-	setIfPresent(pk11PAttr, "slot-description", &c.SlotDescription)
 
 	var pinSourceURI string
 	setIfPresent(pk11QAttr, "pin-source", &pinSourceURI)
