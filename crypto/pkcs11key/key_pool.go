@@ -55,6 +55,9 @@ func (p *PKCS11KeyPool) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts)
 	return instance.Sign(rand, msg, opts)
 }
 
+// Public returns the public key of any one of the signers in the pool. Since
+// they were all created with the same arguments, the public key should be the
+// same for each one.
 func (p *PKCS11KeyPool) Public() crypto.PublicKey {
 	instance := p.get()
 	defer p.put(instance)
