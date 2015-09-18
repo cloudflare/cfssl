@@ -312,3 +312,60 @@ func GetKeyDERFromPEM(in []byte) ([]byte, error) {
 
 	return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
 }
+
+// ParseCSR parses a PEM- or DER-encoded PKCS #10 certificate signing request.
+func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) {
+	in = bytes.TrimSpace(in)
+	p, rest := pem.Decode(in)
+	if p != nil {
+		if p.Type != "CERTIFICATE REQUEST" {
+			return nil, rest, cferr.New(cferr.CSRError, cferr.BadRequest)
+		}
+
+		csr, err = x509.ParseCertificateRequest(p.Bytes)
+	} else {
+		csr, err = x509.ParseCertificateRequest(in)
+	}
+
+	if err != nil {
+		return nil, rest, err
+	}
+
+	err = csr.CheckSignature()
+	if err != nil {
+		return nil, rest, err
+	}
+
+	return csr, rest, nil
+}
+
+// SignerAlgo returns an X.509 signature algorithm corresponding to
+// the crypto.Hash provided from a crypto.Signer.
+func SignerAlgo(priv crypto.Signer, h crypto.Hash) x509.SignatureAlgorithm {
+	switch priv.Public().(type) {
+	case *rsa.PublicKey:
+		switch h {
+		case crypto.SHA512:
+			return x509.SHA512WithRSA
+		case crypto.SHA384:
+			return x509.SHA384WithRSA
+		case crypto.SHA256:
+			return x509.SHA256WithRSA
+		default:
+			return x509.SHA1WithRSA
+		}
+	case *ecdsa.PublicKey:
+		switch h {
+		case crypto.SHA512:
+			return x509.ECDSAWithSHA512
+		case crypto.SHA384:
+			return x509.ECDSAWithSHA384
+		case crypto.SHA256:
+			return x509.ECDSAWithSHA256
+		default:
+			return x509.ECDSAWithSHA1
+		}
+	default:
+		return x509.UnknownSignatureAlgorithm
+	}
+}

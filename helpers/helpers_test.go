@@ -356,3 +356,25 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 	}
 
 }
+
+// Imported from signers/local/testdata/
+const ecdsaTestCSR = "testdata/ecdsa256.csr"
+
+func TestParseCSRPEM(t *testing.T) {
+	in, err := ioutil.ReadFile(ecdsaTestCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, _, err = ParseCSR(in)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	in[12]++
+	_, _, err = ParseCSR(in)
+	if err == nil {
+		t.Fatalf("Expected an invalid CSR.")
+	}
+	in[12]--
+}

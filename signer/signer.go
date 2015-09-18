@@ -147,7 +147,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		return
 	}
 
-	err = CheckSignature(csr, csr.SignatureAlgorithm, csr.RawTBSCertificateRequest, csr.Signature)
+	err = csr.CheckSignature()
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.KeyMismatch, err)
 		return
@@ -163,51 +163,6 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 	}
 
 	return
-}
-
-// CheckSignature verifies a signature made by the key on a CSR, such
-// as on the CSR itself.
-func CheckSignature(csr *x509.CertificateRequest, algo x509.SignatureAlgorithm, signed, signature []byte) error {
-	var hashType crypto.Hash
-
-	switch algo {
-	case x509.SHA1WithRSA, x509.ECDSAWithSHA1:
-		hashType = crypto.SHA1
-	case x509.SHA256WithRSA, x509.ECDSAWithSHA256:
-		hashType = crypto.SHA256
-	case x509.SHA384WithRSA, x509.ECDSAWithSHA384:
-		hashType = crypto.SHA384
-	case x509.SHA512WithRSA, x509.ECDSAWithSHA512:
-		hashType = crypto.SHA512
-	default:
-		return x509.ErrUnsupportedAlgorithm
-	}
-
-	if !hashType.Available() {
-		return x509.ErrUnsupportedAlgorithm
-	}
-	h := hashType.New()
-
-	h.Write(signed)
-	digest := h.Sum(nil)
-
-	switch pub := csr.PublicKey.(type) {
-	case *rsa.PublicKey:
-		return rsa.VerifyPKCS1v15(pub, hashType, digest, signature)
-	case *ecdsa.PublicKey:
-		ecdsaSig := new(struct{ R, S *big.Int })
-		if _, err := asn1.Unmarshal(signature, ecdsaSig); err != nil {
-			return err
-		}
-		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
-			return errors.New("x509: ECDSA signature contained zero or negative values")
-		}
-		if !ecdsa.Verify(pub, digest, ecdsaSig.R, ecdsaSig.S) {
-			return errors.New("x509: ECDSA verification failure")
-		}
-		return nil
-	}
-	return x509.ErrUnsupportedAlgorithm
 }
 
 type subjectPublicKeyInfo struct {
