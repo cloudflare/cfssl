@@ -26,11 +26,16 @@ type server struct {
 	Port    int
 }
 
-// A Remote points to at least one (but possibly multiple) remote CFSSL instances.
+// A Remote points to at least one (but possibly multiple) remote
+// CFSSL instances. It must be able to perform a authenticated and
+// unauthenticated certificate signing requests, return information
+// about the CA on the other end, and return a list of the hosts that
+// are used by the remote.
 type Remote interface {
 	AuthSign(req, id []byte, provider auth.Provider) ([]byte, error)
 	Sign(jsonData []byte) ([]byte, error)
 	Info(jsonData []byte) (*info.Resp, error)
+	Hosts() []string
 }
 
 // NewServer sets up a new server target. The address should be the
@@ -51,6 +56,10 @@ func NewServer(addr string) Remote {
 		}
 	}
 	return remote
+}
+
+func (srv *server) Hosts() []string {
+	return []string{net.JoinHostPort(srv.Address, fmt.Sprintf("%d", srv.Port))}
 }
 
 func newServer(addr string) *server {
