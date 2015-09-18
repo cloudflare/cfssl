@@ -1,6 +1,6 @@
 // +build !nopkcs11
 
-// Package pkcs11key implements crypto.Signer for PKCS #11 private
+// Package Key implements crypto.Signer for PKCS #11 private
 // keys. Currently, only RSA keys are supported.
 // See ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-11/v2-30/pkcs-11v2-30b-d6.pdf for
 // details of the Cryptoki PKCS#11 API.
@@ -30,24 +30,23 @@ var hashPrefixes = map[crypto.Hash][]byte{
 	crypto.RIPEMD160: {0x30, 0x20, 0x30, 0x08, 0x06, 0x06, 0x28, 0xcf, 0x06, 0x03, 0x00, 0x31, 0x04, 0x14},
 }
 
-// PKCS11Key is an implementation of the crypto.Signer interface
-// using a key stored in a PKCS#11 hardware token.  This enables
-// the use of PKCS#11 tokens with the Go x509 library's methods
-// for signing certificates.
+// Key is an implementation of the crypto.Signer interface using a key stored
+// in a PKCS#11 hardware token.  This enables the use of PKCS#11 tokens with
+// the Go x509 library's methods for signing certificates.
 //
-// Each PKCS11Key represents one session. Its session handle is
-// protected internally by a mutex, so at most one Sign operation can be active
-// at a time. For best performance you may want to instantiate multiple PKCS11Keys.
+// Each Key represents one session. Its session handle is protected internally
+// by a mutex, so at most one Sign operation can be active at a time. For best
+// performance you may want to instantiate multiple Keys using pkcs11key.Pool.
 // Each one will have its own session and can be used concurrently. Note that
 // some smartcards like the Yubikey Neo do not support multiple simultaneous
-// sessions and will error out on creation of the second PKCS11Key object.
+// sessions and will error out on creation of the second Key object.
 //
-// Note: For parallel usage, it is *highly* recommended that you create all your
-// PKCS11Key objects serially, on your main thread, checking for errors each
-// time, and then farm them out for use by different goroutines. If you fail to
-// do this, your application may attempt to login repeatedly with an incorrect
-// PIN, locking the PKCS#11 token.
-type PKCS11Key struct {
+// Note: If you instantiate multiple Keys, it is *highly* recommended that you
+// create all your Key objects serially, on your main thread, checking for
+// errors each time, and then farm them out for use by different goroutines. If
+// you fail to do this, your application may attempt to login repeatedly with
+// an incorrect PIN, locking the PKCS#11 token.
+type Key struct {
 	// The PKCS#11 library to use
 	module *pkcs11.Ctx
 
@@ -67,7 +66,7 @@ type PKCS11Key struct {
 	// The an ObjectHandle pointing to the private key on the HSM.
 	privateKeyHandle pkcs11.ObjectHandle
 
-	// A handle to the session used by this PKCS11Key.
+	// A handle to the session used by this Key.
 	session *pkcs11.SessionHandle
 	sessionMu sync.Mutex
 }
@@ -81,7 +80,7 @@ var modulesMu sync.Mutex;
 // unload a module ("finalize" in PKCS#11 parlance). In general, modules will
 // be unloaded at the end of the process.  The only place where you are likely
 // to need to explicitly unload a module is if you fork your process after a
-// PKCS11Key has already been created, and the child process also needs to use
+// Key has already been created, and the child process also needs to use
 // that module.
 func initialize(modulePath string) (*pkcs11.Ctx, error) {
 	modulesMu.Lock()
@@ -108,7 +107,7 @@ func initialize(modulePath string) (*pkcs11.Ctx, error) {
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
-func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *PKCS11Key, err error) {
+func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err error) {
 	module, err := initialize(modulePath)
 	if err != nil {
 		return
@@ -119,7 +118,7 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *PKCS11Key, er
 	}
 
 	// Initialize a partial key
-	ps = &PKCS11Key{
+	ps = &Key{
 		module:          module,
 		modulePath:      modulePath,
 		tokenLabel:      tokenLabel,
@@ -213,9 +212,9 @@ func getPublicKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, privateKeyHa
 }
 
 
-// Destroy tears down a PKCS11Key by closing the session. It should be
+// Destroy tears down a Key by closing the session. It should be
 // called before the key gets GC'ed, to avoid leaving dangling sessions.
-func (ps *PKCS11Key) Destroy() {
+func (ps *Key) Destroy() {
 	if ps.session != nil {
 		// NOTE: We do not want to call module.Logout here. module.Logout applies
 		// application-wide. So if there are multiple sessions active, the other ones
@@ -230,7 +229,7 @@ func (ps *PKCS11Key) Destroy() {
 	}
 }
 
-func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, error) {
+func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 	var noSession pkcs11.SessionHandle
 	slots, err := ps.module.GetSlotList(true)
 	if err != nil {
@@ -268,12 +267,12 @@ func (ps *PKCS11Key) openSession() (pkcs11.SessionHandle, error) {
 }
 
 // Public returns the public key for the PKCS #11 key.
-func (ps *PKCS11Key) Public() crypto.PublicKey {
+func (ps *Key) Public() crypto.PublicKey {
 	return &ps.publicKey
 }
 
 // Sign performs a signature using the PKCS #11 key.
-func (ps *PKCS11Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signature []byte, err error) {
+func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signature []byte, err error) {
 	ps.sessionMu.Lock()
 	defer ps.sessionMu.Unlock()
 	if ps.session == nil {
