@@ -41,11 +41,11 @@ var hashPrefixes = map[crypto.Hash][]byte{
 // some smartcards like the Yubikey Neo do not support multiple simultaneous
 // sessions and will error out on creation of the second Key object.
 //
-// Note: If you instantiate multiple Keys, it is *highly* recommended that you
-// create all your Key objects serially, on your main thread, checking for
-// errors each time, and then farm them out for use by different goroutines. If
-// you fail to do this, your application may attempt to login repeatedly with
-// an incorrect PIN, locking the PKCS#11 token.
+// Note: If you instantiate multiple Keys without using Pool, it is *highly*
+// recommended that you create all your Key objects serially, on your main
+// thread, checking for errors each time, and then farm them out for use by
+// different goroutines. If you fail to do this, your application may attempt
+// to login repeatedly with an incorrect PIN, locking the PKCS#11 token.
 type Key struct {
 	// The PKCS#11 library to use
 	module *pkcs11.Ctx
