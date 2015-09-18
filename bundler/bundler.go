@@ -554,10 +554,6 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		}
 	}
 
-	if cert.CheckSignatureFrom(cert) == nil {
-		return nil, errors.New(errors.CertificateError, errors.SelfSigned)
-	}
-
 	bundle := new(Bundle)
 	bundle.Cert = cert
 	bundle.Key = key
@@ -569,6 +565,11 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	if flavor == Force {
 		bundle.Chain = certs
 	} else {
+		// disallow self-signed cert
+		if cert.CheckSignatureFrom(cert) == nil {
+			return nil, errors.New(errors.CertificateError, errors.SelfSigned)
+		}
+
 		// verify and store input intermediates to the intermediate pool.
 		// Ignore the returned error here, will treat it in the second call.
 		b.fetchIntermediates(certs)
