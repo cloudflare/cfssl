@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -65,7 +66,7 @@ func (kr *BasicKeyRequest) Size() int {
 // Generate generates a key as specified in the request. Currently,
 // only ECDSA and RSA are supported.
 func (kr *BasicKeyRequest) Generate() (crypto.PrivateKey, error) {
-	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo, kr.Size)
+	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo(), kr.Size())
 	switch kr.Algo() {
 	case "rsa":
 		if kr.Size() < 2048 {
@@ -134,10 +135,18 @@ type CAConfig struct {
 // certificate request functionality.
 type CertificateRequest struct {
 	CN         string
-	Names      []Name      `json:"names"`
-	Hosts      []string    `json:"hosts"`
-	KeyRequest KeyRequest  `json:"key,omitempty"`
-	CA         *CAConfig   `json:"ca,omitempty"`
+	Names      []Name     `json:"names"`
+	Hosts      []string   `json:"hosts"`
+	KeyRequest KeyRequest `json:"key,omitempty"`
+	CA         *CAConfig  `json:"ca,omitempty"`
+}
+
+// New returns a new, empty CertificateRequest with a
+// BasicKeyRequest.
+func New() *CertificateRequest {
+	return &CertificateRequest{
+		KeyRequest: &BasicKeyRequest{},
+	}
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -264,4 +273,54 @@ func IsNameEmpty(n Name) bool {
 		return true
 	}
 	return false
+}
+
+// Regenerate uses the provided CSR as a template for signing a new
+// CSR using priv.
+func Regenerate(priv crypto.Signer, csr []byte) ([]byte, error) {
+	req, extra, err := helpers.ParseCSR(csr)
+	if err != nil {
+		return nil, err
+	} else if len(extra) > 0 {
+		return nil, errors.New("csr: trailing data in certificate request")
+	}
+
+	return x509.CreateCertificateRequest(rand.Reader, req, priv)
+}
+
+// Generate creates a new CSR from a CertificateRequest structure and
+// an existing key. The KeyRequest field is ignored.
+func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
+	sigAlgo := helpers.SignerAlgo(priv, crypto.SHA256)
+	if sigAlgo == x509.UnknownSignatureAlgorithm {
+		return nil, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
+	}
+
+	var tpl = x509.CertificateRequest{
+		Subject:            req.Name(),
+		SignatureAlgorithm: sigAlgo,
+	}
+
+	for i := range req.Hosts {
+		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
+			tpl.IPAddresses = append(tpl.IPAddresses, ip)
+		} else {
+			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
+		}
+	}
+
+	csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
+	if err != nil {
+		log.Errorf("failed to generate a CSR: %v", err)
+		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
+		return
+	}
+	block := pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: csr,
+	}
+
+	log.Info("encoded CSR")
+	csr = pem.EncodeToMemory(&block)
+	return
 }

@@ -1,6 +1,7 @@
 package csr
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 // TestBasicKeyRequest ensures that key generation returns the same type of
@@ -238,8 +240,8 @@ func TestRSACertRequest(t *testing.T) {
 				OU: "Systems Engineering",
 			},
 		},
-		CN:    "cloudflare.com",
-		Hosts: []string{"cloudflare.com", "www.cloudflare.com"},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
 		KeyRequest: &BasicKeyRequest{"rsa", 2048},
 	}
 	_, _, err := ParseRequest(req)
@@ -260,8 +262,8 @@ func TestBadCertRequest(t *testing.T) {
 				OU: "Systems Engineering",
 			},
 		},
-		CN:    "cloudflare.com",
-		Hosts: []string{"cloudflare.com", "www.cloudflare.com"},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
 		KeyRequest: &BasicKeyRequest{"yolo-crypto", 2048},
 	}
 	_, _, err := ParseRequest(req)
@@ -295,8 +297,8 @@ func TestGenerator(t *testing.T) {
 				OU: "Systems Engineering",
 			},
 		},
-		CN:    "cloudflare.com",
-		Hosts: []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
 		KeyRequest: &BasicKeyRequest{"rsa", 2048},
 	}
 
@@ -344,7 +346,7 @@ func TestBadGenerator(t *testing.T) {
 			},
 		},
 		// Missing CN
-		Hosts: []string{"cloudflare.com", "www.cloudflare.com"},
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
 		KeyRequest: &BasicKeyRequest{"rsa", 2048},
 	}
 
@@ -365,8 +367,8 @@ func TestWeakCSR(t *testing.T) {
 				OU: "Systems Engineering",
 			},
 		},
-		CN:    "cloudflare.com",
-		Hosts: []string{"cloudflare.com", "www.cloudflare.com"},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
 		KeyRequest: &BasicKeyRequest{"rsa", 1024},
 	}
 	g := &Generator{testValidator}
@@ -412,5 +414,78 @@ func TestIsNameEmpty(t *testing.T) {
 		if IsNameEmpty(c.name) != c.ok {
 			t.Fatalf("%d: expected IsNameEmpty to return %v, but have %v", i, c.ok, !c.ok)
 		}
+	}
+}
+
+func TestGenerate(t *testing.T) {
+	var req = &CertificateRequest{
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
+	}
+
+	key, err := req.KeyRequest.Generate()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	priv, ok := key.(crypto.Signer)
+	if !ok {
+		t.Fatal("Private key is not a signer.")
+	}
+
+	csrPEM, err := Generate(priv, req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, _, err = helpers.ParseCSR(csrPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}
+
+func TestReGenerate(t *testing.T) {
+	var req = &CertificateRequest{
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
+	}
+
+	csr, key, err := ParseRequest(req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	priv, err := helpers.ParsePrivateKeyPEM(key)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	csr, err = Generate(priv, req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if _, _, err = helpers.ParseCSR(csr); err != nil {
+		t.Fatalf("%v", err)
 	}
 }
