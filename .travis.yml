@@ -2,6 +2,15 @@ sudo: false
 language: go
 go:
 - 1.4
+before_install:
+  # CFSSL consists of multiple Go packages, which refer to each other by
+  # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs11key.
+  # That means, by default, if someone forks the repo and makes changes across
+  # multiple packages within CFSSL, Travis won't pass for the branch on their
+  # own repo. To fix that, we add a symlink.
+  - mkdir -p $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare
+  - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && ln -s $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
+
 before_script:
   - go get golang.org/x/tools/cmd/vet
   - go get golang.org/x/tools/cmd/goimports
