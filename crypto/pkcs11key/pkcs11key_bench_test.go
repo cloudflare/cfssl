@@ -56,6 +56,12 @@ func BenchmarkPKCS11(b *testing.B) {
 	}
 	defer pool.Destroy()
 
+	instance := pool.get()
+	if instance.alwaysAuthenticate {
+		b.Log("WARNING: Token has CKA_ALWAYS_AUTHENTICATE attribute, which makes signing slow.")
+	}
+	pool.put(instance)
+
 	// Reset the benchmarking timer so we don't include setup time.
 	b.ResetTimer()
 
