@@ -302,6 +302,25 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 		return nil, errors.New("Session was nil")
 	}
 
+	// When the alwaysAuthenticate bit is true (e.g. on a Yubikey NEO in PIV mode),
+	// each Sign has to include a Logout/Login, or the next Sign request will get
+	// CKR_USER_NOT_LOGGED_IN. This is very slow, but on the NEO it's not possible
+	// to clear the CKA_ALWAYS_AUTHENTICATE bit, so this is the only available
+	// workaround.
+	// Also, since logged in / logged out is application state rather than session
+	// state, we take a global lock while we do the logout and login, and during
+	// the signing.
+	if ps.alwaysAuthenticate {
+		modulesMu.Lock()
+		defer modulesMu.Unlock()
+		if err := ps.module.Logout(*ps.session); err != nil {
+			return nil, fmt.Errorf("logout: %s", err)
+		}
+		if err = ps.module.Login(*ps.session, pkcs11.CKU_USER, ps.pin); err != nil {
+			return nil, fmt.Errorf("login: %s", err)
+		}
+	}
+
 	// Verify that the length of the hash is as expected
 	hash := opts.HashFunc()
 	hashLen := hash.Size()
@@ -329,20 +348,6 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 	signature, err = ps.module.Sign(*ps.session, signatureInput)
 	if err != nil {
 		return nil, fmt.Errorf("sign: %s", err)
-	}
-
-	// When the alwaysAuthenticate bit is true (e.g. on a Yubikey NEO in PIV mode),
-	// each Sign has to include a Logout/Login, or the next Sign request will get
-	// CKR_USER_NOT_LOGGED_IN. This is very slow, but on the NEO it's not possible
-	// to clear the CKA_ALWAYS_AUTHENTICATE bit, so this is the only available
-	// workaround.
-	if ps.alwaysAuthenticate {
-		if err := ps.module.Logout(*ps.session); err != nil {
-			return nil, fmt.Errorf("logout: %s", err)
-		}
-		if err = ps.module.Login(*ps.session, pkcs11.CKU_USER, ps.pin); err != nil {
-			return nil, fmt.Errorf("login: %s", err)
-		}
 	}
 	return
 }
