@@ -69,6 +69,9 @@ type Key struct {
 	// A handle to the session used by this Key.
 	session   *pkcs11.SessionHandle
 	sessionMu sync.Mutex
+
+	// True if the private key has the CKA_ALWAYS_AUTHENTICATE attribute set.
+	alwaysAuthenticate bool
 }
 
 var modules = make(map[string]*pkcs11.Ctx)
@@ -135,7 +138,7 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err erro
 	ps.session = &session
 
 	// Fetch the private key by its label
-	privateKeyHandle, err := getPrivateKey(module, session, privateKeyLabel)
+	privateKeyHandle, err := ps.getPrivateKey(module, session, privateKeyLabel)
 	if err != nil {
 		ps.module.CloseSession(session)
 		return
@@ -152,7 +155,7 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err erro
 	return
 }
 
-func getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, label string) (pkcs11.ObjectHandle, error) {
+func (ps *Key) getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, label string) (pkcs11.ObjectHandle, error) {
 	var noHandle pkcs11.ObjectHandle
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PRIVATE_KEY),
@@ -185,7 +188,7 @@ func getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, label strin
 	}
 	for _, attribute := range attributes {
 		if len(attribute.Value) > 0 && attribute.Value[0] == 1 {
-			return noHandle, fmt.Errorf("private key has CKA_ALWAYS_AUTHENTICATE attribute")
+			ps.alwaysAuthenticate = true
 		}
 	}
 
@@ -240,7 +243,6 @@ func (ps *Key) Destroy() error {
 		// closed.
 		ps.sessionMu.Lock()
 		defer ps.sessionMu.Unlock()
-		fmt.Println("Destroying key")
 		err := ps.module.CloseSession(*ps.session)
 		ps.session = nil
 		if err != nil {
@@ -321,9 +323,26 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 	// Perform the sign operation
 	err = ps.module.SignInit(*ps.session, mechanism, ps.privateKeyHandle)
 	if err != nil {
-		return nil, fmt.Errorf("SignInit problem: %s", err)
+		return nil, fmt.Errorf("sign init: %s", err)
 	}
 
 	signature, err = ps.module.Sign(*ps.session, signatureInput)
+	if err != nil {
+		return nil, fmt.Errorf("sign: %s", err)
+	}
+
+	// When the alwaysAuthenticate bit is true (e.g. on a Yubikey NEO in PIV mode),
+	// each Sign has to include a Logout/Login, or the next Sign request will get
+	// CKR_USER_NOT_LOGGED_IN. This is very slow, but on the NEO it's not possible
+	// to clear the CKA_ALWAYS_AUTHENTICATE bit, so this is the only available
+	// workaround.
+	if ps.alwaysAuthenticate {
+		if err := ps.module.Logout(*ps.session); err != nil {
+			return nil, fmt.Errorf("logout: %s", err)
+		}
+		if err = ps.module.Login(*ps.session, pkcs11.CKU_USER, ps.pin); err != nil {
+			return nil, fmt.Errorf("login: %s", err)
+		}
+	}
 	return
 }
