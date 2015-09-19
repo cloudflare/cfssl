@@ -67,12 +67,12 @@ type Key struct {
 	privateKeyHandle pkcs11.ObjectHandle
 
 	// A handle to the session used by this Key.
-	session *pkcs11.SessionHandle
+	session   *pkcs11.SessionHandle
 	sessionMu sync.Mutex
 }
 
-var modules = make(map[string]*pkcs11.Ctx);
-var modulesMu sync.Mutex;
+var modules = make(map[string]*pkcs11.Ctx)
+var modulesMu sync.Mutex
 
 // initialize loads the given PKCS#11 module (shared library) if it is not
 // already loaded. It's an error to load a PKCS#11 module multiple times, so we
@@ -119,10 +119,10 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err erro
 
 	// Initialize a partial key
 	ps = &Key{
-		module:          module,
-		modulePath:      modulePath,
-		tokenLabel:      tokenLabel,
-		pin:             pin,
+		module:     module,
+		modulePath: modulePath,
+		tokenLabel: tokenLabel,
+		pin:        pin,
 	}
 
 	// Open a session
@@ -172,7 +172,24 @@ func getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, label strin
 	if len(objs) == 0 {
 		return noHandle, fmt.Errorf("private key not found")
 	}
-	return objs[0], nil
+	privateKeyHandle := objs[0]
+
+	// Check whether the key has the CKA_ALWAYS_AUTHENTICATE attribute.
+	// If so, fail: we don't want to have to re-authenticate for each sign
+	// operation.
+	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_ALWAYS_AUTHENTICATE, false),
+	})
+	if err != nil {
+		return noHandle, err
+	}
+	for _, attribute := range attributes {
+		if len(attribute.Value) > 0 && attribute.Value[0] == 1 {
+			return noHandle, fmt.Errorf("private key has CKA_ALWAYS_AUTHENTICATE attribute")
+		}
+	}
+
+	return privateKeyHandle, nil
 }
 
 // Get the public key matching a private key
@@ -211,10 +228,9 @@ func getPublicKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, privateKeyHa
 	}, nil
 }
 
-
 // Destroy tears down a Key by closing the session. It should be
 // called before the key gets GC'ed, to avoid leaving dangling sessions.
-func (ps *Key) Destroy() {
+func (ps *Key) Destroy() error {
 	if ps.session != nil {
 		// NOTE: We do not want to call module.Logout here. module.Logout applies
 		// application-wide. So if there are multiple sessions active, the other ones
@@ -223,10 +239,15 @@ func (ps *Key) Destroy() {
 		// module.CloseSession will log out once the last session in the application is
 		// closed.
 		ps.sessionMu.Lock()
-		ps.module.CloseSession(*ps.session)
+		defer ps.sessionMu.Unlock()
+		fmt.Println("Destroying key")
+		err := ps.module.CloseSession(*ps.session)
 		ps.session = nil
-		ps.sessionMu.Unlock()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (ps *Key) openSession() (pkcs11.SessionHandle, error) {

@@ -1,10 +1,10 @@
 package pkcs11key
 
 import (
-	"sync"
-	"io"
 	"crypto"
 	"fmt"
+	"io"
+	"sync"
 )
 
 // Pool is a pool of Keys suitable for high performance parallel work. Key
@@ -19,12 +19,12 @@ import (
 type Pool struct {
 	// This slice acts more or less like a concurrent stack. Keys are popped off
 	// the top for use, and then pushed back on when they are no longer in use.
-	signers    []*Key
+	signers []*Key
 	// The initial length of signers, before any are popped off for use.
 	totalCount int
 	// This variable signals the condition that there are Keys available to be
 	// used.
-	cond    *sync.Cond
+	cond *sync.Cond
 }
 
 func (p *Pool) get() *Key {
@@ -81,16 +81,20 @@ func NewPool(n int, modulePath, tokenLabel, pin, privateKeyLabel string) (*Pool,
 
 	var mutex sync.Mutex
 	return &Pool{
-		signers: signers,
+		signers:    signers,
 		totalCount: len(signers),
-		cond: sync.NewCond(&mutex),
+		cond:       sync.NewCond(&mutex),
 	}, nil
 }
 
 // Destroy calls destroy for each of the member keys, shutting down their
 // sessions.
-func (p *Pool) Destroy() {
+func (p *Pool) Destroy() error {
 	for i := 0; i < p.totalCount; i++ {
-		p.get().Destroy()
+		err := p.get().Destroy()
+		if err != nil {
+			return fmt.Errorf("destroy error: %s", err)
+		}
 	}
+	return nil
 }
