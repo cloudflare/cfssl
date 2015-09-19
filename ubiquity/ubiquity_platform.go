@@ -132,6 +132,11 @@ var Platforms []Platform
 // LoadPlatforms reads the file content as a json object array and convert it
 // to Platforms.
 func LoadPlatforms(filename string) error {
+	// if filename is empty, skip the metadata loading
+	if filename == "" {
+		return nil
+	}
+
 	relativePath := filepath.Dir(filename)
 	// Attempt to load root certificate metadata
 	log.Debug("Loading platform metadata: ", filename)
