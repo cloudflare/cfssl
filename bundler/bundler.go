@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	goerr "errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -28,7 +29,8 @@ import (
 
 // intermediateStash contains the path to the directory where
 // downloaded intermediates should be saved.
-var IntermediateStash = "intermediates"
+// When unspecified, downloaded intermediates are not saved.
+var IntermediateStash string
 
 // BundleFlavor is named optimization strategy on certificate chain selection when bundling.
 type BundleFlavor string
@@ -67,30 +69,43 @@ type Bundler struct {
 // files should contain a list of valid root certificates and a list
 // of valid intermediate certificates, respectively.
 func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
+	var caBundle, intBundle []byte
+	var err error
+
+	if caBundleFile == "" {
+		return nil, errors.Wrap(errors.RootError, errors.ReadFailed, goerr.New("empty CA bundle file"))
+	}
+
 	log.Debug("Loading CA bundle: ", caBundleFile)
-	caBundle, err := ioutil.ReadFile(caBundleFile)
+	caBundle, err = ioutil.ReadFile(caBundleFile)
 	if err != nil {
 		log.Errorf("root bundle failed to load: %v", err)
 		return nil, errors.Wrap(errors.RootError, errors.ReadFailed, err)
 	}
 
-	log.Debug("Loading Intermediate bundle: ", intBundleFile)
-	intBundle, err := ioutil.ReadFile(intBundleFile)
-	if err != nil {
-		log.Errorf("intermediate bundle failed to load: %v", err)
-		return nil, errors.Wrap(errors.IntermediatesError, errors.ReadFailed, err)
+	// intBundleFile is optional
+	if intBundleFile != "" {
+		log.Debug("Loading Intermediate bundle: ", intBundleFile)
+		intBundle, err = ioutil.ReadFile(intBundleFile)
+		if err != nil {
+			log.Errorf("intermediate bundle failed to load: %v", err)
+			return nil, errors.Wrap(errors.IntermediatesError, errors.ReadFailed, err)
+		}
 	}
 
-	if _, err := os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
-		log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
-		err = os.MkdirAll(IntermediateStash, 0755)
-		if err != nil {
-			log.Errorf("failed to create intermediate stash directory %s: %v",
-				IntermediateStash, err)
-			return nil, err
+	if IntermediateStash != "" {
+		if _, err = os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
+			log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
+			err = os.MkdirAll(IntermediateStash, 0755)
+			if err != nil {
+				log.Errorf("failed to create intermediate stash directory %s: %v",
+					IntermediateStash, err)
+				return nil, err
+			}
+			log.Infof("intermediate stash directory %s created", IntermediateStash)
 		}
-		log.Infof("intermediate stash directory %s created", IntermediateStash)
 	}
+
 	return NewBundlerFromPEM(caBundle, intBundle)
 
 }
@@ -388,17 +403,19 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 		b.IntermediatePool.AddCert(cert.Cert)
 		b.KnownIssuers[string(cert.Cert.Signature)] = true
 
-		fileName := filepath.Join(IntermediateStash, cert.Name)
+		if IntermediateStash != "" {
+			fileName := filepath.Join(IntermediateStash, cert.Name)
 
-		var block = pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
+			var block = pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
 
-		log.Debugf("write intermediate to stash directory: %s", fileName)
-		// If the write fails, verification should not fail.
-		err = ioutil.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
-		if err != nil {
-			log.Errorf("failed to write new intermediate: %v", err)
-		} else {
-			log.Info("stashed new intermediate ", cert.Name)
+			log.Debugf("write intermediate to stash directory: %s", fileName)
+			// If the write fails, verification should not fail.
+			err = ioutil.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
+			if err != nil {
+				log.Errorf("failed to write new intermediate: %v", err)
+			} else {
+				log.Info("stashed new intermediate ", cert.Name)
+			}
 		}
 	}
 	return true
@@ -427,17 +444,18 @@ func constructCertFileName(cert *x509.Certificate) string {
 // issuer is not trusted, fetching the certicate here will not change
 // that.
 func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
-	log.Debugf("searching intermediates")
-	if _, err := os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
-		log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
-		err = os.MkdirAll(IntermediateStash, 0755)
-		if err != nil {
-			log.Errorf("failed to create intermediate stash directory %s: %v", IntermediateStash, err)
-			return err
+	if IntermediateStash != "" {
+		log.Debugf("searching intermediates")
+		if _, err := os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
+			log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
+			err = os.MkdirAll(IntermediateStash, 0755)
+			if err != nil {
+				log.Errorf("failed to create intermediate stash directory %s: %v", IntermediateStash, err)
+				return err
+			}
+			log.Infof("intermediate stash directory %s created", IntermediateStash)
 		}
-		log.Infof("intermediate stash directory %s created", IntermediateStash)
 	}
-
 	// stores URLs and certificate signatures that have been seen
 	seen := map[string]bool{}
 	var foundChains int
