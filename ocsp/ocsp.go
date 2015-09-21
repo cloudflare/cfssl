@@ -129,12 +129,20 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 		return nil, cferr.New(cferr.OCSPError, cferr.InvalidStatus)
 	}
 
+	// If the OCSP responder is the same as the issuer, there is no need to
+	// include any certificate in the OCSP response, which decreases the byte size
+	// of OCSP responses dramatically.
+	certificate := s.responder
+	if s.issuer == s.responder || bytes.Equal(s.issuer.Raw, s.responder.Raw) {
+		certificate = nil
+	}
+
 	template := ocsp.Response{
 		Status:       status,
 		SerialNumber: req.Certificate.SerialNumber,
 		ThisUpdate:   thisUpdate,
 		NextUpdate:   nextUpdate,
-		Certificate:  s.responder,
+		Certificate:  certificate,
 	}
 
 	if status == ocsp.Revoked {
