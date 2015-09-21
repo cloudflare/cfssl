@@ -175,6 +175,24 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
+// EncodeCertificatesPEM encodes a number of x509 certficates to PEM
+func EncodeCertificatesPEM(certs []*x509.Certificate) []byte {
+	var buffer bytes.Buffer
+	for _, cert := range certs {
+		pem.Encode(&buffer, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})
+	}
+
+	return buffer.Bytes()
+}
+
+// EncodeCertificatePEM encodes a single x509 certficates to PEM
+func EncodeCertificatePEM(cert *x509.Certificate) []byte {
+	return EncodeCertificatesPEM([]*x509.Certificate{cert})
+}
+
 // ParseCertificatesPEM parses a sequence of PEM-encoded certificate and returns them,
 // can handle PEM encoded PKCS #7 structures.
 func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
