@@ -72,18 +72,15 @@ func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
 	var caBundle, intBundle []byte
 	var err error
 
-	if caBundleFile == "" {
-		return nil, errors.Wrap(errors.RootError, errors.ReadFailed, goerr.New("empty CA bundle file"))
+	if caBundleFile != "" {
+		log.Debug("Loading CA bundle: ", caBundleFile)
+		caBundle, err = ioutil.ReadFile(caBundleFile)
+		if err != nil {
+			log.Errorf("root bundle failed to load: %v", err)
+			return nil, errors.Wrap(errors.RootError, errors.ReadFailed, err)
+		}
 	}
 
-	log.Debug("Loading CA bundle: ", caBundleFile)
-	caBundle, err = ioutil.ReadFile(caBundleFile)
-	if err != nil {
-		log.Errorf("root bundle failed to load: %v", err)
-		return nil, errors.Wrap(errors.RootError, errors.ReadFailed, err)
-	}
-
-	// intBundleFile is optional
 	if intBundleFile != "" {
 		log.Debug("Loading Intermediate bundle: ", intBundleFile)
 		intBundle, err = ioutil.ReadFile(intBundleFile)
@@ -112,13 +109,8 @@ func NewBundler(caBundleFile, intBundleFile string) (*Bundler, error) {
 
 // NewBundlerFromPEM creates a new Bundler from PEM-encoded root certificates and
 // intermediate certificates.
+// If caBundlePEM is nil, the resulting Bundler can only do "Force" bundle.
 func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
-	b := &Bundler{
-		RootPool:         x509.NewCertPool(),
-		IntermediatePool: x509.NewCertPool(),
-		KnownIssuers:     map[string]bool{},
-	}
-
 	log.Debug("parsing root certificates from PEM")
 	roots, err := helpers.ParseCertificatesPEM(caBundlePEM)
 	if err != nil {
@@ -127,13 +119,26 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 	}
 
 	log.Debug("parse intermediate certificates from PEM")
-	var intermediates []*x509.Certificate
-	if intermediates, err = helpers.ParseCertificatesPEM(intBundlePEM); err != nil {
+	intermediates, err := helpers.ParseCertificatesPEM(intBundlePEM)
+	if err != nil {
 		log.Errorf("failed to parse intermediate bundle: %v", err)
 		return nil, errors.New(errors.IntermediatesError, errors.ParseFailed)
 	}
 
+	b := &Bundler{
+		KnownIssuers:     map[string]bool{},
+		IntermediatePool: x509.NewCertPool(),
+	}
+
 	log.Debug("building certificate pools")
+
+	// RootPool will be nil if caBundlePEM is nil, also
+	// that translates to caBundleFile is "".
+	// Systems root store will be used.
+	if caBundlePEM != nil {
+		b.RootPool = x509.NewCertPool()
+	}
+
 	for _, c := range roots {
 		b.RootPool.AddCert(c)
 		b.KnownIssuers[string(c.Signature)] = true
@@ -581,6 +586,13 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	bundle.buildHostnames()
 
 	if flavor == Force {
+		// force bundle checks the certificates
+		// forms a verification chain.
+		if !partialVerify(certs) {
+			return nil,
+				errors.Wrap(errors.CertificateError, errors.VerifyFailed,
+					goerr.New("Unable to verify the certificate chain"))
+		}
 		bundle.Chain = certs
 	} else {
 		// disallow self-signed cert

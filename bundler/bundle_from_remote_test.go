@@ -105,7 +105,7 @@ func TestBundleFromRemote(t *testing.T) {
 				test.errorCallback(t, err)
 			} else {
 				if err != nil {
-					t.Errorf("expected no error. but an error occurred: %s", err.Error())
+					t.Fatal("expected no error. but an error occurred", err.Error())
 				}
 				if test.bundleCallback != nil {
 					test.bundleCallback(t, bundle)
