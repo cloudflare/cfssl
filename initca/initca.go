@@ -116,7 +116,7 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 
 	var sigAlgo x509.SignatureAlgorithm
 	switch pub := priv.Public().(type) {
-	case *rsa.PrivateKey:
+	case *rsa.PublicKey:
 		bitLength := pub.N.BitLen()
 		switch {
 		case bitLength >= 4096:
@@ -128,7 +128,7 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 		default:
 			sigAlgo = x509.SHA1WithRSA
 		}
-	case *ecdsa.PrivateKey:
+	case *ecdsa.PublicKey:
 		switch pub.Curve {
 		case elliptic.P521():
 			sigAlgo = x509.ECDSAWithSHA512
