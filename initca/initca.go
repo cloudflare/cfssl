@@ -3,6 +3,7 @@
 package initca
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -107,10 +108,16 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 		return nil, nil, err
 	}
 
+	return NewFromSigner(req, priv)
+}
+
+// NewFromSigner creates a new root certificate from a crypto.Signer.
+func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+
 	var sigAlgo x509.SignatureAlgorithm
-	switch priv := priv.(type) {
+	switch pub := priv.Public().(type) {
 	case *rsa.PrivateKey:
-		bitLength := priv.PublicKey.N.BitLen()
+		bitLength := pub.N.BitLen()
 		switch {
 		case bitLength >= 4096:
 			sigAlgo = x509.SHA512WithRSA
@@ -122,7 +129,7 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 			sigAlgo = x509.SHA1WithRSA
 		}
 	case *ecdsa.PrivateKey:
-		switch priv.Curve {
+		switch pub.Curve {
 		case elliptic.P521():
 			sigAlgo = x509.ECDSAWithSHA512
 		case elliptic.P384():
