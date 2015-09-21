@@ -4,6 +4,7 @@ package universal
 import (
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
 	"github.com/cloudflare/cfssl/signer/pkcs11"
@@ -38,12 +39,12 @@ func fileBackedSigner(root *Root, policy *config.Signing) (signer.Signer, bool, 
 // options in the root.
 func pkcs11Signer(root *Root, policy *config.Signing) (signer.Signer, bool, error) {
 	module := root.Config["pkcs11-module"]
-	token := root.Config["pkcs11-token"]
-	label := root.Config["pkcs11-label"]
+	tokenLabel := root.Config["pkcs11-token-label"]
+	privateKeyLabel := root.Config["pkcs11-private-key-label"]
 	userPIN := root.Config["pkcs11-user-pin"]
 	certFile := root.Config["cert-file"]
 
-	if module == "" && token == "" && label == "" && userPIN == "" {
+	if module == "" && tokenLabel == "" && privateKeyLabel == "" && userPIN == "" {
 		return nil, false, nil
 	}
 
@@ -51,10 +52,10 @@ func pkcs11Signer(root *Root, policy *config.Signing) (signer.Signer, bool, erro
 		return nil, true, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
 	}
 
-	conf := pkcs11.Config{
+	conf := pkcs11key.Config{
 		Module: module,
-		Token:  token,
-		Label:  label,
+		TokenLabel:  tokenLabel,
+		PrivateKeyLabel:  privateKeyLabel,
 		PIN:    userPIN,
 	}
 

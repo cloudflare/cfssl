@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/errors"
-	"github.com/cloudflare/cfssl/signer/pkcs11"
+	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 )
 
 func setIfPresent(val url.Values, k string, target *string) {
@@ -27,13 +27,13 @@ var ErrInvalidURI = errors.New(errors.PrivateKeyError, errors.ParseFailed)
 // ParsePKCS11URI parses a PKCS #11 URI into a PKCS #11
 // configuration. Note that the module path will override the module
 // name if present.
-func ParsePKCS11URI(uri string) (*pkcs11.Config, error) {
+func ParsePKCS11URI(uri string) (*pkcs11key.Config, error) {
 	u, err := url.Parse(uri)
 	if err != nil || u.Scheme != "pkcs11" {
 		return nil, ErrInvalidURI
 	}
 
-	c := new(pkcs11.Config)
+	c := new(pkcs11key.Config)
 
 	pk11PAttr, err := url.ParseQuery(u.Opaque)
 	if err != nil {
@@ -44,11 +44,11 @@ func ParsePKCS11URI(uri string) (*pkcs11.Config, error) {
 	if err != nil {
 		return nil, ErrInvalidURI
 	}
-	setIfPresent(pk11PAttr, "token", &c.Token)
+	setIfPresent(pk11PAttr, "token", &c.TokenLabel)
+	setIfPresent(pk11PAttr, "object", &c.PrivateKeyLabel)
 	setIfPresent(pk11QAttr, "module-name", &c.Module)
 	setIfPresent(pk11QAttr, "module-path", &c.Module)
 	setIfPresent(pk11QAttr, "pin-value", &c.PIN)
-	setIfPresent(pk11PAttr, "slot-description", &c.Label)
 
 	var pinSourceURI string
 	setIfPresent(pk11QAttr, "pin-source", &pinSourceURI)

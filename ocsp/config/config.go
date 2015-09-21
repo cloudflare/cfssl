@@ -4,6 +4,7 @@ package config
 
 import (
 	"time"
+	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 )
 
 // Config contains configuration information required to set up an OCSP
@@ -14,15 +15,5 @@ type Config struct {
 	ResponderCertFile string
 	KeyFile string
 	Interval time.Duration
-	PKCS11 PKCS11Config
+	PKCS11 pkcs11key.Config
 }
-
-// PKCS11Config contains information specific to setting up a PKCS11 OCSP
-// signer.
-type PKCS11Config struct {
-	Module string
-	Token  string
-	PIN    string
-	Label  string
-}
-

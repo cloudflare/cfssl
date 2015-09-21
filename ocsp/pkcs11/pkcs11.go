@@ -31,8 +31,11 @@ func NewPKCS11Signer(cfg ocspConfig.Config) (ocsp.Signer, error) {
 	}
 
 	PKCS11 := cfg.PKCS11
-	priv, err := pkcs11key.New(PKCS11.Module, PKCS11.Token, PKCS11.PIN,
-		PKCS11.Label)
+	priv, err := pkcs11key.New(
+		PKCS11.Module,
+		PKCS11.TokenLabel,
+		PKCS11.PIN,
+		PKCS11.PrivateKeyLabel)
 	if err != nil {
 		return nil, errors.New(errors.PrivateKeyError, errors.ReadFailed)
 	}
