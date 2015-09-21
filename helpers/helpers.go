@@ -59,17 +59,18 @@ func KeyLength(key interface{}) int {
 }
 
 // ExpiryTime returns the time when the certificate chain is expired.
-func ExpiryTime(chain []*x509.Certificate) *time.Time {
+func ExpiryTime(chain []*x509.Certificate) (notAfter time.Time) {
 	if len(chain) == 0 {
-		return nil
+		return
 	}
-	notAfter := chain[0].NotAfter
+
+	notAfter = chain[0].NotAfter
 	for _, cert := range chain {
-		if cert.NotAfter.Before(notAfter) {
+		if notAfter.After(cert.NotAfter) {
 			notAfter = cert.NotAfter
 		}
 	}
-	return &notAfter
+	return
 }
 
 // MonthsValid returns the number of months for which a certificate is valid.
