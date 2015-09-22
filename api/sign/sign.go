@@ -4,6 +4,7 @@ package sign
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
@@ -85,7 +86,7 @@ type jsonSignRequest struct {
 	Subject   *signer.Subject `json:"subject,omitempty"`
 	Profile   string          `json:"profile"`
 	Label     string          `json:"label"`
-	SerialSeq string          `json:"serial_sequence,omitempty"`
+	Serial    *big.Int        `json:"serial,omitempty"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -104,7 +105,7 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 			Request:   js.Request,
 			Profile:   js.Profile,
 			Label:     js.Label,
-			SerialSeq: js.SerialSeq,
+			Serial:    js.Serial,
 		}
 	}
 
@@ -114,7 +115,7 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 		Request:   js.Request,
 		Profile:   js.Profile,
 		Label:     js.Label,
-		SerialSeq: js.SerialSeq,
+		Serial:    js.Serial,
 	}
 }
 

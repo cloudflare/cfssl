@@ -75,9 +75,10 @@ type SigningProfile struct {
 	Backdate      time.Duration
 	Provider      auth.Provider
 	RemoteServer  string
-	UseSerialSeq  bool
 	CSRWhitelist  *CSRWhitelist
 	NameWhitelist *regexp.Regexp
+
+	ClientProvidesSerialNumbers bool
 }
 
 // UnmarshalJSON unmarshals a JSON string into an OID.

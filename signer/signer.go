@@ -5,15 +5,12 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
-	"fmt"
-	"math"
 	"math/big"
 	"strings"
 	"time"
@@ -43,7 +40,7 @@ type SignRequest struct {
 	Subject   *Subject `json:"subject,omitempty"`
 	Profile   string   `json:"profile"`
 	Label     string   `json:"label"`
-	SerialSeq string   `json:"serial_sequence,omitempty"`
+	Serial    *big.Int `json:"serial,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -193,9 +190,9 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 
 // FillTemplate is a utility function that tries to load as much of
 // the certificate template as possible from the profiles and current
-// template. It fills in the key uses, expiration, revocation URLs,
-// serial number, and SKI.
-func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile, serialSeq string) error {
+// template. It fills in the key uses, expiration, revocation URLs
+// and SKI.
+func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile) error {
 	ski, err := ComputeSKI(template)
 
 	var (
@@ -248,21 +245,6 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		notAfter = notBefore.Add(expiry).UTC()
 	}
 
-	serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
-
-	if err != nil {
-		return cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
-	}
-
-	if serialSeq != "" {
-		randomPart := fmt.Sprintf("%016X", serialNumber) // 016 ensures we're left-0-padded
-		_, ok := serialNumber.SetString(serialSeq+randomPart, 16)
-		if !ok {
-			return cferr.Wrap(cferr.CertificateError, cferr.SerialSeqParseError, err)
-		}
-	}
-
-	template.SerialNumber = serialNumber
 	template.NotBefore = notBefore
 	template.NotAfter = notAfter
 	template.KeyUsage = ku

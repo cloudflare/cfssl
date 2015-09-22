@@ -88,8 +88,10 @@ const (
 	// BadRequest indicates that the certificate request is invalid.
 	BadRequest // Code 13XX
 
-	// SerialSeqParseError -- SerialSeq failed to parse as hex digits
-	SerialSeqParseError // Code 14XX
+	// MissingSerial indicates that the profile specified
+	// 'ClientProvidesSerialNumbers', but the SignRequest did not include a serial
+	// number.
+	MissingSerial // Code 14XX
 )
 
 const (
@@ -215,6 +217,8 @@ func New(category Category, reason Reason) *Error {
 			msg = "Unable to verify certificate"
 		case BadRequest:
 			msg = "Invalid certificate request"
+		case MissingSerial:
+			msg = "Missing serial number in request"
 		default:
 			panic(fmt.Sprintf("Unsupported CFSSL error reason %d under category CertificateError.",
 				reason))
