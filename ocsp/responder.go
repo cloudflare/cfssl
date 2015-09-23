@@ -2,10 +2,12 @@ package ocsp
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
+	"time"
 
 	"github.com/cloudflare/cfssl/log"
 	"golang.org/x/crypto/ocsp"
@@ -19,21 +21,26 @@ var (
 	unauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
 )
 
+type HTTPResponse struct {
+	DER        []byte
+	CacheUntil *time.Time
+}
+
 // Source represents the logical source of OCSP responses, i.e.,
 // the logic that actually chooses a response based on a request.  In
 // order to create an actual responder, wrap one of these in a Responder
 // object and pass it to http.Handle.
 type Source interface {
-	Response(*ocsp.Request) ([]byte, bool)
+	Response(*ocsp.Request) (HTTPResponse, bool)
 }
 
 // An InMemorySource is a map from serialNumber -> der(response)
-type InMemorySource map[string][]byte
+type InMemorySource map[string]HTTPResponse
 
 // Response looks up an OCSP response to provide for a given request.
 // InMemorySource looks up a response purely based on serial number,
 // without regard to what issuer the request is asking for.
-func (src InMemorySource) Response(request *ocsp.Request) (response []byte, present bool) {
+func (src InMemorySource) Response(request *ocsp.Request) (response HTTPResponse, present bool) {
 	response, present = src[request.SerialNumber.String()]
 	return
 }
@@ -68,7 +75,7 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 			continue
 		}
 
-		src[response.SerialNumber.String()] = der
+		src[response.SerialNumber.String()] = HTTPResponse{DER: der}
 	}
 
 	log.Infof("Read %d OCSP responses", len(src))
@@ -78,7 +85,10 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 // A Responder object provides the HTTP logic to expose a
 // Source of OCSP responses.
 type Responder struct {
-	Source Source
+	Source                 Source
+	NoCacheOnNilCacheUntil bool
+	NoCacheOnNotFound      bool
+	NoCacheOnBadRequest    bool
 }
 
 // A Responder can process both GET and POST requests.  The mapping
@@ -127,6 +137,9 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspRequest, err := ocsp.ParseRequest(requestBody)
 	if err != nil {
 		log.Errorf("Error decoding request body: %s", b64Body)
+		if rs.NoCacheOnBadRequest {
+			response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
+		}
 		response.Write(malformedRequestErrorResponse)
 		return
 	}
@@ -135,11 +148,21 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspResponse, found := rs.Source.Response(ocspRequest)
 	if !found {
 		log.Errorf("No response found for request: %s", b64Body)
+		if rs.NoCacheOnNotFound {
+			response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
+		}
 		response.Write(unauthorizedErrorResponse)
 		return
 	}
 
+	if ocspResponse.CacheUntil != nil {
+		cacheDur := ocspResponse.CacheUntil.Sub(time.Now())
+		response.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(cacheDur.Seconds())))
+	} else if ocspResponse.CacheUntil == nil && rs.NoCacheOnNilCacheUntil {
+		response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
+	}
+
 	// Write OCSP response to response
 	response.WriteHeader(http.StatusOK)
-	response.Write(ocspResponse)
+	response.Write(ocspResponse.DER)
 }
