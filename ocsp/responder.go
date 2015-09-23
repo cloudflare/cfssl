@@ -21,9 +21,11 @@ var (
 	unauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
 )
 
+// HTTPResponse is a wrapper for the response DER and a time.Duration pointer
+// indicating how cache-control headers should be set
 type HTTPResponse struct {
-	DER        []byte
-	CacheUntil *time.Time
+	DER      []byte
+	CacheFor *time.Duration
 }
 
 // Source represents the logical source of OCSP responses, i.e.,
@@ -85,10 +87,15 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 // A Responder object provides the HTTP logic to expose a
 // Source of OCSP responses.
 type Responder struct {
-	Source                 Source
-	NoCacheOnNilCacheUntil bool
-	NoCacheOnNotFound      bool
-	NoCacheOnBadRequest    bool
+	Source              Source
+	NoCacheOnNotFound   bool
+	NoCacheOnBadRequest bool
+}
+
+func (rs Responder) noCache(response http.ResponseWriter, flag bool) {
+	if flag {
+		response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
+	}
 }
 
 // A Responder can process both GET and POST requests.  The mapping
@@ -105,19 +112,28 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		base64Request := re.ReplaceAllString(request.RequestURI, "")
 		base64Request, err = url.QueryUnescape(base64Request)
 		if err != nil {
+			rs.noCache(response, rs.NoCacheOnBadRequest)
 			return
 		}
-		requestBody, err = base64.StdEncoding.DecodeString(base64Request)
+		requestBody, err = base64.URLEncoding.DecodeString(base64Request)
 		if err != nil {
+			rs.noCache(response, rs.NoCacheOnBadRequest)
 			return
 		}
 	case "POST":
+		if request.Body == nil {
+			rs.noCache(response, rs.NoCacheOnBadRequest)
+			response.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		requestBody, err = ioutil.ReadAll(request.Body)
 		if err != nil {
+			rs.noCache(response, rs.NoCacheOnBadRequest)
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	default:
+		rs.noCache(response, rs.NoCacheOnBadRequest)
 		response.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -137,9 +153,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspRequest, err := ocsp.ParseRequest(requestBody)
 	if err != nil {
 		log.Errorf("Error decoding request body: %s", b64Body)
-		if rs.NoCacheOnBadRequest {
-			response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
-		}
+		rs.noCache(response, rs.NoCacheOnBadRequest)
 		response.Write(malformedRequestErrorResponse)
 		return
 	}
@@ -148,18 +162,16 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspResponse, found := rs.Source.Response(ocspRequest)
 	if !found {
 		log.Errorf("No response found for request: %s", b64Body)
-		if rs.NoCacheOnNotFound {
-			response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
-		}
+		rs.noCache(response, rs.NoCacheOnNotFound)
 		response.Write(unauthorizedErrorResponse)
 		return
 	}
 
-	if ocspResponse.CacheUntil != nil {
-		cacheDur := ocspResponse.CacheUntil.Sub(time.Now())
-		response.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(cacheDur.Seconds())))
-	} else if ocspResponse.CacheUntil == nil && rs.NoCacheOnNilCacheUntil {
-		response.Header().Set("Cache-Control", "public, max-age=0, no-cache")
+	if ocspResponse.CacheFor != nil {
+		response.Header().Set(
+			"Cache-Control",
+			fmt.Sprintf("max-age=%d", int(ocspResponse.CacheFor.Seconds())),
+		)
 	}
 
 	// Write OCSP response to response
