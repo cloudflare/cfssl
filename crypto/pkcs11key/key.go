@@ -30,6 +30,24 @@ var hashPrefixes = map[crypto.Hash][]byte{
 	crypto.RIPEMD160: {0x30, 0x20, 0x30, 0x08, 0x06, 0x06, 0x28, 0xcf, 0x06, 0x03, 0x00, 0x31, 0x04, 0x14},
 }
 
+// Ctx defines the subset of pkcs11.Ctx's methods that we use, so we can inject
+// a different Ctx for testing.
+type Ctx interface {
+  CloseSession(sh pkcs11.SessionHandle) error
+	FindObjectsFinal(sh pkcs11.SessionHandle) error
+  FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error
+  FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error)
+  GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, a []*pkcs11.Attribute) ([]*pkcs11.Attribute, error)
+  GetSlotList(tokenPresent bool) ([]uint, error)
+  GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error)
+	Initialize() error
+  Login(sh pkcs11.SessionHandle, userType uint, pin string) error
+  Logout(sh pkcs11.SessionHandle) error
+  OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error)
+  SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs11.ObjectHandle) error
+  Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error)
+}
+
 // Key is an implementation of the crypto.Signer interface using a key stored
 // in a PKCS#11 hardware token.  This enables the use of PKCS#11 tokens with
 // the Go x509 library's methods for signing certificates.
@@ -48,10 +66,7 @@ var hashPrefixes = map[crypto.Hash][]byte{
 // to login repeatedly with an incorrect PIN, locking the PKCS#11 token.
 type Key struct {
 	// The PKCS#11 library to use
-	module *pkcs11.Ctx
-
-	// The path to the PKCS#11 library
-	modulePath string
+	module Ctx
 
 	// The label of the token to be used (mandatory).
 	// We will automatically search for this in the slot list.
@@ -74,7 +89,7 @@ type Key struct {
 	alwaysAuthenticate bool
 }
 
-var modules = make(map[string]*pkcs11.Ctx)
+var modules = make(map[string]Ctx)
 var modulesMu sync.Mutex
 
 // initialize loads the given PKCS#11 module (shared library) if it is not
@@ -85,7 +100,7 @@ var modulesMu sync.Mutex
 // to need to explicitly unload a module is if you fork your process after a
 // Key has already been created, and the child process also needs to use
 // that module.
-func initialize(modulePath string) (*pkcs11.Ctx, error) {
+func initialize(modulePath string) (Ctx, error) {
 	modulesMu.Lock()
 	defer modulesMu.Unlock()
 	module, ok := modules[modulePath]
@@ -93,20 +108,20 @@ func initialize(modulePath string) (*pkcs11.Ctx, error) {
 		return module, nil
 	}
 
-	module = pkcs11.New(modulePath)
+	newModule := Ctx(pkcs11.New(modulePath))
 
-	if module == nil {
+	if newModule == nil {
 		return nil, fmt.Errorf("unable to load PKCS#11 module")
 	}
 
-	err := module.Initialize()
+	err := newModule.Initialize()
 	if err != nil {
 		return nil, err
 	}
 
-	modules[modulePath] = module
+	modules[modulePath] = newModule
 
-	return module, nil
+	return newModule, nil
 }
 
 // New instantiates a new handle to a PKCS #11-backed key.
@@ -123,11 +138,17 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err erro
 	// Initialize a partial key
 	ps = &Key{
 		module:     module,
-		modulePath: modulePath,
 		tokenLabel: tokenLabel,
 		pin:        pin,
 	}
+	err = ps.setup(privateKeyLabel)
+	if err != nil {
+		return
+	}
+	return ps, nil
+}
 
+func (ps *Key) setup(privateKeyLabel string) (err error) {
 	// Open a session
 	ps.sessionMu.Lock()
 	defer ps.sessionMu.Unlock()
@@ -138,14 +159,14 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err erro
 	ps.session = &session
 
 	// Fetch the private key by its label
-	privateKeyHandle, err := ps.getPrivateKey(module, session, privateKeyLabel)
+	privateKeyHandle, err := ps.getPrivateKey(ps.module, session, privateKeyLabel)
 	if err != nil {
 		ps.module.CloseSession(session)
 		return
 	}
 	ps.privateKeyHandle = privateKeyHandle
 
-	publicKey, err := getPublicKey(module, session, privateKeyHandle)
+	publicKey, err := getPublicKey(ps.module, session, privateKeyHandle)
 	if err != nil {
 		ps.module.CloseSession(session)
 		return
@@ -155,7 +176,7 @@ func New(modulePath, tokenLabel, pin, privateKeyLabel string) (ps *Key, err erro
 	return
 }
 
-func (ps *Key) getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, label string) (pkcs11.ObjectHandle, error) {
+func (ps *Key) getPrivateKey(module Ctx, session pkcs11.SessionHandle, label string) (pkcs11.ObjectHandle, error) {
 	var noHandle pkcs11.ObjectHandle
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PRIVATE_KEY),
@@ -188,7 +209,7 @@ func (ps *Key) getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, l
 	// attribute. We don't consider that an error: the absence of the
 	// CKR_ATTRIBUTE_TYPE_INVALID property is just fine.
 	if err != nil && err == pkcs11.Error(pkcs11.CKR_ATTRIBUTE_TYPE_INVALID) {
-		return privateKeyHandle, err
+		return privateKeyHandle, nil
 	} else if err != nil {
 		return noHandle, err
 	}
@@ -203,7 +224,7 @@ func (ps *Key) getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, l
 
 // Get the public key matching a private key
 // TODO: Add support for non-RSA keys, switching on CKA_KEY_TYPE
-func getPublicKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (rsa.PublicKey, error) {
+func getPublicKey(module Ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (rsa.PublicKey, error) {
 	var noKey rsa.PublicKey
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
@@ -331,7 +352,7 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 	hash := opts.HashFunc()
 	hashLen := hash.Size()
 	if len(msg) != hashLen {
-		err = errors.New("input size does not match hash function output size")
+		err = fmt.Errorf("input size does not match hash function output size: %d vs %d", len(msg), hashLen)
 		return
 	}
 
