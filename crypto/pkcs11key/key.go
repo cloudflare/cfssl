@@ -183,7 +183,13 @@ func (ps *Key) getPrivateKey(module *pkcs11.Ctx, session pkcs11.SessionHandle, l
 	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_ALWAYS_AUTHENTICATE, false),
 	})
-	if err != nil {
+	// The PKCS#11 spec states that C_GetAttributeValue may return
+	// CKR_ATTRIBUTE_TYPE_INVALID if an object simply does not posses a given
+	// attribute. We don't consider that an error: the absence of the
+	// CKR_ATTRIBUTE_TYPE_INVALID property is just fine.
+	if err != nil && err == pkcs11.Error(pkcs11.CKR_ATTRIBUTE_TYPE_INVALID) {
+		return privateKeyHandle, err
+	} else if err != nil {
 		return noHandle, err
 	}
 	for _, attribute := range attributes {
