@@ -1,7 +1,7 @@
 sudo: false
 language: go
 go:
-- 1.4
+  - 1.4
 before_install:
   # CFSSL consists of multiple Go packages, which refer to each other by
   # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs11key.
@@ -21,12 +21,7 @@ before_script:
   - go get github.com/modocache/gover
   - go get -v github.com/GeertJohan/fgt
 script:
-  - go get github.com/cloudflare/cfssl/...
-  - go test github.com/cloudflare/cfssl/...
-  - go vet github.com/cloudflare/cfssl/...
-  - fgt golint github.com/cloudflare/cfssl/...
-  - go list -f '{{if len .TestGoFiles}}"go test -coverprofile={{.Dir}}/.coverprofile {{.ImportPath}}"{{end}}' ./... | xargs -i sh -c {}
-  - gover . coverprofile.txt
+  - ./test.sh
 notifications:
   email:
     recipients:
