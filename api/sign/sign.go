@@ -57,10 +57,7 @@ func NewHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) 
 	// So if all of the profiles require authentication, we return an error.
 	haveUnauth := (policy.Default.Provider == nil)
 	for _, profile := range policy.Profiles {
-		if haveUnauth {
-			break
-		}
-		haveUnauth = (profile.Provider == nil)
+		haveUnauth = haveUnauth || (profile.Provider == nil)
 	}
 
 	if !haveUnauth {
