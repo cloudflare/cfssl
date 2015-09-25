@@ -12,8 +12,8 @@ type mockCtx struct{}
 
 const privateKeyHandle = pkcs11.ObjectHandle(23)
 const sessionHandle = pkcs11.SessionHandle(17)
-var slots []uint = []uint{7, 8, 9}
-var tokenInfo pkcs11.TokenInfo = pkcs11.TokenInfo{
+var slots = []uint{7, 8, 9}
+var tokenInfo = pkcs11.TokenInfo{
 	Label: "token label",
 }
 
@@ -36,12 +36,16 @@ func (c mockCtx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectH
 func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	var output []*pkcs11.Attribute
 	for _, a := range template {
-		if a.Type == pkcs11.CKA_MODULUS {
-			output = append(output, &pkcs11.Attribute{pkcs11.CKA_MODULUS, []byte{byte(1)}})
-		} else if a.Type == pkcs11.CKA_PUBLIC_EXPONENT {
-			output = append(output, &pkcs11.Attribute{pkcs11.CKA_PUBLIC_EXPONENT, []byte{byte(1)}})
-		} else if a.Type == pkcs11.CKA_ALWAYS_AUTHENTICATE {
-			output = append(output, &pkcs11.Attribute{pkcs11.CKA_ALWAYS_AUTHENTICATE, []byte{byte(1)}})
+		// Return simple values for these attributes. Note that a value of `1` for
+		// both modulus an public exponent would be a very bad public key, but it's
+		// sufficient to satisfy the current code.
+		if a.Type == pkcs11.CKA_MODULUS ||
+			 a.Type == pkcs11.CKA_PUBLIC_EXPONENT ||
+			 a.Type == pkcs11.CKA_ALWAYS_AUTHENTICATE {
+			output = append(output, &pkcs11.Attribute{
+				Type: a.Type,
+				Value: []byte{byte(1)},
+			})
 		}
 	}
 	return output, nil
@@ -91,7 +95,7 @@ func TestSetup(t *testing.T) {
 	}
 }
 
-func setup(t *testing.T) Key {
+func setup(t *testing.T) *Key {
 	ps := Key{
 		module: mockCtx{},
 		tokenLabel: "token label",
@@ -101,7 +105,7 @@ func setup(t *testing.T) Key {
 	if err != nil {
 		t.Fatalf("Failed to set up Key: %s", err)
 	}
-	return ps
+	return &ps
 }
 
 func TestSign(t *testing.T) {
