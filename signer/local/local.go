@@ -4,12 +4,15 @@ package local
 import (
 	"bytes"
 	"crypto"
+	"fmt"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
+	"math"
+	"math/big"
 	"net"
 
 	"github.com/cloudflare/cfssl/config"
@@ -78,13 +81,12 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	return NewSigner(priv, parsedCa, signer.DefaultSigAlgo(priv), policy)
 }
 
-func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile, serialSeq string) (cert []byte, err error) {
-	err = signer.FillTemplate(template, s.policy.Default, profile, serialSeq)
+func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
+	err = signer.FillTemplate(template, s.policy.Default, profile)
 	if err != nil {
 		return
 	}
 
-	serialNumber := template.SerialNumber
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {
@@ -112,7 +114,7 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 	}
 
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	log.Infof("signed certificate with serial number %s", serialNumber)
+	log.Infof("signed certificate with serial number %d", template.SerialNumber)
 	return
 }
 
@@ -175,11 +177,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return
 	}
 
-	serialSeq := ""
-	if profile.UseSerialSeq {
-		serialSeq = req.SerialSeq
-	}
-
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
 		return nil, cferr.New(cferr.CSRError, cferr.DecodeFailed)
@@ -239,7 +236,21 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 	}
 
-	return s.sign(&safeTemplate, profile, serialSeq)
+	if profile.ClientProvidesSerialNumbers {
+		if req.Serial == nil {
+			fmt.Printf("xx %#v\n", profile)
+			return nil, cferr.New(cferr.CertificateError, cferr.MissingSerial)
+		}
+		safeTemplate.SerialNumber = req.Serial
+	} else {
+		serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
+		}
+		safeTemplate.SerialNumber = serialNumber
+	}
+
+	return s.sign(&safeTemplate, profile)
 }
 
 // Info return a populated info.Resp struct or an error.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -162,8 +163,12 @@ func TestRemoteSign(t *testing.T) {
 		if err != nil {
 			t.Fatal("CSR loading error:", err)
 		}
-		testSeq := "7007F"
-		certBytes, err := s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr), SerialSeq: testSeq})
+		testSerial := big.NewInt(0x7007F)
+		certBytes, err := s.Sign(signer.SignRequest{
+			Hosts: hosts,
+			Request: string(csr),
+			Serial: testSerial,
+		})
 		if test.errorCallback != nil {
 			test.errorCallback(t, err)
 		} else {
@@ -175,11 +180,8 @@ func TestRemoteSign(t *testing.T) {
 				t.Fatal("Fail to parse returned certificate:", err)
 			}
 			sn := fmt.Sprintf("%X", cert.SerialNumber)
-			if sn[0:len(testSeq)] != testSeq {
-				t.Fatal("Serial Number did not begin with seq:", sn)
-			}
-			if len(sn) != len(testSeq)+16 {
-				t.Fatal("Serial Number unexpected length:", sn)
+			if sn != "7007F" {
+				t.Fatal("Serial Number was incorrect:", sn)
 			}
 		}
 	}
@@ -206,7 +208,11 @@ func TestRemoteSignBadServerAndOverride(t *testing.T) {
 
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL[7:])
 	s.SetPolicy(remoteConfig.Signing)
-	certBytes, err := s.Sign(signer.SignRequest{Hosts: hosts, Request: string(csr)})
+	certBytes, err := s.Sign(signer.SignRequest{
+		Hosts: hosts,
+		Request: string(csr),
+		Serial: big.NewInt(1),
+	})
 	if err != nil {
 		t.Fatalf("Expected no error. Got %s.", err.Error())
 	}
@@ -294,7 +300,8 @@ func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error
 				ExpiryString: "43800h",
 				Expiry:       expiry,
 				CA:           true,
-				UseSerialSeq: true,
+
+				ClientProvidesSerialNumbers: true,
 			},
 		},
 	}
