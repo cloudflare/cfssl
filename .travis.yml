@@ -2,6 +2,7 @@ sudo: false
 language: go
 go:
   - 1.4
+  - 1.5
 before_install:
   # CFSSL consists of multiple Go packages, which refer to each other by
   # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs11key.
