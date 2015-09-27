@@ -4,6 +4,7 @@ package sign
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
@@ -56,10 +57,7 @@ func NewHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) 
 	// So if all of the profiles require authentication, we return an error.
 	haveUnauth := (policy.Default.Provider == nil)
 	for _, profile := range policy.Profiles {
-		if haveUnauth {
-			break
-		}
-		haveUnauth = (profile.Provider == nil)
+		haveUnauth = haveUnauth || (profile.Provider == nil)
 	}
 
 	if !haveUnauth {
@@ -85,7 +83,7 @@ type jsonSignRequest struct {
 	Subject   *signer.Subject `json:"subject,omitempty"`
 	Profile   string          `json:"profile"`
 	Label     string          `json:"label"`
-	SerialSeq string          `json:"serial_sequence,omitempty"`
+	Serial    *big.Int        `json:"serial,omitempty"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -104,7 +102,7 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 			Request:   js.Request,
 			Profile:   js.Profile,
 			Label:     js.Label,
-			SerialSeq: js.SerialSeq,
+			Serial:    js.Serial,
 		}
 	}
 
@@ -114,7 +112,7 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 		Request:   js.Request,
 		Profile:   js.Profile,
 		Label:     js.Label,
-		SerialSeq: js.SerialSeq,
+		Serial:    js.Serial,
 	}
 }
 

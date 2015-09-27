@@ -239,8 +239,14 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 // Test marshal to JSON on hostnames
 func TestBundleHostnamesMarshalJSON(t *testing.T) {
 	b := newBundler(t)
-	bundle, _ := b.BundleFromRemote("www.cloudflare.com", "", Ubiquitous)
-	hostnames, _ := json.Marshal(bundle.Hostnames)
+	bundle, err := b.BundleFromRemote("www.cloudflare.com", "", Ubiquitous)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hostnames, err := json.Marshal(bundle.Hostnames)
+	if err != nil {
+		t.Fatal(err)
+	}
 	expectedOne := []byte(`["www.cloudflare.com","cloudflare.com"]`)
 	expectedTheOther := []byte(`["cloudflare.com","www.cloudflare.com"]`)
 	if !bytes.Equal(hostnames, expectedOne) && !bytes.Equal(hostnames, expectedTheOther) {
@@ -897,6 +903,14 @@ func newBundlerWithoutRoots(t *testing.T) (b *Bundler) {
 	return
 }
 
+func newBundlerWithoutRootsAndInters(t *testing.T) *Bundler {
+	b, err := NewBundler("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
 // A helper function that returns a errorCallback function which expects certain error content in
 // an error message.
 func ExpectErrorMessage(expectedErrorContent string) func(*testing.T, error) {
@@ -936,4 +950,47 @@ func ExpectBundleLength(expectedLen int) func(*testing.T, *Bundle) {
 				expectedLen, len(bundle.Chain))
 		}
 	}
+}
+
+func TestBundlerWithEmptyRootInfo(t *testing.T) {
+	b := newBundlerWithoutRootsAndInters(t)
+
+	// "force" bundle should be ok
+	bundle, err := b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Force, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBundleFunc := ExpectBundleLength(1)
+	checkBundleFunc(t, bundle)
+
+	// force non-verifying bundle should fail.
+	_, err = b.BundleFromFile(badBundle, "", Force, "")
+	if err == nil {
+		t.Fatal("expected error. but no error occurred")
+	}
+	checkErrorFunc := ExpectErrorMessage("\"code\":1200")
+	checkErrorFunc(t, err)
+
+	// "optimal" and "ubiquitous" bundle should be ok
+	bundle, err = b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Ubiquitous, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBundleFunc = ExpectBundleLength(1)
+	checkBundleFunc(t, bundle)
+
+	bundle, err = b.BundleFromPEMorDER(GoDaddyIntermediateCert, nil, Optimal, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBundleFunc = ExpectBundleLength(1)
+	checkBundleFunc(t, bundle)
+
+	// bundle remote should be ok
+	bundle, err = b.BundleFromRemote("www.google.com", "", Ubiquitous)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBundleFunc = ExpectBundleLength(2)
+	checkBundleFunc(t, bundle)
 }

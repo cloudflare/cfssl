@@ -138,7 +138,6 @@ var bundleTests = []bundleTest{
 		Domain:             "google.com",
 		ExpectedHTTPStatus: http.StatusBadRequest,
 		ExpectedSuccess:    false,
-		ExpectedErrorCode:  1220,
 	},
 	// Error testing.
 	{
@@ -206,7 +205,7 @@ func TestBundle(t *testing.T) {
 			continue
 		}
 
-		if test.ExpectedErrorCode != message.Errors[0].Code {
+		if test.ExpectedErrorCode != 0 && test.ExpectedErrorCode != message.Errors[0].Code {
 			t.Errorf("Test %d: expected: %v, have %v", i, test.ExpectedErrorCode, message.Errors[0].Code)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, message)
 		}

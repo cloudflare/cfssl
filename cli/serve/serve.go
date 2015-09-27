@@ -172,7 +172,7 @@ func serverMain(args []string, c cli.Config) error {
 	var err error
 
 	if err = ubiquity.LoadPlatforms(conf.Metadata); err != nil {
-		log.Error(err)
+		return err
 	}
 
 	log.Info("Initializing signer")
