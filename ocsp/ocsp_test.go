@@ -1,10 +1,11 @@
 package ocsp
 
 import (
-	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/ocsp"
 
 	"github.com/cloudflare/cfssl/helpers"
 )
@@ -146,31 +147,31 @@ func TestSign(t *testing.T) {
 }
 
 func TestNewSourceFromFile(t *testing.T) {
-	_, err := NewSourceFromFile("")
+	_, err := NewSourceFromFile("", nil)
 	if err == nil {
 		t.Fatal("Didn't fail on non-file input")
 	}
 
 	// expected case
-	_, err = NewSourceFromFile(responseFile)
+	_, err = NewSourceFromFile(responseFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// binary-formatted file
-	_, err = NewSourceFromFile(binResponseFile)
+	_, err = NewSourceFromFile(binResponseFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// the response file from before, with stuff deleted
-	_, err = NewSourceFromFile(brokenResponseFile)
+	_, err = NewSourceFromFile(brokenResponseFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// mix of a correct and malformed responses
-	_, err = NewSourceFromFile(mixResponseFile)
+	_, err = NewSourceFromFile(mixResponseFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

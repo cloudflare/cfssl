@@ -35,7 +35,7 @@ func ocspServerMain(args []string, c cli.Config) error {
 		return errors.New("no response file provided, please set the -responses flag")
 	}
 
-	src, err := ocsp.NewSourceFromFile(c.Responses)
+	src, err := ocsp.NewSourceFromFile(c.Responses, nil)
 	if err != nil {
 		return errors.New("unable to read response file")
 	}

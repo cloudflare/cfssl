@@ -6,10 +6,14 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/cloudflare/cfssl/helpers"
 
 	"golang.org/x/crypto/ocsp"
 )
@@ -50,11 +54,6 @@ func TestResponderCacheControlBadReq(t *testing.T) {
 			t.Fatal(fmt.Sprintf("Incorrect cache control header returned: %s", cacheHeader))
 		}
 	}
-
-	// Check for not found POST/GET
-
-	// Re-check with flipped flag
-	r.NoCacheOnNotFound = false
 }
 
 func TestResponderCacheControlCacheNotFound(t *testing.T) {
@@ -127,6 +126,49 @@ func TestResponderCacheControlCacheNotFound(t *testing.T) {
 	})
 	cacheHeader = rWriter.Header().Get("Cache-Control")
 	if cacheHeader != noCacheHeader {
+		t.Fatal(fmt.Sprintf("Incorrect cache control header returned: %s", cacheHeader))
+	}
+}
+
+func TestResponderCacheControlInMemory(t *testing.T) {
+	hour := time.Hour
+	source, err := NewSourceFromFile(responseFile, &hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := Responder{
+		Source:              source,
+		NoCacheOnBadRequest: true,
+		NoCacheOnNotFound:   true,
+	}
+
+	// So we don't actually use this certificate, ocsp.CreateRequest requires a real
+	// cert (containing RawSubjectPublicKeyInfo) but NewSourceFromFile doesn't care
+	// about the issuer name or hash so we use this cert to satisfy the ocsp method
+	certPEM, err := ioutil.ReadFile(otherCertFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issuer, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This cert contains the magic serial number the InMemorySource uses to find
+	// the correct response
+	cert := x509.Certificate{SerialNumber: big.NewInt(373)}
+
+	ocspBytes, err := ocsp.CreateRequest(&cert, issuer, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rWriter := httptest.NewRecorder()
+	r.ServeHTTP(rWriter, &http.Request{
+		Method: "POST",
+		Body:   ioutil.NopCloser(strings.NewReader(string(ocspBytes))),
+	})
+	cacheHeader := rWriter.Header().Get("Cache-Control")
+	if cacheHeader != "public, max-age=3600" {
 		t.Fatal(fmt.Sprintf("Incorrect cache control header returned: %s", cacheHeader))
 	}
 }

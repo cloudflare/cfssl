@@ -52,7 +52,7 @@ func (src InMemorySource) Response(request *ocsp.Request) (response HTTPResponse
 // responses. Each OCSP response must be in base64-encoded DER form (i.e.,
 // PEM without headers or whitespace).  Invalid responses are ignored.
 // This function pulls the entire file into an InMemorySource.
-func NewSourceFromFile(responseFile string) (Source, error) {
+func NewSourceFromFile(responseFile string, staticCacheLife *time.Duration) (Source, error) {
 	fileContents, err := ioutil.ReadFile(responseFile)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,10 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 			continue
 		}
 
-		src[response.SerialNumber.String()] = HTTPResponse{DER: der}
+		src[response.SerialNumber.String()] = HTTPResponse{
+			DER:      der,
+			CacheFor: staticCacheLife,
+		}
 	}
 
 	log.Infof("Read %d OCSP responses", len(src))
@@ -170,7 +173,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	if ocspResponse.CacheFor != nil {
 		response.Header().Set(
 			"Cache-Control",
-			fmt.Sprintf("max-age=%d", int(ocspResponse.CacheFor.Seconds())),
+			fmt.Sprintf("public, max-age=%d", int(ocspResponse.CacheFor.Seconds())),
 		)
 	}
 
