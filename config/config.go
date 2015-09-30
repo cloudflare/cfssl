@@ -53,31 +53,38 @@ type CertificatePolicyQualifier struct {
 	Value string
 }
 
+// AuthRemote is an authenticated remote signer.
+type AuthRemote struct {
+	RemoteName  string `json:"remote"`
+	AuthKeyName string `json:"auth_key"`
+}
+
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
-	Usage               []string  `json:"usages"`
-	IssuerURL           []string  `json:"issuer_urls"`
-	OCSP                string    `json:"ocsp_url"`
-	CRL                 string    `json:"crl_url"`
-	CA                  bool      `json:"is_ca"`
-	OCSPNoCheck         bool      `json:"ocsp_no_check"`
-	ExpiryString        string    `json:"expiry"`
-	BackdateString      string    `json:"backdate"`
-	AuthKeyName         string    `json:"auth_key"`
-	RemoteName          string    `json:"remote"`
-	NotBefore           time.Time `json:"not_before"`
-	NotAfter            time.Time `json:"not_after"`
-	NameWhitelistString string    `json:"name_whitelist"`
+	Usage               []string   `json:"usages"`
+	IssuerURL           []string   `json:"issuer_urls"`
+	OCSP                string     `json:"ocsp_url"`
+	CRL                 string     `json:"crl_url"`
+	CA                  bool       `json:"is_ca"`
+	OCSPNoCheck         bool       `json:"ocsp_no_check"`
+	ExpiryString        string     `json:"expiry"`
+	BackdateString      string     `json:"backdate"`
+	AuthKeyName         string     `json:"auth_key"`
+	RemoteName          string     `json:"remote"`
+	NotBefore           time.Time  `json:"not_before"`
+	NotAfter            time.Time  `json:"not_after"`
+	NameWhitelistString string     `json:"name_whitelist"`
+	AuthRemote          AuthRemote `json:"auth_remote"`
 
-	Policies      []CertificatePolicy
-	Expiry        time.Duration
-	Backdate      time.Duration
-	Provider      auth.Provider
-	RemoteServer  string
-	CSRWhitelist  *CSRWhitelist
-	NameWhitelist *regexp.Regexp
-
+	Policies                    []CertificatePolicy
+	Expiry                      time.Duration
+	Backdate                    time.Duration
+	Provider                    auth.Provider
+	RemoteProvider              auth.Provider
+	RemoteServer                string
+	CSRWhitelist                *CSRWhitelist
+	NameWhitelist               *regexp.Regexp
 	ClientProvidesSerialNumbers bool
 }
 
@@ -142,7 +149,7 @@ func (p *SigningProfile) populate(cfg *Config) error {
 	}
 
 	var err error
-	if p.RemoteName == "" {
+	if p.RemoteName == "" && p.AuthRemote.RemoteName == "" {
 		log.Debugf("parse expiry in profile")
 		if p.ExpiryString == "" {
 			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("empty expiry string"))
@@ -179,9 +186,23 @@ func (p *SigningProfile) populate(cfg *Config) error {
 				}
 			}
 		}
-	} else {
+	} else if p.RemoteName != "" {
 		log.Debug("match remote in profile to remotes section")
+		if p.AuthRemote.RemoteName != "" {
+			log.Error("profile has both a remote and an auth remote specified")
+			return cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+		}
 		if remote := cfg.Remotes[p.RemoteName]; remote != "" {
+			if err := p.updateRemote(remote); err != nil {
+				return err
+			}
+		} else {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to find remote in remotes section"))
+		}
+	} else {
+		log.Debug("match auth remote in profile to remotes section")
+		if remote := cfg.Remotes[p.AuthRemote.RemoteName]; remote != "" {
 			if err := p.updateRemote(remote); err != nil {
 				return err
 			}
@@ -212,6 +233,27 @@ func (p *SigningProfile) populate(cfg *Config) error {
 		}
 	}
 
+	if p.AuthRemote.AuthKeyName != "" {
+		log.Debug("match auth remote key in profile to auth_keys section")
+		if key, ok := cfg.AuthKeys[p.AuthRemote.AuthKeyName]; ok == true {
+			if key.Type == "standard" {
+				p.RemoteProvider, err = auth.New(key.Key, nil)
+				if err != nil {
+					log.Debugf("failed to create new standard auth provider: %v", err)
+					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+						errors.New("failed to create new standard auth provider"))
+				}
+			} else {
+				log.Debugf("unknown authentication type %v", key.Type)
+				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+					errors.New("unknown authentication type"))
+			}
+		} else {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to find auth_remote's auth_key in auth_keys section"))
+		}
+	}
+
 	if p.NameWhitelistString != "" {
 		log.Debug("compiling whitelist regular expression")
 		rule, err := regexp.Compile(p.NameWhitelistString)
@@ -226,7 +268,7 @@ func (p *SigningProfile) populate(cfg *Config) error {
 }
 
 // updateRemote takes a signing profile and initializes the remote server object
-// to the hostname:port combination sent by remote
+// to the hostname:port combination sent by remote.
 func (p *SigningProfile) updateRemote(remote string) error {
 	if remote != "" {
 		p.RemoteServer = remote
@@ -256,11 +298,12 @@ func (p *Signing) OverrideRemotes(remote string) error {
 // NeedsRemoteSigner returns true if one of the profiles has a remote set
 func (p *Signing) NeedsRemoteSigner() bool {
 	for _, profile := range p.Profiles {
-		if profile.RemoteName != "" {
+		if profile.RemoteServer != "" {
 			return true
 		}
 	}
-	if p.Default.RemoteName != "" {
+
+	if p.Default.RemoteServer != "" {
 		return true
 	}
 
@@ -270,11 +313,12 @@ func (p *Signing) NeedsRemoteSigner() bool {
 // NeedsLocalSigner returns true if one of the profiles doe not have a remote set
 func (p *Signing) NeedsLocalSigner() bool {
 	for _, profile := range p.Profiles {
-		if profile.RemoteName == "" {
+		if profile.RemoteServer == "" {
 			return true
 		}
 	}
-	if p.Default.RemoteName == "" {
+
+	if p.Default.RemoteServer == "" {
 		return true
 	}
 
@@ -318,6 +362,21 @@ func (p *SigningProfile) validProfile(isDefault bool) bool {
 
 		if p.AuthKeyName != "" && p.Provider == nil {
 			log.Debugf("invalid remote profile: auth key name is defined but no auth provider is set")
+			return false
+		}
+
+		if p.AuthRemote.RemoteName != "" {
+			log.Debugf("invalid remote profile: auth remote is also specified")
+		}
+	} else if p.AuthRemote.RemoteName != "" {
+		log.Debugf("validate auth remote profile")
+		if p.RemoteServer == "" {
+			log.Debugf("invalid auth remote profile: no remote signer specified")
+			return false
+		}
+
+		if p.AuthRemote.AuthKeyName == "" || p.RemoteProvider == nil {
+			log.Debugf("invalid auth remote profile: no auth key is defined")
 			return false
 		}
 	} else {

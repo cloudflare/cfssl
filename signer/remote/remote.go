@@ -82,8 +82,8 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (resp interfa
 	// There's no auth provider for the "info" method
 	if target == "info" {
 		resp, err = server.Info(jsonData)
-	} else if p.Provider != nil {
-		resp, err = server.AuthSign(jsonData, nil, p.Provider)
+	} else if p.RemoteProvider != nil {
+		resp, err = server.AuthSign(jsonData, nil, p.RemoteProvider)
 	} else {
 		resp, err = server.Sign(jsonData)
 	}
