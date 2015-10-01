@@ -98,7 +98,6 @@ func (l *Listener) AutoUpdate(certUpdates chan time.Time, errChan chan error) {
 			}
 		}
 
-		cert := l.Transport.Provider.Certificate()
 		log.Debug("listener: auto update of certificate complete")
 	}
 }
