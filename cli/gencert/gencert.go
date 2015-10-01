@@ -17,9 +17,13 @@ import (
 var gencertUsageText = `cfssl gencert -- generate a new key and signed certificate
 
 Usage of gencert:
+    Generate a new key and cert from CSR:
         cfssl gencert -initca CSRJSON
         cfssl gencert -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] CSRJSON
         cfssl gencert -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSRJSON
+
+	Re-generate a existing CA cert with the CA key and CSR:
+        cfssl gencert -initca -ca-key key CSRJSON
 
 Arguments:
         CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
@@ -51,10 +55,11 @@ func gencertMain(args []string, c cli.Config) (err error) {
 
 	if c.IsCA {
 		var key, csrPEM, cert []byte
+		log.Infof("re-generate a CA certificate from CSR and CA key")
 		cert, csrPEM, err = initca.NewFromPEM(&req, c.CAKeyFile)
 		if err != nil {
 			log.Errorf("%v\n", err)
-			log.Infof("generating a new CA key and certificate from CSR")
+			log.Infof("fallback to generating a new CA key and certificate from CSR")
 			cert, csrPEM, key, err = initca.New(&req)
 			if err != nil {
 				return
