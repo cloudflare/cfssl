@@ -209,7 +209,7 @@ func TestListener(t *testing.T) {
 
 	err = trl.RefreshKeys()
 	if err != nil {
-		t.Fatal("%v", err)
+		t.Fatalf("%v", err)
 	}
 
 	core.SystemRoots = x509.NewCertPool()
@@ -247,7 +247,7 @@ func TestListener(t *testing.T) {
 
 	<-time.After(1 * time.Second)
 	log.Debug("dialer making connection")
-	conn, err := Dial(tr, "127.0.0.1:8765")
+	conn, err := Dial("127.0.0.1:8765", tr)
 	if err != nil {
 		log.Debugf("certificate time: %s-%s / %s",
 			trl.Provider.Certificate().NotBefore,

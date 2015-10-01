@@ -1,3 +1,6 @@
+// Package kp describes transport key providers and provides a reference
+// implementation.
+//
 // KeyProviders are used by clients and servers as a mechanism for
 // providing keys and signing CSRs. It is a mechanism designed to
 // allow switching out how private keys and their associated
