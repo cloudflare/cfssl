@@ -30,7 +30,7 @@ const (
 	emptyPEM            = "testdata/empty.pem"
 	interL1SHA1         = "testdata/inter-L1-sha1.pem"
 	interL1Key          = "testdata/inter-L1.key"
-	interL2SHA1         = "testdata/inter-L2-sha1.pem"
+	interL2SHA2         = "testdata/inter-L2.pem"
 	interL2Key          = "testdata/inter-L2.key"
 )
 
@@ -791,16 +791,16 @@ func TestSHA2Warning(t *testing.T) {
 }
 
 // Regression test on ECDSA Warning
-// A test bundle that contains ECDSA384 but no SHA1. Expect ECDSA warning and no SHA-2 warning.
+// A test bundle that contains ECDSA384 and SHA-2. Expect ECDSA warning and SHA-2 warning.
 func TestECDSAWarning(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCAFile, interL1SHA1, "")
 
-	optimalBundle, err := b.BundleFromFile(interL2SHA1, "", Optimal, "")
+	optimalBundle, err := b.BundleFromFile(interL2SHA2, "", Optimal, "")
 	if err != nil {
 		t.Fatal("Optimal bundle failed:", err)
 	}
 
-	checkSHA2WarningAndCode(t, optimalBundle, false)
+	checkSHA2WarningAndCode(t, optimalBundle, true)
 	checkECDSAWarningAndCode(t, optimalBundle, true)
 }
 
