@@ -11,7 +11,6 @@
 package core
 
 import (
-	"crypto/tls"
 	"time"
 
 	"github.com/cloudflare/cfssl/csr"
@@ -33,6 +32,11 @@ var DefaultBefore = 24 * time.Hour
 
 // CipherSuites are the TLS cipher suites that should be used by CloudFlare programs.
 var CipherSuites = []uint16{
-	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	// These are manually specified because the SHA384 suites are
+	// not specified in Go 1.4; in Go 1.4, they won't actually
+	// be sent.
+	0xc030, // TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	0xc02c, // TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	0xc02f, // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	0xc02b, // TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
 }
