@@ -85,25 +85,44 @@ type Responder struct {
 // from an OCSP request to an OCSP response is done by the Source;
 // the Responder simply decodes the request, and passes back whatever
 // response is provided by the source.
+// Note: The caller must use http.StripPrefix to strip any path components
+// (including '/') on GET requests.
+// Do not use this responder in conjunction with http.NewServeMux, because the
+// default handler will try to canonicalize path components by changing any
+// strings of repeated '/' into a single '/', which will break the base64
+// encoding.
 func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	// Read response from request
 	var requestBody []byte
 	var err error
 	switch request.Method {
 	case "GET":
-		re := regexp.MustCompile("^.*/")
-		base64Request := re.ReplaceAllString(request.RequestURI, "")
-		base64Request, err = url.QueryUnescape(base64Request)
+		base64Request, err := url.QueryUnescape(request.URL.Path)
 		if err != nil {
+			log.Errorf("Error decoding URL: %s", request.URL.Path)
+			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		requestBody, err = base64.StdEncoding.DecodeString(base64Request)
+		// url.QueryUnescape not only unescapes %2B escaping, but it additionally
+		// turns the resulting '+' into a space, which makes base64 decoding fail.
+		// So we go back afterwards and turn ' ' back into '+'. This means we
+		// accept some malformed input that includes ' ' or %20, but that's fine.
+		base64RequestBytes := []byte(base64Request)
+		for i := range base64RequestBytes {
+			if base64RequestBytes[i] == ' ' {
+				base64RequestBytes[i] = '+'
+			}
+		}
+		requestBody, err = base64.StdEncoding.DecodeString(string(base64RequestBytes))
 		if err != nil {
+			log.Errorf("Error decoding base64 from URL: %s", base64Request)
+			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	case "POST":
 		requestBody, err = ioutil.ReadAll(request.Body)
 		if err != nil {
+			log.Errorf("Problem reading body of POST: %s", err)
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -127,6 +146,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	ocspRequest, err := ocsp.ParseRequest(requestBody)
 	if err != nil {
 		log.Errorf("Error decoding request body: %s", b64Body)
+		response.WriteHeader(http.StatusBadRequest)
 		response.Write(malformedRequestErrorResponse)
 		return
 	}
