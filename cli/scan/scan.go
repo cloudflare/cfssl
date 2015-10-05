@@ -17,7 +17,7 @@ Arguments:
         HOST:    Host(s) to scan (including port)
 Flags:
 `
-var scanFlags = []string{"list", "family", "scanner", "timeout", "ip"}
+var scanFlags = []string{"list", "family", "scanner", "timeout", "ip", "ca-bundle"}
 
 func printJSON(v interface{}) {
 	b, err := json.MarshalIndent(v, "", "  ")
@@ -31,6 +31,9 @@ func scanMain(args []string, c cli.Config) (err error) {
 	if c.List {
 		printJSON(scan.Default)
 	} else {
+		if err = scan.LoadRootCAs(c.CABundleFile); err != nil {
+			return
+		}
 		// Execute for each HOST argument given
 		for len(args) > 0 {
 			var host string
