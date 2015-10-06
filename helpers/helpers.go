@@ -11,6 +11,7 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
+	"io/ioutil"
 	"math/big"
 	//"fmt"
 	"strings"
@@ -287,6 +288,21 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 	}
 	var certs = []*x509.Certificate{cert}
 	return certs, rest, nil
+}
+
+// LoadPEMCertPool loads a pool of PEM certificates from file.
+func LoadPEMCertPool(certsFile string) (*x509.CertPool, error) {
+	pemCerts, err := ioutil.ReadFile(certsFile)
+	if err != nil {
+		return nil, err
+	}
+
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(pemCerts) {
+		return nil, errors.New("failed to load cert pool")
+	}
+
+	return certPool, nil
 }
 
 // ParsePrivateKeyPEM parses and returns a PEM-encoded private

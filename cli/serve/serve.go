@@ -94,7 +94,7 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"scan": func() (http.Handler, error) {
-		return scan.NewHandler(), nil
+		return scan.NewHandler(conf.CABundleFile)
 	},
 
 	"scaninfo": func() (http.Handler, error) {

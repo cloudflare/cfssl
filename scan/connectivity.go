@@ -140,13 +140,24 @@ func tcpDialScan(addr, hostname string) (grade Grade, output Output, err error) 
 	return
 }
 
-// tlsDialScan tests that the host can perform a TLS Handshake.
+// tlsDialScan tests that the host can perform a TLS Handshake
+// and warns if the server's certificate can't be verified.
 func tlsDialScan(addr, hostname string) (grade Grade, output Output, err error) {
-	conn, err := tls.DialWithDialer(Dialer, Network, addr, defaultTLSConfig(hostname))
-	if err != nil {
+	var conn *tls.Conn
+	config := defaultTLSConfig(hostname)
+
+	if conn, err = tls.DialWithDialer(Dialer, Network, addr, config); err != nil {
 		return
 	}
 	conn.Close()
+
+	config.InsecureSkipVerify = false
+	if conn, err = tls.DialWithDialer(Dialer, Network, addr, config); err != nil {
+		grade = Warning
+		return
+	}
+	conn.Close()
+
 	grade = Good
 	return
 }

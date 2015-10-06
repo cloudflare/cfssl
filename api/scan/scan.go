@@ -27,7 +27,6 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("no host given")
 	}
 
-
 	results, err := scan.Default.RunScans(host, ip, family, scanner, 0)
 	if err != nil {
 		log.Warningf("%v", err)
@@ -40,11 +39,11 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 // NewHandler returns a new http.Handler that handles a scan request.
-func NewHandler() http.Handler {
+func NewHandler(caBundleFile string) (http.Handler, error) {
 	return api.HTTPHandler{
 		Handler: api.HandlerFunc(scanHandler),
 		Methods: []string{"GET"},
-	}
+	}, scan.LoadRootCAs(caBundleFile)
 }
 
 // scanInfoHandler is an HTTP handler that returns a JSON blob result describing
@@ -59,5 +58,8 @@ func scanInfoHandler(w http.ResponseWriter, r *http.Request) error {
 
 // NewInfoHandler returns a new http.Handler that handles a request for scan info.
 func NewInfoHandler() http.Handler {
-	return api.HTTPHandler{Handler: api.HandlerFunc(scanInfoHandler), Methods: []string{"GET"}}
+	return api.HTTPHandler{
+		Handler: api.HandlerFunc(scanInfoHandler),
+		Methods: []string{"GET"},
+	}
 }

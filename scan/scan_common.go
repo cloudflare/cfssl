@@ -1,12 +1,14 @@
 package scan
 
 import (
+	"crypto/x509"
 	"net"
 	"net/http"
 	"regexp"
 	"time"
 
 	"github.com/cloudflare/cf-tls/tls"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -17,6 +19,8 @@ var (
 	Dialer = &net.Dialer{Timeout: time.Second}
 	// Client is the default HTTP Client.
 	Client = &http.Client{Transport: &http.Transport{Dial: Dialer.Dial}}
+	// RootCAs defines the default root certificate authorities to be used for scan.
+	RootCAs *x509.CertPool
 )
 
 // Grade gives a subjective rating of the host's success in a scan.
@@ -212,6 +216,19 @@ func startTimer(t time.Duration, timeout chan bool) {
 	})
 }
 
+// LoadRootCAs loads the default root certificate authorities from file.
+func LoadRootCAs(caBundleFile string) (err error) {
+	if caBundleFile != "" {
+		log.Debugf("Loading scan RootCAs: %s", caBundleFile)
+		RootCAs, err = helpers.LoadPEMCertPool(caBundleFile)
+	}
+	return
+}
+
 func defaultTLSConfig(hostname string) *tls.Config {
-	return &tls.Config{ServerName: hostname, InsecureSkipVerify: true}
+	return &tls.Config{
+		ServerName:         hostname,
+		RootCAs:            RootCAs,
+		InsecureSkipVerify: true,
+	}
 }
