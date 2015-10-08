@@ -12,6 +12,16 @@ before_install:
   - mkdir -p $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare
   - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && ln -s $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
 
+# Only build pull requests, pushes to the master branch, and branches
+# starting with `test-`. This is a convenient way to push branches to
+# your own fork of the repostiory to ensure Travis passes before submitting
+# a PR. For instance, you might run:
+# git push myremote branchname:test-branchname
+branches:
+  only:
+    - master
+    - /^test-.*$/
+
 before_script:
   
   - go get golang.org/x/tools/cmd/vet
