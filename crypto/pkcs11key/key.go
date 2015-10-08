@@ -33,19 +33,19 @@ var hashPrefixes = map[crypto.Hash][]byte{
 // ctx defines the subset of pkcs11.ctx's methods that we use, so we can inject
 // a different ctx for testing.
 type ctx interface {
-  CloseSession(sh pkcs11.SessionHandle) error
+	CloseSession(sh pkcs11.SessionHandle) error
 	FindObjectsFinal(sh pkcs11.SessionHandle) error
-  FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error
-  FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error)
-  GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, a []*pkcs11.Attribute) ([]*pkcs11.Attribute, error)
-  GetSlotList(tokenPresent bool) ([]uint, error)
-  GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error)
+	FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error
+	FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error)
+	GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, a []*pkcs11.Attribute) ([]*pkcs11.Attribute, error)
+	GetSlotList(tokenPresent bool) ([]uint, error)
+	GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error)
 	Initialize() error
-  Login(sh pkcs11.SessionHandle, userType uint, pin string) error
-  Logout(sh pkcs11.SessionHandle) error
-  OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error)
-  SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs11.ObjectHandle) error
-  Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error)
+	Login(sh pkcs11.SessionHandle, userType uint, pin string) error
+	Logout(sh pkcs11.SessionHandle) error
+	OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error)
+	SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs11.ObjectHandle) error
+	Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error)
 }
 
 // Key is an implementation of the crypto.Signer interface using a key stored
