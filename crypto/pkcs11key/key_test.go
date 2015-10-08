@@ -1,10 +1,13 @@
+// +build !nopkcs11
+
 package pkcs11key
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
-	"bytes"
 	"testing"
+
 	"github.com/miekg/pkcs11"
 )
 
@@ -12,6 +15,7 @@ type mockCtx struct{}
 
 const privateKeyHandle = pkcs11.ObjectHandle(23)
 const sessionHandle = pkcs11.SessionHandle(17)
+
 var slots = []uint{7, 8, 9}
 var tokenInfo = pkcs11.TokenInfo{
 	Label: "token label",
@@ -40,10 +44,10 @@ func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandl
 		// both modulus an public exponent would be a very bad public key, but it's
 		// sufficient to satisfy the current code.
 		if a.Type == pkcs11.CKA_MODULUS ||
-			 a.Type == pkcs11.CKA_PUBLIC_EXPONENT ||
-			 a.Type == pkcs11.CKA_ALWAYS_AUTHENTICATE {
+			a.Type == pkcs11.CKA_PUBLIC_EXPONENT ||
+			a.Type == pkcs11.CKA_ALWAYS_AUTHENTICATE {
 			output = append(output, &pkcs11.Attribute{
-				Type: a.Type,
+				Type:  a.Type,
 				Value: []byte{byte(1)},
 			})
 		}
@@ -52,7 +56,7 @@ func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandl
 }
 
 func (c mockCtx) GetSlotList(tokenPresent bool) ([]uint, error) {
-  return slots, nil
+	return slots, nil
 }
 
 func (c mockCtx) GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error) {
@@ -85,9 +89,9 @@ func (c mockCtx) Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error) {
 
 func TestSetup(t *testing.T) {
 	ps := &Key{
-		module: mockCtx{},
+		module:     mockCtx{},
 		tokenLabel: "token label",
-		pin: "unused",
+		pin:        "unused",
 	}
 	err := ps.setup("private key label")
 	if err != nil {
@@ -97,9 +101,9 @@ func TestSetup(t *testing.T) {
 
 func setup(t *testing.T) *Key {
 	ps := Key{
-		module: mockCtx{},
+		module:     mockCtx{},
 		tokenLabel: "token label",
-		pin: "unused",
+		pin:        "unused",
 	}
 	err := ps.setup("private key label")
 	if err != nil {
@@ -140,9 +144,9 @@ func (c mockCtxFailsAlwaysAuthenticate) GetAttributeValue(sh pkcs11.SessionHandl
 
 func TestAttributeTypeInvalid(t *testing.T) {
 	ps := &Key{
-		module: mockCtxFailsAlwaysAuthenticate{},
+		module:     mockCtxFailsAlwaysAuthenticate{},
 		tokenLabel: "token label",
-		pin: "unused",
+		pin:        "unused",
 	}
 	err := ps.setup("private key label")
 	if err != nil {

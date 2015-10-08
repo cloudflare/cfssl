@@ -18,7 +18,7 @@ import (
 const Enabled = true
 
 // New returns a new PKCS #11 signer.
-func New(caCertFile string, policy *config.Signing, cfg *pkcs11key.Config) (signer.Signer, error) {
+func New(caCertFile string, policy *config.Signing, cfg *Config) (signer.Signer, error) {
 	if cfg == nil {
 		return nil, errors.New(errors.PrivateKeyError, errors.ReadFailed)
 	}
@@ -34,7 +34,7 @@ func New(caCertFile string, policy *config.Signing, cfg *pkcs11key.Config) (sign
 		return nil, err
 	}
 
-	priv, err := pkcs11key.New(cfg.Module, cfg.TokenLabel, cfg.PIN, cfg.PrivateKeyLabel)
+	priv, err := pkcs11key.New(cfg.Module, cfg.Token, cfg.PIN, cfg.Label)
 	if err != nil {
 		return nil, errors.New(errors.PrivateKeyError, errors.ReadFailed)
 	}

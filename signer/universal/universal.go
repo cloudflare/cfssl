@@ -4,7 +4,6 @@ package universal
 import (
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
-	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
 	"github.com/cloudflare/cfssl/signer/pkcs11"
@@ -52,10 +51,10 @@ func pkcs11Signer(root *Root, policy *config.Signing) (signer.Signer, bool, erro
 		return nil, true, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
 	}
 
-	conf := pkcs11key.Config{
+	conf := pkcs11.Config{
 		Module: module,
-		TokenLabel:  tokenLabel,
-		PrivateKeyLabel:  privateKeyLabel,
+		Token:  tokenLabel,
+		Label:  privateKeyLabel,
 		PIN:    userPIN,
 	}
 
