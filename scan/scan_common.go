@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cf-tls/tls"
@@ -101,7 +102,7 @@ type Scanner struct {
 func (s *Scanner) Scan(addr, hostname string) (Grade, Output, error) {
 	grade, output, err := s.scan(addr, hostname)
 	if err != nil {
-		log.Infof("scan: %v", err)
+		log.Debugf("scan: %v", err)
 		return grade, output, err
 	}
 	return grade, output, err
@@ -137,9 +138,15 @@ type ScannerResult struct {
 // FamilyResult contains a scan response for a single Family
 type FamilyResult map[string]ScannerResult
 
-// RunScans iterates over AllScans, running scans matching the family and scanner
-// regular expressions.
-func (fs FamilySet) RunScans(host, ip, family, scanner string, dur time.Duration) (map[string]FamilyResult, error) {
+// A Result contains a ScannerResult along with it's scanner and family names.
+type Result struct {
+	Family, Scanner string
+	ScannerResult
+}
+
+// RunScans iterates over AllScans, running each scan that matches the family
+// and scanner regular expressions concurrently.
+func (fs FamilySet) RunScans(host, ip, family, scanner string, timeout time.Duration) (<-chan *Result, error) {
 	hostname, port, err := net.SplitHostPort(host)
 	if err != nil {
 		hostname = host
@@ -163,57 +170,84 @@ func (fs FamilySet) RunScans(host, ip, family, scanner string, dur time.Duration
 		return nil, err
 	}
 
-	results := make(chan map[string]FamilyResult)
-	timeout := make(chan bool)
+	resultChan := make(chan *Result)
 
-	if dur > 0 {
-		go startTimer(dur, timeout)
-	}
+	var familyWG sync.WaitGroup
+	familyWG.Add(len(fs))
+	done := make(chan bool)
 
-	familyResults := make(map[string]FamilyResult)
+	// Mark as done after completing all scans in all Families
+	go func() {
+		familyWG.Wait()
+		done <- true
+	}()
+
+	// Close resultsChan if scan times out or all scans finish
+	go func() {
+		select {
+		case <-time.After(timeout):
+			log.Warningf("Scan timed out after %v", timeout)
+		case <-done:
+		}
+		close(resultChan)
+	}()
 
 	go func() {
 		for familyName, family := range fs {
+			var scannerWG sync.WaitGroup
 			if familyRegexp.MatchString(familyName) {
-				scannerResults := make(map[string]ScannerResult)
+				scannerWG.Add(len(family.Scanners))
 				for scannerName, scanner := range family.Scanners {
-					if scannerRegexp.MatchString(scannerName) {
-						grade, output, err := scanner.Scan(addr, hostname)
-						if grade != Skipped {
-							result := ScannerResult{
-								Grade:  grade.String(),
-								Output: output,
+					go func(scannerName string, scanner *Scanner) {
+						if scannerRegexp.MatchString(scannerName) {
+							grade, output, err := scanner.Scan(addr, hostname)
+							result := &Result{
+								familyName,
+								scannerName,
+								ScannerResult{
+									Grade:  grade.String(),
+									Output: output,
+								},
 							}
 							if err != nil {
 								result.Error = err.Error()
 							}
 
-							scannerResults[scannerName] = result
+							defer func(result *Result) {
+								if r := recover(); r != nil {
+									log.Debugf("Result returned after timout: %#v", result)
+								}
+							}(result)
+							resultChan <- result
 						}
-					}
-				}
-
-				if len(scannerResults) > 0 {
-					familyResults[familyName] = scannerResults
+						scannerWG.Done()
+					}(scannerName, scanner)
 				}
 			}
+
+			// Wait for all Scanners in a family to complete and mark as done.
+			go func() {
+				scannerWG.Wait()
+				familyWG.Done()
+			}()
 		}
-		results <- familyResults
 	}()
 
-	select {
-	case <-timeout:
-		log.Warningf("scan: %s timed out after %v", host, dur)
-		return familyResults, nil
-	case res := <-results:
-		return res, nil
-	}
+	// Return results streaming on a receive-only channel
+	return resultChan, nil
 }
 
-func startTimer(t time.Duration, timeout chan bool) {
-	time.AfterFunc(t, func() {
-		timeout <- true
-	})
+// ProcessResults converts a channel of results into a JSON marshallable map of results.
+func ProcessResults(resultChan <-chan *Result) map[string]FamilyResult {
+	results := make(map[string]FamilyResult)
+	for result := range resultChan {
+		if results[result.Family] == nil {
+			results[result.Family] = make(FamilyResult)
+		}
+
+		results[result.Family][result.Scanner] = result.ScannerResult
+	}
+	return results
 }
 
 // LoadRootCAs loads the default root certificate authorities from file.
