@@ -13,15 +13,15 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
-	//"fmt"
+
 	"strings"
 	"time"
 
-	"github.com/cloudflare/cfssl/crypto/pkcs12"
 	"github.com/cloudflare/cfssl/crypto/pkcs7"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
+	"golang.org/x/crypto/pkcs12"
 )
 
 // OneYear is a time.Duration representing a year's worth of seconds.
@@ -200,21 +200,20 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 
 // ParseCertificatesDER parses a DER encoding of a certificate object and possibly private key,
 // either PKCS #7, PKCS #12, or raw x509.
-func ParseCertificatesDER(certsDER []byte, password string) ([]*x509.Certificate, crypto.Signer, error) {
-	var certs []*x509.Certificate
-	var key crypto.Signer
+func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certificate, key crypto.Signer, err error) {
 	certsDER = bytes.TrimSpace(certsDER)
 	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
 	if err != nil {
-		pkcs12data, err := pkcs12.ParsePKCS12(certsDER, []byte(password))
+		var pkcs12data interface{}
+		certs = make([]*x509.Certificate, 1)
+		pkcs12data, certs[0], err = pkcs12.Decode(certsDER, password)
 		if err != nil {
 			certs, err = x509.ParseCertificates(certsDER)
 			if err != nil {
 				return nil, nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 			}
 		} else {
-			key = pkcs12data.PrivateKey
-			certs = pkcs12data.Certificates
+			key = pkcs12data.(crypto.Signer)
 		}
 	} else {
 		if pkcs7data.ContentInfo != "SignedData" {

@@ -30,6 +30,7 @@ const (
 	testEmptyPem                 = "testdata/empty.pem"
 	testNoHeaderCert             = "testdata/noheadercert.pem"
 	testSinglePKCS7              = "testdata/cert_pkcs7.pem"
+	testEmptyPKCS7DER            = "testdata/empty_pkcs7.der" // openssl crl2pkcs7 -nocrl -out empty_pkcs7.der -outform der
 	testMultiplePKCS7            = "testdata/bundle_pkcs7.pem"
 	testPKCS12EmptyPswd          = "testdata/emptypasswordpkcs12.p12"
 	testPKCS12Passwordispassword = "testdata/passwordpkcs12.p12"
@@ -37,7 +38,7 @@ const (
 )
 
 func TestParseCertificatesDER(t *testing.T) {
-	var password = []string{"password", "", "", "multiple"}
+	var password = []string{"password", "", ""}
 	for i, testFile := range []string{testPKCS12Passwordispassword, testPKCS12EmptyPswd, testCertDERFile} {
 		testDER, err := ioutil.ReadFile(testFile)
 		if err != nil {
@@ -52,6 +53,14 @@ func TestParseCertificatesDER(t *testing.T) {
 		}
 	}
 
+	testDER, err := ioutil.ReadFile(testEmptyPKCS7DER)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// PKCS7 with no certificates
+	if _, _, err := ParseCertificatesDER(testDER, ""); err == nil {
+		t.Fatal(err)
+	}
 }
 
 func TestKeyLength(t *testing.T) {
