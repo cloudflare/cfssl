@@ -3,3 +3,4 @@ cfssl_*
 *-386
 dist/*
 cli/serve/static.rice-box.go
+.coverprofile
