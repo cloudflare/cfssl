@@ -7,11 +7,21 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"testing"
 )
+
+//TestNew validate the CertificateRequest created to return with a BasicKeyRequest
+//in KeyRequest field
+
+func TestNew(t *testing.T) {
+
+	if cr := New(); cr.KeyRequest == nil {
+		t.Fatalf("Should create a new, empty certificate request with BasicKeyRequest")
+	}
+}
 
 // TestBasicKeyRequest ensures that key generation returns the same type of
 // key specified in the BasicKeyRequest.
@@ -463,6 +473,8 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
+// TestReGenerate ensures Regenerate() is abel to use the provided CSR as a template for signing a new
+// CSR using priv.
 func TestReGenerate(t *testing.T) {
 	var req = &CertificateRequest{
 		Names: []Name{
@@ -495,6 +507,60 @@ func TestReGenerate(t *testing.T) {
 	}
 
 	if _, _, err = helpers.ParseCSR(csr); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = Regenerate(priv, csr)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}
+
+// TestBadReGenerator ensures that a request that fails the ParseCSR is
+// not processed.
+func TestBadReGenerate(t *testing.T) {
+	var req = &CertificateRequest{
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
+	}
+
+	csr, key, err := ParseRequest(req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	priv, err := helpers.ParsePrivateKeyPEM(key)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	csr, err = Generate(priv, req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	block := pem.Block{
+		Type: "CERTIFICATE REQUEST",
+		Headers: map[string]string{
+			"Location": "UCSD",
+		},
+		Bytes: csr,
+	}
+
+	csr = pem.EncodeToMemory(&block)
+
+	_, err = Regenerate(priv, csr)
+	if err == nil {
 		t.Fatalf("%v", err)
 	}
 }
