@@ -62,6 +62,10 @@ func TestNew(t *testing.T) {
 	if code != 1300 {
 		t.Fatal("Improper error code")
 	}
+	code = New(CertificateError, MissingSerial).ErrorCode
+	if code != 1400 {
+		t.Fatal("Improper error code")
+	}
 
 	code = New(PrivateKeyError, Unknown).ErrorCode
 	if code != 2000 {
