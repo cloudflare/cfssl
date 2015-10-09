@@ -12,6 +12,20 @@ import (
 	"github.com/cloudflare/cfssl/config"
 )
 
+func TestAppendIf(t *testing.T) {
+	s := ""
+	a := make([]string, 0, 5)
+	appendIf(s, &a)
+	if len(a) != 0 {
+		t.Fatal("appendIf should not append to a with an empty s")
+	}
+	s = "test"
+	appendIf(s, &a)
+	if len(a[0]) != 4 {
+		t.Fatal("appendIf should append s to a")
+	}
+}
+
 func TestSplitHosts(t *testing.T) {
 	list := SplitHosts("")
 	if list != nil {

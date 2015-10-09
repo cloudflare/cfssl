@@ -165,6 +165,7 @@ func TestRSAKeyGeneration(t *testing.T) {
 // 521; an invalid RSA key size is any size less than 2048 bits.
 func TestBadBasicKeyRequest(t *testing.T) {
 	kr := &BasicKeyRequest{"yolocrypto", 1024}
+
 	if _, err := kr.Generate(); err == nil {
 		t.Fatal("Key generation should fail with invalid algorithm")
 	} else if sa := kr.SigAlgo(); sa != x509.UnknownSignatureAlgorithm {
@@ -185,6 +186,14 @@ func TestBadBasicKeyRequest(t *testing.T) {
 		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
 	}
 
+	kr = &BasicKeyRequest{"tobig", 9216}
+
+	kr.A = "rsa"
+	if _, err := kr.Generate(); err == nil {
+		t.Fatal("Key generation should fail with invalid key size")
+	} else if sa := kr.SigAlgo(); sa != x509.SHA512WithRSA {
+		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
+	}
 }
 
 // TestDefaultBasicKeyRequest makes sure that certificate requests without
