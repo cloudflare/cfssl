@@ -2,9 +2,7 @@ package log
 
 import (
 	"bytes"
-	"fmt"
 	"log"
-	"os"
 	"strings"
 	"testing"
 )
@@ -18,9 +16,7 @@ func TestOutputf(t *testing.T) {
 	line := buf.String()
 
 	// if output contains original string, then test passes
-	if strings.Contains(line, string1) {
-		return
-	} else {
+	if !strings.Contains(line, string1) {
 		t.Fail()
 	}
 
