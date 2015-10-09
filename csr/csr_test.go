@@ -7,10 +7,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
-	"testing"
 )
 
 //TestNew validate the CertificateRequest created to return with a BasicKeyRequest
