@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/api/bundle"
+	"github.com/cloudflare/cfssl/api/certinfo"
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
@@ -99,6 +100,10 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 
 	"scaninfo": func() (http.Handler, error) {
 		return scan.NewInfoHandler(), nil
+	},
+
+	"certinfo": func() (http.Handler, error) {
+		return certinfo.NewHandler(), nil
 	},
 
 	"ocspsign": func() (http.Handler, error) {
