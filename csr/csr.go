@@ -242,6 +242,79 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	return
 }
 
+// ExtractCertificateRequest extracts a CertificateRequest from
+// x509.Certificate. It is aimed to used for generating a new certificate
+// from an existing certificate
+func ExtractCertificateRequest(cert *x509.Certificate) *CertificateRequest {
+	req := New()
+	req.CN = cert.Subject.CommonName
+	req.Names = getNames(cert.Subject)
+	req.Hosts = getHosts(cert)
+
+	if cert.IsCA {
+		req.CA = new(CAConfig)
+		req.CA.Expiry = cert.NotAfter.Sub(cert.NotBefore).String()
+		req.CA.PathLength = cert.MaxPathLen
+	}
+
+	return req
+}
+
+func getHosts(cert *x509.Certificate) []string {
+	var hosts []string
+	for _, ip := range cert.IPAddresses {
+		hosts = append(hosts, ip.String())
+	}
+	for _, dns := range cert.DNSNames {
+		hosts = append(hosts, dns)
+	}
+
+	return hosts
+}
+
+// getNames returns an array of Names from the certificate
+// It onnly cares about Country, Organization, OrganizationalUnit, Locality, Province
+func getNames(sub pkix.Name) []Name {
+	// anonymous func for finding the max of a list of interger
+	max := func(v1 int, vn ...int) (max int) {
+		max = v1
+		for i := 0; i < len(vn); i++ {
+			if vn[i] > max {
+				max = vn[i]
+			}
+		}
+		return max
+	}
+
+	nc := len(sub.Country)
+	norg := len(sub.Organization)
+	nou := len(sub.OrganizationalUnit)
+	nl := len(sub.Locality)
+	np := len(sub.Province)
+
+	n := max(nc, norg, nou, nl, np)
+
+	names := make([]Name, n)
+	for i := range names {
+		if i < nc {
+			names[i].C = sub.Country[i]
+		}
+		if i < norg {
+			names[i].O = sub.Organization[i]
+		}
+		if i < nou {
+			names[i].OU = sub.OrganizationalUnit[i]
+		}
+		if i < nl {
+			names[i].L = sub.Locality[i]
+		}
+		if i < np {
+			names[i].ST = sub.Province[i]
+		}
+	}
+	return names
+}
+
 // A Generator is responsible for validating certificate requests.
 type Generator struct {
 	Validator func(*CertificateRequest) error
