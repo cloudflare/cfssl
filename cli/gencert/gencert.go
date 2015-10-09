@@ -22,10 +22,10 @@ Usage of gencert:
         cfssl gencert -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] CSRJSON
         cfssl gencert -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSRJSON
 
-    Re-generate a existing CA cert with the CA key and CSR:
+    Re-generate a CA cert with the CA key and CSR:
         cfssl gencert -initca -ca-key key CSRJSON
 
-    Re-generate a existing CA cert with the CA key and certificate:
+    Re-generate a CA cert with the CA key and certificate:
         cfssl gencert -renewca -ca cert -ca-key key
 
 Arguments:

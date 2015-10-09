@@ -244,7 +244,8 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 
 // ExtractCertificateRequest extracts a CertificateRequest from
 // x509.Certificate. It is aimed to used for generating a new certificate
-// from an existing certificate
+// from an existing certificate. For a root certificate, the CA expiry
+// length is calculated as the duration between cert.NotAfter and cert.NotBefore.
 func ExtractCertificateRequest(cert *x509.Certificate) *CertificateRequest {
 	req := New()
 	req.CN = cert.Subject.CommonName
@@ -253,6 +254,8 @@ func ExtractCertificateRequest(cert *x509.Certificate) *CertificateRequest {
 
 	if cert.IsCA {
 		req.CA = new(CAConfig)
+		// CA expiry length is calculated based on the input cert
+		// issue date and expiry date.
 		req.CA.Expiry = cert.NotAfter.Sub(cert.NotBefore).String()
 		req.CA.PathLength = cert.MaxPathLen
 	}

@@ -24,10 +24,6 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 )
 
-// RenewWindowInDays defines the time window before expiry when
-// a root certificate can be re-generated.
-const RenewWindowInDays = 60
-
 // validator contains the default validation logic for certificate
 // authority certificates. The only requirement here is that the
 // certificate have a non-empty subject field.
@@ -107,7 +103,9 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 
 // RenewFromPEM re-creates a root certificate from the CA cert and key
 // files. The resulting root certificate will have the input CA certificate
-// as the template and have the same expiry length.
+// as the template and have the same expiry length. E.g. the exsiting CA
+// is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
+// will be valid from now and expire in one year as well.
 func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 	caBytes, err := ioutil.ReadFile(caFile)
 	if err != nil {
@@ -228,16 +226,13 @@ func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer) (cert, csrPEM
 }
 
 // RenewFromSigner re-creates a root certificate from the CA cert and crypto.Signer.
-// The resulting root certificate will have ca
-// as the template and have the same expiry length.
+// The resulting root certificate will have ca certificate
+// as the template and have the same expiry length. E.g. the exsiting CA
+// is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
+// will be valid from now and expire in one year as well.
 func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	if !ca.IsCA {
 		return nil, errors.New("input certificate is not a CA cert")
-	}
-
-	// it is not within renew window of expiration, don't re-generate
-	if time.Now().AddDate(0, 0, RenewWindowInDays).Before(ca.NotAfter) {
-		return nil, errors.New("input CA certificate is not expiring in 60 days")
 	}
 
 	// matching certificate public key vs private key
