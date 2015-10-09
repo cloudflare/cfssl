@@ -17,7 +17,7 @@ func TestOutputf(t *testing.T) {
 	outputf(LevelDebug, string1, nil)
 	line := buf.String()
 
-	//test with invalid inputs.
+	// if output contains original string, then test passes
 	if strings.Contains(line, string1) {
 		return
 	} else {
