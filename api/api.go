@@ -168,8 +168,7 @@ type ResponseMessage struct {
 }
 
 // Response implements the CloudFlare standard for API
-// responses. CFSSL does not currently use the messages field, but it
-// is provided for compatability.
+// responses.
 type Response struct {
 	Success  bool              `json:"success"`
 	Result   interface{}       `json:"result"`
@@ -178,14 +177,24 @@ type Response struct {
 }
 
 // NewSuccessResponse is a shortcut for creating new successul API
-// responses. CFSSL does not use the messages field, but it is
-// provided to conform to the CloudFlare standard.
+// responses.
 func NewSuccessResponse(result interface{}) Response {
 	return Response{
 		Success:  true,
 		Result:   result,
 		Errors:   []ResponseMessage{},
 		Messages: []ResponseMessage{},
+	}
+}
+
+// NewSuccessResponseWithMessage is a shortcut for creating new successul API
+// responses that includes a message.
+func NewSuccessResponseWithMessage(result interface{}, message string, code int) Response {
+	return Response{
+		Success:  true,
+		Result:   result,
+		Errors:   []ResponseMessage{},
+		Messages: []ResponseMessage{{code, message}},
 	}
 }
 
@@ -204,6 +213,17 @@ func NewErrorResponse(message string, code int) Response {
 // header, and writes to the http.ResponseWriter.
 func SendResponse(w http.ResponseWriter, result interface{}) error {
 	response := NewSuccessResponse(result)
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	err := enc.Encode(response)
+	return err
+}
+
+// SendResponseWithMessage builds a response from the result and the
+// provided message, sets the JSON header, and writes to the
+// http.ResponseWriter.
+func SendResponseWithMessage(w http.ResponseWriter, result interface{}, message string, code int) error {
+	response := NewSuccessResponseWithMessage(result, message, code)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	err := enc.Encode(response)
