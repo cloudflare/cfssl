@@ -135,7 +135,7 @@ func TestMonthsValid(t *testing.T) {
 	}
 }
 
-func HasValidExpiry(t *testing.T) {
+func TestHasValidExpiry(t *testing.T) {
 	// Issue period > April 1, 2015
 	var cert = &x509.Certificate{
 		NotBefore: time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
