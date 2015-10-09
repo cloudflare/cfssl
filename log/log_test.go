@@ -77,33 +77,6 @@ func TestCritical(t *testing.T) {
 	return
 }
 
-func TestErrorf(t *testing.T) {
-	const string1 = "asdf123"
-	buf := new(bytes.Buffer)
-	log.SetOutput(buf)
-	Errorf(string1, nil)
-
-	// test 1: outputf correctly prints string
-	// should never fail because error > debug
-	if !strings.Contains(buf.String(), string1) {
-		t.Fail()
-	}
-	return
-}
-
-func TestError(t *testing.T) {
-	const string1 = "asdf123"
-	buf := new(bytes.Buffer)
-	log.SetOutput(buf)
-	Error(nil)
-
-	// test 1: outputf correctly prints string
-	if !strings.Contains(buf.String(), levelPrefix[LevelError]) {
-		t.Fail()
-	}
-	return
-}
-
 func TestWarningf(t *testing.T) {
 	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
