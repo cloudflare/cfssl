@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -128,6 +129,18 @@ func gencertMain(args []string, c cli.Config) error {
 		cert, err = s.Sign(req)
 		if err != nil {
 			return err
+		}
+
+		// This follows the Baseline Requirements for the Issuance and
+		// Management of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser
+		// Forum (https://cabforum.org). Specifically, section 10.2.3 ("Information
+		// Requirements"), states:
+		//
+		// "Applicant information MUST include, but not be limited to, at least one
+		// Fully-Qualified Domain Name or IP address to be included in the Certificate’s
+		// SubjectAltName extension."
+		if len(req.Hosts) == 0 {
+			log.Warning(generator.CSRNoHostMessage)
 		}
 
 		cli.PrintCert(key, csrBytes, cert)
