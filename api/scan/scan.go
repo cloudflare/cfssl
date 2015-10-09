@@ -3,6 +3,7 @@ package scan
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/errors"
@@ -21,21 +22,33 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 	family := r.Form.Get("family")
 	scanner := r.Form.Get("scanner")
 	ip := r.Form.Get("ip")
+	timeoutStr := r.Form.Get("timeout")
+	var timeout time.Duration
+	var err error
+	if timeoutStr != "" {
+		if timeout, err = time.ParseDuration(timeoutStr); err != nil {
+			return errors.NewBadRequest(err)
+		}
+		if timeout < time.Second || timeout > 5*time.Minute {
+			return errors.NewBadRequestString("invalid timeout given")
+		}
+	} else {
+		timeout = time.Minute
+	}
+
 	host := r.Form.Get("host")
 	if host == "" {
 		log.Warningf("no host given")
 		return errors.NewBadRequestString("no host given")
 	}
 
-	results, err := scan.Default.RunScans(host, ip, family, scanner, 0)
+	resultChan, err := scan.Default.RunScans(host, ip, family, scanner, timeout)
 	if err != nil {
-		log.Warningf("%v", err)
 		return errors.NewBadRequest(err)
 	}
 
-	response := api.NewSuccessResponse(results)
-	enc := json.NewEncoder(w)
-	return enc.Encode(response)
+	results := scan.ProcessResults(resultChan)
+	return json.NewEncoder(w).Encode(api.NewSuccessResponse(results))
 }
 
 // NewHandler returns a new http.Handler that handles a scan request.
@@ -52,8 +65,7 @@ func scanInfoHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Info("setting up scaninfo handler")
 	response := api.NewSuccessResponse(scan.Default)
 	enc := json.NewEncoder(w)
-	err := enc.Encode(response)
-	return err
+	return enc.Encode(response)
 }
 
 // NewInfoHandler returns a new http.Handler that handles a request for scan info.

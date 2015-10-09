@@ -139,7 +139,7 @@ func v1APIPath(endpoint string) string {
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
 	for path, getHandler := range v1Endpoints {
-		path = "/api/v1/cfssl/" + path
+		path = v1APIPath(path)
 		log.Infof("Setting up '%s' endpoint", path)
 		if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)

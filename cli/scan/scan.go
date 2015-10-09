@@ -3,6 +3,7 @@ package scan
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/scan"
@@ -34,6 +35,8 @@ func scanMain(args []string, c cli.Config) (err error) {
 		if err = scan.LoadRootCAs(c.CABundleFile); err != nil {
 			return
 		}
+
+		var wg sync.WaitGroup
 		// Execute for each HOST argument given
 		for len(args) > 0 {
 			var host string
@@ -41,18 +44,23 @@ func scanMain(args []string, c cli.Config) (err error) {
 			if err != nil {
 				return
 			}
-
 			fmt.Printf("Scanning %s...\n", host)
 
-			var results map[string]scan.FamilyResult
-			results, err = scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
+			var resultChan <-chan *scan.Result
+			resultChan, err = scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
 			if err != nil {
 				return
 			}
-			if results != nil {
+
+			wg.Add(1)
+			go func(host string, resultChan <-chan *scan.Result) {
+				results := scan.ProcessResults(resultChan)
+				fmt.Printf("=== %s ===\n", host)
 				printJSON(results)
-			}
+				wg.Done()
+			}(host, resultChan)
 		}
+		wg.Wait()
 	}
 	return
 }
