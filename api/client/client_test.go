@@ -1,10 +1,9 @@
 package client
 
 import (
+	"github.com/cloudflare/cfssl/auth"
 	"net"
 	"testing"
-
-	"github.com/cloudflare/cfssl/auth"
 )
 
 var (
@@ -33,8 +32,20 @@ func TestNewServer(t *testing.T) {
 
 	s = NewServer("127.0.0.1:8888")
 	hosts := s.Hosts()
-	if len(hosts) != 1 && hosts[0] != "127.0.0.1:8888" {
-		t.Fatalf("expected [127.0.0.1:8888], but have %v", hosts)
+	if len(hosts) != 1 || hosts[0] != "http://127.0.0.1:8888" {
+		t.Fatalf("expected [http://127.0.0.1:8888], but have %v", hosts)
+	}
+
+	s = NewServer("http://1.1.1.1:9999")
+	hosts = s.Hosts()
+	if len(hosts) != 1 || hosts[0] != "http://1.1.1.1:9999" {
+		t.Fatalf("expected [http://1.1.1.1:9999], but have %v", hosts)
+	}
+
+	s = NewServer("https://1.1.1.1:8080")
+	hosts = s.Hosts()
+	if len(hosts) != 1 || hosts[0] != "https://1.1.1.1:8080" {
+		t.Fatalf("expected [https://1.1.1.1:8080], but have %v", hosts)
 	}
 }
 
@@ -74,7 +85,45 @@ func TestSign(t *testing.T) {
 }
 
 func TestNewServerGroup(t *testing.T) {
-	s := NewServer("cfssl1.local:8888, cfssl2.local:8888")
+	s := NewServer("cfssl1.local:8888, cfssl2.local:8888, http://cfssl3.local:8888, http://cfssl4.local:8888")
+
+	ogl, ok := s.(*orderedListGroup)
+	if !ok {
+		t.Fatalf("expected NewServer to return an ordered group list with a list of servers, instead got a %T = %+v", ogl, ogl)
+	}
+
+	if len(ogl.remotes) != 4 {
+		t.Fatalf("expected the remote to have four servers, but it has %d", len(ogl.remotes))
+	}
+
+	hosts := ogl.Hosts()
+	if len(hosts) != 4 {
+		t.Fatalf("expected 2 hosts in the group, but have %d", len(hosts))
+	}
+
+	if hosts[0] != "http://cfssl1.local:8888" {
+		t.Fatalf("expected to see http://cfssl1.local:8888, but saw %s",
+			hosts[0])
+	}
+
+	if hosts[1] != "http://cfssl2.local:8888" {
+		t.Fatalf("expected to see http://cfssl2.local:8888, but saw %s",
+			hosts[1])
+	}
+
+	if hosts[2] != "http://cfssl3.local:8888" {
+		t.Fatalf("expected to see http://cfssl1.local:8888, but saw %s",
+			hosts[2])
+	}
+
+	if hosts[3] != "http://cfssl4.local:8888" {
+		t.Fatalf("expected to see http://cfssl2.local:8888, but saw %s",
+			hosts[3])
+	}
+}
+
+func TestNewTLSServerGroup(t *testing.T) {
+	s := NewServer("https://cfssl1.local:8888, https://cfssl2.local:8888")
 
 	ogl, ok := s.(*orderedListGroup)
 	if !ok {
@@ -90,13 +139,13 @@ func TestNewServerGroup(t *testing.T) {
 		t.Fatalf("expected 2 hosts in the group, but have %d", len(hosts))
 	}
 
-	if hosts[0] != "cfssl1.local:8888" {
-		t.Fatalf("expected to see cfssl1.local:8888, but saw %s",
+	if hosts[0] != "https://cfssl1.local:8888" {
+		t.Fatalf("expected to see https://cfssl1.local:8888, but saw %s",
 			hosts[0])
 	}
 
-	if hosts[1] != "cfssl2.local:8888" {
-		t.Fatalf("expected to see cfssl2.local:8888, but saw %s",
+	if hosts[1] != "https://cfssl2.local:8888" {
+		t.Fatalf("expected to see https://cfssl2.local:8888, but saw %s",
 			hosts[1])
 	}
 }

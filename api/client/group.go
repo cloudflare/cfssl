@@ -43,7 +43,11 @@ func StrategyFromString(s string) Strategy {
 func NewGroup(remotes []string, strategy Strategy) (Remote, error) {
 	var servers = make([]*server, len(remotes))
 	for i := range remotes {
-		servers[i] = newServer(remotes[i])
+		u, err := normalizeURL(remotes[i])
+		if err != nil {
+			return nil, err
+		}
+		servers[i], _ = newServer(u)
 	}
 
 	switch strategy {
