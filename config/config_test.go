@@ -309,6 +309,7 @@ func TestLoadInvalidConfigFile(t *testing.T) {
 		"testdata/invalid_no_auth_keys.json",
 		"testdata/invalid_remote.json",
 		"testdata/invalid_no_remotes.json",
+		"testdata/invalid_no_signing.json",
 	}
 	for _, configFile := range invalidConfigFiles {
 		_, err := LoadFile(configFile)
