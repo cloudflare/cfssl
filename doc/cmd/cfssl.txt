@@ -46,7 +46,7 @@ authenticator, the "auth_keys" section might look like
         "primary": {
             "type":"standard",
             "key":"0123456789ABCDEF0123456789ABCDEF"
-	}
+        }
     }
 
 The authentication documentation covers available authenticators and
@@ -152,43 +152,50 @@ their profile. If the default profile isn't present, the following
 default profile is used:
 
    {
-	"usage": ["signing", "key encipherment", "server auth", "client auth"],
-	"expiry: "8760h"
+      "usage": ["signing", "key encipherment", "server auth", "client auth"],
+      "expiry: "8760h"
    }
 
 The expiration time of 8760h is equivalent to one year.
 
 A minimal configuration file might look like:
 
-    {
-	    "signing": {
-		    "profiles": {
-			    "CA": {
-				    "usages": ["cert sign"],
-				    "expiry": "720h",
-				    "auth_key": "ca-auth",
-				    "remote": "localhost"
-			    },
-			    "email": {
-				    "usages": ["s/mime"],
-				    "expiry": "720h"
-			    }
-		    },
-		    "default": {
-			    "usages": ["digital signature", "email protection"],
-			    "expiry": "8000h"
-		    }
-	    },
-	    "auth_keys": {
-		    "ca-auth": {
-			    "type":"standard",
-			    "key":"0123456789ABCDEF0123456789ABCDEF"
-		    }
-	    },
-	    "remotes": {
-		    "localhost": "127.0.0.1:8888"
-	    }
+{
+  "signing": {
+    "profiles": {
+      "CA": {
+          "usages": ["cert sign"],
+          "expiry": "720h",
+          "auth_key": "local-auth",
+          "auth_remote": {
+            "remote": "localhost",
+            "auth_key": "ca-auth"
+          }
+      },
+        "email": {
+          "usages": ["s/mime"],
+          "expiry": "720h"
+        }
+    },
+      "default": {
+        "usages": ["digital signature", "email protection"],
+        "expiry": "8000h"
+      }
+  },
+    "auth_keys": {
+      "local-auth": {
+        "type":"standard",
+        "key":"123456789ABCDEF0123456789ABCDEF0"
+      },
+      "ca-auth": {
+        "type":"standard",
+        "key":"0123456789ABCDEF0123456789ABCDEF"
+      }
+    },
+    "remotes": {
+      "localhost": "127.0.0.1:8888"
     }
+}
 
 
 [1] https://golang.org/pkg/time/#ParseDuration
