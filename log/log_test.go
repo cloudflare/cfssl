@@ -7,23 +7,15 @@ import (
 	"testing"
 )
 
-func TestOutputf(t *testing.T) {
-	const string1 = "asdf123"
-	buf := new(bytes.Buffer)
+const string1 = "asdf123"
 
+func TestOutputf(t *testing.T) {
+	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	outputf(LevelDebug, string1, nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	if !strings.Contains(buf.String(), string1) {
-		t.Fail()
-	}
-
-	(*bytes.Buffer).Reset(buf)
-	outputf(LevelDebug-1, string1, nil)
-
-	// test 2: outputf will not print if level is below a range
-	if buf.String() != "" {
 		t.Fail()
 	}
 	return
@@ -31,32 +23,22 @@ func TestOutputf(t *testing.T) {
 
 func TestOutput(t *testing.T) {
 	buf := new(bytes.Buffer)
-
 	log.SetOutput(buf)
 	output(LevelDebug, nil)
 
-	// test 1: outputf correctly prints string with proper Debug prefix
+	// outputf correctly prints string with proper Debug prefix
 	if !strings.Contains(buf.String(), levelPrefix[LevelDebug]) {
-		t.Fail()
-	}
-
-	(*bytes.Buffer).Reset(buf)
-	output(LevelDebug-1, nil)
-
-	// test 2: outputf will not print if level is below a range
-	if buf.String() != "" {
 		t.Fail()
 	}
 	return
 }
 
 func TestCriticalf(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Criticalf(string1, nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	// should never fail because critical > debug
 	if !strings.Contains(buf.String(), string1) {
 		t.Fail()
@@ -65,12 +47,11 @@ func TestCriticalf(t *testing.T) {
 }
 
 func TestCritical(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Critical(nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	if !strings.Contains(buf.String(), levelPrefix[LevelCritical]) {
 		t.Fail()
 	}
@@ -78,12 +59,11 @@ func TestCritical(t *testing.T) {
 }
 
 func TestWarningf(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Warningf(string1, nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	// should never fail because fatal critical > debug
 	if !strings.Contains(buf.String(), string1) {
 		t.Fail()
@@ -92,12 +72,11 @@ func TestWarningf(t *testing.T) {
 }
 
 func TestWarning(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Warning(nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	if !strings.Contains(buf.String(), levelPrefix[LevelWarning]) {
 		t.Fail()
 	}
@@ -105,12 +84,11 @@ func TestWarning(t *testing.T) {
 }
 
 func TestInfof(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Infof(string1, nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	// should never fail because fatal info > debug
 	if !strings.Contains(buf.String(), string1) {
 		t.Fail()
@@ -119,12 +97,11 @@ func TestInfof(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Info(nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	if !strings.Contains(buf.String(), levelPrefix[LevelInfo]) {
 		t.Fail()
 	}
@@ -132,12 +109,11 @@ func TestInfo(t *testing.T) {
 }
 
 func TestDebugf(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Debugf(string1, nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	// should never fail because fatal debug >= debug
 	if !strings.Contains(buf.String(), string1) {
 		t.Fail()
@@ -146,15 +122,13 @@ func TestDebugf(t *testing.T) {
 }
 
 func TestDebug(t *testing.T) {
-	const string1 = "asdf123"
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
 	Debug(nil)
 
-	// test 1: outputf correctly prints string
+	// outputf correctly prints string
 	if !strings.Contains(buf.String(), levelPrefix[LevelDebug]) {
 		t.Fail()
 	}
 	return
-
 }
