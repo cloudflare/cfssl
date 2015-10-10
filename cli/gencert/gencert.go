@@ -22,8 +22,11 @@ Usage of gencert:
         cfssl gencert -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] CSRJSON
         cfssl gencert -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSRJSON
 
-	Re-generate a existing CA cert with the CA key and CSR:
+    Re-generate a CA cert with the CA key and CSR:
         cfssl gencert -initca -ca-key key CSRJSON
+
+    Re-generate a CA cert with the CA key and certificate:
+        cfssl gencert -renewca -ca cert -ca-key key
 
 Arguments:
         CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
@@ -33,16 +36,26 @@ Flags:
 
 var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "hostname", "profile", "label"}
 
-func gencertMain(args []string, c cli.Config) (err error) {
+func gencertMain(args []string, c cli.Config) error {
+	if c.RenewCA {
+		log.Infof("re-generate a CA certificate from CA cert and key")
+		cert, err := initca.RenewFromPEM(c.CAFile, c.CAKeyFile)
+		if err != nil {
+			log.Errorf("%v\n", err)
+			return err
+		}
+		cli.PrintCert(nil, nil, cert)
+		return nil
+	}
 
 	csrJSONFile, args, err := cli.PopFirstArgument(args)
 	if err != nil {
-		return
+		return err
 	}
 
 	csrJSONFileBytes, err := cli.ReadStdin(csrJSONFile)
 	if err != nil {
-		return
+		return err
 	}
 
 	req := csr.CertificateRequest{
@@ -50,39 +63,44 @@ func gencertMain(args []string, c cli.Config) (err error) {
 	}
 	err = json.Unmarshal(csrJSONFileBytes, &req)
 	if err != nil {
-		return
+		return err
 	}
-
-	if c.IsCA {
+	switch {
+	case c.IsCA:
 		var key, csrPEM, cert []byte
-		log.Infof("re-generate a CA certificate from CSR and CA key")
-		cert, csrPEM, err = initca.NewFromPEM(&req, c.CAKeyFile)
-		if err != nil {
-			log.Errorf("%v\n", err)
-			log.Infof("fallback to generating a new CA key and certificate from CSR")
+		if c.CAKeyFile != "" {
+			log.Infof("re-generate a CA certificate from CSR and CA key")
+			cert, csrPEM, err = initca.NewFromPEM(&req, c.CAKeyFile)
+			if err != nil {
+				log.Errorf("%v\n", err)
+				return err
+			}
+		} else {
+			log.Infof("generating a new CA key and certificate from CSR")
 			cert, csrPEM, key, err = initca.New(&req)
 			if err != nil {
-				return
+				return err
 			}
 
 		}
 		cli.PrintCert(key, csrPEM, cert)
-	} else {
+
+	default:
 		if req.CA != nil {
 			err = errors.New("ca section only permitted in initca")
-			return
+			return err
 		}
 
 		// Remote can be forced on the command line or in the config
 		if c.Remote == "" && c.CFG == nil {
 			if c.CAFile == "" {
 				log.Error("need a CA certificate (provide one with -ca)")
-				return
+				return nil
 			}
 
 			if c.CAKeyFile == "" {
 				log.Error("need a CA key (provide one with -ca-key)")
-				return
+				return nil
 			}
 		}
 
@@ -91,7 +109,7 @@ func gencertMain(args []string, c cli.Config) (err error) {
 		csrBytes, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
-			return
+			return err
 		}
 
 		s, err := sign.SignerFromConfig(c)

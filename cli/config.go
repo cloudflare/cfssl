@@ -29,6 +29,7 @@ type Config struct {
 	CFG               *config.Config
 	Profile           string
 	IsCA              bool
+	RenewCA           bool
 	IntDir            string
 	Flavor            string
 	Metadata          string
@@ -61,8 +62,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Hostname, "hostname", "", "Hostname for the cert, could be a comma-separated hostname list")
 	f.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
 	f.StringVar(&c.CSRFile, "csr", "", "Certificate signature request file for new public key")
-	f.StringVar(&c.CAFile, "ca", "ca.pem", "CA used to sign the new certificate")
-	f.StringVar(&c.CAKeyFile, "ca-key", "ca-key.pem", "CA private key")
+	f.StringVar(&c.CAFile, "ca", "", "CA used to sign the new certificate")
+	f.StringVar(&c.CAKeyFile, "ca-key", "", "CA private key")
 	f.StringVar(&c.KeyFile, "key", "", "private key for the certificate")
 	f.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")
@@ -72,6 +73,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.ConfigFile, "config", "", "path to configuration file")
 	f.StringVar(&c.Profile, "profile", "", "signing profile to use")
 	f.BoolVar(&c.IsCA, "initca", false, "initialise new CA")
+	f.BoolVar(&c.RenewCA, "renewca", false, "re-generate a CA certificate from existing CA certificate/key")
 	f.StringVar(&c.IntDir, "int-dir", "", "specify intermediates directory")
 	f.StringVar(&c.Flavor, "flavor", "ubiquitous", "Bundle Flavor: ubiquitous, optimal and force.")
 	f.StringVar(&c.Metadata, "metadata", "", "Metadata file for root certificate presence. The content of the file is a json dictionary (k,v): each key k is SHA-1 digest of a root certificate while value v is a list of key store filenames.")
