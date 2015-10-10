@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const string1 = "asdf123"
+const teststring = "asdf123"
 
 func TestOutputf(t *testing.T) {
 	buf := new(bytes.Buffer)
