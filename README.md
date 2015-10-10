@@ -266,8 +266,9 @@ command:
 
 ```
 cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
-            [-ca-key key] [-int-bundle bundle] [-port port]   \
-            [-remote remote_server]
+            [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
+            [-metadata file] [-remote remote_host] [-config config] \
+            [-responder cert] [-responder-key key]
 ```
 
 Address and port default to "127.0.0.1:8888". The `-ca` and `-ca-key`
@@ -277,6 +278,13 @@ for signing; by default, they are "ca.pem" and "ca_key.pem". The
 for the root and intermediate certificate pools, respectively. These
 default to "ca-bundle.crt" and "int-bundle." If the "remote" option is
 provided, all signature operations will be forwarded to the remote CFSSL.
+
+'-int-dir' specifies intermediates directory. '-metadata' is a file for
+root certificate presence. The content of the file is a json dictionary 
+(k,v): each key k is SHA-1 digest of a root certificate while value v 
+is a list of key store filenames. '-config' specifies path to configuration
+file. '-responder' and  '-responder-key' are Certificate for OCSP responder
+and private key for OCSP responder certificate, respectively.
 
 The amount of logging can be controlled with the `-loglevel` option. This
 comes *before* the serve command:

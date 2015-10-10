@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	rice "github.com/GeertJohan/go.rice"
+	"github.com/cloudflare/cfssl/cli"
 )
 
 func TestServe(t *testing.T) {
@@ -58,5 +59,11 @@ func TestServe(t *testing.T) {
 		if resp.StatusCode != status {
 			t.Fatalf("%s: '%s' (expected '%s')", endpoint, resp.Status, http.StatusText(status))
 		}
+	}
+
+	var c cli.Config
+	var test = []string{"test"}
+	if err := serverMain(test, c); err == nil {
+		t.Fatalf("There should be an error for argument")
 	}
 }
