@@ -2,6 +2,7 @@
 package serve
 
 import (
+	"crypto/tls"
 	"errors"
 	"net"
 	"net/http"
@@ -41,7 +42,8 @@ Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "responder", "responder-key"}
+var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata",
+	"remote", "config", "responder", "responder-key", "endpoint-key", "endpoint-cert"}
 
 var (
 	conf       cli.Config
@@ -187,8 +189,52 @@ func serverMain(args []string, c cli.Config) error {
 	registerHandlers()
 
 	addr := net.JoinHostPort(conf.Address, strconv.Itoa(conf.Port))
-	log.Info("Now listening on ", addr)
-	return http.ListenAndServe(addr, nil)
+
+	endpointCA := conf.EPCAFile
+	endpointKey := conf.EPCAKeyFile
+
+	if endpointCA == "" || endpointKey == "" {
+		log.Info("Now listening on ", addr)
+		return http.ListenAndServe(addr, nil)
+	} else {
+		var CipherSuites = []uint16{
+			// These are manually specified because the SHA384 suites are
+			// not specified in Go 1.4; in Go 1.4, they won't actually
+			// be sent.
+			0xc030, // TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+			0xc02c, // TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+			0xc02f, // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+			0xc02b, // TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+			0x0005, // TLS_RSA_WITH_RC4_128_SHA
+			0x000a, // TLS_RSA_WITH_3DES_EDE_CBC_SHA
+			0x002f, // TLS_RSA_WITH_AES_128_CBC_SHA
+			0x0035, // TLS_RSA_WITH_AES_256_CBC_SHA
+			0xc007, // TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+			0xc009, // TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+			0xc00a, // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+			0xc011, // TLS_ECDHE_RSA_WITH_RC4_128_SHA
+			0xc012, // TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+			0xc013, // TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+			0xc014, // TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+
+		}
+
+		//config struct
+		tlsConfig := &tls.Config{
+			CipherSuites: CipherSuites,
+		}
+
+		//server struct
+		s := &http.Server{
+			Addr:      addr,
+			Handler:   nil,
+			TLSConfig: tlsConfig,
+		}
+
+		log.Info("Now listening on https://", addr)
+
+		return s.ListenAndServeTLS(endpointCA, endpointKey)
+	}
 }
 
 // CLIServer assembles the definition of Command 'serve'
