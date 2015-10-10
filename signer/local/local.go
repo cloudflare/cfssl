@@ -259,11 +259,16 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	cert, err = s.sign(&safeTemplate, profile)
 
-	if profile.CTLog != "" {
-		var derCert, _ = pem.Decode(cert)
-		var ctclient = client.New(profile.CTLog)
-		chain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
-		var _, err = ctclient.AddChain(chain)
+	if err != nil {
+		return nil, err
+	}
+
+	derCert, _ := pem.Decode(cert)
+	chain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
+
+	for _, server := range profile.CTLogServers {
+		var ctclient = client.New(server)
+		_, err = ctclient.AddChain(chain)
 		if err != nil {
 			return nil, err
 		}
