@@ -16,6 +16,8 @@ Optional parameters:
     the CSR, useful when interacting with cfssl server that stands
     in front of a remote multi-root CA signer
     * profile: a string specifying the signing profile for the signer
+    * format: a json object specifying the output file type and 
+    optional password. (example: "format": {"type": "pkcs12", "password": "password"})
 
 Result:
 

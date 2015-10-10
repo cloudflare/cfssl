@@ -24,6 +24,7 @@ type Config struct {
 	IntermediatesFile string
 	CABundleFile      string
 	IntBundleFile     string
+	Format            string
 	Address           string
 	Port              int
 	Password          string
@@ -73,6 +74,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")
 	f.StringVar(&c.IntBundleFile, "int-bundle", "", "path to intermediate certificate store")
+	f.StringVar(&c.Format, "format", "", "format for the exported file")
 	f.StringVar(&c.Address, "address", "127.0.0.1", "Address to bind")
 	f.IntVar(&c.Port, "port", 8888, "Port to bind")
 	f.StringVar(&c.ConfigFile, "config", "", "path to configuration file")

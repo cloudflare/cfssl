@@ -13,6 +13,7 @@ import (
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/crypto/pkcs12"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -203,6 +204,12 @@ type genSignRequest struct {
 	Request *csr.CertificateRequest `json:"request"`
 	Profile string                  `json:"profile"`
 	Label   string                  `json:"label"`
+	Format  format                  `json:"format"`
+}
+
+type format struct {
+	Type     string `json:"type"`
+	Password string `json:"password"`
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -265,10 +272,20 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		return errors.NewBadRequest(err)
 	}
 
+	var file string
+	if req.Format.Type == "pkcs12" {
+		var password []byte
+		if req.Format.Password != "" {
+			password = []byte(req.Format.Password)
+		}
+		file = pkcs12.ParseAndEncode(key, certBytes, password)
+	}
+
 	result := map[string]interface{}{
 		"private_key":         string(key),
 		"certificate_request": string(csr),
 		"certificate":         string(certBytes),
+		"format":              file,
 		"sums": map[string]Sum{
 			"certificate_request": reqSum,
 			"certificate":         certSum,

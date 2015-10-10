@@ -173,6 +173,32 @@ func PrintCert(key, csrBytes, cert []byte) {
 	fmt.Printf("%s\n", jsonOut)
 }
 
+// PrintCertAndFile outputs a cert, key, csr, and file to stdout
+func PrintCertAndFile(key, csrBytes, cert []byte, file string) {
+	out := map[string]string{}
+	if cert != nil {
+		out["cert"] = string(cert)
+	}
+
+	if key != nil {
+		out["key"] = string(key)
+	}
+
+	if csrBytes != nil {
+		out["csr"] = string(csrBytes)
+	}
+
+	if file != "" {
+		out["file"] = file
+	}
+
+	jsonOut, err := json.Marshal(out)
+	if err != nil {
+		return
+	}
+	fmt.Printf("%s\n", jsonOut)
+}
+
 // PrintOCSPResponse outputs an OCSP response to stdout
 // ocspResponse is base64 encoded
 func PrintOCSPResponse(resp []byte) {
