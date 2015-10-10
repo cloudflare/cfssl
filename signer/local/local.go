@@ -22,6 +22,9 @@ import (
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+
+	"github.com/google/certificate-transparency/go"
+	"github.com/google/certificate-transparency/go/client"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -254,7 +257,19 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		safeTemplate.SerialNumber = serialNumber
 	}
 
-	return s.sign(&safeTemplate, profile)
+	cert, err = s.sign(&safeTemplate, profile)
+
+	if profile.CTLog != "" {
+		var derCert, _ = pem.Decode(cert)
+		var ctclient = client.New(profile.CTLog)
+		chain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
+		var _, err = ctclient.AddChain(chain)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return
 }
 
 // Info return a populated info.Resp struct or an error.
