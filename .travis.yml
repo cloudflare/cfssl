@@ -12,7 +12,18 @@ before_install:
   - mkdir -p $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare
   - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && ln -s $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
 
+# Only build pull requests, pushes to the master branch, and branches
+# starting with `test-`. This is a convenient way to push branches to
+# your own fork of the repostiory to ensure Travis passes before submitting
+# a PR. For instance, you might run:
+# git push myremote branchname:test-branchname
+branches:
+  only:
+    - master
+    - /^test-.*$/
+
 before_script:
+  
   - go get golang.org/x/tools/cmd/vet
   - go get golang.org/x/tools/cmd/goimports
   - go get github.com/onsi/gomega
@@ -32,6 +43,10 @@ notifications:
     on_success: never
     on_failure: change
 env:
-  - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
+  global:
+    - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
+  matrix:
+    - BUILD_FLAGS=
+    - BUILD_FLAGS="-tags nopkcs11"
 after_success:
   - bash <(curl -s https://codecov.io/bash) -f coverprofile.txt

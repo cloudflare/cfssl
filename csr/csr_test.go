@@ -13,6 +13,16 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 )
 
+//TestNew validate the CertificateRequest created to return with a BasicKeyRequest
+//in KeyRequest field
+
+func TestNew(t *testing.T) {
+
+	if cr := New(); cr.KeyRequest == nil {
+		t.Fatalf("Should create a new, empty certificate request with BasicKeyRequest")
+	}
+}
+
 // TestBasicKeyRequest ensures that key generation returns the same type of
 // key specified in the BasicKeyRequest.
 func TestBasicKeyRequest(t *testing.T) {
@@ -165,6 +175,7 @@ func TestRSAKeyGeneration(t *testing.T) {
 // 521; an invalid RSA key size is any size less than 2048 bits.
 func TestBadBasicKeyRequest(t *testing.T) {
 	kr := &BasicKeyRequest{"yolocrypto", 1024}
+
 	if _, err := kr.Generate(); err == nil {
 		t.Fatal("Key generation should fail with invalid algorithm")
 	} else if sa := kr.SigAlgo(); sa != x509.UnknownSignatureAlgorithm {
@@ -185,6 +196,14 @@ func TestBadBasicKeyRequest(t *testing.T) {
 		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
 	}
 
+	kr = &BasicKeyRequest{"tobig", 9216}
+
+	kr.A = "rsa"
+	if _, err := kr.Generate(); err == nil {
+		t.Fatal("Key generation should fail with invalid key size")
+	} else if sa := kr.SigAlgo(); sa != x509.SHA512WithRSA {
+		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
+	}
 }
 
 // TestDefaultBasicKeyRequest makes sure that certificate requests without
@@ -454,6 +473,8 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
+// TestReGenerate ensures Regenerate() is abel to use the provided CSR as a template for signing a new
+// CSR using priv.
 func TestReGenerate(t *testing.T) {
 	var req = &CertificateRequest{
 		Names: []Name{
@@ -486,6 +507,60 @@ func TestReGenerate(t *testing.T) {
 	}
 
 	if _, _, err = helpers.ParseCSR(csr); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = Regenerate(priv, csr)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}
+
+// TestBadReGenerator ensures that a request that fails the ParseCSR is
+// not processed.
+func TestBadReGenerate(t *testing.T) {
+	var req = &CertificateRequest{
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
+	}
+
+	csr, key, err := ParseRequest(req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	priv, err := helpers.ParsePrivateKeyPEM(key)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	csr, err = Generate(priv, req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	block := pem.Block{
+		Type: "CERTIFICATE REQUEST",
+		Headers: map[string]string{
+			"Location": "UCSD",
+		},
+		Bytes: csr,
+	}
+
+	csr = pem.EncodeToMemory(&block)
+
+	_, err = Regenerate(priv, csr)
+	if err == nil {
 		t.Fatalf("%v", err)
 	}
 }

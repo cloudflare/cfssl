@@ -527,6 +527,10 @@ func LoadConfig(config []byte) (*Config, error) {
 			errors.New("failed to unmarshal configuration: "+err.Error()))
 	}
 
+	if cfg.Signing == nil {
+		return nil, errors.New("No \"signing\" field present")
+	}
+
 	if cfg.Signing.Default == nil {
 		log.Debugf("no default given: using default config")
 		cfg.Signing.Default = DefaultConfig()
