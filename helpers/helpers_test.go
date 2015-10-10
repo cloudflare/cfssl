@@ -100,7 +100,7 @@ func TestKeyLength(t *testing.T) {
 
 func TestExpiryTime(t *testing.T) {
 	// nil case
-	var expNil *time.Time
+	var expNil time.Time
 	inNil := []*x509.Certificate{}
 	outNil := ExpiryTime(inNil)
 	if expNil != outNil {
@@ -115,11 +115,8 @@ func TestExpiryTime(t *testing.T) {
 	}
 	expected := time.Date(2014, time.April, 15, 0, 0, 0, 0, time.UTC)
 	out := ExpiryTime(certs)
-	if out == nil {
-		t.Fatal("Expiry time returning null")
-	}
-	if *out != expected {
-		t.Fatalf("Expected %v, got %v", expected, *out)
+	if out != expected {
+		t.Fatalf("Expected %v, got %v", expected, out)
 	}
 }
 

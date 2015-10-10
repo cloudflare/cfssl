@@ -44,6 +44,7 @@ func TestServe(t *testing.T) {
 	expected[v1APIPath("init_ca")] = http.StatusMethodNotAllowed
 	expected[v1APIPath("newkey")] = http.StatusMethodNotAllowed
 	expected[v1APIPath("bundle")] = http.StatusMethodNotAllowed
+	expected[v1APIPath("certinfo")] = http.StatusMethodNotAllowed
 
 	// POST-only endpoints should return '400 Bad Request'
 	expected[v1APIPath("scan")] = http.StatusBadRequest

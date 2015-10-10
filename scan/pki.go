@@ -62,11 +62,7 @@ func chainExpiration(addr, hostname string) (grade Grade, output Output, err err
 		return
 	}
 
-	e := helpers.ExpiryTime(chain)
-	if e == nil {
-		return
-	}
-	expirationTime := *e
+	expirationTime := helpers.ExpiryTime(chain)
 	output = expirationTime
 
 	if time.Now().After(expirationTime) {

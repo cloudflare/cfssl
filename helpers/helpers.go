@@ -59,17 +59,18 @@ func KeyLength(key interface{}) int {
 }
 
 // ExpiryTime returns the time when the certificate chain is expired.
-func ExpiryTime(chain []*x509.Certificate) *time.Time {
+func ExpiryTime(chain []*x509.Certificate) (notAfter time.Time) {
 	if len(chain) == 0 {
-		return nil
+		return
 	}
-	notAfter := chain[0].NotAfter
+
+	notAfter = chain[0].NotAfter
 	for _, cert := range chain {
-		if cert.NotAfter.Before(notAfter) {
+		if notAfter.After(cert.NotAfter) {
 			notAfter = cert.NotAfter
 		}
 	}
-	return &notAfter
+	return
 }
 
 // MonthsValid returns the number of months for which a certificate is valid.
@@ -172,6 +173,24 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	default:
 		return "Unknown Hash Algorithm"
 	}
+}
+
+// EncodeCertificatesPEM encodes a number of x509 certficates to PEM
+func EncodeCertificatesPEM(certs []*x509.Certificate) []byte {
+	var buffer bytes.Buffer
+	for _, cert := range certs {
+		pem.Encode(&buffer, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})
+	}
+
+	return buffer.Bytes()
+}
+
+// EncodeCertificatePEM encodes a single x509 certficates to PEM
+func EncodeCertificatePEM(cert *x509.Certificate) []byte {
+	return EncodeCertificatesPEM([]*x509.Certificate{cert})
 }
 
 // ParseCertificatesPEM parses a sequence of PEM-encoded certificate and returns them,

@@ -109,10 +109,10 @@ func CompareChainLength(chain1, chain2 []*x509.Certificate) int {
 	return len(chain2) - len(chain1)
 }
 
-func compareTime(t1, t2 *time.Time) int {
-	if t1.After(*t2) {
+func compareTime(t1, t2 time.Time) int {
+	if t1.After(t2) {
 		return 1
-	} else if t1.Before(*t2) {
+	} else if t1.Before(t2) {
 		return -1
 	}
 	return 0

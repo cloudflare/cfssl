@@ -142,8 +142,8 @@ func CompareExpiryUbiquity(chain1, chain2 []*x509.Certificate) int {
 		}
 		c1 := chain1[len(chain1)-1-i]
 		c2 := chain2[len(chain2)-1-i]
-		t1 := &c1.NotAfter
-		t2 := &c2.NotAfter
+		t1 := c1.NotAfter
+		t2 := c2.NotAfter
 
 		// Check if expiry dates valid. Return if one or other is invalid.
 		// Otherwise rank by expiry date. Later is ranked higher.
