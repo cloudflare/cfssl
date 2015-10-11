@@ -260,7 +260,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	cert, err = s.sign(&safeTemplate, profile)
 
 	if err != nil {
-		return nil, err
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 	}
 
 	derCert, _ := pem.Decode(cert)
@@ -270,7 +270,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var ctclient = client.New(server)
 		_, err = ctclient.AddChain(chain)
 		if err != nil {
-			return nil, err
+			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 		}
 	}
 
