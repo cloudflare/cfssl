@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/scan"
 )
 
@@ -44,21 +45,19 @@ func scanMain(args []string, c cli.Config) (err error) {
 			if err != nil {
 				return
 			}
-			fmt.Printf("Scanning %s...\n", host)
-
-			var resultChan <-chan *scan.Result
-			resultChan, err = scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
-			if err != nil {
-				return
-			}
 
 			wg.Add(1)
-			go func(host string, resultChan <-chan *scan.Result) {
-				results := scan.ProcessResults(resultChan)
+			go func(host string) {
+				fmt.Printf("Scanning %s...\n", host)
+				results, err := scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
 				fmt.Printf("=== %s ===\n", host)
-				printJSON(results)
+				if err != nil {
+					log.Error(err)
+				} else {
+					printJSON(results)
+				}
 				wg.Done()
-			}(host, resultChan)
+			}(host)
 		}
 		wg.Wait()
 	}

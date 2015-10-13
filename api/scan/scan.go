@@ -42,12 +42,11 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("no host given")
 	}
 
-	resultChan, err := scan.Default.RunScans(host, ip, family, scanner, timeout)
+	results, err := scan.Default.RunScans(host, ip, family, scanner, timeout)
 	if err != nil {
 		return errors.NewBadRequest(err)
 	}
 
-	results := scan.ProcessResults(resultChan)
 	return json.NewEncoder(w).Encode(api.NewSuccessResponse(results))
 }
 
