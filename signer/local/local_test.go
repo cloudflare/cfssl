@@ -554,7 +554,7 @@ func TestOverrideSubject(t *testing.T) {
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 
 	request := signer.SignRequest{
-		Hosts:   []string{"127.0.0.1", "localhost"},
+		Hosts:   []string{"127.0.0.1", "localhost", "xyz@example.com"},
 		Request: string(csrPEM),
 		Subject: req,
 	}
@@ -626,7 +626,7 @@ func TestOverwriteHosts(t *testing.T) {
 		for _, hosts := range [][]string{
 			nil,
 			[]string{},
-			[]string{"127.0.0.1", "localhost"},
+			[]string{"127.0.0.1", "localhost", "xyz@example.com"},
 		} {
 			request := signer.SignRequest{
 				Hosts:   hosts,
@@ -644,10 +644,14 @@ func TestOverwriteHosts(t *testing.T) {
 				t.Fatalf("%v", err)
 			}
 
-			// get the hosts, and add the ips
+			// get the hosts, and add the ips and email addresses
 			certHosts := cert.DNSNames
 			for _, ip := range cert.IPAddresses {
 				certHosts = append(certHosts, ip.String())
+			}
+
+			for _, email := range cert.EmailAddresses {
+				certHosts = append(certHosts, email)
 			}
 
 			// compare the sorted host lists

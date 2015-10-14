@@ -14,6 +14,7 @@ import (
 	"math"
 	"math/big"
 	"net"
+	"net/mail"
 
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -150,17 +151,20 @@ func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
 	return name
 }
 
-// OverrideHosts fills template's IPAddresses and DNSNames with the
+// OverrideHosts fills template's IPAddresses, EmailAddresses, and DNSNames with the
 // content of hosts, if it is not nil.
 func OverrideHosts(template *x509.Certificate, hosts []string) {
 	if hosts != nil {
 		template.IPAddresses = []net.IP{}
+		template.EmailAddresses = []string{}
 		template.DNSNames = []string{}
 	}
 
 	for i := range hosts {
 		if ip := net.ParseIP(hosts[i]); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
+		} else if email, err := mail.ParseAddress(hosts[i]); err == nil && email != nil {
+			template.EmailAddresses = append(template.EmailAddresses, email.Address)
 		} else {
 			template.DNSNames = append(template.DNSNames, hosts[i])
 		}
