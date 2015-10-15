@@ -29,6 +29,29 @@ func printJSON(v interface{}) {
 	fmt.Printf("%s\n\n", b)
 }
 
+type context struct {
+	sync.WaitGroup
+	c cli.Config
+}
+
+func newContext(c cli.Config, numHosts int) *context {
+	ctx := &context{c: c}
+	ctx.Add(numHosts)
+	return ctx
+}
+
+func (ctx *context) RunScans(host string) {
+	fmt.Printf("Scanning %s...\n", host)
+	results, err := scan.Default.RunScans(host, ctx.c.IP, ctx.c.Family, ctx.c.Scanner, ctx.c.Timeout)
+	fmt.Printf("=== %s ===\n", host)
+	if err != nil {
+		log.Error(err)
+	} else {
+		printJSON(results)
+	}
+	ctx.Done()
+}
+
 func scanMain(args []string, c cli.Config) (err error) {
 	if c.List {
 		printJSON(scan.Default)
@@ -37,7 +60,7 @@ func scanMain(args []string, c cli.Config) (err error) {
 			return
 		}
 
-		var wg sync.WaitGroup
+		ctx := newContext(c, len(args))
 		// Execute for each HOST argument given
 		for len(args) > 0 {
 			var host string
@@ -46,20 +69,9 @@ func scanMain(args []string, c cli.Config) (err error) {
 				return
 			}
 
-			wg.Add(1)
-			go func(host string) {
-				fmt.Printf("Scanning %s...\n", host)
-				results, err := scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
-				fmt.Printf("=== %s ===\n", host)
-				if err != nil {
-					log.Error(err)
-				} else {
-					printJSON(results)
-				}
-				wg.Done()
-			}(host)
+			go ctx.RunScans(host)
 		}
-		wg.Wait()
+		ctx.Wait()
 	}
 	return
 }
