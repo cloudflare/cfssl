@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cf-tls/tls"
@@ -101,7 +102,7 @@ type Scanner struct {
 func (s *Scanner) Scan(addr, hostname string) (Grade, Output, error) {
 	grade, output, err := s.scan(addr, hostname)
 	if err != nil {
-		log.Infof("scan: %v", err)
+		log.Debugf("scan: %v", err)
 		return grade, output, err
 	}
 	return grade, output, err
@@ -137,9 +138,107 @@ type ScannerResult struct {
 // FamilyResult contains a scan response for a single Family
 type FamilyResult map[string]ScannerResult
 
-// RunScans iterates over AllScans, running scans matching the family and scanner
-// regular expressions.
-func (fs FamilySet) RunScans(host, ip, family, scanner string, dur time.Duration) (map[string]FamilyResult, error) {
+// A Result contains a ScannerResult along with it's scanner and family names.
+type Result struct {
+	Family, Scanner string
+	ScannerResult
+}
+
+type context struct {
+	sync.WaitGroup
+	addr, hostname              string
+	familyRegexp, scannerRegexp *regexp.Regexp
+	resultChan                  chan *Result
+}
+
+func newContext(addr, hostname string, familyRegexp, scannerRegexp *regexp.Regexp, numFamilies int) *context {
+	ctx := &context{
+		addr:          addr,
+		hostname:      hostname,
+		familyRegexp:  familyRegexp,
+		scannerRegexp: scannerRegexp,
+		resultChan:    make(chan *Result),
+	}
+	ctx.Add(numFamilies)
+
+	go func() {
+		ctx.Wait()
+		close(ctx.resultChan)
+	}()
+
+	return ctx
+}
+
+type familyContext struct {
+	sync.WaitGroup
+	ctx *context
+}
+
+func (ctx *context) newfamilyContext(numScanners int) *familyContext {
+	familyCtx := &familyContext{ctx: ctx}
+	familyCtx.Add(numScanners)
+
+	go func() {
+		familyCtx.Wait()
+		familyCtx.ctx.Done()
+	}()
+
+	return familyCtx
+}
+
+func (ctx *context) copyResults(timeout time.Duration) map[string]FamilyResult {
+	var timedOut bool
+	done := make(chan bool, 1)
+	results := make(map[string]FamilyResult)
+
+	go func() {
+		for result := range ctx.resultChan {
+			if timedOut {
+				log.Debugf("Received result after timeout: %v", result)
+				continue
+			}
+
+			if results[result.Family] == nil {
+				results[result.Family] = make(FamilyResult)
+			}
+
+			results[result.Family][result.Scanner] = result.ScannerResult
+		}
+		done <- true
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(timeout):
+		timedOut = true
+		log.Warningf("Scan timed out after %v", timeout)
+	}
+
+	return results
+}
+
+func (familyCtx *familyContext) runScanner(familyName, scannerName string, scanner *Scanner) {
+	if familyCtx.ctx.familyRegexp.MatchString(familyName) && familyCtx.ctx.scannerRegexp.MatchString(scannerName) {
+		grade, output, err := scanner.Scan(familyCtx.ctx.addr, familyCtx.ctx.hostname)
+		result := &Result{
+			familyName,
+			scannerName,
+			ScannerResult{
+				Grade:  grade.String(),
+				Output: output,
+			},
+		}
+		if err != nil {
+			result.Error = err.Error()
+		}
+		familyCtx.ctx.resultChan <- result
+	}
+	familyCtx.Done()
+}
+
+// RunScans iterates over AllScans, running each scan that matches the family
+// and scanner regular expressions concurrently.
+func (fs FamilySet) RunScans(host, ip, family, scanner string, timeout time.Duration) (map[string]FamilyResult, error) {
 	hostname, port, err := net.SplitHostPort(host)
 	if err != nil {
 		hostname = host
@@ -163,57 +262,15 @@ func (fs FamilySet) RunScans(host, ip, family, scanner string, dur time.Duration
 		return nil, err
 	}
 
-	results := make(chan map[string]FamilyResult)
-	timeout := make(chan bool)
-
-	if dur > 0 {
-		go startTimer(dur, timeout)
-	}
-
-	familyResults := make(map[string]FamilyResult)
-
-	go func() {
-		for familyName, family := range fs {
-			if familyRegexp.MatchString(familyName) {
-				scannerResults := make(map[string]ScannerResult)
-				for scannerName, scanner := range family.Scanners {
-					if scannerRegexp.MatchString(scannerName) {
-						grade, output, err := scanner.Scan(addr, hostname)
-						if grade != Skipped {
-							result := ScannerResult{
-								Grade:  grade.String(),
-								Output: output,
-							}
-							if err != nil {
-								result.Error = err.Error()
-							}
-
-							scannerResults[scannerName] = result
-						}
-					}
-				}
-
-				if len(scannerResults) > 0 {
-					familyResults[familyName] = scannerResults
-				}
-			}
+	ctx := newContext(addr, hostname, familyRegexp, scannerRegexp, len(fs))
+	for familyName, family := range fs {
+		familyCtx := ctx.newfamilyContext(len(family.Scanners))
+		for scannerName, scanner := range family.Scanners {
+			go familyCtx.runScanner(familyName, scannerName, scanner)
 		}
-		results <- familyResults
-	}()
-
-	select {
-	case <-timeout:
-		log.Warningf("scan: %s timed out after %v", host, dur)
-		return familyResults, nil
-	case res := <-results:
-		return res, nil
 	}
-}
 
-func startTimer(t time.Duration, timeout chan bool) {
-	time.AfterFunc(t, func() {
-		timeout <- true
-	})
+	return ctx.copyResults(timeout), nil
 }
 
 // LoadRootCAs loads the default root certificate authorities from file.
