@@ -62,21 +62,21 @@ type AuthRemote struct {
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
-	Usage                       []string   `json:"usages"`
-	IssuerURL                   []string   `json:"issuer_urls"`
-	OCSP                        string     `json:"ocsp_url"`
-	CRL                         string     `json:"crl_url"`
-	CA                          bool       `json:"is_ca"`
-	OCSPNoCheck                 bool       `json:"ocsp_no_check"`
-	ExpiryString                string     `json:"expiry"`
-	BackdateString              string     `json:"backdate"`
-	AuthKeyName                 string     `json:"auth_key"`
-	RemoteName                  string     `json:"remote"`
-	NotBefore                   time.Time  `json:"not_before"`
-	NotAfter                    time.Time  `json:"not_after"`
-	NameWhitelistString         string     `json:"name_whitelist"`
-	AuthRemote                  AuthRemote `json:"auth_remote"`
-	CTLogServers                []string   `json:"ct_log_servers"`
+	Usage               []string   `json:"usages"`
+	IssuerURL           []string   `json:"issuer_urls"`
+	OCSP                string     `json:"ocsp_url"`
+	CRL                 string     `json:"crl_url"`
+	CA                  bool       `json:"is_ca"`
+	OCSPNoCheck         bool       `json:"ocsp_no_check"`
+	ExpiryString        string     `json:"expiry"`
+	BackdateString      string     `json:"backdate"`
+	AuthKeyName         string     `json:"auth_key"`
+	RemoteName          string     `json:"remote"`
+	NotBefore           time.Time  `json:"not_before"`
+	NotAfter            time.Time  `json:"not_after"`
+	NameWhitelistString string     `json:"name_whitelist"`
+	AuthRemote          AuthRemote `json:"auth_remote"`
+	CTLogServers        []string   `json:"ct_log_servers"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
@@ -91,10 +91,10 @@ type SigningProfile struct {
 
 // UnmarshalJSON unmarshals a JSON string into an OID.
 func (oid *OID) UnmarshalJSON(data []byte) (err error) {
-	if data[0] != '"' || data[len(data) - 1] != '"' {
+	if data[0] != '"' || data[len(data)-1] != '"' {
 		return errors.New("OID JSON string not wrapped in quotes." + string(data))
 	}
-	data = data[1 : len(data) - 1]
+	data = data[1 : len(data)-1]
 	parsedOid, err := parseObjectIdentifier(string(data))
 	if err != nil {
 		return err
@@ -487,7 +487,7 @@ type AuthKey struct {
 	Type string `json:"type"`
 	// Key contains the key information, such as a hex-encoded
 	// HMAC key.
-	Key  string `json:"key"`
+	Key string `json:"key"`
 }
 
 // DefaultConfig returns a default configuration specifying basic key
@@ -525,7 +525,7 @@ func LoadConfig(config []byte) (*Config, error) {
 	err := json.Unmarshal(config, &cfg)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
-			errors.New("failed to unmarshal configuration: " + err.Error()))
+			errors.New("failed to unmarshal configuration: "+err.Error()))
 	}
 
 	if cfg.Signing == nil {

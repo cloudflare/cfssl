@@ -4,12 +4,12 @@ package local
 import (
 	"bytes"
 	"crypto"
-	"fmt"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -257,24 +257,44 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		safeTemplate.SerialNumber = serialNumber
 	}
 
-	cert, err = s.sign(&safeTemplate, profile)
+	var certTBS = safeTemplate
 
-	if err != nil {
-		return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
-	}
+	if len(profile.CTLogServers) > 0 {
+		// Add a poison extension which prevents validation
+		var oidCTPoison = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 3}
+		var poisonExtension = pkix.Extension{Id: oidCTPoison, Critical: true, Value: []byte{0x05, 0x00}}
+		var poisonedPreCert = certTBS
+		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
+		cert, err = s.sign(&poisonedPreCert, profile)
 
-	derCert, _ := pem.Decode(cert)
-	chain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
-
-	for _, server := range profile.CTLogServers {
-		var ctclient = client.New(server)
-		_, err = ctclient.AddChain(chain)
 		if err != nil {
-			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+			return
 		}
-	}
 
-	return
+		derCert, _ := pem.Decode(cert)
+		prechain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
+
+		var sctList []byte
+
+		for _, server := range profile.CTLogServers {
+			var ctclient = client.New(server)
+			var resp, err = ctclient.AddPreChain(prechain)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+			}
+			log.Info(resp)
+			serializedSCT, err := ct.SerializeSCT(*resp)
+			if err != nil {
+				return nil, err
+			}
+			sctList = append(sctList, serializedSCT...)
+		}
+
+		var oidSCTList = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
+		var SCTListExtension = pkix.Extension{Id: oidSCTList, Critical: false, Value: sctList}
+		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
+	}
+	return s.sign(&certTBS, profile)
 }
 
 // Info return a populated info.Resp struct or an error.
