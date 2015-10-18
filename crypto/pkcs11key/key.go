@@ -9,6 +9,9 @@ package pkcs11key
 import (
 	"crypto"
 	"crypto/rsa"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +33,28 @@ var hashPrefixes = map[crypto.Hash][]byte{
 	crypto.RIPEMD160: {0x30, 0x20, 0x30, 0x08, 0x06, 0x06, 0x28, 0xcf, 0x06, 0x03, 0x00, 0x31, 0x04, 0x14},
 }
 
+// from src/pkg/crypto/x509/x509.go
+var (
+	oidNamedCurveP224 = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
+	oidNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
+	oidNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
+	oidNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
+)
+
+func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
+	switch {
+	case oid.Equal(oidNamedCurveP224):
+		return elliptic.P224()
+	case oid.Equal(oidNamedCurveP256):
+		return elliptic.P256()
+	case oid.Equal(oidNamedCurveP384):
+		return elliptic.P384()
+	case oid.Equal(oidNamedCurveP521):
+		return elliptic.P521()
+	}
+	return nil
+}
+
 // ctx defines the subset of pkcs11.ctx's methods that we use, so we can inject
 // a different ctx for testing.
 type ctx interface {
@@ -47,6 +72,16 @@ type ctx interface {
 	SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs11.ObjectHandle) error
 	Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error)
 }
+
+// KeyType is to track the type of the key (based on CKA_KEY_TYPE)
+type KeyType int
+
+const (
+	// RSA means the key is an RSA key
+	RSA KeyType = 0
+	// EC means the key is an Elliptic Curve key
+	EC  KeyType = 3
+)
 
 // Key is an implementation of the crypto.Signer interface using a key stored
 // in a PKCS#11 hardware token.  This enables the use of PKCS#11 tokens with
@@ -76,10 +111,14 @@ type Key struct {
 	pin string
 
 	// The public key corresponding to the private key.
-	publicKey rsa.PublicKey
+	rsaPublicKey rsa.PublicKey
+	ecdsaPublicKey ecdsa.PublicKey
 
 	// The an ObjectHandle pointing to the private key on the HSM.
 	privateKeyHandle pkcs11.ObjectHandle
+
+	// The key type (RSA or EC)
+	keyType KeyType
 
 	// A handle to the session used by this Key.
 	session   *pkcs11.SessionHandle
@@ -166,12 +205,16 @@ func (ps *Key) setup(privateKeyLabel string) (err error) {
 	}
 	ps.privateKeyHandle = privateKeyHandle
 
-	publicKey, err := getPublicKey(ps.module, session, privateKeyHandle)
+	publicKey, err := ps.getPublicKey(ps.module, session, privateKeyHandle)
 	if err != nil {
 		ps.module.CloseSession(session)
 		return
 	}
-	ps.publicKey = publicKey
+	if(ps.keyType == EC) {
+		ps.ecdsaPublicKey = publicKey.(ecdsa.PublicKey)
+	} else {
+		ps.rsaPublicKey = publicKey.(rsa.PublicKey)
+	}
 
 	return
 }
@@ -198,10 +241,26 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	}
 	privateKeyHandle := objs[0]
 
+	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, false),
+	})
+	if err != nil {
+		return noHandle, err
+	}
+	for i, attribute := range attributes {
+		if i == 0 && len(attribute.Value) > 0 {
+			if attribute.Value[0] == 0x3 {
+				ps.keyType = EC
+			} else {
+				ps.keyType = RSA
+			}
+		}
+	}
+
 	// Check whether the key has the CKA_ALWAYS_AUTHENTICATE attribute.
 	// If so, fail: we don't want to have to re-authenticate for each sign
 	// operation.
-	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
+	attributes, err = module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_ALWAYS_AUTHENTICATE, false),
 	})
 	// The PKCS#11 spec states that C_GetAttributeValue may return
@@ -223,39 +282,133 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 }
 
 // Get the public key matching a private key
-// TODO: Add support for non-RSA keys, switching on CKA_KEY_TYPE
-func getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (rsa.PublicKey, error) {
-	var noKey rsa.PublicKey
-	template := []*pkcs11.Attribute{
-		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
-		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, nil),
-	}
-	attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
-	if err != nil {
-		return noKey, err
-	}
-
-	n := big.NewInt(0)
-	e := int(0)
-	gotModulus, gotExponent := false, false
-	for _, a := range attr {
-		if a.Type == pkcs11.CKA_MODULUS {
-			n.SetBytes(a.Value)
-			gotModulus = true
-		} else if a.Type == pkcs11.CKA_PUBLIC_EXPONENT {
-			bigE := big.NewInt(0)
-			bigE.SetBytes(a.Value)
-			e = int(bigE.Int64())
-			gotExponent = true
+func (ps *Key) getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+	var noKey interface{}
+	if ps.keyType == RSA {
+		template := []*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
+			pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, nil),
 		}
+		attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
+		if err != nil {
+			return noKey, err
+		}
+
+		n := big.NewInt(0)
+		e := int(0)
+		gotModulus, gotExponent := false, false
+		for _, a := range attr {
+			if a.Type == pkcs11.CKA_MODULUS {
+				n.SetBytes(a.Value)
+				gotModulus = true
+			} else if a.Type == pkcs11.CKA_PUBLIC_EXPONENT {
+				bigE := big.NewInt(0)
+				bigE.SetBytes(a.Value)
+				e = int(bigE.Int64())
+				gotExponent = true
+			}
+		}
+		if !gotModulus || !gotExponent {
+			return noKey, errors.New("public key missing either modulus or exponent")
+		}
+
+		rsa := rsa.PublicKey{
+			N: n,
+			E: e,
+		}
+		return rsa, nil
+	} else if ps.keyType == EC {
+		template := []*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, nil),
+			pkcs11.NewAttribute(pkcs11.CKA_ID, nil),
+		}
+
+		attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
+		if err != nil {
+			return noKey, err
+		}
+
+		oid := []byte {}
+		id := []byte {}
+		gotOid, gotID := false, false
+		for _, a := range attr {
+			if a.Type == pkcs11.CKA_EC_PARAMS {
+				oid = a.Value
+				gotOid = true
+			} else if a.Type == pkcs11.CKA_ID {
+				id = a.Value
+				gotID = true
+			}
+		}
+		if !gotOid || !gotID {
+			return noKey, errors.New("public key missing either curve parameters or id")
+		}
+
+		poid := new(asn1.ObjectIdentifier)
+		asn1.Unmarshal(oid, poid)
+		curve := namedCurveFromOID(*poid)
+
+		templateSearch := []*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
+			pkcs11.NewAttribute(pkcs11.CKA_ID, id),
+		}
+
+		if err := module.FindObjectsInit(session, templateSearch); err != nil {
+			return noKey, err
+		}
+		objs, _, err := module.FindObjects(session, 2)
+		if err != nil {
+			return noKey, err
+		}
+		if err = module.FindObjectsFinal(session); err != nil {
+			return noKey, err
+		}
+
+		if len(objs) == 0 {
+			return noKey, fmt.Errorf("public key not found")
+		}
+		publicKeyHandle := objs[0]
+
+		templatePub := []*pkcs11.Attribute{
+			pkcs11.NewAttribute(pkcs11.CKA_EC_POINT, nil),
+		}
+
+		attrPub, err := module.GetAttributeValue(session, publicKeyHandle, templatePub)
+		if err != nil {
+			return noKey, err
+		}
+
+		data := []byte {}
+		gotData := false
+		for _, a := range attrPub {
+			if a.Type == pkcs11.CKA_EC_POINT {
+				data = a.Value
+				gotData = true
+			}
+		}
+		if !gotData {
+			return noKey, errors.New("public key missing EC Point")
+		}
+
+		x, y := elliptic.Unmarshal(curve, data)
+
+		if x == nil && y == nil {
+			var point asn1.RawValue
+			asn1.Unmarshal(data, &point)
+
+			byteLen := (curve.Params().BitSize + 7) >> 3
+			x = new(big.Int).SetBytes(point.Bytes[1:1+byteLen])
+			y = new(big.Int).SetBytes(point.Bytes[1+byteLen:])
+		}
+
+		ecdsa := ecdsa.PublicKey{
+			Curve: curve,
+			X: x,
+			Y: y,
+		}
+		return ecdsa, nil
 	}
-	if !gotModulus || !gotExponent {
-		return noKey, errors.New("public key missing either modulus or exponent")
-	}
-	return rsa.PublicKey{
-		N: n,
-		E: e,
-	}, nil
+	return noKey, fmt.Errorf("invalid key type")
 }
 
 // Destroy tears down a Key by closing the session. It should be
@@ -307,8 +460,12 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 		// practice it appears to be okay to login to a token multiple times with the same
 		// credentials.
 		if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
-			ps.module.CloseSession(session)
-			return session, err
+			if err == pkcs11.Error(pkcs11.CKR_USER_ALREADY_LOGGED_IN) {
+				err = nil
+			} else {
+				ps.module.CloseSession(session)
+				return session, err
+			}
 		}
 
 		return session, err
@@ -318,7 +475,10 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 
 // Public returns the public key for the PKCS #11 key.
 func (ps *Key) Public() crypto.PublicKey {
-	return &ps.publicKey
+	if(ps.keyType == EC) {
+		return &ps.ecdsaPublicKey
+	}
+	return &ps.rsaPublicKey
 }
 
 // Sign performs a signature using the PKCS #11 key.
@@ -357,14 +517,21 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 	}
 
 	// Add DigestInfo prefix
-	// TODO: Switch mechanisms based on CKA_KEY_TYPE
-	mechanism := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS, nil)}
-	prefix, ok := hashPrefixes[hash]
-	if !ok {
-		err = errors.New("unknown hash function")
-		return
+	var mechanism []*pkcs11.Mechanism
+	var signatureInput []byte
+
+	if ps.keyType == RSA {
+		mechanism = []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS, nil)}
+		prefix, ok := hashPrefixes[hash]
+		if !ok {
+			err = errors.New("unknown hash function")
+			return
+		}
+		signatureInput = append(prefix, msg...)
+	} else if ps.keyType == EC {
+		mechanism = []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDSA, nil)}
+		signatureInput = msg
 	}
-	signatureInput := append(prefix, msg...)
 
 	// Perform the sign operation
 	err = ps.module.SignInit(*ps.session, mechanism, ps.privateKeyHandle)
