@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
@@ -61,7 +60,7 @@ func selfSignMain(args []string, c cli.Config) (err error) {
 	}
 
 	var key, csrPEM []byte
-	g := &csr.Generator{Validator: genkey.Validator}
+	g := &csr.Generator{Validator: func(*csr.CertificateRequest) error {return nil}}
 	csrPEM, key, err = g.ProcessRequest(&req)
 	if err != nil {
 		key = nil

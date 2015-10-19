@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
@@ -105,7 +104,7 @@ func gencertMain(args []string, c cli.Config) error {
 		}
 
 		var key, csrBytes []byte
-		g := &csr.Generator{Validator: genkey.Validator}
+		g := &csr.Generator{Validator: func(*csr.CertificateRequest) error {return nil}}
 		csrBytes, key, err = g.ProcessRequest(&req)
 		if err != nil {
 			key = nil
