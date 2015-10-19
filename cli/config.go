@@ -95,7 +95,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
-	f.StringVar(&c.Usage, "usage", "dev", "usage of private key")
+	f.StringVar(&c.Usage, "usage", "", "usage of private key")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
