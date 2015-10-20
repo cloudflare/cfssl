@@ -62,5 +62,5 @@ func certinfoMain(args []string, c cli.Config) (err error) {
 	return
 }
 
-// Command assembles the definition of Command 'bundle'
+// Command assembles the definition of Command 'certinfo'
 var Command = &cli.Command{UsageText: dataUsageText, Flags: certinfoFlags, Main: certinfoMain}

@@ -95,7 +95,7 @@ func infoMain(args []string, c cli.Config) (err error) {
 	return nil
 }
 
-// Command defines the commmand-line procedure for info
+// Command assembles the definition of Command 'info'
 var Command = &cli.Command{
 	UsageText: infoUsageTxt,
 	Flags:     infoFlags,

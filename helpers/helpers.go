@@ -40,7 +40,7 @@ func InclusiveDate(year int, month time.Month, day int) time.Time {
 // issuing certificates valid for more than 5 years.
 var Jul2012 = InclusiveDate(2012, time.July, 01)
 
-// April2015 is the April 2015 CAB Forum deadline for when CAs must stop
+// Apr2015 is the April 2015 CAB Forum deadline for when CAs must stop
 // issuing certificates valid for more than 39 months.
 var Apr2015 = InclusiveDate(2015, time.April, 01)
 

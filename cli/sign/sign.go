@@ -132,5 +132,5 @@ func signerMain(args []string, c cli.Config) (err error) {
 	return
 }
 
-// CLISigner assembles the definition of Command 'sign'
+// Command assembles the definition of Command 'sign'
 var Command = &cli.Command{UsageText: signerUsageText, Flags: signerFlags, Main: signerMain}
