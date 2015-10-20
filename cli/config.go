@@ -55,7 +55,7 @@ type Config struct {
 	Responses         string
 	Path              string
 	Usage             string
-	PgpPrivate        string
+	PGPPrivate        string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -97,7 +97,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
 	f.StringVar(&c.Usage, "usage", "", "usage of private key")
-	f.StringVar(&c.PgpPrivate, "pgp-private", "", "file to load a PGP Private key decryption.")
+	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption.")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
