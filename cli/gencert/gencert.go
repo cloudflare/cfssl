@@ -135,6 +135,5 @@ func gencertMain(args []string, c cli.Config) error {
 	return nil
 }
 
-// CLIGenCert is a subcommand that generates a new certificate from a
-// JSON CSR request file.
+// Command assembles the definition of Command 'gencert'
 var Command = &cli.Command{UsageText: gencertUsageText, Flags: gencertFlags, Main: gencertMain}

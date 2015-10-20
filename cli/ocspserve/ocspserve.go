@@ -48,5 +48,5 @@ func ocspServerMain(args []string, c cli.Config) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-// CLIServer assembles the definition of Command 'serve'
+// Command assembles the definition of Command 'ocspserve'
 var Command = &cli.Command{UsageText: ocspServerUsageText, Flags: ocspServerFlags, Main: ocspServerMain}

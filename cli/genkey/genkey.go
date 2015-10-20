@@ -78,6 +78,5 @@ func Validator(req *csr.CertificateRequest) error {
 	return nil
 }
 
-// CLIGenKey is a subcommand for generating a new key and CSR from a
-// JSON CSR request file.
+// Command assembles the definition of Command 'genkey'
 var Command = &cli.Command{UsageText: genkeyUsageText, Flags: genkeyFlags, Main: genkeyMain}

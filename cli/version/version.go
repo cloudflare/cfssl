@@ -33,5 +33,5 @@ func versionMain(args []string, c cli.Config) (err error) {
 	return nil
 }
 
-// CLIVersioner defines Command 'version'
+// Command assembles the definition of Command 'version'
 var Command = &cli.Command{UsageText: versionUsageText, Flags: nil, Main: versionMain}
