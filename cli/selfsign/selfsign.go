@@ -111,5 +111,5 @@ in production.
 	return
 }
 
-// CLISelfSign command creates self-signed certificates
+// Command assembles the definition of Command 'selfsign'
 var Command = &cli.Command{UsageText: selfSignUsageText, Flags: selfSignFlags, Main: selfSignMain}

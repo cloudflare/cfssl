@@ -27,7 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/ubiquity"
 )
 
-// intermediateStash contains the path to the directory where
+// IntermediateStash contains the path to the directory where
 // downloaded intermediates should be saved.
 // When unspecified, downloaded intermediates are not saved.
 var IntermediateStash string

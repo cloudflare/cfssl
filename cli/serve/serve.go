@@ -196,5 +196,5 @@ func serverMain(args []string, c cli.Config) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-// CLIServer assembles the definition of Command 'serve'
+// Command assembles the definition of Command 'serve'
 var Command = &cli.Command{UsageText: serverUsageText, Flags: serverFlags, Main: serverMain}
