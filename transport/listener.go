@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/transport/core"
 )
 
 // A Listener is a TCP network listener for TLS-secured connections.
@@ -103,15 +102,10 @@ func (l *Listener) AutoUpdate(certUpdates chan time.Time, errChan chan error) {
 }
 
 func (l *Listener) getConfig() (*tls.Config, error) {
-	cert, err := l.Transport.getCertificate()
-	if err != nil {
-		return nil, err
+	if l.Transport.ClientTrustStore != nil {
+		return l.Transport.TLSClientAuthServerConfig()
 	}
-
-	if l.Transport.Roots != nil {
-		return core.TLSClientAuthServerConfig(cert, l.Transport.Roots), nil
-	}
-	return core.TLSServerConfig(cert), nil
+	return l.Transport.TLSServerConfig()
 }
 
 // Addr returns the server's address.

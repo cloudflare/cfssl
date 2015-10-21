@@ -11,7 +11,6 @@ import (
 func TLSClientAuthClientConfig(cert tls.Certificate, host string) *tls.Config {
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		RootCAs:      SystemRoots,
 		ServerName:   host,
 		CipherSuites: CipherSuites,
 		MinVersion:   tls.VersionTLS12,
@@ -25,7 +24,6 @@ func TLSClientAuthClientConfig(cert tls.Certificate, host string) *tls.Config {
 func TLSClientAuthServerConfig(cert tls.Certificate, clientAuth *x509.CertPool) *tls.Config {
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		RootCAs:      SystemRoots,
 		ClientCAs:    clientAuth,
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		CipherSuites: CipherSuites,
@@ -38,7 +36,6 @@ func TLSClientAuthServerConfig(cert tls.Certificate, clientAuth *x509.CertPool) 
 func TLSServerConfig(cert tls.Certificate) *tls.Config {
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		RootCAs:      SystemRoots,
 		CipherSuites: CipherSuites,
 		MinVersion:   tls.VersionTLS12,
 	}
