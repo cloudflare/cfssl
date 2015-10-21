@@ -16,10 +16,27 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 )
 
+// A Root stores information about a trusted root.
+type Root struct {
+	// Type should contain a string identifier for the type.
+	Type string `json:"type"`
+
+	// Metadata contains the information needed to load the
+	// root(s).
+	Metadata map[string]string `json:"metadata"`
+}
+
 // Identity is used to store information about a particular transport.
 type Identity struct {
 	// Request contains metadata for constructing certificate requests.
 	Request *csr.CertificateRequest `json:"request"`
+
+	// Roots contains a list of sources for trusted roots.
+	Roots []*Root
+
+	// ClientRoots contains a list of sources for trusted client
+	// certificates.
+	ClientRoots []*Root
 
 	// Profiles contains a dictionary of names to dictionaries;
 	// this is intended to allow flexibility in supporting

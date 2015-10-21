@@ -157,15 +157,6 @@ func getRemote(cfg *config.Config, profile *config.SigningProfile) (string, bool
 	return "", false
 }
 
-// The client's remote should be set as follows:
-//
-// 1. If the remote has been explicitly set, honour that.
-//
-// 2. If the config specifies a remote, honour that.
-//
-// 3. Use CFKS.
-//
-// While setting the remote, the authentication provider should be set.
 func (cap *CFSSL) setRemoteAndAuth() error {
 	if cap.Label != "" {
 		cfsslConfig := findLabel(cap.Label)

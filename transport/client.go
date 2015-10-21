@@ -2,7 +2,6 @@ package transport
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"net"
 	"os"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/cloudflare/cfssl/transport/ca"
 	"github.com/cloudflare/cfssl/transport/core"
 	"github.com/cloudflare/cfssl/transport/kp"
+	"github.com/cloudflare/cfssl/transport/roots"
 )
 
 func envOrDefault(key, def string) string {
@@ -52,24 +52,93 @@ type Transport struct {
 	// CA contains a mechanism for obtaining signed certificates.
 	CA ca.CertificateAuthority
 
-	// Roots contains the pool of X.509 certificates that are
-	// valid for authenticating peers.
-	Roots *x509.CertPool
+	// TrustStore contains the certificates trusted by this
+	// transport.
+	TrustStore *roots.TrustStore
+
+	// ClientTrustStore contains the certificate authorities to
+	// use in verifying client authentication certificates.
+	ClientTrustStore *roots.TrustStore
 
 	// Identity contains information about the entity that will be
 	// used to construct certificates.
 	Identity *core.Identity
 }
 
+// TLSClientAuthClientConfig returns a new client authentication TLS
+// configuration that can be used for a client using client auth
+// connecting to the named host.
+func (tr *Transport) TLSClientAuthClientConfig(host string) (*tls.Config, error) {
+	cert, err := tr.getCertificate()
+	if err != nil {
+		return nil, err
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      tr.TrustStore.Pool(),
+		ServerName:   host,
+		CipherSuites: core.CipherSuites,
+		MinVersion:   tls.VersionTLS12,
+	}, nil
+}
+
+// TLSClientAuthServerConfig returns a new client authentication TLS
+// configuration for servers expecting mutually authenticated
+// clients. The clientAuth parameter should contain the root pool used
+// to authenticate clients.
+func (tr *Transport) TLSClientAuthServerConfig() (*tls.Config, error) {
+	cert, err := tr.getCertificate()
+	if err != nil {
+		return nil, err
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      tr.TrustStore.Pool(),
+		ClientCAs:    tr.ClientTrustStore.Pool(),
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		CipherSuites: core.CipherSuites,
+		MinVersion:   tls.VersionTLS12,
+	}, nil
+}
+
+// TLSServerConfig is a general server configuration that should be
+// used for non-client authentication purposes, such as HTTPS.
+func (tr *Transport) TLSServerConfig() (*tls.Config, error) {
+	cert, err := tr.getCertificate()
+	if err != nil {
+		return nil, err
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		CipherSuites: core.CipherSuites,
+		MinVersion:   tls.VersionTLS12,
+	}, nil
+}
+
 // NewTransport builds a new transport from the default
 func NewTransport(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
 		Before:   before,
-		Roots:    core.SystemRoots,
 		Identity: identity,
 	}
 
-	var err error
+	store, err := roots.New(identity.Roots)
+	if err != nil {
+		return nil, err
+	}
+	tr.TrustStore = store
+
+	if len(identity.ClientRoots) > 0 {
+		store, err = roots.New(identity.ClientRoots)
+		if err != nil {
+			return nil, err
+		}
+		tr.ClientTrustStore = store
+	}
+
 	tr.Provider, err = NewKeyProvider(identity)
 	if err != nil {
 		return nil, err
@@ -191,12 +260,11 @@ func Dial(address string, tr *Transport) (*tls.Conn, error) {
 		address = net.JoinHostPort(address, "443")
 	}
 
-	cert, err := tr.getCertificate()
+	cfg, err := tr.TLSClientAuthClientConfig(host)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := core.TLSClientAuthClientConfig(cert, host)
 	return tls.Dial("tcp", address, cfg)
 }
 
