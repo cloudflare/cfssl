@@ -1,4 +1,10 @@
-FROM golang:1.4.2-cross
+FROM golang:1.4.3-cross
+
+# Install pkcs11 deps
+RUN apt-get update && apt-get install -y \
+	libltdl-dev \
+	--no-install-recommends \
+	&& rm -rf /var/lib/apt/lists/*
 
 # TODO: Vendor these `go get` commands using Godep.
 RUN go get github.com/mitchellh/gox
@@ -15,4 +21,4 @@ ENV USER root
 
 WORKDIR /go/src/github.com/cloudflare/cfssl
 
-ADD . /go/src/github.com/cloudflare/cfssl
+COPY . /go/src/github.com/cloudflare/cfssl
