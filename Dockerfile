@@ -1,25 +1,26 @@
-FROM golang:1.4.2
+FROM golang:1.4.3
 
-WORKDIR /go/src/github.com/cloudflare/cfssl
-
-ENV GOPATH /go/src/github.com/cloudflare/cfssl:/go
 ENV USER root
 
 EXPOSE 8888
 
-CMD ["cfssl"]
+# Install pkcs11 deps
+RUN apt-get update && apt-get install -y \
+	libltdl-dev \
+	--no-install-recommends \
+	&& rm -rf /var/lib/apt/lists/*
 
-RUN go get github.com/cloudflare/cf-tls/tls
-RUN go get github.com/cloudflare/go-metrics
-RUN go get github.com/cloudflare/redoctober/core
-RUN go get github.com/dgryski/go-rc2
-RUN go get golang.org/x/crypto/ocsp
-RUN go get github.com/GeertJohan/go.rice
+COPY . /go/src/github.com/cloudflare/cfssl
 
-ADD . /go/src/github.com/cloudflare/cfssl
-
-RUN go build cmd/... && \
-  cp cfssl /usr/local/bin && \
-  cp multirootca /usr/local/bin
+# install all deps and build
+RUN cd /go/src/github.com/cloudflare/cfssl && \
+	go get -d ./... && \
+	(cd cmd/cfssl && go build -o /usr/bin/cfssl . ) && \
+	(cd cmd/cfssljson && go build -o /usr/bin/cfssljson . ) && \
+	(cd cmd/mkbundle && go build -o /usr/bin/mkbundle . ) && \
+	(cd cmd/multirootca && go build -o /usr/bin/multirootca . )
 
 WORKDIR /opt
+
+ENTRYPOINT ["cfssl"]
+CMD ["--help"]
