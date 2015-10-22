@@ -12,8 +12,8 @@ import (
 )
 
 var Providers = map[string]func(map[string]string) ([]*x509.Certificate, error){
-	"system-roots": system.New,
-	"cfssl":        NewCFSSL,
+	"system": system.New,
+	"cfssl":  NewCFSSL,
 }
 
 // A TrustStore contains a pool of certificate that are trusted for a
