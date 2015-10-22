@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"crypto/x509"
 	"encoding/json"
 	"flag"
 	"os"
@@ -97,6 +96,19 @@ var (
 		Request: &csr.CertificateRequest{
 			CN: "localhost test certificate",
 		},
+		Roots: []*core.Root{
+			&core.Root{
+				Type: "system",
+			},
+			&core.Root{
+				Type: "cfssl",
+				Metadata: map[string]string{
+					"host":    testRemote,
+					"label":   testLabel,
+					"profile": testProfile,
+				},
+			},
+		},
 		Profiles: map[string]map[string]string{
 			"paths": map[string]string{
 				"private_key": testKey,
@@ -181,6 +193,19 @@ var (
 				"remote":  testRemote,
 			},
 		},
+		Roots: []*core.Root{
+			&core.Root{
+				Type: "system",
+			},
+			&core.Root{
+				Type: "cfssl",
+				Metadata: map[string]string{
+					"host":    testRemote,
+					"label":   testLabel,
+					"profile": testProfile,
+				},
+			},
+		},
 	}
 )
 
@@ -211,18 +236,6 @@ func TestListener(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-
-	core.SystemRoots = x509.NewCertPool()
-
-	caCert, err := tr.CA.CACertificate()
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	if !core.SystemRoots.AppendCertsFromPEM(caCert) {
-		t.Fatal("no certificates could be added to system roots")
-	}
-
-	core.SystemRoots.AddCert(tr.Provider.Certificate())
 
 	l, err = Listen("127.0.0.1:8765", trl)
 	if err != nil {
