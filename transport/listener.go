@@ -103,8 +103,10 @@ func (l *Listener) AutoUpdate(certUpdates chan time.Time, errChan chan error) {
 
 func (l *Listener) getConfig() (*tls.Config, error) {
 	if l.Transport.ClientTrustStore != nil {
+		log.Info("using client auth")
 		return l.Transport.TLSClientAuthServerConfig()
 	}
+	log.Info("not using client auth")
 	return l.Transport.TLSServerConfig()
 }
 

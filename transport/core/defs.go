@@ -32,11 +32,11 @@ type Identity struct {
 	Request *csr.CertificateRequest `json:"request"`
 
 	// Roots contains a list of sources for trusted roots.
-	Roots []*Root
+	Roots []*Root `json:"roots"`
 
 	// ClientRoots contains a list of sources for trusted client
 	// certificates.
-	ClientRoots []*Root
+	ClientRoots []*Root `json:"client_roots"`
 
 	// Profiles contains a dictionary of names to dictionaries;
 	// this is intended to allow flexibility in supporting
