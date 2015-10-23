@@ -1,0 +1,25 @@
+{
+    "signing": {
+	"default": {
+	    "expiry": "168h"
+	},
+	"profiles": {
+            "maclient": {
+		"expiry": "1h",
+		"usages": [
+		    "signing",
+		    "key encipherment",
+		    "client auth"
+		]
+	    },
+            "server": {
+		"expiry": "8760h",
+		"usages": [
+		    "signing",
+		    "key encipherment",
+		    "server auth"
+		]
+	    }
+	}
+    }
+}

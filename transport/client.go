@@ -80,6 +80,7 @@ func (tr *Transport) TLSClientAuthClientConfig(host string) (*tls.Config, error)
 		ServerName:   host,
 		CipherSuites: core.CipherSuites,
 		MinVersion:   tls.VersionTLS12,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
 	}, nil
 }
 
@@ -119,7 +120,7 @@ func (tr *Transport) TLSServerConfig() (*tls.Config, error) {
 }
 
 // NewTransport builds a new transport from the default
-func NewTransport(before time.Duration, identity *core.Identity) (*Transport, error) {
+func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
 		Before:   before,
 		Identity: identity,
