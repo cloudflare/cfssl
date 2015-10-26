@@ -55,6 +55,16 @@ func TestAuthSign(t *testing.T) {
 	}
 }
 
+func TestDefaultAuthSign(t *testing.T) {
+	testProvider, _ = auth.New(testKey, nil)
+	s := NewAuthServer("1.1", testProvider)
+	testRequest := []byte(`testing 1 2 3`)
+	as, _ := s.Sign(testRequest)
+	if as != nil {
+		t.Fatal("fatal error with auth sign function")
+	}
+}
+
 func TestSign(t *testing.T) {
 	s := NewServer("1.1")
 	sign, _ := s.Sign([]byte{5, 5, 5, 5})
