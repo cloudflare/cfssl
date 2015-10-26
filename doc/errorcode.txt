@@ -26,4 +26,6 @@
     5100: NoKeyUsages
     5200: InvalidPolicy
     5300: InvalidRequest
-
+10XXX: CTError
+    10000: Unknown
+    10100: PrecertSubmissionFailed
