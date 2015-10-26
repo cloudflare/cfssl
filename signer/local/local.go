@@ -16,6 +16,9 @@ import (
 	"net"
 	"net/mail"
 
+	"encoding/asn1"
+	"encoding/binary"
+
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -25,8 +28,6 @@ import (
 
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
-	"encoding/binary"
-	"encoding/asn1"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -61,7 +62,7 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 
 // NewSignerFromFile generates a new local signer from a caFile
 // and a caKey file, both PEM encoded.
-func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signer, error) {
+func  NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signer, error) {
 	log.Debug("Loading CA: ", caFile)
 	ca, err := ioutil.ReadFile(caFile)
 	if err != nil {
@@ -263,40 +264,42 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if len(profile.CTLogServers) > 0 {
 		// Add a poison extension which prevents validation
-		var oidCTPoison = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 3}
-		var poisonExtension = pkix.Extension{Id: oidCTPoison, Critical: true, Value: []byte{0x05, 0x00}}
+		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
 		var poisonedPreCert = certTBS
 		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
 		cert, err = s.sign(&poisonedPreCert, profile)
-
 		if err != nil {
 			return
 		}
 
 		derCert, _ := pem.Decode(cert)
 		prechain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
-
-		var sctList []ct.SignedCertificateTimestamp;
+		var sctList []ct.SignedCertificateTimestamp
 
 		for _, server := range profile.CTLogServers {
+			log.Infof("submitting poisoned precertificate to %s", server)
 			var ctclient = client.New(server)
-			var resp, err = ctclient.AddPreChain(prechain)
+			var resp *ct.SignedCertificateTimestamp
+			resp, err = ctclient.AddPreChain(prechain)
 			if err != nil {
-				return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+				return nil, cferr.Wrap(cferr.CTError, cferr.PrecertSubmissionFailed, err)
 			}
-			log.Info(resp)
 			sctList = append(sctList, *resp)
 		}
 
-		var serializedSCTList, err = serializeSCTList(sctList)
-		serializedSCTList, err = asn1.Marshal(serializedSCTList)
-
+		var serializedSCTList []byte
+		serializedSCTList, err = serializeSCTList(sctList)
 		if err != nil {
 			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 		}
 
-		var oidSCTList = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
-		var SCTListExtension = pkix.Extension{Id: oidSCTList, Critical: false, Value: serializedSCTList}
+		// Serialize again as an octet string before embedding
+		serializedSCTList, err = asn1.Marshal(serializedSCTList)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+		}
+
+		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
 	return s.sign(&certTBS, profile)
@@ -304,20 +307,17 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 func serializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
 	var buf bytes.Buffer
-	var totalSCTLen = 0;
 	for _, sct := range sctList {
-		var sct, err = ct.SerializeSCT(sct)
-
+		sct, err := ct.SerializeSCT(sct)
 		if err != nil {
-			return nil, err;
+			return nil, err
 		}
-		totalSCTLen += len(sct) + 2
 		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
 		buf.Write(sct)
 	}
 
 	var sctListLengthField = make([]byte, 2)
-	binary.BigEndian.PutUint16(sctListLengthField, uint16(totalSCTLen))
+	binary.BigEndian.PutUint16(sctListLengthField, uint16(buf.Len()))
 	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
 }
 

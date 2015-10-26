@@ -22,38 +22,38 @@ type Category int
 type Reason int
 
 const (
-// Success indicates no error occurred.
+	// Success indicates no error occurred.
 	Success Category = 1000 * iota // 0XXX
 
-// CertificateError indicates a fault in a certificate.
+	// CertificateError indicates a fault in a certificate.
 	CertificateError // 1XXX
 
-// PrivateKeyError indicates a fault in a private key.
+	// PrivateKeyError indicates a fault in a private key.
 	PrivateKeyError // 2XXX
 
-// IntermediatesError indicates a fault in an intermediate.
+	// IntermediatesError indicates a fault in an intermediate.
 	IntermediatesError // 3XXX
 
-// RootError indicates a fault in a root.
+	// RootError indicates a fault in a root.
 	RootError // 4XXX
 
-// PolicyError indicates an error arising from a malformed or
-// non-existent policy, or a breach of policy.
+	// PolicyError indicates an error arising from a malformed or
+	// non-existent policy, or a breach of policy.
 	PolicyError // 5XXX
 
-// DialError indicates a network fault.
+	// DialError indicates a network fault.
 	DialError // 6XXX
 
-// APIClientError indicates a problem with the API client.
+	// APIClientError indicates a problem with the API client.
 	APIClientError // 7XXX
 
-// OCSPError indicates a problem with OCSP signing
+	// OCSPError indicates a problem with OCSP signing
 	OCSPError // 8XXX
 
-// CSRError indicates a problem with CSR parsing
+	// CSRError indicates a problem with CSR parsing
 	CSRError // 9XXX
 
-// CTError indicates a problem with the certificate transparency process
+	// CTError indicates a problem with the certificate transparency process
 	CTError // 10XXX
 )
 
@@ -79,21 +79,21 @@ const (
 // The following represent certificate non-parsing errors, and must be
 // specified along with CertificateError.
 const (
-// SelfSigned indicates that a certificate is self-signed and
-// cannot be used in the manner being attempted.
+	// SelfSigned indicates that a certificate is self-signed and
+	// cannot be used in the manner being attempted.
 	SelfSigned Reason = 100 * (iota + 1) // Code 11XX
 
-// VerifyFailed is an X.509 verification failure. The least two
-// significant digits of 12XX is determined as the actual x509
-// error is examined.
+	// VerifyFailed is an X.509 verification failure. The least two
+	// significant digits of 12XX is determined as the actual x509
+	// error is examined.
 	VerifyFailed // Code 12XX
 
-// BadRequest indicates that the certificate request is invalid.
+	// BadRequest indicates that the certificate request is invalid.
 	BadRequest // Code 13XX
 
-// MissingSerial indicates that the profile specified
-// 'ClientProvidesSerialNumbers', but the SignRequest did not include a serial
-// number.
+	// MissingSerial indicates that the profile specified
+	// 'ClientProvidesSerialNumbers', but the SignRequest did not include a serial
+	// number.
 	MissingSerial // Code 14XX
 )
 
@@ -105,77 +105,84 @@ const (
 // The following represent private-key non-parsing errors, and must be
 // specified with PrivateKeyError.
 const (
-// Encrypted indicates that the private key is a PKCS #8 encrypted
-// private key. At this time, CFSSL does not support decrypting
-// these keys.
+	// Encrypted indicates that the private key is a PKCS #8 encrypted
+	// private key. At this time, CFSSL does not support decrypting
+	// these keys.
 	Encrypted Reason = 100 * (iota + 1) //21XX
 
-// NotRSAOrECC indicates that they key is not an RSA or ECC
-// private key; these are the only two private key types supported
-// at this time by CFSSL.
+	// NotRSAOrECC indicates that they key is not an RSA or ECC
+	// private key; these are the only two private key types supported
+	// at this time by CFSSL.
 	NotRSAOrECC //22XX
 
-// KeyMismatch indicates that the private key does not match
-// the public key or certificate being presented with the key.
+	// KeyMismatch indicates that the private key does not match
+	// the public key or certificate being presented with the key.
 	KeyMismatch //23XX
 
-// GenerationFailed indicates that a private key could not
-// be generated.
+	// GenerationFailed indicates that a private key could not
+	// be generated.
 	GenerationFailed //24XX
 
-// Unavailable indicates that a private key mechanism (such as
-// PKCS #11) was requested but support for that mechanism is
-// not available.
+	// Unavailable indicates that a private key mechanism (such as
+	// PKCS #11) was requested but support for that mechanism is
+	// not available.
 	Unavailable
 )
 
 // The following are policy-related non-parsing errors, and must be
 // specified along with PolicyError.
 const (
-// NoKeyUsages indicates that the profile does not permit any
-// key usages for the certificate.
+	// NoKeyUsages indicates that the profile does not permit any
+	// key usages for the certificate.
 	NoKeyUsages Reason = 100 * (iota + 1) // 51XX
 
-// InvalidPolicy indicates that policy being requested is not
-// a valid policy or does not exist.
+	// InvalidPolicy indicates that policy being requested is not
+	// a valid policy or does not exist.
 	InvalidPolicy // 52XX
 
-// InvalidRequest indicates a certificate request violated the
-// constraints of the policy being applied to the request.
+	// InvalidRequest indicates a certificate request violated the
+	// constraints of the policy being applied to the request.
 	InvalidRequest // 53XX
 )
 
 // The following are API client related errors, and should be
 // specified with APIClientError.
 const (
-// AuthenticationFailure occurs when the client is unable
-// to obtain an authentication token for the request.
+	// AuthenticationFailure occurs when the client is unable
+	// to obtain an authentication token for the request.
 	AuthenticationFailure Reason = 100 * (iota + 1)
 
-// JSONError wraps an encoding/json error.
+	// JSONError wraps an encoding/json error.
 	JSONError
 
-// IOError wraps an io/ioutil error.
+	// IOError wraps an io/ioutil error.
 	IOError
 
-// ClientHTTPError wraps a net/http error.
+	// ClientHTTPError wraps a net/http error.
 	ClientHTTPError
 
-// ServerRequestFailed covers any other failures from the API
-// client.
+	// ServerRequestFailed covers any other failures from the API
+	// client.
 	ServerRequestFailed
 )
 
 // The following are OCSP related errors, and should be
 // specified with OCSPError
 const (
-// IssuerMismatch ocurs when the certificate in the OCSP signing
-// request was not issued by the CA that this responder responds for.
+	// IssuerMismatch ocurs when the certificate in the OCSP signing
+	// request was not issued by the CA that this responder responds for.
 	IssuerMismatch Reason = 100 * (iota + 1) // 81XX
 
-// InvalidStatus occurs when the OCSP signing requests includes an
-// invalid value for the certificate status.
+	// InvalidStatus occurs when the OCSP signing requests includes an
+	// invalid value for the certificate status.
 	InvalidStatus
+)
+
+// Certificate transparency related errors specified with CTError
+const (
+	// PrecertSubmissionFailed occurs when submitting a precertificate to
+	// a log server fails
+	PrecertSubmissionFailed = 100 * (iota + 1)
 )
 
 // The error interface implementation, which formats to a JSON object string.
@@ -336,6 +343,8 @@ func New(category Category, reason Reason) *Error {
 		switch reason {
 		case Unknown:
 			msg = "Certificate transparency parsing failed due to unknown error"
+		case PrecertSubmissionFailed:
+			msg = "Certificate transparency precertificate submission failed"
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CTError.", reason))
 		}
