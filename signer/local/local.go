@@ -25,6 +25,8 @@ import (
 
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
+	"encoding/binary"
+	"encoding/asn1"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -274,7 +276,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		derCert, _ := pem.Decode(cert)
 		prechain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
 
-		var sctList []byte
+		var sctList []ct.SignedCertificateTimestamp;
 
 		for _, server := range profile.CTLogServers {
 			var ctclient = client.New(server)
@@ -283,18 +285,40 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 				return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 			}
 			log.Info(resp)
-			serializedSCT, err := ct.SerializeSCT(*resp)
-			if err != nil {
-				return nil, err
-			}
-			sctList = append(sctList, serializedSCT...)
+			sctList = append(sctList, *resp)
+		}
+
+		var serializedSCTList, err = serializeSCTList(sctList)
+		serializedSCTList, err = asn1.Marshal(serializedSCTList)
+
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 		}
 
 		var oidSCTList = []int{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
-		var SCTListExtension = pkix.Extension{Id: oidSCTList, Critical: false, Value: sctList}
+		var SCTListExtension = pkix.Extension{Id: oidSCTList, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
 	return s.sign(&certTBS, profile)
+}
+
+func serializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
+	var buf bytes.Buffer
+	var totalSCTLen = 0;
+	for _, sct := range sctList {
+		var sct, err = ct.SerializeSCT(sct)
+
+		if err != nil {
+			return nil, err;
+		}
+		totalSCTLen += len(sct) + 2
+		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
+		buf.Write(sct)
+	}
+
+	var sctListLengthField = make([]byte, 2)
+	binary.BigEndian.PutUint16(sctListLengthField, uint16(totalSCTLen))
+	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
 }
 
 // Info return a populated info.Resp struct or an error.
