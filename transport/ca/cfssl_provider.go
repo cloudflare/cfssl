@@ -105,7 +105,7 @@ var cfsslConfigDirs = []string{
 }
 
 // The CFKS standard is to have a configuration file for a label as
-// <config>.label.
+// <config>.json.
 func findLabel(label string) *config.Config {
 	for _, dir := range cfsslConfigDirs {
 		cfgFile := filepath.Join(dir, label+".json")
