@@ -12,6 +12,9 @@ import (
 )
 
 var progname = filepath.Base(os.Args[0])
+
+// Before set to 5 minutes; certificates will attempt to auto-update 5
+// minutes before they expire.
 var Before = 5 * time.Minute
 
 // Err displays a formatting error message to standard error,

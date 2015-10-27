@@ -127,7 +127,7 @@ func TestTransportSetup(t *testing.T) {
 	var before = 55 * time.Second
 	var err error
 
-	tr, err = NewTransport(before, testIdentity)
+	tr, err = New(before, testIdentity)
 	if err != nil {
 		t.Fatalf("failed to set up transport: %v", err)
 	}
@@ -225,7 +225,7 @@ func testListen(t *testing.T) {
 func TestListener(t *testing.T) {
 	var before = 55 * time.Second
 
-	trl, err := NewTransport(before, testLIdentity)
+	trl, err := New(before, testLIdentity)
 	if err != nil {
 		t.Fatalf("failed to set up transport: %v", err)
 	}

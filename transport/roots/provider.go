@@ -11,6 +11,8 @@ import (
 	"github.com/cloudflare/cfssl/transport/roots/system"
 )
 
+// Providers is a mapping of supported providers and the functions
+// that can build them.
 var Providers = map[string]func(map[string]string) ([]*x509.Certificate, error){
 	"system": system.New,
 	"cfssl":  NewCFSSL,
@@ -52,6 +54,7 @@ func (ts *TrustStore) addCerts(certs []*x509.Certificate) {
 	}
 }
 
+// Trusted contains a store of trusted certificates.
 type Trusted interface {
 	// Certificates returns a slice containing the certificates
 	// that are loaded into the provider.
