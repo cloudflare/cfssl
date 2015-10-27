@@ -384,34 +384,39 @@ func (ps *Key) getECPublicKey(module ctx, session pkcs11.SessionHandle, privateK
 		return noKey, err
 	}
 
-	data := []byte {}
-	gotData := false
+	ecPoint := []byte{}
+	gotEcPoint := false
 	for _, a := range attrPub {
 		if a.Type == pkcs11.CKA_EC_POINT {
-			data = a.Value
-			gotData = true
+			ecPoint = a.Value
+			gotEcPoint = true
 		}
 	}
-	if !gotData {
+	if !gotEcPoint {
 		return noKey, errors.New("public key missing EC Point")
 	}
 
-	x, y := elliptic.Unmarshal(curve, data)
-	if x == nil && y == nil {
-		var point asn1.RawValue
-		asn1.Unmarshal(data, &point)
-
-		byteLen := (curve.Params().BitSize + 7) >> 3
-		x = new(big.Int).SetBytes(point.Bytes[1:1+byteLen])
-		y = new(big.Int).SetBytes(point.Bytes[1+byteLen:])
-	}
-
+	x, y := readECPoint(curve, ecPoint)
 	ecdsa := ecdsa.PublicKey{
 		Curve: curve,
 		X: x,
 		Y: y,
 	}
 	return ecdsa, nil
+}
+
+// Decode Q point from CKA_EC_POINT attribute
+func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
+	x, y := elliptic.Unmarshal(curve, ecpoint)
+	if x == nil {
+		// http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/os/pkcs11-curr-v2.40-os.html#_ftn1
+		// PKCS#11 v2.20 specified that the CKA_EC_POINT was to be store in a DER-encoded
+		// OCTET STRING.
+		var point asn1.RawValue
+		asn1.Unmarshal(ecpoint, &point)
+		x, y = elliptic.Unmarshal(curve, point.Bytes)
+	}
+	return x, y
 }
 
 // Get the public key matching a private key
