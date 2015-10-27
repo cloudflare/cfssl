@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -72,19 +73,26 @@ func main() {
 	go l.AutoUpdate(nil, nil)
 
 	log.Println("listening on", addr)
+	Warn(serve(l), "serving listener")
+}
+
+func serve(l net.Listener) error {
+	defer l.Close()
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			Warn(err, "client connection failed")
-		} else {
-			var buf = make([]byte, 256)
-			n, err := conn.Read(buf)
+			continue
+		}
+		go func(conn net.Conn) {
+			defer conn.Close()
+			buf, err := ioutil.ReadAll(conn)
 			if err != nil {
 				Warn(err, "reading from client")
-			} else {
-				log.Printf("received %d-byte message: %s", n, buf[:n])
+				return
 			}
-			conn.Close()
-		}
+
+			log.Printf("received %d-byte message: %s", len(buf), buf)
+		}(conn)
 	}
 }
