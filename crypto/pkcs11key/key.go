@@ -247,8 +247,8 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	if err != nil {
 		return noHandle, err
 	}
-	for i, attribute := range attributes {
-		if i == 0 && len(attribute.Value) > 0 {
+	for _, attribute := range attributes {
+		if len(attribute.Value) > 0 {
 			if attribute.Value[0] == pkcs11.CKK_RSA {
 				ps.keyType = RSA
 			} else if attribute.Value[0] == pkcs11.CKK_EC {
