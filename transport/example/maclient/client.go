@@ -58,8 +58,7 @@ func main() {
 		Err(1, err, "dialing %s", addr)
 	}
 
-	_, err = conn.Write([]byte("hello, world"))
-	if err != nil {
+	if _, err := fmt.Fprint(conn, "hello world!"); err != nil {
 		Err(1, err, "writing on socket")
 	}
 
