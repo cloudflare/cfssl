@@ -228,7 +228,7 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	if err := module.FindObjectsInit(session, template); err != nil {
 		return noHandle, err
 	}
-	objs, _, err := module.FindObjects(session, 2)
+	objs, _, err := module.FindObjects(session, 1)
 	if err != nil {
 		return noHandle, err
 	}
@@ -362,7 +362,7 @@ func (ps *Key) getECPublicKey(module ctx, session pkcs11.SessionHandle, privateK
 	if err := module.FindObjectsInit(session, templateSearch); err != nil {
 		return noKey, err
 	}
-	objs, _, err := module.FindObjects(session, 2)
+	objs, _, err := module.FindObjects(session, 1)
 	if err != nil {
 		return noKey, err
 	}
