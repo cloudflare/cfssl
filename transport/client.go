@@ -119,7 +119,9 @@ func (tr *Transport) TLSServerConfig() (*tls.Config, error) {
 	}, nil
 }
 
-// NewTransport builds a new transport from the default
+// New builds a new transport from an identity and a before time. The
+// before time tells the transport how long before the certificate
+// expires to start attempting to update when auto-updating.
 func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
 		Before:   before,

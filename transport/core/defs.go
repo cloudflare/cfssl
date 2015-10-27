@@ -44,7 +44,8 @@ type Identity struct {
 	Profiles map[string]map[string]string `json:"profiles"`
 }
 
-// A sensible default is to regenerate certificates the day before they expire.
+// DefaultBefore is a sensible default; attempt to regenerate certificates the
+// day before they expire.
 var DefaultBefore = 24 * time.Hour
 
 // CipherSuites are the TLS cipher suites that should be used by CloudFlare programs.
