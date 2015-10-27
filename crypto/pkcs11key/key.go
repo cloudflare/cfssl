@@ -327,8 +327,12 @@ func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle 
 func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
 	var noKey interface{}
 
+	// http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/os/pkcs11-curr-v2.40-os.html#_Toc416960012
 	template := []*pkcs11.Attribute{
+		// CKA_EC_PARAMS contains the OID of the curve (part of the
+		// public key
 		pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, nil),
+		// CKA_ID will allow use to find the corresponding public key
 		pkcs11.NewAttribute(pkcs11.CKA_ID, nil),
 	}
 
@@ -486,6 +490,7 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 		// credentials.
 		if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
 			if err == pkcs11.Error(pkcs11.CKR_USER_ALREADY_LOGGED_IN) {
+				// But if the token says we're already logged in, it's ok.
 				err = nil
 			} else {
 				ps.module.CloseSession(session)
