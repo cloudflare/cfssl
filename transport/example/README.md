@@ -31,7 +31,8 @@ config.
 ## Running the server
 
 The server expects a `server.json` in the same directory containing
-the configuration. One is provided in the server source:
+the configuration. One is provided in the server source, or it may be
+overridden using the `-f` command line flag.
 
 ```
 $ basename $(pwd)
@@ -59,7 +60,8 @@ At this point, the clients can start talking to the server.
 At this point, clients just connect and send a few messages, ensuring
 the server acknowledges the messages. The client also expects a
 `client.json` configuration in the same directory; once is provided in
-the source directory.
+the source directory, or it may be overridden using the `-f` command
+line flag.
 
 ```
 $ basename $(pwd)
@@ -75,5 +77,16 @@ $ go run client.go
 2015/10/27 14:08:34 [DEBUG] storing the certificate
 OK
 $
+```
+
+## Auth Examples
+
+The CA, server, and client ship with a `_auth.json` configuration file
+that will use an authenticated CFSSL. The commands change to:
+
+```
+$ cfssl serve -ca ca.pem -ca-key ca-key.pem -config config_auth.json
+$ go run server.go -a 127.0.0.1:9876 -f server_auth.json
+$ go run client.go -f client_auth.json
 ```
 
