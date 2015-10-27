@@ -249,10 +249,12 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	}
 	for i, attribute := range attributes {
 		if i == 0 && len(attribute.Value) > 0 {
-			if attribute.Value[0] == 0x3 {
+			if attribute.Value[0] == pkcs11.CKK_RSA {
+				ps.keyType = RSA
+			} else if attribute.Value[0] == pkcs11.CKK_EC {
 				ps.keyType = EC
 			} else {
-				ps.keyType = RSA
+				return noHandle, fmt.Errorf("Unsupported key type %d", attribute.Value)
 			}
 		}
 	}
@@ -281,132 +283,144 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	return privateKeyHandle, nil
 }
 
+// Get the public key matching an RSA private key
+func (ps *Key) getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+	var noKey interface{}
+	template := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
+		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, nil),
+	}
+	attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
+	if err != nil {
+		return noKey, err
+	}
+
+	n := big.NewInt(0)
+	e := int(0)
+	gotModulus, gotExponent := false, false
+	for _, a := range attr {
+		if a.Type == pkcs11.CKA_MODULUS {
+			n.SetBytes(a.Value)
+			gotModulus = true
+		} else if a.Type == pkcs11.CKA_PUBLIC_EXPONENT {
+			bigE := big.NewInt(0)
+			bigE.SetBytes(a.Value)
+			e = int(bigE.Int64())
+			gotExponent = true
+		}
+	}
+	if !gotModulus || !gotExponent {
+		return noKey, errors.New("public key missing either modulus or exponent")
+	}
+
+	rsa := rsa.PublicKey{
+		N: n,
+		E: e,
+	}
+	return rsa, nil
+}
+
+// Get the public key matching an Elliptic Curve private key
+func (ps *Key) getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+	var noKey interface{}
+
+	template := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, nil),
+		pkcs11.NewAttribute(pkcs11.CKA_ID, nil),
+	}
+
+	attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
+	if err != nil {
+		return noKey, err
+	}
+
+	oid := []byte {}
+	id := []byte {}
+	gotOid, gotID := false, false
+	for _, a := range attr {
+		if a.Type == pkcs11.CKA_EC_PARAMS {
+			oid = a.Value
+			gotOid = true
+		} else if a.Type == pkcs11.CKA_ID {
+			id = a.Value
+			gotID = true
+		}
+	}
+	if !gotOid || !gotID {
+		return noKey, errors.New("public key missing either curve parameters or id")
+	}
+
+	poid := new(asn1.ObjectIdentifier)
+	asn1.Unmarshal(oid, poid)
+	curve := namedCurveFromOID(*poid)
+
+	templateSearch := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
+		pkcs11.NewAttribute(pkcs11.CKA_ID, id),
+	}
+
+	if err := module.FindObjectsInit(session, templateSearch); err != nil {
+		return noKey, err
+	}
+	objs, _, err := module.FindObjects(session, 2)
+	if err != nil {
+		return noKey, err
+	}
+	if err = module.FindObjectsFinal(session); err != nil {
+		return noKey, err
+	}
+
+	if len(objs) == 0 {
+		return noKey, fmt.Errorf("public key not found")
+	}
+	publicKeyHandle := objs[0]
+
+	templatePub := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_EC_POINT, nil),
+	}
+
+	attrPub, err := module.GetAttributeValue(session, publicKeyHandle, templatePub)
+	if err != nil {
+		return noKey, err
+	}
+
+	data := []byte {}
+	gotData := false
+	for _, a := range attrPub {
+		if a.Type == pkcs11.CKA_EC_POINT {
+			data = a.Value
+			gotData = true
+		}
+	}
+	if !gotData {
+		return noKey, errors.New("public key missing EC Point")
+	}
+
+	x, y := elliptic.Unmarshal(curve, data)
+	if x == nil && y == nil {
+		var point asn1.RawValue
+		asn1.Unmarshal(data, &point)
+
+		byteLen := (curve.Params().BitSize + 7) >> 3
+		x = new(big.Int).SetBytes(point.Bytes[1:1+byteLen])
+		y = new(big.Int).SetBytes(point.Bytes[1+byteLen:])
+	}
+
+	ecdsa := ecdsa.PublicKey{
+		Curve: curve,
+		X: x,
+		Y: y,
+	}
+	return ecdsa, nil
+}
+
 // Get the public key matching a private key
 func (ps *Key) getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
 	var noKey interface{}
 	if ps.keyType == RSA {
-		template := []*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
-			pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, nil),
-		}
-		attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
-		if err != nil {
-			return noKey, err
-		}
-
-		n := big.NewInt(0)
-		e := int(0)
-		gotModulus, gotExponent := false, false
-		for _, a := range attr {
-			if a.Type == pkcs11.CKA_MODULUS {
-				n.SetBytes(a.Value)
-				gotModulus = true
-			} else if a.Type == pkcs11.CKA_PUBLIC_EXPONENT {
-				bigE := big.NewInt(0)
-				bigE.SetBytes(a.Value)
-				e = int(bigE.Int64())
-				gotExponent = true
-			}
-		}
-		if !gotModulus || !gotExponent {
-			return noKey, errors.New("public key missing either modulus or exponent")
-		}
-
-		rsa := rsa.PublicKey{
-			N: n,
-			E: e,
-		}
-		return rsa, nil
+		return ps.getRSAPublicKey(module, session, privateKeyHandle)
 	} else if ps.keyType == EC {
-		template := []*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, nil),
-			pkcs11.NewAttribute(pkcs11.CKA_ID, nil),
-		}
-
-		attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
-		if err != nil {
-			return noKey, err
-		}
-
-		oid := []byte {}
-		id := []byte {}
-		gotOid, gotID := false, false
-		for _, a := range attr {
-			if a.Type == pkcs11.CKA_EC_PARAMS {
-				oid = a.Value
-				gotOid = true
-			} else if a.Type == pkcs11.CKA_ID {
-				id = a.Value
-				gotID = true
-			}
-		}
-		if !gotOid || !gotID {
-			return noKey, errors.New("public key missing either curve parameters or id")
-		}
-
-		poid := new(asn1.ObjectIdentifier)
-		asn1.Unmarshal(oid, poid)
-		curve := namedCurveFromOID(*poid)
-
-		templateSearch := []*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
-			pkcs11.NewAttribute(pkcs11.CKA_ID, id),
-		}
-
-		if err := module.FindObjectsInit(session, templateSearch); err != nil {
-			return noKey, err
-		}
-		objs, _, err := module.FindObjects(session, 2)
-		if err != nil {
-			return noKey, err
-		}
-		if err = module.FindObjectsFinal(session); err != nil {
-			return noKey, err
-		}
-
-		if len(objs) == 0 {
-			return noKey, fmt.Errorf("public key not found")
-		}
-		publicKeyHandle := objs[0]
-
-		templatePub := []*pkcs11.Attribute{
-			pkcs11.NewAttribute(pkcs11.CKA_EC_POINT, nil),
-		}
-
-		attrPub, err := module.GetAttributeValue(session, publicKeyHandle, templatePub)
-		if err != nil {
-			return noKey, err
-		}
-
-		data := []byte {}
-		gotData := false
-		for _, a := range attrPub {
-			if a.Type == pkcs11.CKA_EC_POINT {
-				data = a.Value
-				gotData = true
-			}
-		}
-		if !gotData {
-			return noKey, errors.New("public key missing EC Point")
-		}
-
-		x, y := elliptic.Unmarshal(curve, data)
-
-		if x == nil && y == nil {
-			var point asn1.RawValue
-			asn1.Unmarshal(data, &point)
-
-			byteLen := (curve.Params().BitSize + 7) >> 3
-			x = new(big.Int).SetBytes(point.Bytes[1:1+byteLen])
-			y = new(big.Int).SetBytes(point.Bytes[1+byteLen:])
-		}
-
-		ecdsa := ecdsa.PublicKey{
-			Curve: curve,
-			X: x,
-			Y: y,
-		}
-		return ecdsa, nil
+		return ps.getECPublicKey(module, session, privateKeyHandle)
 	}
 	return noKey, fmt.Errorf("invalid key type")
 }
