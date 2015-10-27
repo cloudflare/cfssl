@@ -884,3 +884,34 @@ func TestNameWhitelistSign(t *testing.T) {
 	}
 
 }
+
+func TestCTFailure(t *testing.T) {
+	var config = &config.Signing{
+		Default: &config.SigningProfile{
+			Expiry:       helpers.OneYear,
+			CA:           true,
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: "8760h",
+			CTLogServers: []string{"https://ct.googleapis.com/pilot"},
+		},
+	}
+	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	var pem []byte
+	pem, err = ioutil.ReadFile("testdata/ex.csr")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	validReq := signer.SignRequest{
+		Request: string(pem),
+		Hosts:   []string{"example.com"},
+	}
+	_, err = testSigner.Sign(validReq)
+
+	// This should fail because our CA cert is not trusted by Google's pilot log
+	if err == nil {
+		t.Fatal("Expected CT log submission failure")
+	}
+}

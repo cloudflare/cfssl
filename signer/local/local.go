@@ -62,7 +62,7 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 
 // NewSignerFromFile generates a new local signer from a caFile
 // and a caKey file, both PEM encoded.
-func  NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signer, error) {
+func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signer, error) {
 	log.Debug("Loading CA: ", caFile)
 	ca, err := ioutil.ReadFile(caFile)
 	if err != nil {
