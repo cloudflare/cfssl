@@ -8,9 +8,9 @@ package pkcs11key
 
 import (
 	"crypto"
-	"crypto/rsa"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rsa"
 	"encoding/asn1"
 	"errors"
 	"fmt"
@@ -80,7 +80,7 @@ const (
 	// RSA means the key is an RSA key
 	RSA KeyType = 0
 	// EC means the key is an Elliptic Curve key
-	EC  KeyType = 3
+	EC KeyType = 3
 )
 
 // Key is an implementation of the crypto.Signer interface using a key stored
@@ -111,7 +111,7 @@ type Key struct {
 	pin string
 
 	// The public key corresponding to the private key.
-	rsaPublicKey rsa.PublicKey
+	rsaPublicKey   rsa.PublicKey
 	ecdsaPublicKey ecdsa.PublicKey
 
 	// The an ObjectHandle pointing to the private key on the HSM.
@@ -210,7 +210,7 @@ func (ps *Key) setup(privateKeyLabel string) (err error) {
 		ps.module.CloseSession(session)
 		return
 	}
-	if(ps.keyType == EC) {
+	if ps.keyType == EC {
 		ps.ecdsaPublicKey = publicKey.(ecdsa.PublicKey)
 	} else {
 		ps.rsaPublicKey = publicKey.(rsa.PublicKey)
@@ -341,8 +341,8 @@ func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle p
 		return noKey, err
 	}
 
-	oid := []byte {}
-	id := []byte {}
+	oid := []byte{}
+	id := []byte{}
 	gotOid, gotID := false, false
 	for _, a := range attr {
 		if a.Type == pkcs11.CKA_EC_PARAMS {
@@ -409,8 +409,8 @@ func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle p
 	x, y := readECPoint(curve, ecPoint)
 	ecdsa := ecdsa.PublicKey{
 		Curve: curve,
-		X: x,
-		Y: y,
+		X:     x,
+		Y:     y,
 	}
 	return ecdsa, nil
 }
@@ -505,7 +505,7 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 
 // Public returns the public key for the PKCS #11 key.
 func (ps *Key) Public() crypto.PublicKey {
-	if(ps.keyType == EC) {
+	if ps.keyType == EC {
 		return &ps.ecdsaPublicKey
 	}
 	return &ps.rsaPublicKey
