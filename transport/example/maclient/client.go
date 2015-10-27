@@ -1,35 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/cloudflare/cfssl/transport"
 	"github.com/cloudflare/cfssl/transport/core"
+	"github.com/cloudflare/cfssl/transport/example/exlib"
 )
 
 // maclient is a mutual-authentication client, meant to demonstrate
 // using the client-side mutual authentication side of the transport
 // package.
 
-var progname = filepath.Base(os.Args[0])
-var before = 5 * time.Minute
-
-// Err displays a formatting error message to standard error,
-// appending the error string, and exits with the status code from
-// `exit`, à la err(3).
-func Err(exit int, err error, format string, a ...interface{}) {
-	format = fmt.Sprintf("[%s] %s", progname, format)
-	format += ": %v\n"
-	a = append(a, err)
-	fmt.Fprintf(os.Stderr, format, a...)
-	os.Exit(exit)
-}
+var messages = []string{"hello world", "hello", "world"}
 
 func main() {
 	var addr, conf string
@@ -40,29 +27,44 @@ func main() {
 	var id = new(core.Identity)
 	data, err := ioutil.ReadFile(conf)
 	if err != nil {
-		Err(1, err, "reading config file")
+		exlib.Err(1, err, "reading config file")
 	}
 
 	err = json.Unmarshal(data, id)
 	if err != nil {
-		Err(1, err, "parsing config file")
+		exlib.Err(1, err, "parsing config file")
 	}
 
-	tr, err := transport.New(before, id)
+	tr, err := transport.New(exlib.Before, id)
 	if err != nil {
-		Err(1, err, "creating transport")
+		exlib.Err(1, err, "creating transport")
 	}
 
 	conn, err := transport.Dial(addr, tr)
 	if err != nil {
-		Err(1, err, "dialing %s", addr)
+		exlib.Err(1, err, "dialing %s", addr)
 	}
 
-	if _, err := fmt.Fprint(conn, "hello world!"); err != nil {
-		Err(1, err, "writing on socket")
+	for _, msg := range messages {
+		if err = exlib.Pack(conn, []byte(msg)); err != nil {
+			exlib.Err(1, err, "sending message")
+		}
+
+		var resp []byte
+		resp, err = exlib.Unpack(conn)
+		if err != nil {
+			exlib.Err(1, err, "receiving message")
+		}
+
+		if !bytes.Equal(resp, []byte("OK")) {
+			exlib.Errx(1, "server didn't send an OK message; received '%s'", resp)
+		}
 	}
 
-	<-time.After(3 * time.Second)
+	err = exlib.Pack(conn, []byte{})
+	if err != nil {
+		exlib.Err(1, err, "sending shutdown message failed")
+	}
 
 	fmt.Println("OK")
 	conn.Close()
