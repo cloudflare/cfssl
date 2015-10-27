@@ -309,8 +309,11 @@ func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle 
 			gotExponent = true
 		}
 	}
-	if !gotModulus || !gotExponent {
-		return noKey, errors.New("public key missing either modulus or exponent")
+	if !gotModulus {
+		return noKey, errors.New("private key missing modulus")
+	}
+	if !gotExponent {
+		return noKey, errors.New("private key missing exponent")
 	}
 
 	rsa := rsa.PublicKey{
@@ -346,8 +349,11 @@ func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle p
 			gotID = true
 		}
 	}
-	if !gotOid || !gotID {
-		return noKey, errors.New("public key missing either curve parameters or id")
+	if !gotOid {
+		return noKey, errors.New("private key missing curve parameters")
+	}
+	if !gotID {
+		return noKey, errors.New("private key missing identifier (CKA_ID)")
 	}
 
 	poid := new(asn1.ObjectIdentifier)
