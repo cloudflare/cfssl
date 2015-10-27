@@ -284,7 +284,7 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 }
 
 // Get the public key matching an RSA private key
-func (ps *Key) getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
 	var noKey interface{}
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
@@ -321,7 +321,7 @@ func (ps *Key) getRSAPublicKey(module ctx, session pkcs11.SessionHandle, private
 }
 
 // Get the public key matching an Elliptic Curve private key
-func (ps *Key) getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
 	var noKey interface{}
 
 	template := []*pkcs11.Attribute{
@@ -423,9 +423,9 @@ func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
 func (ps *Key) getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
 	var noKey interface{}
 	if ps.keyType == RSA {
-		return ps.getRSAPublicKey(module, session, privateKeyHandle)
+		return getRSAPublicKey(module, session, privateKeyHandle)
 	} else if ps.keyType == EC {
-		return ps.getECPublicKey(module, session, privateKeyHandle)
+		return getECPublicKey(module, session, privateKeyHandle)
 	}
 	return noKey, fmt.Errorf("invalid key type")
 }
