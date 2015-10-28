@@ -1,5 +1,5 @@
 // Package ca provides the CertificateAuthority interface for the
-// transport package, which provide an interface to get a CSR signed
+// transport package, which provides an interface to get a CSR signed
 // by some certificate authority.
 package ca
 
