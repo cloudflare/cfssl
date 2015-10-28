@@ -44,6 +44,7 @@ func main() {
 	if err != nil {
 		exlib.Err(1, err, "dialing %s", addr)
 	}
+	defer conn.Close()
 
 	for _, msg := range messages {
 		if err = exlib.Pack(conn, []byte(msg)); err != nil {
@@ -67,5 +68,4 @@ func main() {
 	}
 
 	fmt.Println("OK")
-	conn.Close()
 }

@@ -76,7 +76,7 @@ func ipIsLocal(ip net.IP) bool {
 func (cap *CFSSL) validateAuth() error {
 	// The client is using some form of authentication, and the best way
 	// to figure out that the auth is invalid is when it's used. Therefore,
-	// we'll elide checking the credentials until that time.
+	// we'll delay checking the credentials until that time.
 	if cap.provider != nil {
 		return nil
 	}
@@ -104,7 +104,7 @@ var cfsslConfigDirs = []string{
 	"/state/etc/cfssl",
 }
 
-// The CFKS standard is to have a configuration file for a label as
+// The CFSSL standard is to have a configuration file for a label as
 // <config>.json.
 func findLabel(label string) *config.Config {
 	for _, dir := range cfsslConfigDirs {
