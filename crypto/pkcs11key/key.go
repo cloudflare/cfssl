@@ -307,8 +307,13 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 		// practice it appears to be okay to login to a token multiple times with the same
 		// credentials.
 		if err = ps.module.Login(session, pkcs11.CKU_USER, ps.pin); err != nil {
-			ps.module.CloseSession(session)
-			return session, err
+			if err == pkcs11.Error(pkcs11.CKR_USER_ALREADY_LOGGED_IN) {
+				// But if the token says we're already logged in, it's ok.
+				err = nil
+			} else {
+				ps.module.CloseSession(session)
+				return session, err
+			}
 		}
 
 		return session, err
