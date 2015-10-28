@@ -111,8 +111,7 @@ type Key struct {
 	pin string
 
 	// The public key corresponding to the private key.
-	rsaPublicKey   rsa.PublicKey
-	ecdsaPublicKey ecdsa.PublicKey
+	publicKey crypto.PublicKey
 
 	// The an ObjectHandle pointing to the private key on the HSM.
 	privateKeyHandle pkcs11.ObjectHandle
@@ -211,9 +210,11 @@ func (ps *Key) setup(privateKeyLabel string) (err error) {
 		return
 	}
 	if ps.keyType == EC {
-		ps.ecdsaPublicKey = publicKey.(ecdsa.PublicKey)
+		t := publicKey.(ecdsa.PublicKey)
+		ps.publicKey = &t
 	} else {
-		ps.rsaPublicKey = publicKey.(rsa.PublicKey)
+		t := publicKey.(rsa.PublicKey)
+		ps.publicKey = &t
 	}
 
 	return
@@ -283,7 +284,7 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 }
 
 // Get the public key matching an RSA private key
-func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (crypto.PublicKey, error) {
 	var noKey interface{}
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
@@ -323,7 +324,7 @@ func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle 
 }
 
 // Get the public key matching an Elliptic Curve private key
-func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (crypto.PublicKey, error) {
 	var noKey interface{}
 
 	// http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/os/pkcs11-curr-v2.40-os.html#_Toc416960012
@@ -429,7 +430,7 @@ func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
 }
 
 // Get the public key matching a private key
-func (ps *Key) getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (interface{}, error) {
+func (ps *Key) getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (crypto.PublicKey, error) {
 	var noKey interface{}
 	if ps.keyType == RSA {
 		return getRSAPublicKey(module, session, privateKeyHandle)
@@ -504,10 +505,7 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 
 // Public returns the public key for the PKCS #11 key.
 func (ps *Key) Public() crypto.PublicKey {
-	if ps.keyType == EC {
-		return &ps.ecdsaPublicKey
-	}
-	return &ps.rsaPublicKey
+	return ps.publicKey
 }
 
 // Sign performs a signature using the PKCS #11 key.
