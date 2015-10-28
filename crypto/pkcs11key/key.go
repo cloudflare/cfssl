@@ -247,16 +247,17 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	if err != nil {
 		return noHandle, err
 	}
-	for _, attribute := range attributes {
-		if len(attribute.Value) > 0 {
-			if attribute.Value[0] == pkcs11.CKK_RSA {
-				ps.keyType = RSA
-			} else if attribute.Value[0] == pkcs11.CKK_EC {
-				ps.keyType = EC
-			} else {
-				return noHandle, fmt.Errorf("Unsupported key type %d", attribute.Value)
-			}
+
+	if (len(attributes) > 0) && (len(attributes[0].Value) > 0) {
+		if attributes[0].Value[0] == pkcs11.CKK_RSA {
+			ps.keyType = RSA
+		} else if attributes[0].Value[0] == pkcs11.CKK_EC {
+			ps.keyType = EC
+		} else {
+			return noHandle, fmt.Errorf("Unsupported key type %d", attributes[0].Value[0])
 		}
+	} else {
+		return noHandle, fmt.Errorf("No key type")
 	}
 
 	// Check whether the key has the CKA_ALWAYS_AUTHENTICATE attribute.
@@ -274,10 +275,8 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	} else if err != nil {
 		return noHandle, err
 	}
-	for _, attribute := range attributes {
-		if len(attribute.Value) > 0 && attribute.Value[0] == 1 {
-			ps.alwaysAuthenticate = true
-		}
+	if len(attributes) > 0 && len(attributes[0].Value) > 0 && attributes[0].Value[0] == 1 {
+		ps.alwaysAuthenticate = true
 	}
 
 	return privateKeyHandle, nil
