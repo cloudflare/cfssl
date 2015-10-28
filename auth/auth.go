@@ -9,6 +9,10 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
 )
 
 // An AuthenticatedRequest contains a request and authentication
@@ -43,6 +47,21 @@ type Standard struct {
 // and additional data. The additional data will be used when
 // generating a new token.
 func New(key string, ad []byte) (*Standard, error) {
+	if splitKey := strings.SplitN(key, ":", 2); len(splitKey) == 2 {
+		switch splitKey[0] {
+		case "env":
+			key = os.Getenv(splitKey[1])
+		case "file":
+			data, err := ioutil.ReadFile(splitKey[1])
+			if err != nil {
+				return nil, err
+			}
+			key = string(data)
+		default:
+			return nil, fmt.Errorf("unknown key prefix: %s", splitKey[0])
+		}
+	}
+
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
 		return nil, err
