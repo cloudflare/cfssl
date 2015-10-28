@@ -76,6 +76,7 @@ type SigningProfile struct {
 	NotAfter            time.Time  `json:"not_after"`
 	NameWhitelistString string     `json:"name_whitelist"`
 	AuthRemote          AuthRemote `json:"auth_remote"`
+	CTLogServers        []string   `json:"ct_log_servers"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
