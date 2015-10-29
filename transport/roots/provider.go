@@ -1,12 +1,12 @@
-// Package roots includes support for loading trusted roots from
-// various sources.
 package roots
 
 import (
 	"crypto/sha256"
 	"crypto/x509"
 	"errors"
+	"io/ioutil"
 
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/transport/core"
 	"github.com/cloudflare/cfssl/transport/roots/system"
 )
@@ -16,6 +16,7 @@ import (
 var Providers = map[string]func(map[string]string) ([]*x509.Certificate, error){
 	"system": system.New,
 	"cfssl":  NewCFSSL,
+	"file":   TrustPEM,
 }
 
 // A TrustStore contains a pool of certificate that are trusted for a
@@ -103,4 +104,20 @@ func New(rootDefs []*core.Root) (*TrustStore, error) {
 		store = nil
 	}
 	return store, err
+}
+
+// TrustPEM takes a source file containing one or more certificates
+// and adds them to the trust store.
+func TrustPEM(metadata map[string]string) ([]*x509.Certificate, error) {
+	sourceFile, ok := metadata["source"]
+	if !ok {
+		return nil, errors.New("transport: PEM source requires a source file")
+	}
+
+	in, err := ioutil.ReadFile(sourceFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return helpers.ParseCertificatesPEM(in)
 }
