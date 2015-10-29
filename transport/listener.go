@@ -55,7 +55,13 @@ func pollWait(target time.Time) {
 // certUpdates chan is provided, it will receive timestamps for
 // reissued certificates. If errChan is non-nil, any errors that occur
 // in the updater will be passed along.
-func (l *Listener) AutoUpdate(certUpdates chan time.Time, errChan chan error) {
+func (l *Listener) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Criticalf("AutoUpdate panicked: %v", r)
+		}
+	}()
+
 	for {
 		// Wait until it's time to update the certificate.
 		target := time.Now().Add(l.Lifespan())

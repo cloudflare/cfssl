@@ -59,7 +59,7 @@ func newProvider(ak config.AuthKey, ad []byte) (auth.Provider, error) {
 var ErrNoAuth = errors.New("transport: authentication is required for non-local remotes")
 
 var v4Loopback = net.IPNet{
-	IP:   net.IP{127, 0, 0, 1},
+	IP:   net.IP{127, 0, 0, 0},
 	Mask: net.IPv4Mask(255, 0, 0, 0),
 }
 
