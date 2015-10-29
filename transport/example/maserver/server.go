@@ -43,8 +43,20 @@ func main() {
 		exlib.Err(1, err, "setting up listener")
 	}
 
+	var errChan = make(chan error, 0)
+	go func(ec <-chan error) {
+		for {
+			err, ok := <-ec
+			if !ok {
+				log.Warning("error channel closed, future errors will not be reported")
+				break
+			}
+			log.Errorf("auto update error: %v", err)
+		}
+	}(errChan)
+
 	log.Info("setting up auto-update")
-	go l.AutoUpdate(nil, nil)
+	go l.AutoUpdate(nil, errChan)
 
 	log.Info("listening on ", addr)
 	exlib.Warn(serve(l), "serving listener")
