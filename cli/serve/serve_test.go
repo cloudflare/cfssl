@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/cli"
 )
 
@@ -15,11 +14,11 @@ func TestServe(t *testing.T) {
 	ts := httptest.NewServer(http.DefaultServeMux)
 	defer ts.Close()
 	expected := make(map[string]int)
-	for endpoint := range v1Endpoints {
+	for endpoint := range endpoints {
 		expected[v1APIPath(endpoint)] = http.StatusOK
 	}
 
-	err := rice.MustFindBox(staticDir).Walk("", func(path string, info os.FileInfo, err error) error {
+	err := staticBox.Walk("", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
