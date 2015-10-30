@@ -65,6 +65,7 @@ func v1APIPath(path string) string {
 // Atempting to Open an API endpoint will result in an error.
 type httpBox struct {
 	*rice.Box
+	redirects map[string]string
 }
 
 // Open returns a File for non-API enpoints using the http.File interface.
@@ -73,11 +74,21 @@ func (hb *httpBox) Open(name string) (http.File, error) {
 		return nil, os.ErrNotExist
 	}
 
+	if location, ok := hb.redirects[name]; ok {
+		return hb.Box.Open(location)
+	}
+
 	return hb.Box.Open(name)
 }
 
 // staticBox is the box containing all static assets.
-var staticBox = &httpBox{rice.MustFindBox("static")}
+var staticBox = &httpBox{
+	Box: rice.MustFindBox("static"),
+	redirects: map[string]string{
+		"/scan":   "/index.html",
+		"/bundle": "/index.html",
+	},
+}
 
 var errBadSigner = errors.New("signer not initialized")
 

@@ -48,6 +48,10 @@ func TestServe(t *testing.T) {
 	// POST-only endpoints should return '400 Bad Request'
 	expected[v1APIPath("scan")] = http.StatusBadRequest
 
+	// Redirected HTML endpoints should return '200 OK'
+	expected["/scan"] = http.StatusOK
+	expected["/bundle"] = http.StatusOK
+
 	// Non-existent endpoints should return '404 Not Found'
 	expected["/bad_endpoint"] = http.StatusNotFound
 
