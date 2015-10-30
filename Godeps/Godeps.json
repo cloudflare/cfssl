@@ -1,0 +1,125 @@
+{
+	"ImportPath": "github.com/cloudflare/cfssl",
+	"GoVersion": "go1.5",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/GeertJohan/go.incremental",
+			"Rev": "92fd0ce4a694213e8b3dfd2d39b16e51d26d0fbf"
+		},
+		{
+			"ImportPath": "github.com/GeertJohan/go.rice",
+			"Rev": "ada95a01c963696fb73320ee662195af68be81ae"
+		},
+		{
+			"ImportPath": "github.com/akavel/rsrc/binutil",
+			"Comment": "v2-6-gba14da1",
+			"Rev": "ba14da1f827188454a4591717fff29999010887f"
+		},
+		{
+			"ImportPath": "github.com/akavel/rsrc/coff",
+			"Comment": "v2-6-gba14da1",
+			"Rev": "ba14da1f827188454a4591717fff29999010887f"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/cf-tls/tls",
+			"Rev": "28cbf4e4c1f859789a26b308eb8b684f34f38312"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/go-metrics",
+			"Rev": "f009caf6e47cccc4641d4252277f4af0196d89c4"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/client",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/core",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/cryptor",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/ecdh",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/keycache",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/padding",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/passvault",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/symcrypt",
+			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+		},
+		{
+			"ImportPath": "github.com/daaku/go.zipexe",
+			"Rev": "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
+		},
+		{
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "2df174808ee097f90d259e432cc04442cf60be21"
+		},
+		{
+			"ImportPath": "github.com/google/certificate-transparency/go",
+			"Rev": "3f987269ebe76f2bf3bbf88e10d21a45f4bffb04"
+		},
+		{
+			"ImportPath": "github.com/jessevdk/go-flags",
+			"Comment": "v1-322-gfc93116",
+			"Rev": "fc93116606d0a71d7e9de0ad5734fdb4b8eae834"
+		},
+		{
+			"ImportPath": "github.com/kardianos/osext",
+			"Rev": "6e7f843663477789fac7c02def0d0909e969b4e5"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-sqlite3",
+			"Comment": "v1.1.0-25-g2513631",
+			"Rev": "2513631704612107a1c8b1803fb8e6b3dda2230e"
+		},
+		{
+			"ImportPath": "github.com/miekg/pkcs11",
+			"Rev": "80f102b5cac759de406949c47f0928b99bd64cdf"
+		},
+		{
+			"ImportPath": "github.com/mreiferson/go-httpclient",
+			"Rev": "63fe23f7434723dc904c901043af07931f293c47"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/go-metrics",
+			"Rev": "1ce93efbc8f9c568886b2ef85ce305b2217b3de3"
+		},
+		{
+			"ImportPath": "github.com/stathat/go",
+			"Rev": "01d012b9ee2ecc107cb28b6dd32d9019ed5c1d77"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ocsp",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/pbkdf2",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/pkcs12",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/scrypt",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		}
+	]
+}
