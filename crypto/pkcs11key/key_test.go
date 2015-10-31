@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"github.com/miekg/pkcs11"
+	"strings"
 	"testing"
 )
 
@@ -323,6 +324,10 @@ func TestSign(t *testing.T) {
 	if !(bytes.Equal(ecPub.X.Bytes(), ecPoint[3:35]) &&
 		bytes.Equal(ecPub.Y.Bytes(), ecPoint[35:])) {
 		t.Fatal("Incorrect decoding of EC Point")
+	}
+
+	if strings.Compare(ecPub.Curve.Params().Name, "P-256") != 0 {
+		t.Fatal("Invalid curve decoded")
 	}
 
 	k := Key{
