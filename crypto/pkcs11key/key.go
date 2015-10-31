@@ -387,8 +387,8 @@ func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
 		var point asn1.RawValue
 		asn1.Unmarshal(ecpoint, &point)
 		if len(point.Bytes) > 0 {
-		x, y = elliptic.Unmarshal(curve, point.Bytes)
-	}
+			x, y = elliptic.Unmarshal(curve, point.Bytes)
+		}
 	}
 	return x, y
 }
@@ -412,7 +412,7 @@ func (ps *Key) loadPublicKey(module ctx, session pkcs11.SessionHandle, privateKe
 		pub, err := getECPublicKey(ps.module, session, privateKeyHandle)
 		if err != nil {
 			return err
-	}
+		}
 		ecPub := pub.(ecdsa.PublicKey)
 		ps.publicKey = &ecPub
 	default:

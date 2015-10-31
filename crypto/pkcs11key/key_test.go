@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/ecdsa"
 	"github.com/miekg/pkcs11"
 	"testing"
 )
@@ -15,6 +17,10 @@ type mockCtx struct{}
 const rsaPrivateKeyHandle = pkcs11.ObjectHandle(23)
 const ecPrivateKeyHandle = pkcs11.ObjectHandle(32)
 const ecPublicKeyHandle = pkcs11.ObjectHandle(33)
+// EC Private key with no matching public key
+const ecPrivNoPubHandle = pkcs11.ObjectHandle(34)
+const ecInvEcPointPrivHandle = pkcs11.ObjectHandle(35)
+const ecInvEcPointPubHandle = pkcs11.ObjectHandle(36)
 const sessionHandle = pkcs11.SessionHandle(17)
 
 var slots = []uint{7, 8, 9}
@@ -44,11 +50,21 @@ func (c mockCtx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectH
 				return []pkcs11.ObjectHandle{rsaPrivateKeyHandle}, true, nil
 			} else if a.Value[0] == 0x65 { // Label start with 'e'
 				return []pkcs11.ObjectHandle{ecPrivateKeyHandle}, true, nil
+			} else if a.Value[0] == 0x6E { // Label start with 'n'
+				return []pkcs11.ObjectHandle{ecPrivNoPubHandle}, true, nil
+			} else if a.Value[0] == 0x69 { // Label start with 'i'
+				return []pkcs11.ObjectHandle{ecInvEcPointPrivHandle}, true, nil
 			}
 		}
 		// We search th EC public key using CKA_ID
 		if a.Type == pkcs11.CKA_ID {
-			return []pkcs11.ObjectHandle{ecPublicKeyHandle}, true, nil
+			if a.Value[0] == 0x3 {
+				return []pkcs11.ObjectHandle{ecPublicKeyHandle}, true, nil
+			} else if a.Value[0] == 0x5 {
+				return []pkcs11.ObjectHandle{ecInvEcPointPubHandle}, true, nil
+			} else {
+				return []pkcs11.ObjectHandle{}, true, nil
+			}
 		}
 	}
 	return nil, false, nil
@@ -136,6 +152,63 @@ func ecPublicAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, erro
 	return output, nil
 }
 
+func ecPrivNoPubAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
+	var output []*pkcs11.Attribute
+	for _, a := range template {
+		if a.Type == pkcs11.CKA_EC_PARAMS {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: ecOid,
+			})
+		}
+		if a.Type == pkcs11.CKA_KEY_TYPE {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: []byte{byte(3)},
+			})
+		}
+		if a.Type == pkcs11.CKA_ID {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: []byte{byte(4)},
+			})
+		}
+	}
+	return output, nil
+}
+
+func ecInvalidEcPointAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
+	var output []*pkcs11.Attribute
+	for _, a := range template {
+		if a.Type == pkcs11.CKA_EC_PARAMS {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: ecOid,
+			})
+		}
+		if a.Type == pkcs11.CKA_EC_POINT {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: []byte{byte(0)},
+			})
+		}
+		if a.Type == pkcs11.CKA_KEY_TYPE {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: []byte{byte(3)},
+			})
+		}
+		if a.Type == pkcs11.CKA_ID {
+			output = append(output, &pkcs11.Attribute{
+				Type:  a.Type,
+				Value: []byte{byte(5)},
+			})
+		}
+	}
+	return output, nil
+}
+
+
 func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	if o == rsaPrivateKeyHandle {
 		return rsaPrivateAttributes(template)
@@ -143,6 +216,12 @@ func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandl
 		return ecPrivateAttributes(template)
 	} else if o == ecPublicKeyHandle {
 		return ecPublicAttributes(template)
+	} else if o == ecPrivNoPubHandle {
+		return ecPrivNoPubAttributes(template)
+	} else if o == ecInvEcPointPrivHandle {
+		return ecInvalidEcPointAttributes(template)
+	} else if o == ecInvEcPointPubHandle {
+		return ecInvalidEcPointAttributes(template)
 	}
 	return nil, nil
 }
@@ -176,19 +255,7 @@ func (c mockCtx) SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs
 }
 
 func (c mockCtx) Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error) {
-	return []byte("some signed data"), nil
-}
-
-func TestSetup(t *testing.T) {
-	ps := &Key{
-		module:     mockCtx{},
-		tokenLabel: "token label",
-		pin:        "unused",
-	}
-	err := ps.setup("rsa")
-	if err != nil {
-		t.Errorf("Failed to set up Key: %s", err)
-	}
+	return message, nil
 }
 
 func setup(t *testing.T, label string) *Key {
@@ -204,26 +271,75 @@ func setup(t *testing.T, label string) *Key {
 	return &ps
 }
 
-func sign(t *testing.T, ps *Key) {
+var signInput = []byte("1234567890 1234567890 1234567890")
+func sign(t *testing.T, ps *Key) ([]byte) {
 	// Sign input must be exactly 32 bytes to match SHA256 size. In normally
 	// usage, Sign would be called by e.g. x509.CreateCertificate, which would
 	// handle padding to the necessary size.
-	signInput := []byte("1234567890 1234567890 1234567890")
 	output, err := ps.Sign(rand.Reader, signInput, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("Failed to sign: %s", err)
 	}
-	if !bytes.Equal(output, []byte("some signed data")) {
-		t.Fatal("Incorrect sign output")
+
+	if len(output) < len(signInput) {
+		t.Fatalf("Invalid signature size: got %d bytes expected at least %d",
+			len(output), len(signInput))
 	}
+
+	i := len(output) - len(signInput)
+	if !bytes.Equal(output[i:], signInput) {
+		t.Fatal("Incorrect sign output got %v expected %v", output, signInput)
+	}
+	return output
 }
 
 func TestSign(t *testing.T) {
 	ps := setup(t, "rsa")
-	sign(t, ps)
+	sig := sign(t, ps)
+	
+	// Check that the RSA signature starts with the SHA256 hash prefix
+	var sha256_pre = []byte{0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
+		0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20}
+	if !(bytes.Equal(sha256_pre, sig[0:19])) {
+		t.Fatal("RSA signature doesn't start with prefix")
+	}
+
+	pub := ps.Public()
+	// Check public key is of right type
+	_ = pub.(*rsa.PublicKey)
 
 	ps = setup(t, "ec")
-	sign(t, ps)
+	sig = sign(t, ps)
+
+	if !(bytes.Equal(signInput, sig)) {
+		t.Fatal("ECDSA signature error: got %v expected %v", sig, signInput)
+	}
+
+	pub = ps.Public()
+	// Check public key is of right type
+	ecPub := pub.(*ecdsa.PublicKey)
+	if !(bytes.Equal(ecPub.X.Bytes(), ecPoint[3:35]) &&
+		bytes.Equal(ecPub.Y.Bytes(), ecPoint[35:])) {
+		t.Fatal("Incorrect decoding of EC Point")		
+	}
+
+	k := Key{
+		module:     mockCtx{},
+		tokenLabel: "token label",
+		pin:        "unused",
+	}
+
+	// Trying to load private EC key with no public key
+	err := k.setup("no_pub_ec")
+	if err == nil {
+		t.Fatalf("Unexpected succes: %v", k)
+	}
+
+	// Trying to load private EC key with no public key
+	err = k.setup("invalid_ec_point")
+	if err == nil {
+		t.Fatalf("Unexpected succes: %v", k)
+	}
 }
 
 // This is a version of the mock that gives CKR_ATTRIBUTE_TYPE_INVALID when
