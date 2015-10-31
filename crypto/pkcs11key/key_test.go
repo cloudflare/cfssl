@@ -5,9 +5,9 @@ package pkcs11key
 import (
 	"bytes"
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/ecdsa"
 	"github.com/miekg/pkcs11"
 	"testing"
 )
@@ -17,8 +17,10 @@ type mockCtx struct{}
 const rsaPrivateKeyHandle = pkcs11.ObjectHandle(23)
 const ecPrivateKeyHandle = pkcs11.ObjectHandle(32)
 const ecPublicKeyHandle = pkcs11.ObjectHandle(33)
+
 // EC private key with no matching public key
 const ecPrivNoPubHandle = pkcs11.ObjectHandle(34)
+
 // EC private and public key with invalid EC point
 const ecInvEcPointPrivHandle = pkcs11.ObjectHandle(35)
 const ecInvEcPointPubHandle = pkcs11.ObjectHandle(36)
@@ -209,7 +211,6 @@ func ecInvalidEcPointAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribu
 	return output, nil
 }
 
-
 func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	if o == rsaPrivateKeyHandle {
 		return rsaPrivateAttributes(template)
@@ -273,7 +274,8 @@ func setup(t *testing.T, label string) *Key {
 }
 
 var signInput = []byte("1234567890 1234567890 1234567890")
-func sign(t *testing.T, ps *Key) ([]byte) {
+
+func sign(t *testing.T, ps *Key) []byte {
 	// Sign input must be exactly 32 bytes to match SHA256 size. In normally
 	// usage, Sign would be called by e.g. x509.CreateCertificate, which would
 	// handle padding to the necessary size.
@@ -296,11 +298,11 @@ func sign(t *testing.T, ps *Key) ([]byte) {
 func TestSign(t *testing.T) {
 	ps := setup(t, "rsa")
 	sig := sign(t, ps)
-	
+
 	// Check that the RSA signature starts with the SHA256 hash prefix
-	var sha256_pre = []byte{0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
+	var sha256Pre = []byte{0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
 		0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20}
-	if !(bytes.Equal(sha256_pre, sig[0:19])) {
+	if !(bytes.Equal(sha256Pre, sig[0:19])) {
 		t.Fatal("RSA signature doesn't start with prefix")
 	}
 
@@ -320,7 +322,7 @@ func TestSign(t *testing.T) {
 	ecPub := pub.(*ecdsa.PublicKey)
 	if !(bytes.Equal(ecPub.X.Bytes(), ecPoint[3:35]) &&
 		bytes.Equal(ecPub.Y.Bytes(), ecPoint[35:])) {
-		t.Fatal("Incorrect decoding of EC Point")		
+		t.Fatal("Incorrect decoding of EC Point")
 	}
 
 	k := Key{
