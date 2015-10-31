@@ -366,6 +366,9 @@ func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle p
 	}
 
 	x, y := readECPoint(curve, ecPoint)
+	if x == nil {
+		return noKey, errors.New("invalid EC Point")
+	}
 	ecdsa := ecdsa.PublicKey{
 		Curve: curve,
 		X:     x,
@@ -383,7 +386,9 @@ func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
 		// OCTET STRING.
 		var point asn1.RawValue
 		asn1.Unmarshal(ecpoint, &point)
+		if len(point.Bytes) > 0 {
 		x, y = elliptic.Unmarshal(curve, point.Bytes)
+	}
 	}
 	return x, y
 }
