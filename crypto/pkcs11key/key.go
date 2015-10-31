@@ -73,16 +73,6 @@ type ctx interface {
 	Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error)
 }
 
-// KeyType is to track the type of the key (based on CKA_KEY_TYPE)
-type KeyType int
-
-const (
-	// RSA means the key is an RSA key
-	RSA KeyType = 0
-	// EC means the key is an Elliptic Curve key
-	EC KeyType = 3
-)
-
 // Key is an implementation of the crypto.Signer interface using a key stored
 // in a PKCS#11 hardware token.  This enables the use of PKCS#11 tokens with
 // the Go x509 library's methods for signing certificates.
@@ -115,9 +105,6 @@ type Key struct {
 
 	// The an ObjectHandle pointing to the private key on the HSM.
 	privateKeyHandle pkcs11.ObjectHandle
-
-	// The key type (RSA or EC)
-	keyType KeyType
 
 	// A handle to the session used by this Key.
 	session   *pkcs11.SessionHandle
@@ -204,19 +191,10 @@ func (ps *Key) setup(privateKeyLabel string) (err error) {
 	}
 	ps.privateKeyHandle = privateKeyHandle
 
-	publicKey, err := ps.getPublicKey(ps.module, session, privateKeyHandle)
+	err = ps.loadPublicKey(ps.module, session, privateKeyHandle)
 	if err != nil {
 		ps.module.CloseSession(session)
-		return
 	}
-	if ps.keyType == EC {
-		t := publicKey.(ecdsa.PublicKey)
-		ps.publicKey = &t
-	} else {
-		t := publicKey.(rsa.PublicKey)
-		ps.publicKey = &t
-	}
-
 	return
 }
 
@@ -242,29 +220,10 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	}
 	privateKeyHandle := objs[0]
 
-	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
-		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, false),
-	})
-	if err != nil {
-		return noHandle, err
-	}
-
-	if (len(attributes) > 0) && (len(attributes[0].Value) > 0) {
-		if attributes[0].Value[0] == pkcs11.CKK_RSA {
-			ps.keyType = RSA
-		} else if attributes[0].Value[0] == pkcs11.CKK_EC {
-			ps.keyType = EC
-		} else {
-			return noHandle, fmt.Errorf("Unsupported key type %d", attributes[0].Value[0])
-		}
-	} else {
-		return noHandle, fmt.Errorf("No key type")
-	}
-
 	// Check whether the key has the CKA_ALWAYS_AUTHENTICATE attribute.
 	// If so, fail: we don't want to have to re-authenticate for each sign
 	// operation.
-	attributes, err = module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
+	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_ALWAYS_AUTHENTICATE, false),
 	})
 	// The PKCS#11 spec states that C_GetAttributeValue may return
@@ -430,14 +389,47 @@ func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
 }
 
 // Get the public key matching a private key
-func (ps *Key) getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (crypto.PublicKey, error) {
-	var noKey interface{}
-	if ps.keyType == RSA {
-		return getRSAPublicKey(module, session, privateKeyHandle)
-	} else if ps.keyType == EC {
-		return getECPublicKey(module, session, privateKeyHandle)
+func (ps *Key) loadPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) error {
+	keyType, err := getKeyType(ps.module, session, privateKeyHandle)
+	if err != nil {
+		return err
 	}
-	return noKey, fmt.Errorf("invalid key type")
+
+	switch keyType {
+	case pkcs11.CKK_RSA:
+		pub, err := getRSAPublicKey(ps.module, session, privateKeyHandle)
+		if err != nil {
+			return err
+		}
+		rsaPub := pub.(rsa.PublicKey)
+		ps.publicKey = &rsaPub
+	case pkcs11.CKK_EC:
+		pub, err := getECPublicKey(ps.module, session, privateKeyHandle)
+		if err != nil {
+			return err
+	}
+		ecPub := pub.(ecdsa.PublicKey)
+		ps.publicKey = &ecPub
+	default:
+		return fmt.Errorf("Unsupported key type %d", keyType)
+	}
+	return nil
+}
+
+func getKeyType(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (c byte, err error) {
+	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, false),
+	})
+	if err != nil {
+		return
+	}
+
+	if (len(attributes) > 0) && (len(attributes[0].Value) > 0) {
+		c = attributes[0].Value[0]
+	} else {
+		err = fmt.Errorf("No key type")
+	}
+	return
 }
 
 // Destroy tears down a Key by closing the session. It should be
@@ -547,7 +539,8 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 	var mechanism []*pkcs11.Mechanism
 	var signatureInput []byte
 
-	if ps.keyType == RSA {
+	switch ps.publicKey.(type) {
+	case *rsa.PublicKey:
 		mechanism = []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS, nil)}
 		prefix, ok := hashPrefixes[hash]
 		if !ok {
@@ -555,7 +548,7 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 			return
 		}
 		signatureInput = append(prefix, msg...)
-	} else if ps.keyType == EC {
+	case *ecdsa.PublicKey:
 		mechanism = []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDSA, nil)}
 		signatureInput = msg
 	}
