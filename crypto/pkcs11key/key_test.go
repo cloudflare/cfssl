@@ -17,8 +17,9 @@ type mockCtx struct{}
 const rsaPrivateKeyHandle = pkcs11.ObjectHandle(23)
 const ecPrivateKeyHandle = pkcs11.ObjectHandle(32)
 const ecPublicKeyHandle = pkcs11.ObjectHandle(33)
-// EC Private key with no matching public key
+// EC private key with no matching public key
 const ecPrivNoPubHandle = pkcs11.ObjectHandle(34)
+// EC private and public key with invalid EC point
 const ecInvEcPointPrivHandle = pkcs11.ObjectHandle(35)
 const ecInvEcPointPubHandle = pkcs11.ObjectHandle(36)
 const sessionHandle = pkcs11.SessionHandle(17)
@@ -282,13 +283,12 @@ func sign(t *testing.T, ps *Key) ([]byte) {
 	}
 
 	if len(output) < len(signInput) {
-		t.Fatalf("Invalid signature size: got %d bytes expected at least %d",
-			len(output), len(signInput))
+		t.Fatalf("Invalid signature size")
 	}
 
 	i := len(output) - len(signInput)
 	if !bytes.Equal(output[i:], signInput) {
-		t.Fatal("Incorrect sign output got %v expected %v", output, signInput)
+		t.Fatal("Incorrect sign output")
 	}
 	return output
 }
@@ -312,7 +312,7 @@ func TestSign(t *testing.T) {
 	sig = sign(t, ps)
 
 	if !(bytes.Equal(signInput, sig)) {
-		t.Fatal("ECDSA signature error: got %v expected %v", sig, signInput)
+		t.Fatal("ECDSA signature error")
 	}
 
 	pub = ps.Public()
@@ -332,13 +332,13 @@ func TestSign(t *testing.T) {
 	// Trying to load private EC key with no public key
 	err := k.setup("no_pub_ec")
 	if err == nil {
-		t.Fatalf("Unexpected succes: %v", k)
+		t.Fatalf("Unexpected succes")
 	}
 
-	// Trying to load private EC key with no public key
+	// Trying to load private EC key with invalid EC point
 	err = k.setup("invalid_ec_point")
 	if err == nil {
-		t.Fatalf("Unexpected succes: %v", k)
+		t.Fatalf("Unexpected succes")
 	}
 }
 
