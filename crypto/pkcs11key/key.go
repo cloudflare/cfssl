@@ -279,7 +279,7 @@ func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle 
 		N: n,
 		E: e,
 	}
-	return rsa, nil
+	return &rsa, nil
 }
 
 // Get the public key matching an Elliptic Curve private key
@@ -374,7 +374,7 @@ func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle p
 		X:     x,
 		Y:     y,
 	}
-	return ecdsa, nil
+	return &ecdsa, nil
 }
 
 // Decode Q point from CKA_EC_POINT attribute
@@ -402,23 +402,13 @@ func (ps *Key) loadPublicKey(module ctx, session pkcs11.SessionHandle, privateKe
 
 	switch keyType {
 	case pkcs11.CKK_RSA:
-		pub, err := getRSAPublicKey(ps.module, session, privateKeyHandle)
-		if err != nil {
-			return err
-		}
-		rsaPub := pub.(rsa.PublicKey)
-		ps.publicKey = &rsaPub
+		ps.publicKey, err = getRSAPublicKey(ps.module, session, privateKeyHandle)
 	case pkcs11.CKK_EC:
-		pub, err := getECPublicKey(ps.module, session, privateKeyHandle)
-		if err != nil {
-			return err
-		}
-		ecPub := pub.(ecdsa.PublicKey)
-		ps.publicKey = &ecPub
+		ps.publicKey, err = getECPublicKey(ps.module, session, privateKeyHandle)
 	default:
 		return fmt.Errorf("Unsupported key type %d", keyType)
 	}
-	return nil
+	return err
 }
 
 func getKeyType(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (c byte, err error) {
