@@ -23,16 +23,16 @@ const rsaPrivateKeyHandle = pkcs11.ObjectHandle(23)
 // Correct EC private key
 const ecPrivateKeyHandle = pkcs11.ObjectHandle(32)
 const ecPublicKeyHandle = pkcs11.ObjectHandle(33)
-const ecCorrectKeyId = byte(0x03)
+const ecCorrectKeyID = byte(0x03)
 
 // EC private key with no matching public key
 const ecPrivNoPubHandle = pkcs11.ObjectHandle(34)
-const ecPrivNoPubId = byte(0x4)
+const ecPrivNoPubID = byte(0x4)
 
 // EC private and public key with invalid EC point
 const ecInvEcPointPrivHandle = pkcs11.ObjectHandle(35)
 const ecInvEcPointPubHandle = pkcs11.ObjectHandle(36)
-const ecInvEcPointId = byte(0x5)
+const ecInvEcPointID = byte(0x5)
 
 var slots = []uint{7, 8, 9}
 var tokenInfo = pkcs11.TokenInfo{
@@ -71,9 +71,9 @@ func (c *mockCtx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.Object
 		// We search th EC public key using CKA_ID
 		if a.Type == pkcs11.CKA_ID {
 			switch a.Value[0] {
-			case ecCorrectKeyId:
+			case ecCorrectKeyID:
 				return []pkcs11.ObjectHandle{ecPublicKeyHandle}, true, nil
-			case ecInvEcPointId:
+			case ecInvEcPointID:
 				return []pkcs11.ObjectHandle{ecInvEcPointPubHandle}, true, nil
 			default:
 				return []pkcs11.ObjectHandle{}, true, nil
@@ -131,7 +131,7 @@ func ecCorrectKeyAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, 
 		case pkcs11.CKA_KEY_TYPE:
 			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
 		case pkcs11.CKA_ID:
-			output = append(output, p11Attribute(a.Type, []byte{byte(ecCorrectKeyId)}))
+			output = append(output, p11Attribute(a.Type, []byte{byte(ecCorrectKeyID)}))
 		}
 	}
 	return output, nil
@@ -146,7 +146,7 @@ func ecPrivNoPubAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, e
 		case pkcs11.CKA_KEY_TYPE:
 			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
 		case pkcs11.CKA_ID:
-			output = append(output, p11Attribute(a.Type, []byte{byte(ecPrivNoPubId)}))
+			output = append(output, p11Attribute(a.Type, []byte{byte(ecPrivNoPubID)}))
 		}
 	}
 	return output, nil
@@ -163,7 +163,7 @@ func ecInvalidEcPointAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribu
 		case pkcs11.CKA_KEY_TYPE:
 			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
 		case pkcs11.CKA_ID:
-			output = append(output, p11Attribute(a.Type, []byte{byte(ecInvEcPointId)}))
+			output = append(output, p11Attribute(a.Type, []byte{byte(ecInvEcPointID)}))
 		}
 	}
 	return output, nil
