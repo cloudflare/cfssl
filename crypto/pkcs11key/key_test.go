@@ -9,68 +9,85 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"github.com/miekg/pkcs11"
+	"reflect"
 	"testing"
 )
 
-type mockCtx struct{}
+type mockCtx struct {
+	currentSearch []*pkcs11.Attribute
+}
 
+const sessionHandle = pkcs11.SessionHandle(17)
 const rsaPrivateKeyHandle = pkcs11.ObjectHandle(23)
+
+// Correct EC private key
 const ecPrivateKeyHandle = pkcs11.ObjectHandle(32)
 const ecPublicKeyHandle = pkcs11.ObjectHandle(33)
+const ecCorrectKeyId = byte(0x03)
 
 // EC private key with no matching public key
 const ecPrivNoPubHandle = pkcs11.ObjectHandle(34)
+const ecPrivNoPubId = byte(0x4)
 
 // EC private and public key with invalid EC point
 const ecInvEcPointPrivHandle = pkcs11.ObjectHandle(35)
 const ecInvEcPointPubHandle = pkcs11.ObjectHandle(36)
-const sessionHandle = pkcs11.SessionHandle(17)
+const ecInvEcPointId = byte(0x5)
 
 var slots = []uint{7, 8, 9}
 var tokenInfo = pkcs11.TokenInfo{
 	Label: "token label",
 }
-var currentSearch []*pkcs11.Attribute
 
-func (c mockCtx) CloseSession(sh pkcs11.SessionHandle) error {
+func (c *mockCtx) CloseSession(sh pkcs11.SessionHandle) error {
 	return nil
 }
 
-func (c mockCtx) FindObjectsFinal(sh pkcs11.SessionHandle) error {
+func (c *mockCtx) FindObjectsFinal(sh pkcs11.SessionHandle) error {
+	c.currentSearch = []*pkcs11.Attribute{}
 	return nil
 }
 
-func (c mockCtx) FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error {
-	currentSearch = temp
+func (c *mockCtx) FindObjectsInit(sh pkcs11.SessionHandle, temp []*pkcs11.Attribute) error {
+	c.currentSearch = temp
 	return nil
 }
 
-func (c mockCtx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error) {
-	for _, a := range currentSearch {
+func (c *mockCtx) FindObjects(sh pkcs11.SessionHandle, max int) ([]pkcs11.ObjectHandle, bool, error) {
+	for _, a := range c.currentSearch {
 		// We search private keys using CKA_LABEL
 		if a.Type == pkcs11.CKA_LABEL {
-			if a.Value[0] == 0x72 { // Label start with 'r'
+			switch string(a.Value) {
+			case "rsa":
 				return []pkcs11.ObjectHandle{rsaPrivateKeyHandle}, true, nil
-			} else if a.Value[0] == 0x65 { // Label start with 'e'
+			case "ec":
 				return []pkcs11.ObjectHandle{ecPrivateKeyHandle}, true, nil
-			} else if a.Value[0] == 0x6E { // Label start with 'n'
+			case "no_public_key_ec":
 				return []pkcs11.ObjectHandle{ecPrivNoPubHandle}, true, nil
-			} else if a.Value[0] == 0x69 { // Label start with 'i'
+			case "invalid_ec_point":
 				return []pkcs11.ObjectHandle{ecInvEcPointPrivHandle}, true, nil
 			}
 		}
 		// We search th EC public key using CKA_ID
 		if a.Type == pkcs11.CKA_ID {
-			if a.Value[0] == 0x3 {
+			switch a.Value[0] {
+			case ecCorrectKeyId:
 				return []pkcs11.ObjectHandle{ecPublicKeyHandle}, true, nil
-			} else if a.Value[0] == 0x5 {
+			case ecInvEcPointId:
 				return []pkcs11.ObjectHandle{ecInvEcPointPubHandle}, true, nil
-			} else {
+			default:
 				return []pkcs11.ObjectHandle{}, true, nil
 			}
 		}
 	}
 	return nil, false, nil
+}
+
+func p11Attribute(Type uint, Value []byte) *pkcs11.Attribute {
+	return &pkcs11.Attribute{
+		Type:  Type,
+		Value: Value,
+	}
 }
 
 func rsaPrivateAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
@@ -82,42 +99,16 @@ func rsaPrivateAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, er
 		if a.Type == pkcs11.CKA_MODULUS ||
 			a.Type == pkcs11.CKA_PUBLIC_EXPONENT ||
 			a.Type == pkcs11.CKA_ALWAYS_AUTHENTICATE {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(1)},
-			})
+			output = append(output, p11Attribute(a.Type, []byte{byte(1)}))
 		}
 		if a.Type == pkcs11.CKA_KEY_TYPE {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(0)},
-			})
+			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_RSA)}))
 		}
 	}
 	return output, nil
 }
 
 var ecOid = []byte{0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07}
-
-func ecPrivateAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
-	var output []*pkcs11.Attribute
-	for _, a := range template {
-		if a.Type == pkcs11.CKA_EC_PARAMS {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: ecOid,
-			})
-		}
-		if a.Type == pkcs11.CKA_KEY_TYPE ||
-			a.Type == pkcs11.CKA_ID {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(3)},
-			})
-		}
-	}
-	return output, nil
-}
 
 var ecPoint = []byte{0x04, 0x41, 0x04, 0x4C, 0xD7, 0x7B, 0x7B, 0x2E,
 	0x3D, 0x57, 0x98, 0xB8, 0x2F, 0x99, 0xB4, 0x83,
@@ -129,27 +120,18 @@ var ecPoint = []byte{0x04, 0x41, 0x04, 0x4C, 0xD7, 0x7B, 0x7B, 0x2E,
 	0x1F, 0x69, 0x52, 0x5F, 0x20, 0x83, 0x13, 0x50,
 	0xA3, 0xDE, 0xBE}
 
-func ecPublicAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
+func ecCorrectKeyAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	var output []*pkcs11.Attribute
 	for _, a := range template {
-		if a.Type == pkcs11.CKA_EC_PARAMS {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: ecOid,
-			})
-		}
-		if a.Type == pkcs11.CKA_EC_POINT {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: ecPoint,
-			})
-		}
-		if a.Type == pkcs11.CKA_KEY_TYPE ||
-			a.Type == pkcs11.CKA_ID {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(3)},
-			})
+		switch a.Type {
+		case pkcs11.CKA_EC_PARAMS:
+			output = append(output, p11Attribute(a.Type, ecOid))
+		case pkcs11.CKA_EC_POINT:
+			output = append(output, p11Attribute(a.Type, ecPoint))
+		case pkcs11.CKA_KEY_TYPE:
+			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
+		case pkcs11.CKA_ID:
+			output = append(output, p11Attribute(a.Type, []byte{byte(ecCorrectKeyId)}))
 		}
 	}
 	return output, nil
@@ -158,23 +140,13 @@ func ecPublicAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, erro
 func ecPrivNoPubAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	var output []*pkcs11.Attribute
 	for _, a := range template {
-		if a.Type == pkcs11.CKA_EC_PARAMS {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: ecOid,
-			})
-		}
-		if a.Type == pkcs11.CKA_KEY_TYPE {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(3)},
-			})
-		}
-		if a.Type == pkcs11.CKA_ID {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(4)},
-			})
+		switch a.Type {
+		case pkcs11.CKA_EC_PARAMS:
+			output = append(output, p11Attribute(a.Type, ecOid))
+		case pkcs11.CKA_KEY_TYPE:
+			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
+		case pkcs11.CKA_ID:
+			output = append(output, p11Attribute(a.Type, []byte{byte(ecPrivNoPubId)}))
 		}
 	}
 	return output, nil
@@ -183,41 +155,27 @@ func ecPrivNoPubAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, e
 func ecInvalidEcPointAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	var output []*pkcs11.Attribute
 	for _, a := range template {
-		if a.Type == pkcs11.CKA_EC_PARAMS {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: ecOid,
-			})
-		}
-		if a.Type == pkcs11.CKA_EC_POINT {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(0)},
-			})
-		}
-		if a.Type == pkcs11.CKA_KEY_TYPE {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(3)},
-			})
-		}
-		if a.Type == pkcs11.CKA_ID {
-			output = append(output, &pkcs11.Attribute{
-				Type:  a.Type,
-				Value: []byte{byte(5)},
-			})
+		switch a.Type {
+		case pkcs11.CKA_EC_PARAMS:
+			output = append(output, p11Attribute(a.Type, ecOid))
+		case pkcs11.CKA_EC_POINT:
+			output = append(output, p11Attribute(a.Type, []byte{byte(0)}))
+		case pkcs11.CKA_KEY_TYPE:
+			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
+		case pkcs11.CKA_ID:
+			output = append(output, p11Attribute(a.Type, []byte{byte(ecInvEcPointId)}))
 		}
 	}
 	return output, nil
 }
 
-func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
+func (c *mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	if o == rsaPrivateKeyHandle {
 		return rsaPrivateAttributes(template)
 	} else if o == ecPrivateKeyHandle {
-		return ecPrivateAttributes(template)
+		return ecCorrectKeyAttributes(template)
 	} else if o == ecPublicKeyHandle {
-		return ecPublicAttributes(template)
+		return ecCorrectKeyAttributes(template)
 	} else if o == ecPrivNoPubHandle {
 		return ecPrivNoPubAttributes(template)
 	} else if o == ecInvEcPointPrivHandle {
@@ -228,41 +186,41 @@ func (c mockCtx) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandl
 	return nil, nil
 }
 
-func (c mockCtx) GetSlotList(tokenPresent bool) ([]uint, error) {
+func (c *mockCtx) GetSlotList(tokenPresent bool) ([]uint, error) {
 	return slots, nil
 }
 
-func (c mockCtx) GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error) {
+func (c *mockCtx) GetTokenInfo(slotID uint) (pkcs11.TokenInfo, error) {
 	return tokenInfo, nil
 }
 
-func (c mockCtx) Initialize() error {
+func (c *mockCtx) Initialize() error {
 	return nil
 }
 
-func (c mockCtx) Login(sh pkcs11.SessionHandle, userType uint, pin string) error {
+func (c *mockCtx) Login(sh pkcs11.SessionHandle, userType uint, pin string) error {
 	return nil
 }
 
-func (c mockCtx) Logout(sh pkcs11.SessionHandle) error {
+func (c *mockCtx) Logout(sh pkcs11.SessionHandle) error {
 	return nil
 }
 
-func (c mockCtx) OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error) {
+func (c *mockCtx) OpenSession(slotID uint, flags uint) (pkcs11.SessionHandle, error) {
 	return sessionHandle, nil
 }
 
-func (c mockCtx) SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs11.ObjectHandle) error {
+func (c *mockCtx) SignInit(sh pkcs11.SessionHandle, m []*pkcs11.Mechanism, o pkcs11.ObjectHandle) error {
 	return nil
 }
 
-func (c mockCtx) Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error) {
+func (c *mockCtx) Sign(sh pkcs11.SessionHandle, message []byte) ([]byte, error) {
 	return message, nil
 }
 
 func setup(t *testing.T, label string) *Key {
 	ps := Key{
-		module:     mockCtx{},
+		module:     &mockCtx{},
 		tokenLabel: "token label",
 		pin:        "unused",
 	}
@@ -308,7 +266,10 @@ func TestSign(t *testing.T) {
 
 	pub := ps.Public()
 	// Check public key is of right type
-	_ = pub.(*rsa.PublicKey)
+	_, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		t.Errorf("Attempted to load RSA key from module, got key of type %s. Expected *rsa.PublicKey", reflect.TypeOf(pub))
+	}
 
 	ps = setup(t, "ec")
 	sig = sign(t, ps)
@@ -319,9 +280,13 @@ func TestSign(t *testing.T) {
 
 	pub = ps.Public()
 	// Check public key is of right type
-	ecPub := pub.(*ecdsa.PublicKey)
-	if !(bytes.Equal(ecPub.X.Bytes(), ecPoint[3:35]) &&
-		bytes.Equal(ecPub.Y.Bytes(), ecPoint[35:])) {
+	ecPub, ok := pub.(*ecdsa.PublicKey)
+	if !ok {
+		t.Errorf("Attempted to load ECDSA key from module, got key of type %s. Expected *ecdsa.PublicKey", reflect.TypeOf(pub))
+	}
+	if ecPub == nil ||
+		!(bytes.Equal(ecPub.X.Bytes(), ecPoint[3:35]) &&
+			bytes.Equal(ecPub.Y.Bytes(), ecPoint[35:])) {
 		t.Fatal("Incorrect decoding of EC Point")
 	}
 
@@ -331,21 +296,21 @@ func TestSign(t *testing.T) {
 	// }
 
 	k := Key{
-		module:     mockCtx{},
+		module:     &mockCtx{},
 		tokenLabel: "token label",
 		pin:        "unused",
 	}
 
 	// Trying to load private EC key with no public key
-	err := k.setup("no_pub_ec")
+	err := k.setup("no_publick_key_ec")
 	if err == nil {
-		t.Fatalf("Unexpected succes")
+		t.Errorf("Unexpected success")
 	}
 
 	// Trying to load private EC key with invalid EC point
 	err = k.setup("invalid_ec_point")
 	if err == nil {
-		t.Fatalf("Unexpected succes")
+		t.Errorf("Unexpected success")
 	}
 }
 
@@ -355,7 +320,7 @@ type mockCtxFailsAlwaysAuthenticate struct {
 	mockCtx
 }
 
-func (c mockCtxFailsAlwaysAuthenticate) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
+func (c *mockCtxFailsAlwaysAuthenticate) GetAttributeValue(sh pkcs11.SessionHandle, o pkcs11.ObjectHandle, template []*pkcs11.Attribute) ([]*pkcs11.Attribute, error) {
 	for _, a := range template {
 		if a.Type == pkcs11.CKA_ALWAYS_AUTHENTICATE {
 			return nil, pkcs11.Error(pkcs11.CKR_ATTRIBUTE_TYPE_INVALID)
@@ -366,7 +331,7 @@ func (c mockCtxFailsAlwaysAuthenticate) GetAttributeValue(sh pkcs11.SessionHandl
 
 func TestAttributeTypeInvalid(t *testing.T) {
 	ps := &Key{
-		module:     mockCtxFailsAlwaysAuthenticate{},
+		module:     &mockCtxFailsAlwaysAuthenticate{},
 		tokenLabel: "token label",
 		pin:        "unused",
 	}
