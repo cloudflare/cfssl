@@ -269,10 +269,10 @@ func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle 
 		}
 	}
 	if !gotModulus {
-		return noKey, errors.New("private key missing modulus")
+		return noKey, errors.New("key missing public modulus")
 	}
 	if !gotExponent {
-		return noKey, errors.New("private key missing exponent")
+		return noKey, errors.New("key missing public exponent")
 	}
 
 	rsa := rsa.PublicKey{
