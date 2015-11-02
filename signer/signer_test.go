@@ -50,7 +50,7 @@ func TestAddPolicies(t *testing.T) {
 	var cert x509.Certificate
 	addPolicies(&cert, []config.CertificatePolicy{
 		config.CertificatePolicy{
-			ID: config.OID{1, 2, 3, 4},
+			ID: config.OID([]int{1, 2, 3, 4}),
 		},
 	})
 
@@ -75,7 +75,7 @@ func TestAddPoliciesWithQualifiers(t *testing.T) {
 	var cert x509.Certificate
 	addPolicies(&cert, []config.CertificatePolicy{
 		config.CertificatePolicy{
-			ID: config.OID{1, 2, 3, 4},
+			ID: config.OID([]int{1, 2, 3, 4}),
 			Qualifiers: []config.CertificatePolicyQualifier{
 				config.CertificatePolicyQualifier{
 					Type:  "id-qt-cps",
