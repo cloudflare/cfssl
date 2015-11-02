@@ -291,7 +291,7 @@ func TestReadECPoint(t *testing.T) {
 	}
 
 	// Disable this test because it can only work in go 1.5 and later
-	// if strings.Compare(ecPub.Curve.Params().Name, "P-256") != 0 {
+	// if ! strings.EqualFold(ecPub.Curve.Params().Name, "P-256") {
 	// 	t.Fatal("Invalid curve decoded")
 	// }
 
@@ -333,7 +333,7 @@ func TestEcKeyErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("Unexpected success")
 	}
-	if strings.Compare(err.Error(), "public key not found") != 0 {
+	if !strings.EqualFold(err.Error(), "public key not found") {
 		t.Errorf("Unexpected error value: %v", err)
 	}
 
@@ -342,7 +342,7 @@ func TestEcKeyErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("Unexpected success")
 	}
-	if strings.Compare(err.Error(), "invalid EC Point") != 0 {
+	if !strings.EqualFold(err.Error(), "invalid EC Point") {
 		t.Errorf("Unexpected error value: %v", err)
 	}
 }
