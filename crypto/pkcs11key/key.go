@@ -8,7 +8,10 @@ package pkcs11key
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +31,28 @@ var hashPrefixes = map[crypto.Hash][]byte{
 	crypto.SHA512:    {0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40},
 	crypto.MD5SHA1:   {}, // A special TLS case which doesn't use an ASN1 prefix.
 	crypto.RIPEMD160: {0x30, 0x20, 0x30, 0x08, 0x06, 0x06, 0x28, 0xcf, 0x06, 0x03, 0x00, 0x31, 0x04, 0x14},
+}
+
+// from src/pkg/crypto/x509/x509.go
+var (
+	oidNamedCurveP224 = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
+	oidNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
+	oidNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
+	oidNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
+)
+
+func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
+	switch {
+	case oid.Equal(oidNamedCurveP224):
+		return elliptic.P224()
+	case oid.Equal(oidNamedCurveP256):
+		return elliptic.P256()
+	case oid.Equal(oidNamedCurveP384):
+		return elliptic.P384()
+	case oid.Equal(oidNamedCurveP521):
+		return elliptic.P521()
+	}
+	return nil
 }
 
 // ctx defines the subset of pkcs11.ctx's methods that we use, so we can inject
@@ -76,7 +101,7 @@ type Key struct {
 	pin string
 
 	// The public key corresponding to the private key.
-	publicKey rsa.PublicKey
+	publicKey crypto.PublicKey
 
 	// The an ObjectHandle pointing to the private key on the HSM.
 	privateKeyHandle pkcs11.ObjectHandle
@@ -166,13 +191,10 @@ func (ps *Key) setup(privateKeyLabel string) (err error) {
 	}
 	ps.privateKeyHandle = privateKeyHandle
 
-	publicKey, err := getPublicKey(ps.module, session, privateKeyHandle)
+	err = ps.loadPublicKey(ps.module, session, privateKeyHandle)
 	if err != nil {
 		ps.module.CloseSession(session)
-		return
 	}
-	ps.publicKey = publicKey
-
 	return
 }
 
@@ -185,7 +207,7 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	if err := module.FindObjectsInit(session, template); err != nil {
 		return noHandle, err
 	}
-	objs, _, err := module.FindObjects(session, 2)
+	objs, _, err := module.FindObjects(session, 1)
 	if err != nil {
 		return noHandle, err
 	}
@@ -213,19 +235,16 @@ func (ps *Key) getPrivateKey(module ctx, session pkcs11.SessionHandle, label str
 	} else if err != nil {
 		return noHandle, err
 	}
-	for _, attribute := range attributes {
-		if len(attribute.Value) > 0 && attribute.Value[0] == 1 {
-			ps.alwaysAuthenticate = true
-		}
+	if len(attributes) > 0 && len(attributes[0].Value) > 0 && attributes[0].Value[0] == 1 {
+		ps.alwaysAuthenticate = true
 	}
 
 	return privateKeyHandle, nil
 }
 
-// Get the public key matching a private key
-// TODO: Add support for non-RSA keys, switching on CKA_KEY_TYPE
-func getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (rsa.PublicKey, error) {
-	var noKey rsa.PublicKey
+// Get the public key matching an RSA private key
+func getRSAPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (crypto.PublicKey, error) {
+	var noKey interface{}
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_MODULUS, nil),
 		pkcs11.NewAttribute(pkcs11.CKA_PUBLIC_EXPONENT, nil),
@@ -249,13 +268,163 @@ func getPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkc
 			gotExponent = true
 		}
 	}
-	if !gotModulus || !gotExponent {
-		return noKey, errors.New("public key missing either modulus or exponent")
+	if !gotModulus {
+		return noKey, errors.New("key missing public modulus")
 	}
-	return rsa.PublicKey{
+	if !gotExponent {
+		return noKey, errors.New("key missing public exponent")
+	}
+
+	rsa := rsa.PublicKey{
 		N: n,
 		E: e,
-	}, nil
+	}
+	return &rsa, nil
+}
+
+// Get the public key matching an Elliptic Curve private key
+func getECPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (crypto.PublicKey, error) {
+	var noKey interface{}
+
+	// http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/os/pkcs11-curr-v2.40-os.html#_Toc416960012
+	template := []*pkcs11.Attribute{
+		// CKA_EC_PARAMS contains the OID of the curve (part of the
+		// public key
+		pkcs11.NewAttribute(pkcs11.CKA_EC_PARAMS, nil),
+		// CKA_ID will allow use to find the corresponding public key
+		pkcs11.NewAttribute(pkcs11.CKA_ID, nil),
+	}
+
+	attr, err := module.GetAttributeValue(session, privateKeyHandle, template)
+	if err != nil {
+		return noKey, err
+	}
+
+	oid := []byte{}
+	id := []byte{}
+	gotOid, gotID := false, false
+	for _, a := range attr {
+		if a.Type == pkcs11.CKA_EC_PARAMS {
+			oid = a.Value
+			gotOid = true
+		} else if a.Type == pkcs11.CKA_ID {
+			id = a.Value
+			gotID = true
+		}
+	}
+	if !gotOid {
+		return noKey, errors.New("private key missing curve parameters")
+	}
+	if !gotID {
+		return noKey, errors.New("private key missing identifier (CKA_ID)")
+	}
+
+	poid := new(asn1.ObjectIdentifier)
+	asn1.Unmarshal(oid, poid)
+	curve := namedCurveFromOID(*poid)
+
+	templateSearch := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_CLASS, pkcs11.CKO_PUBLIC_KEY),
+		pkcs11.NewAttribute(pkcs11.CKA_ID, id),
+	}
+
+	if err := module.FindObjectsInit(session, templateSearch); err != nil {
+		return noKey, err
+	}
+	objs, _, err := module.FindObjects(session, 1)
+	if err != nil {
+		return noKey, err
+	}
+	if err = module.FindObjectsFinal(session); err != nil {
+		return noKey, err
+	}
+
+	if len(objs) == 0 {
+		return noKey, fmt.Errorf("public key not found")
+	}
+	publicKeyHandle := objs[0]
+
+	templatePub := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_EC_POINT, nil),
+	}
+
+	attrPub, err := module.GetAttributeValue(session, publicKeyHandle, templatePub)
+	if err != nil {
+		return noKey, err
+	}
+
+	ecPoint := []byte{}
+	gotEcPoint := false
+	for _, a := range attrPub {
+		if a.Type == pkcs11.CKA_EC_POINT {
+			ecPoint = a.Value
+			gotEcPoint = true
+		}
+	}
+	if !gotEcPoint {
+		return noKey, errors.New("public key missing EC Point")
+	}
+
+	x, y := readECPoint(curve, ecPoint)
+	if x == nil {
+		return noKey, errors.New("invalid EC Point")
+	}
+	ecdsa := ecdsa.PublicKey{
+		Curve: curve,
+		X:     x,
+		Y:     y,
+	}
+	return &ecdsa, nil
+}
+
+// Decode Q point from CKA_EC_POINT attribute
+func readECPoint(curve elliptic.Curve, ecpoint []byte) (*big.Int, *big.Int) {
+	x, y := elliptic.Unmarshal(curve, ecpoint)
+	if x == nil {
+		// http://docs.oasis-open.org/pkcs11/pkcs11-curr/v2.40/os/pkcs11-curr-v2.40-os.html#_ftn1
+		// PKCS#11 v2.20 specified that the CKA_EC_POINT was to be store in a DER-encoded
+		// OCTET STRING.
+		var point asn1.RawValue
+		asn1.Unmarshal(ecpoint, &point)
+		if len(point.Bytes) > 0 {
+			x, y = elliptic.Unmarshal(curve, point.Bytes)
+		}
+	}
+	return x, y
+}
+
+// Get the public key matching a private key
+func (ps *Key) loadPublicKey(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) error {
+	keyType, err := getKeyType(ps.module, session, privateKeyHandle)
+	if err != nil {
+		return err
+	}
+
+	switch keyType {
+	case pkcs11.CKK_RSA:
+		ps.publicKey, err = getRSAPublicKey(ps.module, session, privateKeyHandle)
+	case pkcs11.CKK_EC:
+		ps.publicKey, err = getECPublicKey(ps.module, session, privateKeyHandle)
+	default:
+		return fmt.Errorf("Unsupported key type %d", keyType)
+	}
+	return err
+}
+
+func getKeyType(module ctx, session pkcs11.SessionHandle, privateKeyHandle pkcs11.ObjectHandle) (c byte, err error) {
+	attributes, err := module.GetAttributeValue(session, privateKeyHandle, []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_KEY_TYPE, false),
+	})
+	if err != nil {
+		return
+	}
+
+	if (len(attributes) > 0) && (len(attributes[0].Value) > 0) {
+		c = attributes[0].Value[0]
+	} else {
+		err = fmt.Errorf("No key type")
+	}
+	return
 }
 
 // Destroy tears down a Key by closing the session. It should be
@@ -323,7 +492,7 @@ func (ps *Key) openSession() (pkcs11.SessionHandle, error) {
 
 // Public returns the public key for the PKCS #11 key.
 func (ps *Key) Public() crypto.PublicKey {
-	return &ps.publicKey
+	return ps.publicKey
 }
 
 // Sign performs a signature using the PKCS #11 key.
@@ -362,14 +531,22 @@ func (ps *Key) Sign(rand io.Reader, msg []byte, opts crypto.SignerOpts) (signatu
 	}
 
 	// Add DigestInfo prefix
-	// TODO: Switch mechanisms based on CKA_KEY_TYPE
-	mechanism := []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS, nil)}
-	prefix, ok := hashPrefixes[hash]
-	if !ok {
-		err = errors.New("unknown hash function")
-		return
+	var mechanism []*pkcs11.Mechanism
+	var signatureInput []byte
+
+	switch ps.publicKey.(type) {
+	case *rsa.PublicKey:
+		mechanism = []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS, nil)}
+		prefix, ok := hashPrefixes[hash]
+		if !ok {
+			err = errors.New("unknown hash function")
+			return
+		}
+		signatureInput = append(prefix, msg...)
+	case *ecdsa.PublicKey:
+		mechanism = []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDSA, nil)}
+		signatureInput = msg
 	}
-	signatureInput := append(prefix, msg...)
 
 	// Perform the sign operation
 	err = ps.module.SignInit(*ps.session, mechanism, ps.privateKeyHandle)
