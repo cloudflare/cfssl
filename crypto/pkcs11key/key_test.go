@@ -8,8 +8,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/asn1"
 	"github.com/miekg/pkcs11"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -159,7 +161,7 @@ func ecInvalidEcPointAttributes(template []*pkcs11.Attribute) ([]*pkcs11.Attribu
 		case pkcs11.CKA_EC_PARAMS:
 			output = append(output, p11Attribute(a.Type, ecOid))
 		case pkcs11.CKA_EC_POINT:
-			output = append(output, p11Attribute(a.Type, []byte{byte(0)}))
+			output = append(output, p11Attribute(a.Type, []byte{0x04, 0x5, 0x04, 0x1, 0x2, 0x3, 0x4}))
 		case pkcs11.CKA_KEY_TYPE:
 			output = append(output, p11Attribute(a.Type, []byte{byte(pkcs11.CKK_EC)}))
 		case pkcs11.CKA_ID:
@@ -277,17 +279,15 @@ func TestSign(t *testing.T) {
 	if !(bytes.Equal(signInput, sig)) {
 		t.Fatal("ECDSA signature error")
 	}
+}
 
-	pub = ps.Public()
+func TestReadECPoint(t *testing.T) {
+	ps := setup(t, "ec")
+	pub := ps.Public()
 	// Check public key is of right type
 	ecPub, ok := pub.(*ecdsa.PublicKey)
 	if !ok {
-		t.Errorf("Attempted to load ECDSA key from module, got key of type %s. Expected *ecdsa.PublicKey", reflect.TypeOf(pub))
-	}
-	if ecPub == nil ||
-		!(bytes.Equal(ecPub.X.Bytes(), ecPoint[3:35]) &&
-			bytes.Equal(ecPub.Y.Bytes(), ecPoint[35:])) {
-		t.Fatal("Incorrect decoding of EC Point")
+		t.Fatalf("Attempted to load ECDSA key from module, got key of type %s. Expected *ecdsa.PublicKey", reflect.TypeOf(pub))
 	}
 
 	// Disable this test because it can only work in go 1.5 and later
@@ -295,6 +295,33 @@ func TestSign(t *testing.T) {
 	// 	t.Fatal("Invalid curve decoded")
 	// }
 
+	curve := namedCurveFromOID(asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7})
+	x, y := readECPoint(curve, ecPoint)
+
+	if !(bytes.Equal(ecPub.X.Bytes(), x.Bytes()) &&
+		bytes.Equal(ecPub.Y.Bytes(), y.Bytes())) {
+		t.Errorf("Incorrect value for EC Point with ASN.1")
+	}
+
+	x, y = readECPoint(curve, ecPoint[2:])
+	if !(bytes.Equal(ecPub.X.Bytes(), x.Bytes()) &&
+		bytes.Equal(ecPub.Y.Bytes(), y.Bytes())) {
+		t.Errorf("Incorrect value for EC Point without ASN.1")
+	}
+
+	x, y = readECPoint(curve, []byte{0x04, 0x05, 0x04, 0x1, 0x2, 0x3, 0x4})
+	if x != nil {
+		t.Errorf("Unexpected EC point with ASN.1")
+	}
+
+	x, y = readECPoint(curve, []byte{0x04, 0x1, 0x2, 0x3, 0x4})
+	if x != nil {
+		t.Errorf("Unexpected EC point with ASN.1")
+	}
+
+}
+
+func TestEcKeyErrors(t *testing.T) {
 	k := Key{
 		module:     &mockCtx{},
 		tokenLabel: "token label",
@@ -302,15 +329,21 @@ func TestSign(t *testing.T) {
 	}
 
 	// Trying to load private EC key with no public key
-	err := k.setup("no_publick_key_ec")
+	err := k.setup("no_public_key_ec")
 	if err == nil {
 		t.Errorf("Unexpected success")
+	}
+	if strings.Compare(err.Error(), "public key not found") != 0 {
+		t.Errorf("Unexpected error value: %v", err)
 	}
 
 	// Trying to load private EC key with invalid EC point
 	err = k.setup("invalid_ec_point")
 	if err == nil {
 		t.Errorf("Unexpected success")
+	}
+	if strings.Compare(err.Error(), "invalid EC Point") != 0 {
+		t.Errorf("Unexpected error value: %v", err)
 	}
 }
 
