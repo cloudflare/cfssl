@@ -202,10 +202,10 @@ func (srv *server) Info(jsonData []byte) (*info.Resp, error) {
 		info.Certificate = val.(string)
 	}
 	var usages []interface{}
-	if val, ok := res["usages"]; ok {
+	if val, ok := res["usages"]; ok && val != nil {
 		usages = val.([]interface{})
 	}
-	if val, ok := res["expiry"]; ok {
+	if val, ok := res["expiry"]; ok && val != nil {
 		info.ExpiryString = val.(string)
 	}
 
