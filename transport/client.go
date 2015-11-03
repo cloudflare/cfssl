@@ -63,6 +63,11 @@ type Transport struct {
 	// Identity contains information about the entity that will be
 	// used to construct certificates.
 	Identity *core.Identity
+
+	// Backoff is used to control the behaviour of a Transport
+	// when it is attempting to automatically update a certificate
+	// as part of AutoUpdate.
+	Backoff *core.Backoff
 }
 
 // TLSClientAuthClientConfig returns a new client authentication TLS
@@ -128,6 +133,7 @@ func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
 		Before:   before,
 		Identity: identity,
+		Backoff:  &core.Backoff{},
 	}
 
 	store, err := roots.New(identity.Roots)
@@ -302,12 +308,13 @@ func (tr *Transport) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- err
 				break
 			}
 
-			log.Debug("failed to update certificate, will try again in 5 minutes")
+			delay := tr.Backoff.Duration()
+			log.Debugf("failed to update certificate, will try again in %s", delay)
 			if errChan != nil {
 				errChan <- err
 			}
 
-			<-time.After(5 * time.Minute)
+			<-time.After(delay)
 		}
 
 		log.Debugf("certificate updated")
