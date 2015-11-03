@@ -40,7 +40,7 @@ func stringSlicesEqual(slice1, slice2 []string) bool {
 
 func TestGoodConfig(t *testing.T) {
 	testFile := "testdata/test.conf"
-	cmap, err := parseFile(testFile)
+	cmap, err := ParseToRawMap(testFile)
 	if err != nil {
 		t.Fatalf("%v", err)
 	} else if len(cmap) != 2 {
@@ -50,7 +50,7 @@ func TestGoodConfig(t *testing.T) {
 
 func TestGoodConfig2(t *testing.T) {
 	testFile := "testdata/test2.conf"
-	cmap, err := parseFile(testFile)
+	cmap, err := ParseToRawMap(testFile)
 	if err != nil {
 		t.Fatalf("%v", err)
 	} else if len(cmap) != 1 {
@@ -62,7 +62,7 @@ func TestGoodConfig2(t *testing.T) {
 
 func TestBadConfig(t *testing.T) {
 	testFile := "testdata/bad.conf"
-	_, err := parseFile(testFile)
+	_, err := ParseToRawMap(testFile)
 	if err == nil {
 		t.Fatal("expected invalid config file to fail")
 	}
@@ -70,7 +70,7 @@ func TestBadConfig(t *testing.T) {
 
 func TestQuotedValue(t *testing.T) {
 	testFile := "testdata/test.conf"
-	cmap, _ := parseFile(testFile)
+	cmap, _ := ParseToRawMap(testFile)
 	val := cmap["sectionName"]["key4"]
 	if val != " space at beginning and end " {
 		t.Fatal("Wrong value in double quotes [", val, "]")
@@ -87,7 +87,7 @@ func TestQuotedValue(t *testing.T) {
 }
 
 func TestENoEnt(t *testing.T) {
-	_, err := parseFile("testdata/enoent")
+	_, err := ParseToRawMap("testdata/enoent")
 	if err == nil {
 		t.Fatal("expected error on non-existent file")
 	}

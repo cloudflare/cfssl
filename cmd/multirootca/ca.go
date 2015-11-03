@@ -9,8 +9,8 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api/info"
-	"github.com/cloudflare/cfssl/cmd/multirootca/config"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/multiroot/config"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
 	"github.com/cloudflare/cfssl/whitelist"

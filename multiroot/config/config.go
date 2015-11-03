@@ -1,4 +1,4 @@
-// Package config contains the multiroot configuration file parser.
+// Package config contains the multi-root configuration file parser.
 package config
 
 import (
@@ -25,8 +25,8 @@ import (
 	"github.com/cloudflare/redoctober/core"
 )
 
-// configMap is shorthand for the type used as a config struct.
-type configMap map[string]map[string]string
+// RawMap is shorthand for the type used as a map from string to raw Root struct.
+type RawMap map[string]map[string]string
 
 var (
 	configSection    = regexp.MustCompile("^\\s*\\[\\s*(\\w+)\\s*\\]\\s*$")
@@ -34,15 +34,15 @@ var (
 	configLine       = regexp.MustCompile("^\\s*(\\w+)\\s*=\\s*(.*)\\s*$")
 	commentLine      = regexp.MustCompile("^#.*$")
 	blankLine        = regexp.MustCompile("^\\s*$")
+
+	defaultSection = "default"
 )
 
-var defaultSection = "default"
-
-// ParseFile takes the filename as a string and returns a configMap.
-func parseFile(fileName string) (cfg configMap, err error) {
+// ParseToRawMap takes the filename as a string and returns a RawMap.
+func ParseToRawMap(fileName string) (cfg RawMap, err error) {
 	var file *os.File
 
-	cfg = make(configMap, 0)
+	cfg = make(RawMap, 0)
 	file, err = os.Open(fileName)
 	if err != nil {
 		return
@@ -87,7 +87,7 @@ func parseFile(fileName string) (cfg configMap, err error) {
 }
 
 // SectionInConfig determines whether a section is in the configuration.
-func (c *configMap) SectionInConfig(section string) bool {
+func (c *RawMap) SectionInConfig(section string) bool {
 	for s := range *c {
 		if section == s {
 			return true
@@ -104,8 +104,55 @@ type Root struct {
 	ACL         whitelist.NetACL
 }
 
-// ErrUnsupportedScheme indicates a private key scheme that is not currently supported.
-var ErrUnsupportedScheme = errors.New("config: unsupported private key scheme")
+// LoadRoot parses a config structure into a Root structure
+func LoadRoot(cfg map[string]string) (*Root, error) {
+	var root Root
+	var err error
+	spec, ok := cfg["private"]
+	if !ok {
+		return nil, ErrMissingPrivateKey
+	}
+
+	certPath, ok := cfg["certificate"]
+	if !ok {
+		return nil, ErrMissingCertificatePath
+	}
+
+	configPath, ok := cfg["config"]
+	if !ok {
+		return nil, ErrMissingConfigPath
+	}
+
+	root.PrivateKey, err = parsePrivateKeySpec(spec, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	in, err := ioutil.ReadFile(certPath)
+	if err != nil {
+		return nil, err
+	}
+
+	root.Certificate, err = helpers.ParseCertificatePEM(in)
+	if err != nil {
+		return nil, err
+	}
+
+	conf, err := config.LoadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	root.Config = conf.Signing
+
+	nets := cfg["nets"]
+	if nets != "" {
+		root.ACL, err = parseACL(nets)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &root, nil
+}
 
 func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, error) {
 	specURL, err := url.Parse(spec)
@@ -223,66 +270,26 @@ var (
 
 	// ErrInvalidConfig indicates the configuration is invalid.
 	ErrInvalidConfig = errors.New("config: invalid configuration")
+
+	// ErrUnsupportedScheme indicates a private key scheme that is not currently supported.
+	ErrUnsupportedScheme = errors.New("config: unsupported private key scheme")
 )
 
 // Parse loads a RootList from a file.
 func Parse(filename string) (RootList, error) {
-	cfgMap, err := parseFile(filename)
+	cfgMap, err := ParseToRawMap(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	var rootList = RootList{}
 	for label, entries := range cfgMap {
-		var root Root
-		spec, ok := entries["private"]
-		if !ok {
-			return nil, ErrMissingPrivateKey
-		}
-
-		certPath, ok := entries["certificate"]
-		if !ok {
-			return nil, ErrMissingCertificatePath
-		}
-
-		configPath, ok := entries["config"]
-		if !ok {
-			return nil, ErrMissingConfigPath
-		}
-
-		// Entries is provided for any additional
-		// configuration data that may need to come from the
-		// section.
-		root.PrivateKey, err = parsePrivateKeySpec(spec, entries)
+		root, err := LoadRoot(entries)
 		if err != nil {
 			return nil, err
 		}
 
-		in, err := ioutil.ReadFile(certPath)
-		if err != nil {
-			return nil, err
-		}
-
-		root.Certificate, err = helpers.ParseCertificatePEM(in)
-		if err != nil {
-			return nil, err
-		}
-
-		conf, err := config.LoadFile(configPath)
-		if err != nil {
-			return nil, err
-		}
-		root.Config = conf.Signing
-
-		nets := entries["nets"]
-		if nets != "" {
-			root.ACL, err = parseACL(nets)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		rootList[label] = &root
+		rootList[label] = root
 	}
 
 	return rootList, nil
