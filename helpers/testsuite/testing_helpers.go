@@ -4,6 +4,7 @@ package testsuite
 
 import (
 	"bufio"
+	"testing"
 	// "crypto/tls"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	// "github.com/cloudflare/cfssl/helpers/testsuite/stoppable"
 )
@@ -358,4 +360,65 @@ func cleanCLIOutput(CLIOutput []byte, item string) (cleanedOutput []byte, err er
 	outputString = strings.Replace(outputString, "\\n", "\n", -1)
 
 	return []byte(outputString), nil
+}
+
+// NewConfig returns a config object from the data passed.
+func NewConfig(t *testing.T, configBytes []byte) *config.Config {
+	conf, err := config.LoadConfig([]byte(configBytes))
+	if err != nil {
+		t.Fatal("config loading error:", err)
+	}
+	if !conf.Valid() {
+		t.Fatal("config is not valid")
+	}
+	return conf
+}
+
+// CSRTest holds information about CSR test files.
+type CSRTest struct {
+	File    string
+	KeyAlgo string
+	KeyLen  int
+	// Error checking function
+	ErrorCallback func(*testing.T, error)
+}
+
+// CSRTests define a set of CSR files for testing.
+var CSRTests = []CSRTest{
+	{
+		File:          "../../signer/local/testdata/rsa2048.csr",
+		KeyAlgo:       "rsa",
+		KeyLen:        2048,
+		ErrorCallback: nil,
+	},
+	{
+		File:          "../../signer/local/testdata/rsa3072.csr",
+		KeyAlgo:       "rsa",
+		KeyLen:        3072,
+		ErrorCallback: nil,
+	},
+	{
+		File:          "../../signer/local/testdata/rsa4096.csr",
+		KeyAlgo:       "rsa",
+		KeyLen:        4096,
+		ErrorCallback: nil,
+	},
+	{
+		File:          "../../signer/local/testdata/ecdsa256.csr",
+		KeyAlgo:       "ecdsa",
+		KeyLen:        256,
+		ErrorCallback: nil,
+	},
+	{
+		File:          "../../signer/local/testdata/ecdsa384.csr",
+		KeyAlgo:       "ecdsa",
+		KeyLen:        384,
+		ErrorCallback: nil,
+	},
+	{
+		File:          "../../signer/local/testdata/ecdsa521.csr",
+		KeyAlgo:       "ecdsa",
+		KeyLen:        521,
+		ErrorCallback: nil,
+	},
 }

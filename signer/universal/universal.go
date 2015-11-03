@@ -3,6 +3,7 @@ package universal
 
 import (
 	"crypto/x509"
+	"database/sql"
 
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -114,6 +115,9 @@ func newUniversalSigner(root Root, policy *config.Signing) (*Signer, error) {
 	}
 
 	rs, err := remote.NewSigner(policy)
+	if err != nil {
+		return nil, err
+	}
 
 	s := &Signer{
 		policy: policy,
@@ -162,7 +166,12 @@ func NewSigner(root Root, policy *config.Signing) (signer.Signer, error) {
 }
 
 // getMatchingProfile returns the SigningProfile that matches the profile passed.
+// if an empty profile string is passed it returns the default profile.
 func (s *Signer) getMatchingProfile(profile string) (*config.SigningProfile, error) {
+	if profile == "" {
+		return s.policy.Default, nil
+	}
+
 	for p, signingProfile := range s.policy.Profiles {
 		if p == profile {
 			return signingProfile, nil
@@ -200,6 +209,12 @@ func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
 	}
 	return s.local.Info(req)
 
+}
+
+// SetDB sets the signer's cert db.
+func (s *Signer) SetDB(db *sql.DB) {
+	s.local.SetDB(db)
+	s.remote.SetDB(db)
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.
