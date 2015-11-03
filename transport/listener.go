@@ -80,12 +80,13 @@ func (l *Listener) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- error
 				break
 			}
 
-			log.Debug("failed to update certificate, will try again in 5 minutes")
+			delay := l.Transport.Backoff.Duration()
+			log.Debugf("failed to update certificate, will try again in %s", delay)
 			if errChan != nil {
 				errChan <- err
 			}
 
-			<-time.After(5 * time.Minute)
+			<-time.After(delay)
 		}
 
 		if certUpdates != nil {
