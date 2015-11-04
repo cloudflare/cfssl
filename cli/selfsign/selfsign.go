@@ -54,15 +54,15 @@ func selfSignMain(args []string, c cli.Config) (err error) {
 		return
 	}
 
-	var req csr.CertificateRequest
-	err = json.Unmarshal(csrFileBytes, &req)
+	var req = csr.New()
+	err = json.Unmarshal(csrFileBytes, req)
 	if err != nil {
 		return
 	}
 
 	var key, csrPEM []byte
 	g := &csr.Generator{Validator: genkey.Validator}
-	csrPEM, key, err = g.ProcessRequest(&req)
+	csrPEM, key, err = g.ProcessRequest(req)
 	if err != nil {
 		key = nil
 		return
