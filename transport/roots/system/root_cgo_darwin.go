@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build cgo,!arm,!arm64,!ios
+// +build darwin,cgo,!arm,!arm64,!ios
 
 package system
 
@@ -13,14 +13,14 @@ package system
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
-// FetchPEMRoots fetches the system's list of trusted X.509 root certificates.
+// FetchPEMRootsCFSSLTransport fetches the system's list of trusted X.509 root certificates.
 //
 // On success it returns 0 and fills pemRoots with a CFDataRef that contains the extracted root
 // certificates of the system. On failure, the function returns -1.
 //
 // Note: The CFDataRef returned in pemRoots must be released (using CFRelease) after
 // we've consumed its content.
-int FetchPEMRoots(CFDataRef *pemRoots) {
+int FetchPEMRootsCFSSLTransport(CFDataRef *pemRoots) {
 	if (pemRoots == NULL) {
 		return -1;
 	}
@@ -69,8 +69,9 @@ import (
 func initSystemRoots() []*x509.Certificate {
 	var roots []*x509.Certificate
 
-	var data C.CFDataRef = nil
-	err := C.FetchPEMRoots(&data)
+	var data C.CFDataRef
+	data = nil
+	err := C.FetchPEMRootsCFSSLTransport(&data)
 	if err == -1 {
 		return nil
 	}
