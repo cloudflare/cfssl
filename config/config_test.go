@@ -101,6 +101,48 @@ var validMinimalRemoteConfig = `
 	}
 }`
 
+var validMinimalRemoteConfig2 = `
+{
+	"signing": {
+		"default": {
+			"auth_remote":{
+			    "auth_key": "sample",
+			    "remote": "localhost"
+		    }
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
+var invalidRemoteConfig = `
+{
+	"signing": {
+		"default": {
+			"auth_remotes_typos":{
+			    "auth_key": "sample",
+			    "remote": "localhost"
+		    }
+		}
+	},
+	"auth_keys": {
+		"sample": {
+			"type":"standard",
+			"key":"0123456789ABCDEF0123456789ABCDEF"
+		}
+	},
+	"remotes": {
+		"localhost": "127.0.0.1:8888"
+	}
+}`
+
 var validMinimalLocalConfig = `
 {
 	"signing": {
@@ -334,4 +376,35 @@ func TestOverrideRemotes(t *testing.T) {
 		}
 	}
 
+}
+
+func TestAuthRemoteConfig(t *testing.T) {
+	c, err := LoadConfig([]byte(validMinimalRemoteConfig2))
+	if err != nil {
+		t.Fatal("load valid config failed:", err)
+	}
+
+	if c.Signing.Default.RemoteServer != "127.0.0.1:8888" {
+		t.Fatal("load valid config failed: incorrect remote server")
+	}
+
+	host := "localhost:8888"
+	c.Signing.OverrideRemotes(host)
+
+	if c.Signing.Default.RemoteServer != host {
+		t.Fatal("should override default profile's RemoteServer")
+	}
+
+	for _, p := range c.Signing.Profiles {
+		if p.RemoteServer != host {
+			t.Fatal("failed to override profile's RemoteServer")
+		}
+	}
+}
+
+func TestBadAuthRemoteConfig(t *testing.T) {
+	_, err := LoadConfig([]byte(invalidRemoteConfig))
+	if err == nil {
+		t.Fatal("load invalid config should failed")
+	}
 }

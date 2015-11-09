@@ -6,10 +6,13 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/api/bundle"
+	"github.com/cloudflare/cfssl/api/certinfo"
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
@@ -24,8 +27,6 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/ubiquity"
-
-	rice "github.com/GeertJohan/go.rice"
 )
 
 // Usage text of 'cfssl serve'
@@ -47,12 +48,51 @@ var (
 	conf       cli.Config
 	s          signer.Signer
 	ocspSigner ocsp.Signer
-	staticDir  = "static"
 )
+
+// V1APIPrefix is the prefix of all CFSSL V1 API Endpoints.
+var V1APIPrefix = "/api/v1/cfssl/"
+
+// v1APIPath prepends the V1 API prefix to endpoints not beginning with "/"
+func v1APIPath(path string) string {
+	if !strings.HasPrefix(path, "/") {
+		path = V1APIPrefix + path
+	}
+	return (&url.URL{Path: path}).String()
+}
+
+// httpBox implements http.FileSystem which allows the use of Box with a http.FileServer.
+// Atempting to Open an API endpoint will result in an error.
+type httpBox struct {
+	*rice.Box
+	redirects map[string]string
+}
+
+// Open returns a File for non-API enpoints using the http.File interface.
+func (hb *httpBox) Open(name string) (http.File, error) {
+	if strings.HasPrefix(name, V1APIPrefix) {
+		return nil, os.ErrNotExist
+	}
+
+	if location, ok := hb.redirects[name]; ok {
+		return hb.Box.Open(location)
+	}
+
+	return hb.Box.Open(name)
+}
+
+// staticBox is the box containing all static assets.
+var staticBox = &httpBox{
+	Box: rice.MustFindBox("static"),
+	redirects: map[string]string{
+		"/scan":   "/index.html",
+		"/bundle": "/index.html",
+	},
+}
 
 var errBadSigner = errors.New("signer not initialized")
 
-var v1Endpoints = map[string]func() (http.Handler, error){
+var endpoints = map[string]func() (http.Handler, error){
 	"sign": func() (http.Handler, error) {
 		if s == nil {
 			return nil, errBadSigner
@@ -101,53 +141,26 @@ var v1Endpoints = map[string]func() (http.Handler, error){
 		return scan.NewInfoHandler(), nil
 	},
 
+	"certinfo": func() (http.Handler, error) {
+		return certinfo.NewHandler(), nil
+	},
+
 	"ocspsign": func() (http.Handler, error) {
 		if ocspSigner == nil {
 			return nil, errBadSigner
 		}
 		return apiocsp.NewHandler(ocspSigner), nil
 	},
-}
 
-var staticEndpoints = map[string]func() (http.Handler, error){
 	"/": func() (http.Handler, error) {
-		//the default rice order doesn't include working directory
-		order := []rice.LocateMethod{
-			rice.LocateEmbedded,
-			rice.LocateAppended,
-			rice.LocateFS,
-			rice.LocateWorkingDirectory,
-		}
-		c := &rice.Config{LocateOrder: order}
-		box, err := c.FindBox(staticDir)
-		if err != nil {
-			return nil, err
-		}
-		return http.FileServer(box.HTTPBox()), nil
+		return http.FileServer(staticBox), nil
 	},
-}
-
-// v1APIPath prepends the V1 API prefix to endpoints not
-func v1APIPath(endpoint string) string {
-	prefix := "/api/v1/cfssl/"
-	if strings.HasPrefix(endpoint, "/") {
-		prefix = ""
-	}
-	return (&url.URL{Path: prefix + endpoint}).String()
 }
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
-	for path, getHandler := range v1Endpoints {
-		path = "/api/v1/cfssl/" + path
-		log.Infof("Setting up '%s' endpoint", path)
-		if handler, err := getHandler(); err != nil {
-			log.Warningf("endpoint '%s' is disabled: %v", path, err)
-		} else {
-			http.Handle(path, handler)
-		}
-	}
-	for path, getHandler := range staticEndpoints {
+	for path, getHandler := range endpoints {
+		path = v1APIPath(path)
 		log.Infof("Setting up '%s' endpoint", path)
 		if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)
@@ -191,5 +204,5 @@ func serverMain(args []string, c cli.Config) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-// CLIServer assembles the definition of Command 'serve'
+// Command assembles the definition of Command 'serve'
 var Command = &cli.Command{UsageText: serverUsageText, Flags: serverFlags, Main: serverMain}

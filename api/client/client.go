@@ -202,10 +202,10 @@ func (srv *server) Info(jsonData []byte) (*info.Resp, error) {
 		info.Certificate = val.(string)
 	}
 	var usages []interface{}
-	if val, ok := res["usages"]; ok {
+	if val, ok := res["usages"]; ok && val != nil {
 		usages = val.([]interface{})
 	}
-	if val, ok := res["expiry"]; ok {
+	if val, ok := res["expiry"]; ok && val != nil {
 		info.ExpiryString = val.(string)
 	}
 
@@ -244,4 +244,25 @@ func (srv *server) request(jsonData []byte, target string) ([]byte, error) {
 	}
 
 	return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New("response doesn't contain certificate."))
+}
+
+// AuthRemote acts as a Remote with a default Provider for AuthSign.
+type AuthRemote struct {
+	Remote
+	provider auth.Provider
+}
+
+// NewAuthServer sets up a new auth server target with an addr
+// in the same format at NewServer and a default authentication provider to
+// use for Sign requests.
+func NewAuthServer(addr string, provider auth.Provider) *AuthRemote {
+	return &AuthRemote{
+		Remote:   NewServer(addr),
+		provider: provider,
+	}
+}
+
+// Sign is overloaded to perform an AuthSign request using the default auth provider.
+func (ar *AuthRemote) Sign(req []byte) ([]byte, error) {
+	return ar.AuthSign(req, nil, ar.provider)
 }

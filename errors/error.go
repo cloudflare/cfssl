@@ -52,6 +52,9 @@ const (
 
 	// CSRError indicates a problem with CSR parsing
 	CSRError // 9XXX
+
+	// CTError indicates a problem with the certificate transparency process
+	CTError // 10XXX
 )
 
 // None is a non-specified error.
@@ -173,6 +176,13 @@ const (
 	// InvalidStatus occurs when the OCSP signing requests includes an
 	// invalid value for the certificate status.
 	InvalidStatus
+)
+
+// Certificate transparency related errors specified with CTError
+const (
+	// PrecertSubmissionFailed occurs when submitting a precertificate to
+	// a log server fails
+	PrecertSubmissionFailed = 100 * (iota + 1)
 )
 
 // The error interface implementation, which formats to a JSON object string.
@@ -329,6 +339,15 @@ func New(category Category, reason Reason) *Error {
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category APIClientError.", reason))
 		}
+	case CTError:
+		switch reason {
+		case Unknown:
+			msg = "Certificate transparency parsing failed due to unknown error"
+		case PrecertSubmissionFailed:
+			msg = "Certificate transparency precertificate submission failed"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CTError.", reason))
+		}
 
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",
@@ -364,8 +383,8 @@ func Wrap(category Category, reason Reason, err error) *Error {
 				errorCode += unknownAuthority
 			}
 		}
-	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError, CSRError:
-		// no-op, just use the error
+	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError, CSRError, CTError:
+	// no-op, just use the error
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",
 			category))

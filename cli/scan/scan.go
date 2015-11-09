@@ -3,8 +3,10 @@ package scan
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/scan"
 )
 
@@ -27,6 +29,29 @@ func printJSON(v interface{}) {
 	fmt.Printf("%s\n\n", b)
 }
 
+type context struct {
+	sync.WaitGroup
+	c cli.Config
+}
+
+func newContext(c cli.Config, numHosts int) *context {
+	ctx := &context{c: c}
+	ctx.Add(numHosts)
+	return ctx
+}
+
+func (ctx *context) RunScans(host string) {
+	fmt.Printf("Scanning %s...\n", host)
+	results, err := scan.Default.RunScans(host, ctx.c.IP, ctx.c.Family, ctx.c.Scanner, ctx.c.Timeout)
+	fmt.Printf("=== %s ===\n", host)
+	if err != nil {
+		log.Error(err)
+	} else {
+		printJSON(results)
+	}
+	ctx.Done()
+}
+
 func scanMain(args []string, c cli.Config) (err error) {
 	if c.List {
 		printJSON(scan.Default)
@@ -34,6 +59,8 @@ func scanMain(args []string, c cli.Config) (err error) {
 		if err = scan.LoadRootCAs(c.CABundleFile); err != nil {
 			return
 		}
+
+		ctx := newContext(c, len(args))
 		// Execute for each HOST argument given
 		for len(args) > 0 {
 			var host string
@@ -42,17 +69,9 @@ func scanMain(args []string, c cli.Config) (err error) {
 				return
 			}
 
-			fmt.Printf("Scanning %s...\n", host)
-
-			var results map[string]scan.FamilyResult
-			results, err = scan.Default.RunScans(host, c.IP, c.Family, c.Scanner, c.Timeout)
-			if err != nil {
-				return
-			}
-			if results != nil {
-				printJSON(results)
-			}
+			go ctx.RunScans(host)
 		}
+		ctx.Wait()
 	}
 	return
 }

@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
+	"net"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -87,17 +88,6 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 
 // NewFromPEM creates a new root certificate from the key file passed in.
 func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byte, err error) {
-	if req.CA != nil {
-		if req.CA.Expiry != "" {
-			CAPolicy.Default.ExpiryString = req.CA.Expiry
-			CAPolicy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
-		}
-
-		if req.CA.PathLength != 0 {
-			signer.MaxPathLen = req.CA.PathLength
-		}
-	}
-
 	privData, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		return nil, nil, err
@@ -111,8 +101,51 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 	return NewFromSigner(req, priv)
 }
 
+// RenewFromPEM re-creates a root certificate from the CA cert and key
+// files. The resulting root certificate will have the input CA certificate
+// as the template and have the same expiry length. E.g. the exsiting CA
+// is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
+// will be valid from now and expire in one year as well.
+func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
+	caBytes, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return nil, err
+	}
+
+	ca, err := helpers.ParseCertificatePEM(caBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	keyBytes, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := helpers.ParsePrivateKeyPEM(keyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return RenewFromSigner(ca, key)
+
+}
+
 // NewFromSigner creates a new root certificate from a crypto.Signer.
 func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+	if req.CA != nil {
+		if req.CA.Expiry != "" {
+			CAPolicy.Default.ExpiryString = req.CA.Expiry
+			CAPolicy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		if req.CA.PathLength != 0 {
+			signer.MaxPathLen = req.CA.PathLength
+		}
+	}
 
 	var sigAlgo x509.SignatureAlgorithm
 	switch pub := priv.Public().(type) {
@@ -146,10 +179,23 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 	var tpl = x509.CertificateRequest{
 		Subject:            req.Name(),
 		SignatureAlgorithm: sigAlgo,
-		DNSNames:           req.Hosts,
 	}
 
-	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
+	for i := range req.Hosts {
+		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
+			tpl.IPAddresses = append(tpl.IPAddresses, ip)
+		} else {
+			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
+		}
+	}
+
+	return signWithCSR(&tpl, priv)
+}
+
+// signWithCSR creates a new root certificate from signing a X509.CertificateRequest
+// by a crypto.Signer.
+func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		// The use of CertificateError was a matter of some
@@ -177,6 +223,48 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 	signReq := signer.SignRequest{Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
 	return
+}
+
+// RenewFromSigner re-creates a root certificate from the CA cert and crypto.Signer.
+// The resulting root certificate will have ca certificate
+// as the template and have the same expiry length. E.g. the exsiting CA
+// is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
+// will be valid from now and expire in one year as well.
+func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
+	if !ca.IsCA {
+		return nil, errors.New("input certificate is not a CA cert")
+	}
+
+	// matching certificate public key vs private key
+	switch {
+	case ca.PublicKeyAlgorithm == x509.RSA:
+
+		var rsaPublicKey *rsa.PublicKey
+		var ok bool
+		if rsaPublicKey, ok = priv.Public().(*rsa.PublicKey); !ok {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+		if ca.PublicKey.(*rsa.PublicKey).N.Cmp(rsaPublicKey.N) != 0 {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+	case ca.PublicKeyAlgorithm == x509.ECDSA:
+		var ecdsaPublicKey *ecdsa.PublicKey
+		var ok bool
+		if ecdsaPublicKey, ok = priv.Public().(*ecdsa.PublicKey); !ok {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+		if ca.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaPublicKey.X) != 0 {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+	default:
+		return nil, cferr.New(cferr.PrivateKeyError, cferr.NotRSAOrECC)
+	}
+
+	req := csr.ExtractCertificateRequest(ca)
+
+	cert, _, err := NewFromSigner(req, priv)
+	return cert, err
+
 }
 
 // CAPolicy contains the CA issuing policy as default policy.

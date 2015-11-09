@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"io/ioutil"
 	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
@@ -562,5 +563,40 @@ func TestBadReGenerate(t *testing.T) {
 	_, err = Regenerate(priv, csr)
 	if err == nil {
 		t.Fatalf("%v", err)
+	}
+}
+
+var testECDSACertificateFile = "testdata/test-ecdsa-ca.pem"
+
+func TestExtractCertificateRequest(t *testing.T) {
+	certPEM, err := ioutil.ReadFile(testECDSACertificateFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// must parse ok
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := ExtractCertificateRequest(cert)
+
+	if req.CN != "" {
+		t.Fatal("Bad Certificate Request!")
+	}
+
+	if len(req.Names) != 1 {
+		t.Fatal("Bad Certificate Request!")
+	}
+
+	name := req.Names[0]
+	if name.C != "US" || name.ST != "California" || name.O != "CloudFlare, Inc." ||
+		name.OU != "Test Certificate Authority" || name.L != "San Francisco" {
+		t.Fatal("Bad Certificate Request!")
+	}
+
+	if req.CA == nil || req.CA.PathLength != 2 {
+		t.Fatal("Bad Certificate Request!")
 	}
 }

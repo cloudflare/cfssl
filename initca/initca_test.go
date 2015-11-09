@@ -32,6 +32,12 @@ var csrFiles = []string{
 	"testdata/ecdsa384.csr",
 	"testdata/ecdsa521.csr",
 }
+
+var testRSACAFile = "testdata/5min-rsa.pem"
+var testRSACAKeyFile = "testdata/5min-rsa-key.pem"
+var testECDSACAFile = "testdata/5min-ecdsa.pem"
+var testECDSACAKeyFile = "testdata/5min-ecdsa-key.pem"
+
 var invalidCryptoParams = []csr.BasicKeyRequest{
 	// Weak Key
 	{"rsa", 1024},
@@ -54,8 +60,8 @@ func TestInitCA(t *testing.T) {
 					OU: "Systems Engineering",
 				},
 			},
-			CN:    hostname,
-			Hosts: []string{hostname, "www." + hostname},
+			CN:         hostname,
+			Hosts:      []string{hostname, "www." + hostname},
 			KeyRequest: &param,
 		}
 		certBytes, _, keyBytes, err := New(req)
@@ -148,8 +154,8 @@ func TestInvalidCryptoParams(t *testing.T) {
 					OU: "Systems Engineering",
 				},
 			},
-			CN:    hostname,
-			Hosts: []string{hostname, "www." + hostname},
+			CN:         hostname,
+			Hosts:      []string{hostname, "www." + hostname},
 			KeyRequest: &invalidParam,
 		}
 		_, _, _, err := New(req)
@@ -193,5 +199,86 @@ func TestValidations(t *testing.T) {
 		if !tv.v && err == nil {
 			t.Fatalf("%d: expected error, but no error was reported", i)
 		}
+	}
+}
+
+func TestRenewRSA(t *testing.T) {
+	certPEM, err := RenewFromPEM(testRSACAFile, testRSACAKeyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// must parse ok
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cert.IsCA {
+		t.Fatal("renewed CA certificate is not CA")
+	}
+
+	// cert expiry must be 5 minutes
+	expiry := cert.NotAfter.Sub(cert.NotBefore).Seconds()
+	if expiry >= 301 || expiry <= 299 {
+		t.Fatal("expiry is not correct")
+	}
+
+	// check subject
+
+	if cert.Subject.CommonName != "" {
+		t.Fatal("Bad CommonName")
+	}
+
+	if len(cert.Subject.Country) != 1 || cert.Subject.Country[0] != "US" {
+		t.Fatal("Bad Subject")
+	}
+
+	if len(cert.Subject.Organization) != 1 || cert.Subject.Organization[0] != "CloudFlare, Inc." {
+		t.Fatal("Bad Subject")
+	}
+}
+
+func TestRenewECDSA(t *testing.T) {
+	certPEM, err := RenewFromPEM(testECDSACAFile, testECDSACAKeyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// must parse ok
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cert.IsCA {
+		t.Fatal("renewed CA certificate is not CA")
+	}
+
+	// cert expiry must be 5 minutes
+	expiry := cert.NotAfter.Sub(cert.NotBefore).Seconds()
+	if expiry >= 301 || expiry <= 299 {
+		t.Fatal("expiry is not correct")
+	}
+
+	// check subject
+
+	if cert.Subject.CommonName != "" {
+		t.Fatal("Bad CommonName")
+	}
+
+	if len(cert.Subject.Country) != 1 || cert.Subject.Country[0] != "US" {
+		t.Fatal("Bad Subject")
+	}
+
+	if len(cert.Subject.Organization) != 1 || cert.Subject.Organization[0] != "CloudFlare, Inc." {
+		t.Fatal("Bad Subject")
+	}
+}
+
+func TestRenewMismatch(t *testing.T) {
+	_, err := RenewFromPEM(testECDSACAFile, testRSACAKeyFile)
+	if err == nil {
+		t.Fatal("Fail to detect cert/key mismatch")
 	}
 }

@@ -25,7 +25,7 @@ type Bundle struct {
 	Key       interface{}
 	Issuer    *pkix.Name
 	Subject   *pkix.Name
-	Expires   *time.Time
+	Expires   time.Time
 	Hostnames []string
 	Status    *BundleStatus
 }

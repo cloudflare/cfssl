@@ -83,5 +83,5 @@ func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
 	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval))
 }
 
-// CLISigner assembles the definition of Command 'sign'
+// Command assembles the definition of Command 'ocspsign'
 var Command = &cli.Command{UsageText: ocspSignerUsageText, Flags: ocspSignerFlags, Main: ocspSignerMain}

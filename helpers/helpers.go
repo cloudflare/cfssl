@@ -13,15 +13,15 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
-	//"fmt"
+
 	"strings"
 	"time"
 
-	"github.com/cloudflare/cfssl/crypto/pkcs12"
 	"github.com/cloudflare/cfssl/crypto/pkcs7"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
+	"golang.org/x/crypto/pkcs12"
 )
 
 // OneYear is a time.Duration representing a year's worth of seconds.
@@ -40,7 +40,7 @@ func InclusiveDate(year int, month time.Month, day int) time.Time {
 // issuing certificates valid for more than 5 years.
 var Jul2012 = InclusiveDate(2012, time.July, 01)
 
-// April2015 is the April 2015 CAB Forum deadline for when CAs must stop
+// Apr2015 is the April 2015 CAB Forum deadline for when CAs must stop
 // issuing certificates valid for more than 39 months.
 var Apr2015 = InclusiveDate(2015, time.April, 01)
 
@@ -59,17 +59,18 @@ func KeyLength(key interface{}) int {
 }
 
 // ExpiryTime returns the time when the certificate chain is expired.
-func ExpiryTime(chain []*x509.Certificate) *time.Time {
+func ExpiryTime(chain []*x509.Certificate) (notAfter time.Time) {
 	if len(chain) == 0 {
-		return nil
+		return
 	}
-	notAfter := chain[0].NotAfter
+
+	notAfter = chain[0].NotAfter
 	for _, cert := range chain {
-		if cert.NotAfter.Before(notAfter) {
+		if notAfter.After(cert.NotAfter) {
 			notAfter = cert.NotAfter
 		}
 	}
-	return &notAfter
+	return
 }
 
 // MonthsValid returns the number of months for which a certificate is valid.
@@ -174,6 +175,24 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
+// EncodeCertificatesPEM encodes a number of x509 certficates to PEM
+func EncodeCertificatesPEM(certs []*x509.Certificate) []byte {
+	var buffer bytes.Buffer
+	for _, cert := range certs {
+		pem.Encode(&buffer, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})
+	}
+
+	return buffer.Bytes()
+}
+
+// EncodeCertificatePEM encodes a single x509 certficates to PEM
+func EncodeCertificatePEM(cert *x509.Certificate) []byte {
+	return EncodeCertificatesPEM([]*x509.Certificate{cert})
+}
+
 // ParseCertificatesPEM parses a sequence of PEM-encoded certificate and returns them,
 // can handle PEM encoded PKCS #7 structures.
 func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
@@ -200,21 +219,20 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 
 // ParseCertificatesDER parses a DER encoding of a certificate object and possibly private key,
 // either PKCS #7, PKCS #12, or raw x509.
-func ParseCertificatesDER(certsDER []byte, password string) ([]*x509.Certificate, crypto.Signer, error) {
-	var certs []*x509.Certificate
-	var key crypto.Signer
+func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certificate, key crypto.Signer, err error) {
 	certsDER = bytes.TrimSpace(certsDER)
 	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
 	if err != nil {
-		pkcs12data, err := pkcs12.ParsePKCS12(certsDER, []byte(password))
+		var pkcs12data interface{}
+		certs = make([]*x509.Certificate, 1)
+		pkcs12data, certs[0], err = pkcs12.Decode(certsDER, password)
 		if err != nil {
 			certs, err = x509.ParseCertificates(certsDER)
 			if err != nil {
 				return nil, nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 			}
 		} else {
-			key = pkcs12data.PrivateKey
-			certs = pkcs12data.Certificates
+			key = pkcs12data.(crypto.Signer)
 		}
 	} else {
 		if pkcs7data.ContentInfo != "SignedData" {

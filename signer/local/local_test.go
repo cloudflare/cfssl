@@ -554,7 +554,7 @@ func TestOverrideSubject(t *testing.T) {
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 
 	request := signer.SignRequest{
-		Hosts:   []string{"127.0.0.1", "localhost"},
+		Hosts:   []string{"127.0.0.1", "localhost", "xyz@example.com"},
 		Request: string(csrPEM),
 		Subject: req,
 	}
@@ -626,7 +626,7 @@ func TestOverwriteHosts(t *testing.T) {
 		for _, hosts := range [][]string{
 			nil,
 			[]string{},
-			[]string{"127.0.0.1", "localhost"},
+			[]string{"127.0.0.1", "localhost", "xyz@example.com"},
 		} {
 			request := signer.SignRequest{
 				Hosts:   hosts,
@@ -644,10 +644,14 @@ func TestOverwriteHosts(t *testing.T) {
 				t.Fatalf("%v", err)
 			}
 
-			// get the hosts, and add the ips
+			// get the hosts, and add the ips and email addresses
 			certHosts := cert.DNSNames
 			for _, ip := range cert.IPAddresses {
 				certHosts = append(certHosts, ip.String())
+			}
+
+			for _, email := range cert.EmailAddresses {
+				certHosts = append(certHosts, email)
 			}
 
 			// compare the sorted host lists
@@ -879,4 +883,35 @@ func TestNameWhitelistSign(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+}
+
+func TestCTFailure(t *testing.T) {
+	var config = &config.Signing{
+		Default: &config.SigningProfile{
+			Expiry:       helpers.OneYear,
+			CA:           true,
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: "8760h",
+			CTLogServers: []string{"https://ct.googleapis.com/pilot"},
+		},
+	}
+	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	var pem []byte
+	pem, err = ioutil.ReadFile("testdata/ex.csr")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	validReq := signer.SignRequest{
+		Request: string(pem),
+		Hosts:   []string{"example.com"},
+	}
+	_, err = testSigner.Sign(validReq)
+
+	// This should fail because our CA cert is not trusted by Google's pilot log
+	if err == nil {
+		t.Fatal("Expected CT log submission failure")
+	}
 }

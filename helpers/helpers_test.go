@@ -30,6 +30,8 @@ const (
 	testEmptyPem                 = "testdata/empty.pem"
 	testNoHeaderCert             = "testdata/noheadercert.pem"
 	testSinglePKCS7              = "testdata/cert_pkcs7.pem"
+	testEmptyPKCS7DER            = "testdata/empty_pkcs7.der" // openssl crl2pkcs7 -nocrl -out empty_pkcs7.der -outform der
+	testEmptyPKCS7PEM            = "testdata/empty_pkcs7.pem" // openssl crl2pkcs7 -nocrl -out empty_pkcs7.pem -outform pem
 	testMultiplePKCS7            = "testdata/bundle_pkcs7.pem"
 	testPKCS12EmptyPswd          = "testdata/emptypasswordpkcs12.p12"
 	testPKCS12Passwordispassword = "testdata/passwordpkcs12.p12"
@@ -37,7 +39,7 @@ const (
 )
 
 func TestParseCertificatesDER(t *testing.T) {
-	var password = []string{"password", "", "", "multiple"}
+	var password = []string{"password", "", ""}
 	for i, testFile := range []string{testPKCS12Passwordispassword, testPKCS12EmptyPswd, testCertDERFile} {
 		testDER, err := ioutil.ReadFile(testFile)
 		if err != nil {
@@ -52,6 +54,14 @@ func TestParseCertificatesDER(t *testing.T) {
 		}
 	}
 
+	testDER, err := ioutil.ReadFile(testEmptyPKCS7DER)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// PKCS7 with no certificates
+	if _, _, err := ParseCertificatesDER(testDER, ""); err == nil {
+		t.Fatal(err)
+	}
 }
 
 func TestKeyLength(t *testing.T) {
@@ -90,7 +100,7 @@ func TestKeyLength(t *testing.T) {
 
 func TestExpiryTime(t *testing.T) {
 	// nil case
-	var expNil *time.Time
+	var expNil time.Time
 	inNil := []*x509.Certificate{}
 	outNil := ExpiryTime(inNil)
 	if expNil != outNil {
@@ -105,11 +115,8 @@ func TestExpiryTime(t *testing.T) {
 	}
 	expected := time.Date(2014, time.April, 15, 0, 0, 0, 0, time.UTC)
 	out := ExpiryTime(certs)
-	if out == nil {
-		t.Fatal("Expiry time returning null")
-	}
-	if *out != expected {
-		t.Fatalf("Expected %v, got %v", expected, *out)
+	if out != expected {
+		t.Fatalf("Expected %v, got %v", expected, out)
 	}
 }
 
@@ -260,7 +267,7 @@ func TestParseCertificatePEM(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyCertFile, testMultiplePKCS7} {
+	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyPKCS7PEM, testEmptyCertFile, testMultiplePKCS7} {
 		certPEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
@@ -287,7 +294,7 @@ func TestParseCertificatesPEM(t *testing.T) {
 
 	// test failure cases
 	// few lines deleted, then headers removed
-	for _, testFile := range []string{testMessedUpBundleFile, testNoHeaderCert} {
+	for _, testFile := range []string{testMessedUpBundleFile, testEmptyPKCS7PEM, testNoHeaderCert} {
 		bundlePEM, err := ioutil.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)

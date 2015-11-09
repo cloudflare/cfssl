@@ -311,6 +311,14 @@ var (
 	// iso(1) identified-organization(3) dod(6) internet(1) security(5)
 	//   mechanisms(5) pkix(7) id-qt(2) id-qt-unotice(2)
 	iDQTUserNotice = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 2, 2}
+
+	// CTPoisonOID is the object ID of the critical poison extension for precertificates
+	// https://tools.ietf.org/html/rfc6962#page-9
+	CTPoisonOID = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 3}
+
+	// SCTListOID is the object ID for the Signed Certificate Timestamp certificate extension
+	// https://tools.ietf.org/html/rfc6962#page-14
+	SCTListOID = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 )
 
 // addPolicies adds Certificate Policies and optional Policy Qualifiers to a

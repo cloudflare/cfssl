@@ -10,6 +10,7 @@ Required parameters:
 Optional parameters:
 
     * ip: IP Address to override DNS lookup of host
+    * timeout: The ammount of time allotted for the scan to complete (default: 1 minute)
 
     The following parameters are used by the scanner to select which 
     scans to run.
