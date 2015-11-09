@@ -68,6 +68,11 @@ type httpBox struct {
 	redirects map[string]string
 }
 
+func (hb *httpBox) findBox(name string) (err error) {
+	hb.Box, err = rice.FindBox(name)
+	return
+}
+
 // Open returns a File for non-API enpoints using the http.File interface.
 func (hb *httpBox) Open(name string) (http.File, error) {
 	if strings.HasPrefix(name, V1APIPrefix) {
@@ -83,7 +88,6 @@ func (hb *httpBox) Open(name string) (http.File, error) {
 
 // staticBox is the box containing all static assets.
 var staticBox = &httpBox{
-	Box: rice.MustFindBox("static"),
 	redirects: map[string]string{
 		"/scan":   "/index.html",
 		"/bundle": "/index.html",
@@ -153,6 +157,10 @@ var endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"/": func() (http.Handler, error) {
+		if err := staticBox.findBox("static"); err != nil {
+			return nil, err
+		}
+
 		return http.FileServer(staticBox), nil
 	},
 }
