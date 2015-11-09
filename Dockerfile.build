@@ -1,4 +1,6 @@
-FROM golang:1.4.3-cross
+FROM golang:1.5
+
+ENV USER root
 
 # Install pkcs11 deps
 RUN apt-get update && apt-get install -y \
@@ -6,19 +8,11 @@ RUN apt-get update && apt-get install -y \
 	--no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
-# TODO: Vendor these `go get` commands using Godep.
-RUN go get github.com/mitchellh/gox
-RUN go get github.com/tools/godep
-RUN go get github.com/cloudflare/cf-tls/tls
-RUN go get github.com/cloudflare/go-metrics
-RUN go get github.com/cloudflare/redoctober/core
-RUN go get github.com/dgryski/go-rc2
-RUN go get golang.org/x/crypto/ocsp
-RUN go get github.com/GeertJohan/go.rice
-
-ENV GOPATH /go/src/github.com/cloudflare/cfssl:/go
-ENV USER root
-
 WORKDIR /go/src/github.com/cloudflare/cfssl
+COPY . .
 
-COPY . /go/src/github.com/cloudflare/cfssl
+# restore all deps and build
+RUN go get github.com/tools/godep && godep restore && \
+	go get github.com/mitchellh/gox
+
+ENTRYPOINT ["gox"]
