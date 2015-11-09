@@ -1,8 +1,6 @@
-FROM golang:1.4.3
+FROM golang:1.5
 
 ENV USER root
-
-EXPOSE 8888
 
 # Install pkcs11 deps
 RUN apt-get update && apt-get install -y \
@@ -10,17 +8,16 @@ RUN apt-get update && apt-get install -y \
 	--no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
-COPY . /go/src/github.com/cloudflare/cfssl
+WORKDIR /go/src/github.com/cloudflare/cfssl
+COPY . .
 
-# install all deps and build
-RUN cd /go/src/github.com/cloudflare/cfssl && \
-	go get -d ./... && \
-	(cd cmd/cfssl && go build -o /usr/bin/cfssl . ) && \
-	(cd cmd/cfssljson && go build -o /usr/bin/cfssljson . ) && \
-	(cd cmd/mkbundle && go build -o /usr/bin/mkbundle . ) && \
-	(cd cmd/multirootca && go build -o /usr/bin/multirootca . )
+# restore all deps and build
+RUN go get github.com/tools/godep && godep restore && \
+	go get github.com/GeertJohan/go.rice/rice && rice embed-go -i=./cli/serve && \
+	git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
+	go install ./cmd/...
 
-WORKDIR /opt
+EXPOSE 8888
 
 ENTRYPOINT ["cfssl"]
 CMD ["--help"]
