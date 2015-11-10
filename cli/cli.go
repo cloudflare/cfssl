@@ -185,3 +185,10 @@ func PrintOCSPResponse(resp []byte) {
 	}
 	fmt.Printf("%s\n", jsonOut)
 }
+
+// PrintCRL outputs the CRL to stdout
+func PrintCRL(certList []byte) {
+	b64Resp := base64.StdEncoding.EncodeToString(certList)
+
+	fmt.Printf("%s\n", b64Resp)
+}

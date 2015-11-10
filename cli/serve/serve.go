@@ -13,6 +13,7 @@ import (
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/certinfo"
+	"github.com/cloudflare/cfssl/api/crl"
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
@@ -112,6 +113,13 @@ var endpoints = map[string]func() (http.Handler, error){
 			return nil, errBadSigner
 		}
 		return info.NewHandler(s)
+	},
+
+	"gencrl": func() (http.Handler, error) {
+		if s == nil {
+			return nil, errBadSigner
+		}
+		return crl.NewHandler(), nil
 	},
 
 	"newcert": func() (http.Handler, error) {
