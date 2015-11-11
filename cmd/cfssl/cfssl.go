@@ -31,9 +31,11 @@ import (
 	"github.com/cloudflare/cfssl/cli/gencrl"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/info"
+	"github.com/cloudflare/cfssl/cli/ocspgen"
 	"github.com/cloudflare/cfssl/cli/ocspserve"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/printdefault"
+	"github.com/cloudflare/cfssl/cli/revoke"
 	"github.com/cloudflare/cfssl/cli/scan"
 	"github.com/cloudflare/cfssl/cli/selfsign"
 	"github.com/cloudflare/cfssl/cli/serve"
@@ -57,12 +59,14 @@ func main() {
 		"genkey":         genkey.Command,
 		"gencert":        gencert.Command,
 		"gencrl":         gencrl.Command,
+		"ocspgen":        ocspgen.Command,
 		"ocspsign":       ocspsign.Command,
 		"ocspserve":      ocspserve.Command,
 		"selfsign":       selfsign.Command,
 		"scan":           scan.Command,
 		"info":           info.Command,
 		"print-defaults": printdefaults.Command,
+		"revoke":         revoke.Command,
 	}
 
 	// If the CLI returns an error, exit with an appropriate status
