@@ -8,6 +8,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
+	"encoding/asn1"
+	"encoding/binary"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -17,16 +19,13 @@ import (
 	"net"
 	"net/mail"
 
-	"encoding/asn1"
-	"encoding/binary"
-
+	"github.com/cloudflare/cfssl/certstore"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
 )
@@ -323,7 +322,20 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
-	return s.sign(&certTBS, profile)
+	var signedCert []byte
+	signedCert, err = s.sign(&certTBS, profile)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(profile.CertStore) != 0 {
+		err = certstore.RecordCert(certTBS, signedCert)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return signedCert, nil
 }
 
 func serializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {

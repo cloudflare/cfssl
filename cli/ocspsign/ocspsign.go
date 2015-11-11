@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"time"
 
+	"strconv"
+	"strings"
+
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -44,8 +47,16 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 	}
 
 	if c.Status == "revoked" {
-		req.Reason = c.Reason
+		reasonCode, present := ocsp.RevocationReasonCodes[strings.ToLower(c.Reason)]
+		if !present {
+			reasonCode, err = strconv.Atoi(c.Serial)
+			if err != nil {
+				log.Critical("Invalid reason code: ", err)
+				return
+			}
+		}
 
+		req.Reason = reasonCode
 		req.RevokedAt = time.Now()
 		if c.RevokedAt != "now" {
 			req.RevokedAt, err = time.Parse("2006-01-02", c.RevokedAt)

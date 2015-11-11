@@ -20,6 +20,21 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
+// RevocationReasonCodes is a map between string reason codes
+// to integers as defined in RFC 5280
+var RevocationReasonCodes = map[string]int{
+	"unspecified":          ocsp.Unspecified,
+	"keycompromise":        ocsp.KeyCompromise,
+	"cacompromise":         ocsp.CACompromise,
+	"affiliationchanged":   ocsp.AffiliationChanged,
+	"superseded":           ocsp.Superseded,
+	"cessationofoperation": ocsp.CessationOfOperation,
+	"certificatehold":      ocsp.CertificateHold,
+	"removefromcrl":        ocsp.RemoveFromCRL,
+	"privilegewithdrawn":   ocsp.PrivilegeWithdrawn,
+	"aacompromise":         ocsp.AACompromise,
+}
+
 // StatusCode is a map between string statuses sent by cli/api
 // to ocsp int statuses
 var StatusCode = map[string]int{

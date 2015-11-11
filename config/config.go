@@ -78,6 +78,7 @@ type SigningProfile struct {
 	AuthRemote          AuthRemote `json:"auth_remote"`
 	CTLogServers        []string   `json:"ct_log_servers"`
 	AllowedExtensions   []OID      `json:"allowed_extensions"`
+	CertStore           string     `json:"cert_store"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
