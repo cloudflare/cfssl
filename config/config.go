@@ -100,7 +100,6 @@ func (oid *OID) UnmarshalJSON(data []byte) (err error) {
 		return err
 	}
 	*oid = OID(parsedOid)
-	log.Debugf("Parsed OID %v", *oid)
 	return
 }
 
