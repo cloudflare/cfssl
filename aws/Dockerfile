@@ -2,14 +2,15 @@ FROM golang:1.5
 
 ENV USER root
 
-ENV CFSSL_CMD github.com/cloudflare/cfssl/cmd/cfssl
+WORKDIR /go/src/github.com/cloudflare/cfssl
 
-RUN	go get -d $CFSSL_CMD && \
-	(go get github.com/GeertJohan/go.rice/rice && go install github.com/GeertJohan/go.rice/rice ) && \
-	(cd /go/src/github.com/cloudflare/cfssl/cli/serve && rice embed-go ) && \
-	(go build -tags nopkcs11 -o /usr/bin/cfssl $CFSSL_CMD ) && \
-	git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl
+RUN git clone https://github.com/cloudflare/cfssl.git /go/src/github.com/cloudflare/cfssl && \
+	go get github.com/tools/godep && godep restore && \
+	go get github.com/GeertJohan/go.rice/rice && rice embed-go -i=./cli/serve && \
+	git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
+	go install -tags nopkcs11 github.com/cloudflare/cfssl/cmd/cfssl
 
 EXPOSE 80
-ENTRYPOINT ["cfssl"]
-CMD ["serve", "-address=0.0.0.0", "-port=80"]
+
+ENTRYPOINT ["cfssl", "serve"]
+CMD ["-address=0.0.0.0", "-port=80"]

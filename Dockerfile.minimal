@@ -4,8 +4,6 @@ ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
 ENV USER root
 
-EXPOSE 8888
-
 # Install pkcs11 deps
 RUN apk update && apk add \
 	libltdl \
@@ -25,22 +23,23 @@ RUN buildDeps=' \
 	apk update && \
 	apk add $buildDeps && \
 	cd /go/src/github.com/cloudflare/cfssl && \
-	go get -d ./... && \
-	(cd cmd/cfssl && go build -o /usr/bin/cfssl . ) && \
-	(cd cmd/cfssljson && go build -o /usr/bin/cfssljson . ) && \
-	(cd cmd/mkbundle && go build -o /usr/bin/mkbundle . ) && \
-	(cd cmd/multirootca && go build -o /usr/bin/multirootca . ) && \
+	go get github.com/tools/godep && godep restore && \
+	go get github.com/GeertJohan/go.rice/rice && rice embed-go -i=./cli/serve && \
+	git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
+	go build -o /usr/bin/cfssl ./cmd/cfssl && \
+	go build -o /usr/bin/cfssljson ./cmd/cfssljson && \
+	go build -o /usr/bin/mkbundle ./cmd/mkbundle && \
+	go build -o /usr/bin/multirootca ./cmd/multirootca && \
 	apk del $buildDeps && \
 	rm -rf /var/cache/apk/* && \
-	mv /go/src/github.com/cloudflare/cfssl/cli/serve/static /static && \
 	rm -rf /go && \
-	mkdir -p /go/src/github.com/cloudflare/cfssl/cli/serve && \
-	mv /static /go/src/github.com/cloudflare/cfssl/cli/serve/static && \
 	echo "Build complete."
 
 
 VOLUME [ "/etc/cfssl" ]
 WORKDIR /etc/cfssl
+
+EXPOSE 8888
 
 ENTRYPOINT ["cfssl"]
 CMD ["--help"]
