@@ -2,12 +2,15 @@ package ocsp
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
+	"time"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/jmhodges/clock"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -58,13 +61,13 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 		}
 		der, tmpErr := base64.StdEncoding.DecodeString(b64)
 		if tmpErr != nil {
-			log.Errorf("Base64 decode error on: %s", b64)
+			log.Errorf("Base64 decode error %s on: %s", tmpErr, b64)
 			continue
 		}
 
 		response, tmpErr := ocsp.ParseResponse(der, nil)
 		if tmpErr != nil {
-			log.Errorf("OCSP decode error on: %s", b64)
+			log.Errorf("OCSP decode error %s on: %s", tmpErr, b64)
 			continue
 		}
 
@@ -79,6 +82,15 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 // Source of OCSP responses.
 type Responder struct {
 	Source Source
+	clk    clock.Clock
+}
+
+// NewResponder instantiates a Responder with the give Source.
+func NewResponder(source Source) *Responder {
+	return &Responder{
+		Source: source,
+		clk:    clock.Default(),
+	}
 }
 
 // A Responder can process both GET and POST requests.  The mapping
@@ -159,7 +171,20 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	parsedResponse, err := ocsp.ParseResponse(ocspResponse, nil)
+	if err != nil {
+		log.Errorf("Error parsing response: %s", err)
+		response.Write(unauthorizedErrorResponse)
+		return
+	}
+
 	// Write OCSP response to response
+	response.Header().Add("Last-Modified", parsedResponse.ProducedAt.Format(time.RFC1123))
+	response.Header().Add("Expires", parsedResponse.NextUpdate.Format(time.RFC1123))
+	maxAge := int64(parsedResponse.NextUpdate.Sub(rs.clk.Now()) / time.Second)
+	if maxAge > 0 {
+		response.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", maxAge))
+	}
 	response.WriteHeader(http.StatusOK)
 	response.Write(ocspResponse)
 }

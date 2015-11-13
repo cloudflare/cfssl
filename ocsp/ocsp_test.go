@@ -17,10 +17,6 @@ const (
 	brokenServerKey     = "testdata/server_broken.key"
 	wrongServerCertFile = "testdata/server.crt"
 	wrongServerKeyFile  = "testdata/server.key"
-	responseFile        = "testdata/resp64.pem"
-	binResponseFile     = "testdata/response.pem"
-	brokenResponseFile  = "testdata/response_broken.pem"
-	mixResponseFile     = "testdata/response_mix.pem"
 )
 
 func TestNewSignerFromFile(t *testing.T) {
@@ -142,36 +138,5 @@ func TestSign(t *testing.T) {
 	_, err = s.Sign(req)
 	if err != nil {
 		t.Fatal("Error on revoked certificate")
-	}
-}
-
-func TestNewSourceFromFile(t *testing.T) {
-	_, err := NewSourceFromFile("")
-	if err == nil {
-		t.Fatal("Didn't fail on non-file input")
-	}
-
-	// expected case
-	_, err = NewSourceFromFile(responseFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// binary-formatted file
-	_, err = NewSourceFromFile(binResponseFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// the response file from before, with stuff deleted
-	_, err = NewSourceFromFile(brokenResponseFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// mix of a correct and malformed responses
-	_, err = NewSourceFromFile(mixResponseFile)
-	if err != nil {
-		t.Fatal(err)
 	}
 }
