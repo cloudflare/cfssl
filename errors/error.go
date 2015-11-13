@@ -55,6 +55,9 @@ const (
 
 	// CTError indicates a problem with the certificate transparency process
 	CTError // 10XXX
+
+	// CertStoreError indicates a problem with the certificate store
+	CertStoreError // 11XXX
 )
 
 // None is a non-specified error.
@@ -348,6 +351,13 @@ func New(category Category, reason Reason) *Error {
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CTError.", reason))
 		}
+	case CertStoreError:
+		switch reason {
+		case Unknown:
+			msg = "Certificate store action failed due to unknown error"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CertStoreError.", reason))
+		}
 
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",
@@ -383,7 +393,8 @@ func Wrap(category Category, reason Reason, err error) *Error {
 				errorCode += unknownAuthority
 			}
 		}
-	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError, CSRError, CTError:
+	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError,
+		APIClientError, CSRError, CTError, CertStoreError:
 	// no-op, just use the error
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",
