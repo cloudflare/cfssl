@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/jmhodges/clock",
+			"Rev": "3c4ebd218625c9364c33db6d39c276d80c3090c6"
+		},
+		{
 			"ImportPath": "github.com/GeertJohan/go.incremental",
 			"Rev": "92fd0ce4a694213e8b3dfd2d39b16e51d26d0fbf"
 		},
