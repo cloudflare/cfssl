@@ -68,8 +68,8 @@ type httpBox struct {
 	redirects map[string]string
 }
 
-func (hb *httpBox) findBox(name string) (err error) {
-	hb.Box, err = rice.FindBox(name)
+func (hb *httpBox) findStaticBox() (err error) {
+	hb.Box, err = rice.FindBox("static")
 	return
 }
 
@@ -157,7 +157,7 @@ var endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"/": func() (http.Handler, error) {
-		if err := staticBox.findBox("static"); err != nil {
+		if err := staticBox.findStaticBox(); err != nil {
 			return nil, err
 		}
 
