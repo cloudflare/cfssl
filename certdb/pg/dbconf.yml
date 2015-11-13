@@ -1,0 +1,15 @@
+development:
+  driver: postgres
+  open: dbname=certdb_development sslmode=disable host=/var/run/postgresql
+
+test:
+  driver: postgres
+  open: dbname=certdb_test sslmode=disable host=/var/run/postgresql
+
+staging:
+  driver: postgres
+  open: dbname=certdb_staging sslmode=disable host=/var/run/postgresql
+
+production:
+  driver: postgres
+  open: dbname=certdb_production sslmode=disable host=/var/run/postgresql
