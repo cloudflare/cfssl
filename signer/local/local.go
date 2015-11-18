@@ -227,6 +227,20 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		if profile.CSRWhitelist.IPAddresses {
 			safeTemplate.IPAddresses = csrTemplate.IPAddresses
 		}
+
+		if len(profile.CSRWhitelist.Extensions) > 0 {
+			extFilter := map[string]bool{}
+			for _, oid := range profile.CSRWhitelist.Extensions {
+				extFilter[asn1.ObjectIdentifier(oid).String()] = true
+			}
+
+			safeTemplate.ExtraExtensions = []pkix.Extension{}
+			for _, ext := range csrTemplate.ExtraExtensions {
+				if extFilter[ext.Id.String()] {
+					safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, ext)
+				}
+			}
+		}
 	}
 
 	OverrideHosts(&safeTemplate, req.Hosts)
