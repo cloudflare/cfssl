@@ -32,7 +32,6 @@ import (
 type CSRWhitelist struct {
 	Subject, PublicKeyAlgorithm, PublicKey, SignatureAlgorithm bool
 	DNSNames, IPAddresses                                      bool
-	Extensions                                                 []OID
 }
 
 // OID is our own version of asn1's ObjectIdentifier, so we can define a custom
@@ -78,6 +77,7 @@ type SigningProfile struct {
 	NameWhitelistString string     `json:"name_whitelist"`
 	AuthRemote          AuthRemote `json:"auth_remote"`
 	CTLogServers        []string   `json:"ct_log_servers"`
+	AllowedExtensions   []OID      `json:"allowed_extensions"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
