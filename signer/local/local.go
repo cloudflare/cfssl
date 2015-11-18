@@ -16,9 +16,6 @@ import (
 	"net"
 	"net/mail"
 
-	"encoding/asn1"
-	"encoding/binary"
-
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -26,8 +23,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 
-	"github.com/google/certificate-transparency/go"
-	"github.com/google/certificate-transparency/go/client"
+	"github.com/cloudflare/cfssl/signer/ctclient"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -264,61 +260,25 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if len(profile.CTLogServers) > 0 {
 		// Add a poison extension which prevents validation
+		var poisonedCert = certTBS
 		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
-		var poisonedPreCert = certTBS
-		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
-		cert, err = s.sign(&poisonedPreCert, profile)
+		poisonedCert.ExtraExtensions = append(poisonedCert.ExtraExtensions, poisonExtension)
+
+		cert, err = s.sign(&poisonedCert, profile)
 		if err != nil {
 			return
 		}
 
-		derCert, _ := pem.Decode(cert)
-		prechain := []ct.ASN1Cert{derCert.Bytes, s.ca.Raw}
-		var sctList []ct.SignedCertificateTimestamp
-
-		for _, server := range profile.CTLogServers {
-			log.Infof("submitting poisoned precertificate to %s", server)
-			var ctclient = client.New(server)
-			var resp *ct.SignedCertificateTimestamp
-			resp, err = ctclient.AddPreChain(prechain)
-			if err != nil {
-				return nil, cferr.Wrap(cferr.CTError, cferr.PrecertSubmissionFailed, err)
-			}
-			sctList = append(sctList, *resp)
-		}
-
 		var serializedSCTList []byte
-		serializedSCTList, err = serializeSCTList(sctList)
+		serializedSCTList, err = ctclient.GetSCTList(cert, *s.ca, profile.CTLogServers)
 		if err != nil {
-			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
-		}
-
-		// Serialize again as an octet string before embedding
-		serializedSCTList, err = asn1.Marshal(serializedSCTList)
-		if err != nil {
-			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+			return
 		}
 
 		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
 	return s.sign(&certTBS, profile)
-}
-
-func serializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
-	var buf bytes.Buffer
-	for _, sct := range sctList {
-		sct, err := ct.SerializeSCT(sct)
-		if err != nil {
-			return nil, err
-		}
-		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
-		buf.Write(sct)
-	}
-
-	var sctListLengthField = make([]byte, 2)
-	binary.BigEndian.PutUint16(sctListLengthField, uint16(buf.Len()))
-	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
 }
 
 // Info return a populated info.Resp struct or an error.
