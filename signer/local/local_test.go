@@ -3,6 +3,7 @@ package local
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"io/ioutil"
 	"reflect"
@@ -23,6 +24,7 @@ const (
 	fullSubjectCSR     = "testdata/test.csr"
 	testCSR            = "testdata/ecdsa256.csr"
 	testSANCSR         = "testdata/san_domain.csr"
+	testExtensionCSR   = "testdata/extreq.csr"
 	testCaFile         = "testdata/ca.pem"
 	testCaKeyFile      = "testdata/ca_key.pem"
 	testECDSACaFile    = "testdata/ecdsa256_ca.pem"
@@ -883,6 +885,60 @@ func TestNameWhitelistSign(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+}
+
+func TestExtensionWhitelistSign(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(testExtensionCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+	// Whitelist a specific extension.  The extension with OID 1.2.3.4 should be
+	// allowed through, but the one with OID 1.2.3.5 should not.
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"cert sign", "crl sign"},
+			ExpiryString: "1h",
+			Expiry:       1 * time.Hour,
+			CA:           true,
+			CSRWhitelist: &config.CSRWhitelist{
+				PublicKey: true,
+				Extensions: []config.OID{
+					config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
+				},
+			},
+		},
+	}
+
+	request := signer.SignRequest{
+		Hosts:   []string{"1machine23.cf"},
+		Request: string(csrPEM),
+	}
+
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	foundAllowed := false
+	for _, ext := range cert.Extensions {
+		switch ext.Id.String() {
+		case "1.2.3.4":
+			foundAllowed = true
+		case "1.2.3.5":
+			t.Fatalf("Issued with disallowed extension")
+		}
+	}
+
+	if !foundAllowed {
+		t.Fatalf("Custom extension not included in the certificate")
+	}
 }
 
 func TestCTFailure(t *testing.T) {

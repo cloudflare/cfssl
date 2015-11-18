@@ -151,6 +151,35 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		return
 	}
 
+	extensions := []pkix.Extension{}
+	oidSubjectAltName := asn1.ObjectIdentifier{2, 5, 29, 17}
+	oidExtensionRequest := asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 14}
+	for _, attr := range csr.Attributes {
+		if attr.Type.Equal(oidExtensionRequest) {
+			if len(attr.Value) != 1 {
+				continue
+			}
+
+			for _, ext := range attr.Value[0] {
+				extValue, ok := ext.Value.([]byte)
+				if !ok {
+					continue
+				}
+
+				// SubjectAltName is already handled by parseCertificateRequest
+				if ext.Type.Equal(oidSubjectAltName) {
+					continue
+				}
+
+				extensions = append(extensions, pkix.Extension{
+					Id:       ext.Type,
+					Critical: false,
+					Value:    extValue,
+				})
+			}
+		}
+	}
+
 	template = &x509.Certificate{
 		Subject:            csr.Subject,
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
@@ -158,6 +187,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		SignatureAlgorithm: s.SigAlgo(),
 		DNSNames:           csr.DNSNames,
 		IPAddresses:        csr.IPAddresses,
+		ExtraExtensions:    extensions,
 	}
 
 	return
