@@ -36,7 +36,7 @@ type Subject struct {
 // "value" field must be Base64 encoded, using the RawURLEncoding variant
 // (URL-safe alphabet, no padding)
 type Extension struct {
-	Id       config.OID `json:"id"`
+	ID       config.OID `json:"id"`
 	Critical bool       `json:"critical"`
 	Value    string     `json:"value"`
 }

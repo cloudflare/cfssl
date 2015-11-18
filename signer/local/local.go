@@ -268,7 +268,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 
 		for _, ext := range req.Extensions {
-			oid := asn1.ObjectIdentifier(ext.Id)
+			oid := asn1.ObjectIdentifier(ext.ID)
 			if !extFilter[oid.String()] {
 				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 			}

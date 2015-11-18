@@ -912,7 +912,7 @@ func TestExtensionSign(t *testing.T) {
 	request := signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
-			signer.Extension{Id: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},
+			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},
 		},
 	}
 
@@ -925,7 +925,7 @@ func TestExtensionSign(t *testing.T) {
 	request = signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
-			signer.Extension{Id: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
+			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
 		},
 	}
 
