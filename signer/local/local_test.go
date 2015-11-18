@@ -887,8 +887,8 @@ func TestNameWhitelistSign(t *testing.T) {
 
 }
 
-func TestExtensionWhitelistSign(t *testing.T) {
-	csrPEM, err := ioutil.ReadFile(testExtensionCSR)
+func TestExtensionSign(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(testCSR)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -902,18 +902,31 @@ func TestExtensionWhitelistSign(t *testing.T) {
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
 			CA:           true,
-			CSRWhitelist: &config.CSRWhitelist{
-				PublicKey: true,
-				Extensions: []config.OID{
-					config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
-				},
+			AllowedExtensions: []config.OID{
+				config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
 			},
 		},
 	}
 
+	// Test that a forbidden extension triggers a sign error
 	request := signer.SignRequest{
-		Hosts:   []string{"1machine23.cf"},
 		Request: string(csrPEM),
+		Extensions: []signer.Extension{
+			signer.Extension{Id: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},
+		},
+	}
+
+	_, err = s.Sign(request)
+	if err == nil {
+		t.Fatalf("expected a policy error")
+	}
+
+	// Test that an allowed extension makes it through
+	request = signer.SignRequest{
+		Request: string(csrPEM),
+		Extensions: []signer.Extension{
+			signer.Extension{Id: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
+		},
 	}
 
 	certPEM, err := s.Sign(request)
@@ -928,14 +941,10 @@ func TestExtensionWhitelistSign(t *testing.T) {
 
 	foundAllowed := false
 	for _, ext := range cert.Extensions {
-		switch ext.Id.String() {
-		case "1.2.3.4":
+		if ext.Id.String() == "1.2.3.4" {
 			foundAllowed = true
-		case "1.2.3.5":
-			t.Fatalf("Issued with disallowed extension")
 		}
 	}
-
 	if !foundAllowed {
 		t.Fatalf("Custom extension not included in the certificate")
 	}

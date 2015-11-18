@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -227,20 +228,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		if profile.CSRWhitelist.IPAddresses {
 			safeTemplate.IPAddresses = csrTemplate.IPAddresses
 		}
-
-		if len(profile.CSRWhitelist.Extensions) > 0 {
-			extFilter := map[string]bool{}
-			for _, oid := range profile.CSRWhitelist.Extensions {
-				extFilter[asn1.ObjectIdentifier(oid).String()] = true
-			}
-
-			safeTemplate.ExtraExtensions = []pkix.Extension{}
-			for _, ext := range csrTemplate.ExtraExtensions {
-				if extFilter[ext.Id.String()] {
-					safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, ext)
-				}
-			}
-		}
 	}
 
 	OverrideHosts(&safeTemplate, req.Hosts)
@@ -273,6 +260,47 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 		safeTemplate.SerialNumber = serialNumber
 	}
+
+	if len(profile.AllowedExtensions) > 0 && len(req.Extensions) > 0 {
+		extFilter := map[string]bool{}
+		for _, oid := range profile.AllowedExtensions {
+			extFilter[asn1.ObjectIdentifier(oid).String()] = true
+		}
+
+		for _, ext := range req.Extensions {
+			oid := asn1.ObjectIdentifier(ext.Id)
+			if !extFilter[oid.String()] {
+				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+			}
+
+			rawValue, err := base64.RawURLEncoding.DecodeString(ext.Value)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CertificateError, cferr.InvalidRequest, err)
+			}
+
+			safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, pkix.Extension{
+				Id:       oid,
+				Critical: ext.Critical,
+				Value:    rawValue,
+			})
+		}
+	}
+
+	/*
+		if len(profile.CSRWhitelist.Extensions) > 0 {
+			extFilter := map[string]bool{}
+			for _, oid := range profile.CSRWhitelist.Extensions {
+				extFilter[asn1.ObjectIdentifier(oid).String()] = true
+			}
+
+			safeTemplate.ExtraExtensions = []pkix.Extension{}
+			for _, ext := range csrTemplate.ExtraExtensions {
+				if extFilter[ext.Id.String()] {
+					safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, ext)
+				}
+			}
+		}
+	*/
 
 	var certTBS = safeTemplate
 
