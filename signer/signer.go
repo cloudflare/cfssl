@@ -33,8 +33,8 @@ type Subject struct {
 }
 
 // Extension represents a raw extension to be included in the certificate.  The
-// "value" field must be Base64 encoded, using the RawURLEncoding variant
-// (URL-safe alphabet, no padding)
+// "value" field must be Base64 encoded, using the URLEncoding variant (i.e.,
+// the URL-safe alphabet)
 type Extension struct {
 	ID       config.OID `json:"id"`
 	Critical bool       `json:"critical"`

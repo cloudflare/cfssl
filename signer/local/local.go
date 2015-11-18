@@ -273,7 +273,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 			}
 
-			rawValue, err := base64.RawURLEncoding.DecodeString(ext.Value)
+			rawValue, err := base64.URLEncoding.DecodeString(ext.Value)
 			if err != nil {
 				return nil, cferr.Wrap(cferr.CertificateError, cferr.InvalidRequest, err)
 			}
