@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	"database/sql"
+
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
@@ -30,7 +33,7 @@ Flags:
 `
 
 // Flags of 'cfssl sign'
-var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote"}
+var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote", "db-config"}
 
 // SignerFromConfig takes the Config and creates the appropriate
 // signer.Signer object
@@ -56,6 +59,16 @@ func SignerFromConfig(c cli.Config) (signer.Signer, error) {
 	}
 
 	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
+
+	if c.DBConfigFile != "" {
+		var db *sql.DB
+		db, err = certdb.DBFromConfig(c.DBConfigFile)
+		if err != nil {
+			return nil, err
+		}
+		s.SetDB(db)
+	}
+
 	if err != nil {
 		return nil, err
 	}

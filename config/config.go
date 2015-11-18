@@ -80,6 +80,7 @@ type SigningProfile struct {
 	AllowedExtensions   []OID      `json:"allowed_extensions"`
 	CertStore           string     `json:"cert_store"`
 
+
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
 	Backdate                    time.Duration

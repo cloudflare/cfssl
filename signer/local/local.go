@@ -19,7 +19,9 @@ import (
 	"net"
 	"net/mail"
 
-	"github.com/cloudflare/cfssl/certstore"
+	"database/sql"
+
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -37,6 +39,7 @@ type Signer struct {
 	priv    crypto.Signer
 	policy  *config.Signing
 	sigAlgo x509.SignatureAlgorithm
+	db      *sql.DB
 }
 
 // NewSigner creates a new Signer directly from a
@@ -57,6 +60,7 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 		priv:    priv,
 		sigAlgo: sigAlgo,
 		policy:  policy,
+		db:      nil,
 	}, nil
 }
 
@@ -328,8 +332,18 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return nil, err
 	}
 
-	if len(profile.CertStore) != 0 {
-		err = certstore.RecordCert(certTBS, signedCert)
+	if s.db != nil {
+		var certRecord = &certdb.CertificateRecord{
+			Serial:    certTBS.SerialNumber.String(),
+			CALabel:   req.Label,
+			Status:    "",
+			Reason:    0,
+			ExpiresAt: certTBS.NotAfter,
+			RevokedAt: nil,
+			PEM:       string(signedCert),
+		}
+
+		err = certRecord.Insert(s.db)
 		if err != nil {
 			return nil, err
 		}
@@ -390,6 +404,11 @@ func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
 // SetPolicy sets the signer's signature policy.
 func (s *Signer) SetPolicy(policy *config.Signing) {
 	s.policy = policy
+}
+
+// SetDB sets the signer's cert db
+func (s *Signer) SetDB(db *sql.DB) {
+	s.db = db
 }
 
 // Policy returns the signer's policy.

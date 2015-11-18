@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudflare/cfssl/certstore"
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -28,13 +28,13 @@ var ocspgenFlags = []string{"ca", "responder", "responder-key"}
 
 // ocspgenMain is the main CLI of OCSP generation functionality.
 func ocspgenMain(args []string, c cli.Config) (err error) {
-	var certs []certstore.Certificate
-	certs, err = certstore.GetUnexpiredCerts()
+	var certs []certdb.CertificateRecord
+	certs, err = certdb.GetUnexpiredCertificateRecords()
 	if err != nil {
 		return err
 	}
 	for _, certRecord := range certs {
-		cert, err := helpers.ParseCertificatePEM([]byte(certRecord.AsPEM))
+		cert, err := helpers.ParseCertificatePEM([]byte(certRecord.PEM))
 		if err != nil {
 			log.Critical("Unable to parse certificate: ", err)
 			return err
@@ -46,7 +46,7 @@ func ocspgenMain(args []string, c cli.Config) (err error) {
 		}
 
 		if certRecord.RevokedAt != nil {
-			req.Reason = int(certRecord.RevocationReason.Int64)
+			req.Reason = int(certRecord.Reason)
 			req.RevokedAt = *certRecord.RevokedAt
 		}
 

@@ -59,7 +59,7 @@ type Config struct {
 	Usage             string
 	PGPPrivate        string
 	Serial            string
-	CertStore         string
+	DBConfigFile      string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -105,7 +105,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Usage, "usage", "", "usage of private key")
 	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption")
 	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
-	f.StringVar(&c.CertStore, "certstore", "", "certificate store configuration")
+	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")

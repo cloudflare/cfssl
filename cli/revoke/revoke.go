@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudflare/cfssl/certstore"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/ocsp"
+	"github.com/cloudflare/cfssl/certdb"
 )
 
 var revokeUsageTxt = `cfssl revoke -- revoke a certificate in the certificate store
@@ -42,7 +42,7 @@ func revokeMain(args []string, c cli.Config) (err error) {
 		}
 	}
 
-	err = certstore.RevokeCert(c.Serial, reasonCode)
+	err = certdb.RevokeCert(c.Serial, reasonCode)
 
 	return
 }

@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"database/sql"
+
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -94,6 +96,7 @@ func SplitHosts(hostList string) []string {
 type Signer interface {
 	Info(info.Req) (*info.Resp, error)
 	Policy() *config.Signing
+	SetDB(*sql.DB)
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)
