@@ -13,4 +13,4 @@ RUN git clone https://github.com/cloudflare/cfssl.git /go/src/github.com/cloudfl
 EXPOSE 80
 
 ENTRYPOINT ["cfssl", "serve"]
-CMD ["-address=0.0.0.0", "-port=80"]
+CMD ["-address=0.0.0.0", "-port=80", "-ca-bundle=/etc/cfssl/ca-bundle.crt", "-int-bundle=/etc/cfssl/int-bundle.crt", "-metadata=/etc/cfssl/ca-bundle.crt.metadata"]
