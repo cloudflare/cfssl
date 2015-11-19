@@ -911,11 +911,11 @@ func TestExtensionSign(t *testing.T) {
 	// allowed through, but the one with OID 1.2.3.5 should not.
 	s.policy = &config.Signing{
 		Default: &config.SigningProfile{
-			Usage:           []string{"cert sign", "crl sign"},
-			ExpiryString:    "1h",
-			Expiry:          1 * time.Hour,
-			CA:              true,
-			ExtensionFilter: map[string]bool{"1.2.3.4": true},
+			Usage:              []string{"cert sign", "crl sign"},
+			ExpiryString:       "1h",
+			Expiry:             1 * time.Hour,
+			CA:                 true,
+			ExtensionWhitelist: map[string]bool{"1.2.3.4": true},
 		},
 	}
 
