@@ -1,6 +1,7 @@
 package ocsp
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/jmhodges/clock"
 	"golang.org/x/crypto/ocsp"
@@ -75,6 +77,35 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 	}
 
 	log.Infof("Read %d OCSP responses", len(src))
+	return src, nil
+}
+
+// NewSourceFromDB reads ocsp responses from a db into an InMemorySource.
+// The db should be compatible with certdb package.
+// Each OCSP response must be in base64-encoded DER form.
+// Invalid responses are ignored.
+func NewSourceFromDB(db *sql.DB) (Source, error) {
+	ocspRecords, err := certdb.GetUnexpiredOCSPs(db)
+	if err != nil {
+		return nil, err
+	}
+
+	src := InMemorySource{}
+	for _, record := range ocspRecords {
+		der, err := base64.StdEncoding.DecodeString(record.Body)
+		if err != nil {
+			log.Errorf("Base64 decode error %s on: %s", err, record.Body)
+			continue
+		}
+
+		response, err := ocsp.ParseResponse(der, nil)
+		if err != nil {
+			log.Errorf("OCSP decode error %s on: %s", err, record.Body)
+			continue
+		}
+		src[response.SerialNumber.String()] = der
+	}
+
 	return src, nil
 }
 
