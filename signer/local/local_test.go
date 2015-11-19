@@ -24,7 +24,6 @@ const (
 	fullSubjectCSR     = "testdata/test.csr"
 	testCSR            = "testdata/ecdsa256.csr"
 	testSANCSR         = "testdata/san_domain.csr"
-	testExtensionCSR   = "testdata/extreq.csr"
 	testCaFile         = "testdata/ca.pem"
 	testCaKeyFile      = "testdata/ca_key.pem"
 	testECDSACaFile    = "testdata/ecdsa256_ca.pem"
@@ -894,22 +893,34 @@ func TestExtensionSign(t *testing.T) {
 	}
 
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	// By default, no extensions should be allowed
+	request := signer.SignRequest{
+		Request: string(csrPEM),
+		Extensions: []signer.Extension{
+			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
+		},
+	}
+
+	_, err = s.Sign(request)
+	if err == nil {
+		t.Fatalf("expected a policy error")
+	}
+
 	// Whitelist a specific extension.  The extension with OID 1.2.3.4 should be
 	// allowed through, but the one with OID 1.2.3.5 should not.
 	s.policy = &config.Signing{
 		Default: &config.SigningProfile{
-			Usage:        []string{"cert sign", "crl sign"},
-			ExpiryString: "1h",
-			Expiry:       1 * time.Hour,
-			CA:           true,
-			AllowedExtensions: []config.OID{
-				config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
-			},
+			Usage:           []string{"cert sign", "crl sign"},
+			ExpiryString:    "1h",
+			Expiry:          1 * time.Hour,
+			CA:              true,
+			ExtensionFilter: map[string]bool{"1.2.3.4": true},
 		},
 	}
 
 	// Test that a forbidden extension triggers a sign error
-	request := signer.SignRequest{
+	request = signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
 			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},

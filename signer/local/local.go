@@ -261,15 +261,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		safeTemplate.SerialNumber = serialNumber
 	}
 
-	if len(profile.AllowedExtensions) > 0 && len(req.Extensions) > 0 {
-		extFilter := map[string]bool{}
-		for _, oid := range profile.AllowedExtensions {
-			extFilter[asn1.ObjectIdentifier(oid).String()] = true
-		}
-
+	if len(req.Extensions) > 0 {
 		for _, ext := range req.Extensions {
 			oid := asn1.ObjectIdentifier(ext.ID)
-			if !extFilter[oid.String()] {
+			if !profile.ExtensionWhitelist[oid.String()] {
 				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 			}
 
@@ -285,22 +280,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			})
 		}
 	}
-
-	/*
-		if len(profile.CSRWhitelist.Extensions) > 0 {
-			extFilter := map[string]bool{}
-			for _, oid := range profile.CSRWhitelist.Extensions {
-				extFilter[asn1.ObjectIdentifier(oid).String()] = true
-			}
-
-			safeTemplate.ExtraExtensions = []pkix.Extension{}
-			for _, ext := range csrTemplate.ExtraExtensions {
-				if extFilter[ext.Id.String()] {
-					safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, ext)
-				}
-			}
-		}
-	*/
 
 	var certTBS = safeTemplate
 
