@@ -292,12 +292,8 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 }
 
 type policyInformation struct {
-	PolicyIdentifier    asn1.ObjectIdentifier
-	Qualifiers          []interface{}
-	CPSPolicyQualifiers []cpsPolicyQualifier `asn1:"omitempty"`
-	// User Notice policy qualifiers have a slightly different ASN.1 structure
-	// from that used for CPS policy qualifiers.
-	UserNoticePolicyQualifiers []userNoticePolicyQualifier `asn1:"omitempty"`
+	PolicyIdentifier asn1.ObjectIdentifier
+	Qualifiers       []interface{} `asn1:"tag:optional,omitempty"`
 }
 
 type cpsPolicyQualifier struct {

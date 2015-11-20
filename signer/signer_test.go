@@ -64,9 +64,9 @@ func TestAddPolicies(t *testing.T) {
 	if ext.Critical {
 		t.Fatal("Policy qualifier marked critical")
 	}
-	expectedBytes, _ := hex.DecodeString("3009300706032a03043000")
+	expectedBytes, _ := hex.DecodeString("3007300506032a0304")
 	if !bytes.Equal(ext.Value, expectedBytes) {
-		t.Fatal(fmt.Sprintf("Value didn't match expected bytes: %s vs %s",
+		t.Fatal(fmt.Sprintf("Value didn't match expected bytes: got %s, expected %s",
 			hex.EncodeToString(ext.Value), hex.EncodeToString(expectedBytes)))
 	}
 }
