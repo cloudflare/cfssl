@@ -35,12 +35,12 @@ type Subject struct {
 // SignRequest stores a signature request, which contains the hostname,
 // the CSR, optional subject information, and the signature profile.
 type SignRequest struct {
-	Hosts     []string `json:"hosts"`
-	Request   string   `json:"certificate_request"`
-	Subject   *Subject `json:"subject,omitempty"`
-	Profile   string   `json:"profile"`
-	Label     string   `json:"label"`
-	Serial    *big.Int `json:"serial,omitempty"`
+	Hosts   []string `json:"hosts"`
+	Request string   `json:"certificate_request"`
+	Subject *Subject `json:"subject,omitempty"`
+	Profile string   `json:"profile"`
+	Label   string   `json:"label"`
+	Serial  *big.Int `json:"serial,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -282,12 +282,8 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 }
 
 type policyInformation struct {
-	PolicyIdentifier    asn1.ObjectIdentifier
-	Qualifiers          []interface{}
-	CPSPolicyQualifiers []cpsPolicyQualifier `asn1:"omitempty"`
-	// User Notice policy qualifiers have a slightly different ASN.1 structure
-	// from that used for CPS policy qualifiers.
-	UserNoticePolicyQualifiers []userNoticePolicyQualifier `asn1:"omitempty"`
+	PolicyIdentifier asn1.ObjectIdentifier
+	Qualifiers       []interface{} `asn1:"tag:optional,omitempty"`
 }
 
 type cpsPolicyQualifier struct {
