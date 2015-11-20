@@ -7,7 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -268,7 +268,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 			}
 
-			rawValue, err := base64.URLEncoding.DecodeString(ext.Value)
+			rawValue, err := hex.DecodeString(ext.Value)
 			if err != nil {
 				return nil, cferr.Wrap(cferr.CertificateError, cferr.InvalidRequest, err)
 			}

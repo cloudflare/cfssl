@@ -1,9 +1,11 @@
 package local
 
 import (
+	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"io/ioutil"
 	"reflect"
@@ -932,11 +934,18 @@ func TestExtensionSign(t *testing.T) {
 		t.Fatalf("expected a policy error")
 	}
 
+	extValue := []byte{0x05, 0x00}
+	extValueHex := hex.EncodeToString(extValue)
+
 	// Test that an allowed extension makes it through
 	request = signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
-			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
+			signer.Extension{
+				ID:       config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
+				Critical: false,
+				Value:    extValueHex,
+			},
 		},
 	}
 
@@ -954,6 +963,14 @@ func TestExtensionSign(t *testing.T) {
 	for _, ext := range cert.Extensions {
 		if ext.Id.String() == "1.2.3.4" {
 			foundAllowed = true
+
+			if ext.Critical {
+				t.Fatalf("Extensions should not be marked critical")
+			}
+
+			if !bytes.Equal(extValue, ext.Value) {
+				t.Fatalf("Extension has wrong value: %s != %s", hex.EncodeToString(ext.Value), extValueHex)
+			}
 		}
 	}
 	if !foundAllowed {
