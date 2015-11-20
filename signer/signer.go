@@ -33,8 +33,7 @@ type Subject struct {
 }
 
 // Extension represents a raw extension to be included in the certificate.  The
-// "value" field must be Base64 encoded, using the URLEncoding variant (i.e.,
-// the URL-safe alphabet)
+// "value" field must be hex encoded.
 type Extension struct {
 	ID       config.OID `json:"id"`
 	Critical bool       `json:"critical"`
@@ -43,6 +42,11 @@ type Extension struct {
 
 // SignRequest stores a signature request, which contains the hostname,
 // the CSR, optional subject information, and the signature profile.
+//
+// Extensions provided in the signRequest are copied into the certificate, as
+// long as they are in the ExtensionWhitelist for the signer's policy.
+// Extensions requested in the CSR are ignored, except for those processed by
+// ParseCertificateRequest (mainly subjectAltName).
 type SignRequest struct {
 	Hosts      []string    `json:"hosts"`
 	Request    string      `json:"certificate_request"`
