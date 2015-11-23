@@ -6,9 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/ocsp"
+	"database/sql"
+
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/ocsp"
 )
 
 var revokeUsageTxt = `cfssl revoke -- revoke a certificate in the certificate store
@@ -16,7 +19,7 @@ var revokeUsageTxt = `cfssl revoke -- revoke a certificate in the certificate st
 Usage:
 
 Revoke a certificate:
-	   cfssl revoke -serial serial [-reason reason]
+	   cfssl revoke -db-config config_file -serial serial [-reason reason]
 
 Reason can be an integer code or a string in ReasonFlags in RFC 5280
 
@@ -34,6 +37,17 @@ func revokeMain(args []string, c cli.Config) (err error) {
 		return goerr.New("serial number is required but not provided")
 	}
 
+	if c.DBConfigFile == "" {
+		log.Error("need DB config file (provide with -db-config)")
+		return
+	}
+
+	var db *sql.DB
+	db, err = certdb.DBFromConfig(c.DBConfigFile)
+	if err != nil {
+		return err
+	}
+
 	reasonCode, present := ocsp.RevocationReasonCodes[strings.ToLower(c.Reason)]
 	if !present {
 		reasonCode, err = strconv.Atoi(c.Reason)
@@ -42,7 +56,7 @@ func revokeMain(args []string, c cli.Config) (err error) {
 		}
 	}
 
-	err = certdb.RevokeCert(c.Serial, reasonCode)
+	err = certdb.RevokeCertificate(db, c.Serial, reasonCode)
 
 	return
 }

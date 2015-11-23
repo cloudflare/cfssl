@@ -459,7 +459,7 @@ func TestCAIssuing(t *testing.T) {
 			}
 			keyBytes, _ := ioutil.ReadFile(interKeys[j])
 			interKey, _ := helpers.ParsePrivateKeyPEM(keyBytes)
-			interSigner := &Signer{interCert, interKey, CAPolicy, signer.DefaultSigAlgo(interKey)}
+			interSigner := &Signer{interCert, interKey, CAPolicy, signer.DefaultSigAlgo(interKey), nil}
 			for _, anotherCSR := range interCSRs {
 				anotherCSRBytes, _ := ioutil.ReadFile(anotherCSR)
 				bytes, err := interSigner.Sign(

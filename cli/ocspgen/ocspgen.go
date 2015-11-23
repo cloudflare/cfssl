@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"database/sql"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
@@ -18,21 +20,33 @@ var ocspgenUsageText = `cfssl ocspgen -- generates a series of concatenated OCSP
 for use with ocspserve from all unexpired certs in the cert store
 
 Usage of ocspgen:
-        cfssl ocspgen -ca cert -responder cert -responder-key key
+        cfssl ocspgen -db-config db-config -ca cert -responder cert -responder-key key
 
 Flags:
 `
 
 // Flags of 'cfssl ocspgen'
-var ocspgenFlags = []string{"ca", "responder", "responder-key"}
+var ocspgenFlags = []string{"ca", "responder", "responder-key", "db-config"}
 
 // ocspgenMain is the main CLI of OCSP generation functionality.
 func ocspgenMain(args []string, c cli.Config) (err error) {
-	var certs []certdb.CertificateRecord
-	certs, err = certdb.GetUnexpiredCertificateRecords()
+	if c.DBConfigFile == "" {
+		log.Error("need DB config file (provide with -db-config)")
+		return
+	}
+
+	var db *sql.DB
+	db, err = certdb.DBFromConfig(c.DBConfigFile)
 	if err != nil {
 		return err
 	}
+
+	var certs []*certdb.CertificateRecord
+	certs, err = certdb.GetUnexpiredCertificateRecords(db)
+	if err != nil {
+		return err
+	}
+
 	for _, certRecord := range certs {
 		cert, err := helpers.ParseCertificatePEM([]byte(certRecord.PEM))
 		if err != nil {

@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	"encoding/base64"
+	"time"
+
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/ocsp"
 	goocsp "golang.org/x/crypto/ocsp"
-	"time"
 )
 
 const (

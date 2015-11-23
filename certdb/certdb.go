@@ -15,16 +15,15 @@ type CertificateRecord struct {
 	CALabel   string     `sql:"ca_label"`
 	Status    string     `sql:"status"`
 	Reason    int        `sql:"reason"`
-	ExpiresAt time.Time  `sql:"expires_at"`
+	ExpiresAt *time.Time `sql:"expires_at"`
 	RevokedAt *time.Time `sql:"revoked_at"`
 	PEM       string     `sql:"pem"`
 }
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial, ca_label, status, reason, revoked_at, pem)
-	VALUES ($1, $2, $3, $4, $5, $6)
-	RETURNING serial;`
+INSERT INTO certificates (serial, ca_label, status, reason, expires_at, revoked_at, pem)
+	VALUES ($1, $2, $3, $4, $5, $6, $7);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -39,16 +38,16 @@ SELECT %s FROM certificates
 
 	updateRevokeSQL = `
 UPDATE certificates
-	SET revokedAt=DATETIME(), revocationReason=$1
-	WHERE serial=$2"
+	SET revoked_at=DATETIME(), reason=$1, status='revoked'
+	WHERE serial=$2
 	`
 )
 
-// Insert inserts a certificate record into the database
-func (cr *CertificateRecord) Insert(db *sql.DB) (err error) {
-	err = db.QueryRow(insertSQL, cr.Serial, cr.CALabel, cr.Status, cr.Reason, cr.ExpiresAt, cr.RevokedAt, cr.PEM).Scan(&cr.Serial)
+// InsertCertificate inserts a certificate record into the database
+func InsertCertificate(db *sql.DB, cr *CertificateRecord) (err error) {
+	_, err = db.Exec(insertSQL, cr.Serial, cr.CALabel, cr.Status, cr.Reason, cr.ExpiresAt, cr.RevokedAt, cr.PEM)
 	if err != nil {
-		return cferr.New(cferr.CertStoreError, cferr.RecordCertFailed)
+		return cferr.Wrap(cferr.CertStoreError, cferr.RecordCertFailed, err)
 	}
 	return
 }
@@ -59,7 +58,7 @@ func GetCertificateRecord(db *sql.DB, serial string) (cr *CertificateRecord, err
 	rows, err := db.Query(fmt.Sprintf(selectSQL, sqlstruct.Columns(*cr)), serial)
 	defer rows.Close()
 	if err != nil {
-		return nil, err
+		return nil, cferr.Wrap(cferr.CertStoreError, cferr.GetCertificateRecordFailed, err)
 	}
 
 	if rows.Next() {
@@ -70,17 +69,17 @@ func GetCertificateRecord(db *sql.DB, serial string) (cr *CertificateRecord, err
 
 // GetUnexpiredCertificateRecords fetches all certificates in the database which have not expired
 func GetUnexpiredCertificateRecords(db *sql.DB) (crs []*CertificateRecord, err error) {
-	var cr *CertificateRecord
-	rows, err := db.Query(fmt.Sprintf(selectAllSQL, sqlstruct.Columns(*cr)))
+	cr := new(CertificateRecord)
+	rows, err := db.Query(fmt.Sprintf(selectAllUnexpiredSQL, sqlstruct.Columns(*cr)))
 	defer rows.Close()
 	if err != nil {
-		return nil, cferr.New(cferr.CertStoreError, cferr.GetUnexpiredCertsFailed)
+		return nil, cferr.Wrap(cferr.CertStoreError, cferr.GetUnexpiredCertsFailed, err)
 	}
 
 	for rows.Next() {
 		err = sqlstruct.Scan(cr, rows)
 		if err != nil {
-			return nil, cferr.New(cferr.CertStoreError, cferr.GetUnexpiredCertsFailed)
+			return nil, cferr.Wrap(cferr.CertStoreError, cferr.GetUnexpiredCertsFailed, err)
 		}
 		crs = append(crs, cr)
 	}
@@ -94,7 +93,7 @@ func RevokeCertificate(db *sql.DB, serial string, reasonCode int) (err error) {
 	result, err = db.Exec(updateRevokeSQL, reasonCode, serial)
 
 	if err != nil {
-		return cferr.New(cferr.CertStoreError, cferr.RevokeCertFailed)
+		return cferr.Wrap(cferr.CertStoreError, cferr.RevokeCertFailed, err)
 	}
 
 	var numRowsAffected int64

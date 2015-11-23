@@ -338,12 +338,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			CALabel:   req.Label,
 			Status:    "",
 			Reason:    0,
-			ExpiresAt: certTBS.NotAfter,
+			ExpiresAt: &certTBS.NotAfter,
 			RevokedAt: nil,
 			PEM:       string(signedCert),
 		}
 
-		err = certRecord.Insert(s.db)
+		err = certdb.InsertCertificate(s.db, certRecord)
 		if err != nil {
 			return nil, err
 		}

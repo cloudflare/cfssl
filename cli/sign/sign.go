@@ -19,7 +19,7 @@ import (
 var signerUsageText = `cfssl sign -- signs a client cert with a host name by a given CA and CA key
 
 Usage of sign:
-        cfssl sign -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] CSR [SUBJECT]
+        cfssl sign -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] [-db-config db-config] CSR [SUBJECT]
         cfssl sign -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSR [SUBJECT]
 
 Arguments:

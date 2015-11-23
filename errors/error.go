@@ -194,6 +194,10 @@ const (
 	// store database fails
 	DatabaseInitializationFailed = 100 * (iota + 1)
 
+	// GetCertificateRecordFailed occurs when the certificate store fails to get
+	// a particular certificate record from the database
+	GetCertificateRecordFailed
+
 	// GetUnexpiredCertsFailed occurs when the certificate store fails to get
 	// unexpired certificates from the database
 	GetUnexpiredCertsFailed
@@ -378,6 +382,8 @@ func New(category Category, reason Reason) *Error {
 			msg = "Certificate store action failed due to unknown error"
 		case DatabaseInitializationFailed:
 			msg = "Certificate store database could not be initialized"
+		case GetCertificateRecordFailed:
+			msg = "Certificate store failed to get unexpired certificates"
 		case GetUnexpiredCertsFailed:
 			msg = "Certificate store failed to get unexpired certificates"
 		case NoMatchingCert:

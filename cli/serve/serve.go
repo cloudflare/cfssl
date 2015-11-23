@@ -37,14 +37,15 @@ Usage of serve:
         cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
                     [-metadata file] [-remote remote_host] [-config config] \
-                    [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key]\
+                    [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key] \
+                    [-db-config db-config]
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata",
-	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert"}
+	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "db-config"}
 
 var (
 	conf       cli.Config
