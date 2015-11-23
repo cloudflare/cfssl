@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"database/sql"
+
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/certinfo"
@@ -18,9 +20,11 @@ import (
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
 	apiocsp "github.com/cloudflare/cfssl/api/ocsp"
+	"github.com/cloudflare/cfssl/api/revoke"
 	"github.com/cloudflare/cfssl/api/scan"
 	apisign "github.com/cloudflare/cfssl/api/sign"
 	"github.com/cloudflare/cfssl/bundler"
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
 	ocspsign "github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -51,6 +55,7 @@ var (
 	conf       cli.Config
 	s          signer.Signer
 	ocspSigner ocsp.Signer
+	db         *sql.DB
 )
 
 // V1APIPrefix is the prefix of all CFSSL V1 API Endpoints.
@@ -98,6 +103,7 @@ var staticBox = &httpBox{
 }
 
 var errBadSigner = errors.New("signer not initialized")
+var errNoCertDBConfigured = errors.New("cert db not configured (missing -db-config)")
 
 var endpoints = map[string]func() (http.Handler, error){
 	"sign": func() (http.Handler, error) {
@@ -166,6 +172,13 @@ var endpoints = map[string]func() (http.Handler, error){
 		return apiocsp.NewHandler(ocspSigner), nil
 	},
 
+	"revoke": func() (http.Handler, error) {
+		if db == nil {
+			return nil, errNoCertDBConfigured
+		}
+		return revoke.NewHandler(db), nil
+	},
+
 	"/": func() (http.Handler, error) {
 		if err := staticBox.findStaticBox(); err != nil {
 			return nil, err
@@ -206,8 +219,16 @@ func serverMain(args []string, c cli.Config) error {
 		return err
 	}
 
+	if c.DBConfigFile != "" {
+		db, err = certdb.DBFromConfig(c.DBConfigFile)
+		if err != nil {
+			return err
+		}
+	}
+
 	log.Info("Initializing signer")
-	if s, err = sign.SignerFromConfig(c); err != nil {
+
+	if s, err = sign.SignerFromConfigAndDB(c, db); err != nil {
 		log.Warningf("couldn't initialize signer: %v", err)
 	}
 

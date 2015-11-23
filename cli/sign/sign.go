@@ -35,9 +35,9 @@ Flags:
 // Flags of 'cfssl sign'
 var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote", "db-config"}
 
-// SignerFromConfig takes the Config and creates the appropriate
-// signer.Signer object
-func SignerFromConfig(c cli.Config) (signer.Signer, error) {
+// SignerFromConfigAndDB takes the Config and creates the appropriate
+// signer.Signer object with a specified db
+func SignerFromConfigAndDB(c cli.Config, db *sql.DB) (signer.Signer, error) {
 	// If there is a config, use its signing policy. Otherwise create a default policy.
 	var policy *config.Signing
 	if c.CFG != nil {
@@ -60,20 +60,26 @@ func SignerFromConfig(c cli.Config) (signer.Signer, error) {
 
 	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
 
-	if c.DBConfigFile != "" {
-		var db *sql.DB
-		db, err = certdb.DBFromConfig(c.DBConfigFile)
-		if err != nil {
-			return nil, err
-		}
-		s.SetDB(db)
-	}
-
 	if err != nil {
 		return nil, err
 	}
 
+	s.SetDB(db)
+
 	return s, nil
+}
+
+// SignerFromConfig takes the Config and creates the appropriate
+// signer.Signer object
+func SignerFromConfig(c cli.Config) (s signer.Signer, err error) {
+	var db *sql.DB
+	if c.DBConfigFile != "" {
+		db, err = certdb.DBFromConfig(c.DBConfigFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return SignerFromConfigAndDB(c, db)
 }
 
 // signerMain is the main CLI of signer functionality.

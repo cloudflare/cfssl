@@ -7,6 +7,9 @@ import (
 
 	"database/sql"
 
+	_ "github.com/lib/pq"           // import just to initialize Postgres
+	_ "github.com/mattn/go-sqlite3" // import just to initialize SQLite
+
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 )
@@ -42,7 +45,7 @@ func LoadFile(path string) (cfg *DBConfig, err error) {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid db configuration"))
 	}
 
-	log.Debugf("db configuration ok")
+	log.Info("db configuration ok")
 	return
 }
 
