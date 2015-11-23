@@ -2,10 +2,9 @@ package remote
 
 import (
 	"crypto/x509"
+	"database/sql"
 	"encoding/json"
 	"errors"
-
-	"database/sql"
 
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/config"

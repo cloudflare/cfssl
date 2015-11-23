@@ -2,6 +2,7 @@
 package serve
 
 import (
+	"database/sql"
 	"errors"
 	"net"
 	"net/http"
@@ -9,8 +10,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"database/sql"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/api/bundle"

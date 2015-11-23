@@ -2,16 +2,17 @@
 package revoke
 
 import (
-	"net/http"
-	"encoding/json"
-	"github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/errors"
-	"io/ioutil"
 	"database/sql"
-	"github.com/cloudflare/cfssl/certdb"
-	"github.com/cloudflare/cfssl/ocsp"
-	"strings"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"strconv"
+	"strings"
+
+	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/ocsp"
 )
 
 // A Handler accepts requests with a serial number parameter
@@ -65,6 +66,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	err = certdb.RevokeCertificate(h.db, req.Serial, reasonCode)
-	result := map[string]string{"success": "true"}
+	result := map[string]string{}
 	return api.SendResponse(w, result)
 }

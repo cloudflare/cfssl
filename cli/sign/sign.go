@@ -2,10 +2,9 @@
 package sign
 
 import (
+	"database/sql"
 	"encoding/json"
 	"io/ioutil"
-
-	"database/sql"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
