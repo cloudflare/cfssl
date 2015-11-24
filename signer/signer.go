@@ -32,15 +32,29 @@ type Subject struct {
 	Names []csr.Name `json:"names"`
 }
 
+// Extension represents a raw extension to be included in the certificate.  The
+// "value" field must be hex encoded.
+type Extension struct {
+	ID       config.OID `json:"id"`
+	Critical bool       `json:"critical"`
+	Value    string     `json:"value"`
+}
+
 // SignRequest stores a signature request, which contains the hostname,
 // the CSR, optional subject information, and the signature profile.
+//
+// Extensions provided in the signRequest are copied into the certificate, as
+// long as they are in the ExtensionWhitelist for the signer's policy.
+// Extensions requested in the CSR are ignored, except for those processed by
+// ParseCertificateRequest (mainly subjectAltName).
 type SignRequest struct {
-	Hosts   []string `json:"hosts"`
-	Request string   `json:"certificate_request"`
-	Subject *Subject `json:"subject,omitempty"`
-	Profile string   `json:"profile"`
-	Label   string   `json:"label"`
-	Serial  *big.Int `json:"serial,omitempty"`
+	Hosts      []string    `json:"hosts"`
+	Request    string      `json:"certificate_request"`
+	Subject    *Subject    `json:"subject,omitempty"`
+	Profile    string      `json:"profile"`
+	Label      string      `json:"label"`
+	Serial     *big.Int    `json:"serial,omitempty"`
+	Extensions []Extension `json:"extensions,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.

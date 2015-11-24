@@ -1,8 +1,11 @@
 package local
 
 import (
+	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"io/ioutil"
 	"reflect"
@@ -883,6 +886,96 @@ func TestNameWhitelistSign(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+}
+
+func TestExtensionSign(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(testCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	// By default, no extensions should be allowed
+	request := signer.SignRequest{
+		Request: string(csrPEM),
+		Extensions: []signer.Extension{
+			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
+		},
+	}
+
+	_, err = s.Sign(request)
+	if err == nil {
+		t.Fatalf("expected a policy error")
+	}
+
+	// Whitelist a specific extension.  The extension with OID 1.2.3.4 should be
+	// allowed through, but the one with OID 1.2.3.5 should not.
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:              []string{"cert sign", "crl sign"},
+			ExpiryString:       "1h",
+			Expiry:             1 * time.Hour,
+			CA:                 true,
+			ExtensionWhitelist: map[string]bool{"1.2.3.4": true},
+		},
+	}
+
+	// Test that a forbidden extension triggers a sign error
+	request = signer.SignRequest{
+		Request: string(csrPEM),
+		Extensions: []signer.Extension{
+			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},
+		},
+	}
+
+	_, err = s.Sign(request)
+	if err == nil {
+		t.Fatalf("expected a policy error")
+	}
+
+	extValue := []byte{0x05, 0x00}
+	extValueHex := hex.EncodeToString(extValue)
+
+	// Test that an allowed extension makes it through
+	request = signer.SignRequest{
+		Request: string(csrPEM),
+		Extensions: []signer.Extension{
+			signer.Extension{
+				ID:       config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
+				Critical: false,
+				Value:    extValueHex,
+			},
+		},
+	}
+
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	foundAllowed := false
+	for _, ext := range cert.Extensions {
+		if ext.Id.String() == "1.2.3.4" {
+			foundAllowed = true
+
+			if ext.Critical {
+				t.Fatalf("Extensions should not be marked critical")
+			}
+
+			if !bytes.Equal(extValue, ext.Value) {
+				t.Fatalf("Extension has wrong value: %s != %s", hex.EncodeToString(ext.Value), extValueHex)
+			}
+		}
+	}
+	if !foundAllowed {
+		t.Fatalf("Custom extension not included in the certificate")
+	}
 }
 
 func TestCTFailure(t *testing.T) {

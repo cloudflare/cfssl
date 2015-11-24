@@ -77,6 +77,7 @@ type SigningProfile struct {
 	NameWhitelistString string     `json:"name_whitelist"`
 	AuthRemote          AuthRemote `json:"auth_remote"`
 	CTLogServers        []string   `json:"ct_log_servers"`
+	AllowedExtensions   []OID      `json:"allowed_extensions"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
@@ -86,6 +87,7 @@ type SigningProfile struct {
 	RemoteServer                string
 	CSRWhitelist                *CSRWhitelist
 	NameWhitelist               *regexp.Regexp
+	ExtensionWhitelist          map[string]bool
 	ClientProvidesSerialNumbers bool
 }
 
@@ -262,6 +264,11 @@ func (p *SigningProfile) populate(cfg *Config) error {
 				errors.New("failed to compile name whitelist section"))
 		}
 		p.NameWhitelist = rule
+	}
+
+	p.ExtensionWhitelist = map[string]bool{}
+	for _, oid := range p.AllowedExtensions {
+		p.ExtensionWhitelist[asn1.ObjectIdentifier(oid).String()] = true
 	}
 
 	return nil

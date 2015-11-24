@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -258,6 +259,26 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 		}
 		safeTemplate.SerialNumber = serialNumber
+	}
+
+	if len(req.Extensions) > 0 {
+		for _, ext := range req.Extensions {
+			oid := asn1.ObjectIdentifier(ext.ID)
+			if !profile.ExtensionWhitelist[oid.String()] {
+				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+			}
+
+			rawValue, err := hex.DecodeString(ext.Value)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CertificateError, cferr.InvalidRequest, err)
+			}
+
+			safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, pkix.Extension{
+				Id:       oid,
+				Critical: ext.Critical,
+				Value:    rawValue,
+			})
+		}
 	}
 
 	var certTBS = safeTemplate
