@@ -86,3 +86,19 @@ func ResetCFSSLFlagSetForTesting(usage func()) {
 	registerFlags(&c, cfsslFlagSet)
 	cfsslFlagSet.Usage = usage
 }
+
+func TestReadStdin(t *testing.T) {
+	fn, err := ReadStdin("./testdata/test.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(fn) != "This is a test file" {
+		t.Fatal(err)
+	}
+
+	fn, err = ReadStdin("-")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
