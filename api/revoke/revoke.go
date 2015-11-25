@@ -48,13 +48,17 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Default the status to good so it matches the cli
 	var req jsonRevokeRequest
-	err = json.Unmarshal(body, req)
+	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return errors.NewBadRequestString("Unable to parse revocation request")
 	}
 
 	if len(req.Serial) == 0 {
 		return errors.NewBadRequestString("serial number is required but not provided")
+	}
+
+	if req.Reason == "" {
+		req.Reason = "0"
 	}
 
 	reasonCode, present := ocsp.RevocationReasonCodes[strings.ToLower(req.Reason)]
