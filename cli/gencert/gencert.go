@@ -91,6 +91,10 @@ func gencertMain(args []string, c cli.Config) error {
 			return err
 		}
 
+		if c.Hostname != "" {
+			req.CN = signer.SplitHosts(c.Hostname)[0]
+			req.Hosts = signer.SplitHosts(c.Hostname)
+		}
 		// Remote can be forced on the command line or in the config
 		if c.Remote == "" && c.CFG == nil {
 			if c.CAFile == "" {
@@ -125,6 +129,9 @@ func gencertMain(args []string, c cli.Config) error {
 			Label:   c.Label,
 		}
 
+		if c.CRL != "" {
+			req.CRL_Override = c.CRL
+		}
 		cert, err = s.Sign(req)
 		if err != nil {
 			return err

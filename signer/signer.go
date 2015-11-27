@@ -52,6 +52,7 @@ type SignRequest struct {
 	Request    string      `json:"certificate_request"`
 	Subject    *Subject    `json:"subject,omitempty"`
 	Profile    string      `json:"profile"`
+	CRL_Override	 string	`json:"crl_override"`	
 	Label      string      `json:"label"`
 	Serial     *big.Int    `json:"serial,omitempty"`
 	Extensions []Extension `json:"extensions,omitempty"`
