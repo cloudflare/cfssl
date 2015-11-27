@@ -24,10 +24,9 @@ func setIfPresent(val url.Values, k string, target *string) {
 // ErrInvalidURI is returned if the PKCS #11 URI is invalid.
 var ErrInvalidURI = errors.New(errors.PrivateKeyError, errors.ParseFailed)
 
-// ParsePKCS11URI parses a PKCS #11 URI into a PKCS #11
-// configuration. Note that the module path will override the module
-// name if present.
-func ParsePKCS11URI(uri string) (*pkcs11key.Config, error) {
+// Parse parses a PKCS #11 URI into a PKCS #11 configuration. Note that
+// the module path will override the module name if present.
+func Parse(uri string) (*pkcs11key.Config, error) {
 	u, err := url.Parse(uri)
 	if err != nil || u.Scheme != "pkcs11" {
 		return nil, ErrInvalidURI
