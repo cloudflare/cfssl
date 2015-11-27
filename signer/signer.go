@@ -53,13 +53,14 @@ type Extension struct {
 // Extensions requested in the CSR are ignored, except for those processed by
 // ParseCertificateRequest (mainly subjectAltName).
 type SignRequest struct {
-	Hosts      []string    `json:"hosts"`
-	Request    string      `json:"certificate_request"`
-	Subject    *Subject    `json:"subject,omitempty"`
-	Profile    string      `json:"profile"`
-	Label      string      `json:"label"`
-	Serial     *big.Int    `json:"serial,omitempty"`
-	Extensions []Extension `json:"extensions,omitempty"`
+	Hosts       []string    `json:"hosts"`
+	Request     string      `json:"certificate_request"`
+	Subject     *Subject    `json:"subject,omitempty"`
+	Profile     string      `json:"profile"`
+	CRLOverride string      `json:"crl_override"`
+	Label       string      `json:"label"`
+	Serial      *big.Int    `json:"serial,omitempty"`
+	Extensions  []Extension `json:"extensions,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.
