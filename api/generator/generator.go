@@ -206,6 +206,8 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	log.Info("request for CSR")
 
 	req := new(genSignRequest)
+	req.Request = csr.New()
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
