@@ -78,7 +78,7 @@ var pkcs11UriCases = []pkcs11UriTest{
 		}},
 }
 
-func TestParse(t *testing.T) {
+func TestParseSuccess(t *testing.T) {
 	for _, c := range pkcs11UriCases {
 		cfg, err := Parse(c.URI)
 		if err != nil {
@@ -97,7 +97,7 @@ var pkcs11UriFails = []string{
 	"pkcs11:?pin-source=file:testdata/nosuchfile",
 }
 
-func TestParse(t *testing.T) {
+func TestParseFail(t *testing.T) {
 	for _, c := range pkcs11UriFails {
 		_, err := Parse(c)
 		if err == nil {
