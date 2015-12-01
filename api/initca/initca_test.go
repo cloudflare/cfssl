@@ -21,8 +21,8 @@ func csrData(t *testing.T) *bytes.Reader {
 				OU: "Systems Engineering",
 			},
 		},
-		CN:    "cloudflare.com",
-		Hosts: []string{"cloudflare.com"},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com"},
 		KeyRequest: csr.NewBasicKeyRequest(),
 	}
 	csrBytes, err := json.Marshal(req)
@@ -61,6 +61,30 @@ func TestInitCARESTfulVerbs(t *testing.T) {
 	req, _ = http.NewRequest("WHATEVER", ts.URL, data)
 	resp, _ = http.DefaultClient.Do(req)
 	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatal(resp.Status)
+	}
+}
+
+func TestBadRequestBody(t *testing.T) {
+	ts := httptest.NewServer(NewHandler())
+	req, _ := http.NewRequest("POST", ts.URL, nil)
+	resp, _ := http.DefaultClient.Do(req)
+	if resp.StatusCode == http.StatusOK {
+		t.Fatal(resp.Status)
+	}
+}
+
+func TestBadRequestBody_2(t *testing.T) {
+	ts := httptest.NewServer(NewHandler())
+	r := &csr.CertificateRequest{}
+	csrBytes, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := bytes.NewReader(csrBytes)
+	req, _ := http.NewRequest("POST", ts.URL, data)
+	resp, _ := http.DefaultClient.Do(req)
+	if resp.StatusCode == http.StatusOK {
 		t.Fatal(resp.Status)
 	}
 }
