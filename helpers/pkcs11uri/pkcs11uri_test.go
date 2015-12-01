@@ -78,9 +78,9 @@ var pkcs11UriCases = []pkcs11UriTest{
 		}},
 }
 
-func TestParsePKCS11URI(t *testing.T) {
+func TestParseSuccess(t *testing.T) {
 	for _, c := range pkcs11UriCases {
-		cfg, err := ParsePKCS11URI(c.URI)
+		cfg, err := Parse(c.URI)
 		if err != nil {
 			t.Fatalf("Failed on URI '%s'", c.URI)
 		}
@@ -97,9 +97,9 @@ var pkcs11UriFails = []string{
 	"pkcs11:?pin-source=file:testdata/nosuchfile",
 }
 
-func TestParsePKCS11URIFail(t *testing.T) {
+func TestParseFail(t *testing.T) {
 	for _, c := range pkcs11UriFails {
-		_, err := ParsePKCS11URI(c)
+		_, err := Parse(c)
 		if err == nil {
 			t.Fatalf("Expected URI '%s' to fail to parse.", c)
 		}
