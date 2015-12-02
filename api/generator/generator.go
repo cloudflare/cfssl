@@ -20,6 +20,12 @@ import (
 	"github.com/cloudflare/cfssl/signer/universal"
 )
 
+// CSRNoHostMessage is used to alert the user to a certificate lacking a hosts field.
+const CSRNoHostMessage = `This certificate lacks a "hosts" field. This makes it unsuitable for
+websites. For more information see the Baseline Requirements for the Issuance and Management
+of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser Forum (https://cabforum.org);
+specifically, section 10.2.3 ("Information Requirements").`
+
 // Sum contains digests for a certificate or certificate request.
 type Sum struct {
 	MD5  string `json:"md5"`
@@ -268,22 +274,17 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 			"certificate":         certSum,
 		},
 	}
+
+	if len(req.Request.Hosts) == 0 {
+		return api.SendResponseWithMessage(w, result, CSRNoHostMessage,
+			errors.New(errors.PolicyError, errors.InvalidRequest).ErrorCode)
+	}
+
 	return api.SendResponse(w, result)
 }
 
-// CSRValidate contains the default validation logic for certificate requests to
-// the API server. This follows the Baseline Requirements for the Issuance and
-// Management of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser
-// Forum (https://cabforum.org). Specifically, section 10.2.3 ("Information
-// Requirements"), states:
-//
-// "Applicant information MUST include, but not be limited to, at least one
-// Fully-Qualified Domain Name or IP address to be included in the Certificate’s
-// SubjectAltName extension."
+// CSRValidate does nothing and will never return an error. It exists because NewHandler
+// requires a Validator as a parameter.
 func CSRValidate(req *csr.CertificateRequest) error {
-	if len(req.Hosts) == 0 {
-		log.Warning("request for CSR is missing the host parameter")
-		return errors.NewBadRequestMissingParameter("hosts")
-	}
 	return nil
 }
