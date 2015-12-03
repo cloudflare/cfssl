@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -22,8 +23,7 @@ import (
 
 // A server points to a single remote CFSSL instance.
 type server struct {
-	Address string
-	Port    int
+	URL string
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -50,7 +50,11 @@ func NewServer(addr string) Remote {
 	if len(addrs) > 1 {
 		remote, _ = NewGroup(addrs, StrategyOrderedList)
 	} else {
-		srv := newServer(addr)
+		u, err := normalizeURL(addrs[0])
+		if err != nil {
+			return nil
+		}
+		srv, _ := newServer(u)
 		if srv != nil {
 			remote = srv
 		}
@@ -59,34 +63,16 @@ func NewServer(addr string) Remote {
 }
 
 func (srv *server) Hosts() []string {
-	return []string{net.JoinHostPort(srv.Address, fmt.Sprintf("%d", srv.Port))}
+	return []string{srv.URL}
 }
 
-func newServer(addr string) *server {
-	addr = strings.TrimSpace(addr)
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		host, port, err = net.SplitHostPort(addr + ":8888")
-		if err != nil {
-			return nil
-		}
-	}
-
-	var portno int
-	if port == "" {
-		portno = 8888
-	} else {
-		portno, err = strconv.Atoi(port)
-		if err != nil {
-			return nil
-		}
-	}
-
-	return &server{host, portno}
+func newServer(u *url.URL) (*server, error) {
+	URL := u.String()
+	return &server{URL}, nil
 }
 
 func (srv *server) getURL(endpoint string) string {
-	return fmt.Sprintf("http://%s:%d/api/v1/cfssl/%s", srv.Address, srv.Port, endpoint)
+	return fmt.Sprintf("%s/api/v1/cfssl/%s", srv.URL, endpoint)
 }
 
 // post connects to the remote server and returns a Response struct
@@ -265,4 +251,45 @@ func NewAuthServer(addr string, provider auth.Provider) *AuthRemote {
 // Sign is overloaded to perform an AuthSign request using the default auth provider.
 func (ar *AuthRemote) Sign(req []byte) ([]byte, error) {
 	return ar.AuthSign(req, nil, ar.provider)
+}
+
+// nomalizeURL checks for http/https protocol, appends "http" as default protocol if not defiend in url
+func normalizeURL(addr string) (*url.URL, error) {
+	addr = strings.TrimSpace(addr)
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Opaque != "" {
+		u.Host = net.JoinHostPort(u.Scheme, u.Opaque)
+		u.Opaque = ""
+	} else if u.Path != "" && !strings.Contains(u.Path, ":") {
+		u.Host = net.JoinHostPort(u.Path, "8888")
+		u.Path = ""
+	} else if u.Scheme == "" {
+		u.Host = u.Path
+		u.Path = ""
+	}
+
+	if u.Scheme != "https" {
+		u.Scheme = "http"
+	}
+
+	_, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		_, port, err = net.SplitHostPort(u.Host + ":8888")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if port != "" {
+		_, err = strconv.Atoi(port)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return u, nil
 }

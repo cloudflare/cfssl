@@ -18,6 +18,8 @@ type Config struct {
 	CSRFile           string
 	CAFile            string
 	CAKeyFile         string
+	TLSCertFile       string
+	TLSKeyFile        string
 	KeyFile           string
 	IntermediatesFile string
 	CABundleFile      string
@@ -65,6 +67,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.CSRFile, "csr", "", "Certificate signature request file for new public key")
 	f.StringVar(&c.CAFile, "ca", "", "CA used to sign the new certificate")
 	f.StringVar(&c.CAKeyFile, "ca-key", "", "CA private key")
+	f.StringVar(&c.TLSCertFile, "tls-cert", "", "Other endpoint CA to set up TLS protocol")
+	f.StringVar(&c.TLSKeyFile, "tls-key", "", "Other endpoint CA private key")
 	f.StringVar(&c.KeyFile, "key", "", "private key for the certificate")
 	f.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")

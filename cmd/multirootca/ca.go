@@ -41,6 +41,8 @@ func main() {
 	flagAddr := flag.String("a", ":8888", "listening address")
 	flagRootFile := flag.String("roots", "", "configuration file specifying root keys")
 	flagDefaultLabel := flag.String("l", "", "specify a default label")
+	flagEndpointCert := flag.String("tls-cert", "", "server certificate")
+	flagEndpointKey := flag.String("tls-key", "", "server private key")
 	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "log level (0 = DEBUG, 4 = ERROR)")
 	flag.Parse()
 
@@ -84,6 +86,14 @@ func main() {
 	http.HandleFunc("/api/v1/cfssl/authsign", dispatchRequest)
 	http.Handle("/api/v1/cfssl/info", infoHandler)
 	http.Handle("/api/v1/cfssl/metrics", metrics)
-	log.Info("listening on ", *flagAddr)
-	log.Error(http.ListenAndServe(*flagAddr, nil))
+
+	if *flagEndpointCert == "" && *flagEndpointKey == "" {
+		log.Info("Now listening on ", *flagAddr)
+		log.Fatal(http.ListenAndServe(*flagAddr, nil))
+	} else {
+
+		log.Info("Now listening on https:// ", *flagAddr)
+		log.Fatal(http.ListenAndServeTLS(*flagAddr, *flagEndpointCert, *flagEndpointKey, nil))
+	}
+
 }

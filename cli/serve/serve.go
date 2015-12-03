@@ -36,13 +36,14 @@ Usage of serve:
         cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
                     [-metadata file] [-remote remote_host] [-config config] \
-                    [-responder cert] [-responder-key key]
+                    [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key]\
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata", "remote", "config", "responder", "responder-key"}
+var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata",
+	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert"}
 
 var (
 	conf       cli.Config
@@ -208,8 +209,16 @@ func serverMain(args []string, c cli.Config) error {
 	registerHandlers()
 
 	addr := net.JoinHostPort(conf.Address, strconv.Itoa(conf.Port))
-	log.Info("Now listening on ", addr)
-	return http.ListenAndServe(addr, nil)
+
+	if conf.TLSCertFile == "" || conf.TLSKeyFile == "" {
+		log.Info("Now listening on ", addr)
+		return http.ListenAndServe(addr, nil)
+	}
+
+	log.Info("Now listening on https://", addr)
+
+	return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
+
 }
 
 // Command assembles the definition of Command 'serve'
