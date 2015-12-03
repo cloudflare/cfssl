@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/certdb"
@@ -57,16 +55,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("serial number is required but not provided")
 	}
 
-	if req.Reason == "" {
-		req.Reason = "0"
-	}
-
-	reasonCode, present := ocsp.RevocationReasonCodes[strings.ToLower(req.Reason)]
-	if !present {
-		reasonCode, err = strconv.Atoi(req.Reason)
-		if err != nil {
-			return err
-		}
+	var reasonCode int
+	reasonCode, err = ocsp.ReasonStringToCode(req.Reason)
+	if err != nil {
+		return errors.NewBadRequestString("Invalid reason code")
 	}
 
 	err = certdb.RevokeCertificate(h.db, req.Serial, reasonCode)

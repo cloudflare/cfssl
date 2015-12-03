@@ -52,7 +52,7 @@ func prepDB() (db *sql.DB, err error) {
 	return
 }
 
-func testRevokeCert(t *testing.T, db *sql.DB, serial string, reason *string) (resp *http.Response, body []byte) {
+func testRevokeCert(t *testing.T, db *sql.DB, serial string, reason string) (resp *http.Response, body []byte) {
 	ts := httptest.NewServer(NewHandler(db))
 	defer ts.Close()
 
@@ -60,8 +60,8 @@ func testRevokeCert(t *testing.T, db *sql.DB, serial string, reason *string) (re
 
 	obj["serial"] = serial
 
-	if reason != nil {
-		obj["reason"] = *reason
+	if reason != "" {
+		obj["reason"] = reason
 	}
 
 	blob, err := json.Marshal(obj)
@@ -86,7 +86,7 @@ func TestInvalidRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, _ := testRevokeCert(t, db, "", nil)
+	resp, _ := testRevokeCert(t, db, "", "")
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatal("expected bad request response")
@@ -99,8 +99,7 @@ func TestRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reason := "5"
-	resp, body := testRevokeCert(t, db, "1", &reason)
+	resp, body := testRevokeCert(t, db, "1", "5")
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatal("unexpected HTTP status code; expected OK", string(body))

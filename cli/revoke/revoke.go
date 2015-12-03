@@ -3,8 +3,6 @@ package revoke
 
 import (
 	goerr "errors"
-	"strconv"
-	"strings"
 
 	"database/sql"
 
@@ -48,12 +46,11 @@ func revokeMain(args []string, c cli.Config) (err error) {
 		return err
 	}
 
-	reasonCode, present := ocsp.RevocationReasonCodes[strings.ToLower(c.Reason)]
-	if !present {
-		reasonCode, err = strconv.Atoi(c.Reason)
-		if err != nil {
-			return
-		}
+	var reasonCode int
+	reasonCode, err = ocsp.ReasonStringToCode(c.Reason)
+	if err != nil {
+		log.Error("Invalid reason code: ", err)
+		return
 	}
 
 	err = certdb.RevokeCertificate(db, c.Serial, reasonCode)
