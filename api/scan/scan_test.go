@@ -54,3 +54,10 @@ func TestScanRESTfulVerbs(t *testing.T) {
 		t.Fatal(resp.Status)
 	}
 }
+
+func TestNewInfoHandler(t *testing.T) {
+	handler := NewInfoHandler()
+	if handler == nil {
+		t.Fatal("Handler error")
+	}
+}
