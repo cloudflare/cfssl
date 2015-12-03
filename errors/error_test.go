@@ -205,6 +205,15 @@ func TestNew(t *testing.T) {
 	if code != 9300 {
 		t.Fatal("Improper error code")
 	}
+
+	code = New(CTError, Unknown).ErrorCode
+	if code != 10000 {
+		t.Fatal("Improper error code")
+	}
+	code = New(CTError, PrecertSubmissionFailed).ErrorCode
+	if code != 10100 {
+		t.Fatal("Improper error code")
+	}
 }
 
 func TestWrap(t *testing.T) {
@@ -230,6 +239,22 @@ func TestWrap(t *testing.T) {
 	if err.Message != "x509: certificate has expired or is not yet valid" {
 		t.Fatal("Error message construction failed.")
 	}
+
+	err = Wrap(CertificateError, VerifyFailed, x509.UnknownAuthorityError{})
+	if err == nil {
+		t.Fatal("Error creation failed.")
+	}
+
+	err = Wrap(RootError, Unknown, errors.New(msg))
+	if err == nil {
+		t.Fatal("Error creation failed.")
+	}
+	if err.ErrorCode != int(RootError)+int(Unknown) {
+		t.Fatal("Error code construction failed.")
+	}
+	if err.Message != msg {
+		t.Fatal("Error message construction failed.")
+	}
 }
 
 func TestMarshal(t *testing.T) {
@@ -251,6 +276,59 @@ func TestErrorString(t *testing.T) {
 	err := Wrap(CertificateError, Unknown, errors.New(msg))
 	str := err.Error()
 	if str != `{"code":1000,"message":"`+msg+`"}` {
+		t.Fatal("Incorrect Error():", str)
+	}
+}
+
+func TestHTTP(t *testing.T) {
+	err := NewMethodNotAllowed("GET")
+	if err == nil {
+		t.Fatal("New Mathod Check failed")
+	}
+
+	err = NewBadRequest(errors.New("Bad Request"))
+	if err == nil {
+		t.Fatal("New Bad Request Check failed")
+	}
+
+	if err.StatusCode != 400 {
+		t.Fatal("New Bad Request error code construction failed")
+	}
+
+	err = NewBadRequestString("Bad Request String")
+	if err == nil {
+		t.Fatal("New Bad Request String Check failed")
+	}
+
+	if err.StatusCode != 400 {
+		t.Fatal("New Bad Request String error code construction failed")
+	}
+
+	err = NewBadRequestMissingParameter("Request Missing Parameter")
+	if err == nil {
+		t.Fatal("New Bad Request Missing Parameter Check failed")
+	}
+
+	if err.StatusCode != 400 {
+		t.Fatal("New Bad Request Missing Parameter error code construction failed")
+	}
+
+	err = NewBadRequestUnwantedParameter("Unwanted Parameter Present In Request")
+	if err == nil {
+		t.Fatal("New Bad Request Unwanted Parameter Check failed")
+	}
+
+	if err.StatusCode != 400 {
+		t.Fatal("New Bad Request Unwanted Parameter error code construction failed")
+	}
+
+}
+
+func TestHTTPErrorString(t *testing.T) {
+	method := "GET"
+	err := NewMethodNotAllowed(method)
+	str := err.Error()
+	if str != `Method is not allowed:"`+method+`"` {
 		t.Fatal("Incorrect Error():", str)
 	}
 }
