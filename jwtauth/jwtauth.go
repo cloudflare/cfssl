@@ -14,6 +14,9 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+/*
+ * Not sure if I need these yet
+ *
 type Provider interface {
 	Token(req []byte) (token []byte, err error)
 	Verify(aReq *AuthenticatedRequest) bool
@@ -26,7 +29,8 @@ type AuthenticatedRequest struct {
 	Token         []byte `json:"token"`
 	Request       []byte `json:"request"`
 }
-
+*/
+// New attempts to create a new JWT based off of the signing key passed into it
 func New(mySigningKey []byte) (string, error) {
 
 	token := jwt.New(jwt.SigningMethodRS256)
@@ -35,6 +39,7 @@ func New(mySigningKey []byte) (string, error) {
 	return tokenString, err
 }
 
+// Verify attempts to verify if the JWT passed in is a valid JWT
 func Verify(pubkey []byte, myToken string) (bool, error) {
 	token, err := jwt.Parse(string(myToken), func(t *jwt.Token) (interface{}, error) {
 		return pubkey, nil
