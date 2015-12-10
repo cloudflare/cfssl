@@ -93,6 +93,10 @@ func InsertCertificate(db *sql.DB, cr *CertificateRecord) error {
 
 	numRowsAffected, _ := res.RowsAffected()
 
+	if numRowsAffected == 0 {
+		return cferr.Wrap(cferr.CertStoreError, cferr.InsertionFailed, fmt.Errorf("failed to insert the certificate record"))
+	}
+
 	if numRowsAffected != 1 {
 		return wrapCertStoreError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
@@ -145,6 +149,10 @@ func RevokeCertificate(db *sql.DB, serial string, reasonCode int) error {
 
 	numRowsAffected, _ := result.RowsAffected()
 
+	if numRowsAffected == 0 {
+		return cferr.Wrap(cferr.CertStoreError, cferr.RecordNotFound, fmt.Errorf("failed to revoke the certificate: certificate not found"))
+	}
+
 	if numRowsAffected != 1 {
 		return wrapCertStoreError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
@@ -165,6 +173,10 @@ func InsertOCSP(db *sql.DB, rr *OCSPRecord) error {
 	}
 
 	numRowsAffected, _ := res.RowsAffected()
+
+	if numRowsAffected == 0 {
+		return cferr.Wrap(cferr.CertStoreError, cferr.InsertionFailed, fmt.Errorf("failed to insert the OCSP record"))
+	}
 
 	if numRowsAffected != 1 {
 		return wrapCertStoreError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
@@ -208,7 +220,7 @@ func GetUnexpiredOCSPs(db *sql.DB) (rrs []*OCSPRecord, err error) {
 	return rrs, nil
 }
 
-// UpdateOCSP updates a ocsp response record  with a given serial number.
+// UpdateOCSP updates a ocsp response record with a given serial number.
 func UpdateOCSP(db *sql.DB, serial, body string, expiry time.Time) (err error) {
 	var result sql.Result
 	result, err = db.Exec(updateOCSPSQL, serial, body, expiry)
@@ -219,6 +231,47 @@ func UpdateOCSP(db *sql.DB, serial, body string, expiry time.Time) (err error) {
 
 	var numRowsAffected int64
 	numRowsAffected, err = result.RowsAffected()
+
+	if numRowsAffected == 0 {
+		return cferr.Wrap(cferr.CertStoreError, cferr.RecordNotFound, fmt.Errorf("failed to update the OCSP record"))
+	}
+
+	if numRowsAffected != 1 {
+		return wrapCertStoreError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
+	}
+	return
+}
+
+// UpsertOCSP update a ocsp response record with a given serial number,
+// or insert the record if it doesn't yet exist in the db
+// Implementation note:
+// We didn't implement 'upsert' with SQL statement and we lost race condition
+// prevention provided by underlying DMBS.
+// Reasoning:
+// 1. it's diffcult to support multiple DBMS backends in the same time, the
+// SQL syntax differs from one to another.
+// 2. we don't need a strict simultaneous consistency between OCSP and certificate
+// status. It's OK that a OCSP response still shows 'good' while the
+// corresponding certificate is being revoked seconds ago, as long as the OCSP
+// response catches up to be eventually consistent (within hours to days).
+// Write race condition between OCSP writers on OCSP table is not a problem,
+// since we don't have write race condition on Certificate table and OCSP
+// writers should periodically use Certificate table to update OCSP table
+// to catch up.
+func UpsertOCSP(db *sql.DB, serial, body string, expiry time.Time) (err error) {
+	var result sql.Result
+	result, err = db.Exec(updateOCSPSQL, serial, body, expiry)
+
+	if err != nil {
+		return wrapCertStoreError(err)
+	}
+
+	var numRowsAffected int64
+	numRowsAffected, err = result.RowsAffected()
+
+	if numRowsAffected == 0 {
+		return InsertOCSP(db, &OCSPRecord{Serial: serial, Body: body, Expiry: expiry})
+	}
 
 	if numRowsAffected != 1 {
 		return wrapCertStoreError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))

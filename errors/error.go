@@ -188,6 +188,15 @@ const (
 	PrecertSubmissionFailed = 100 * (iota + 1)
 )
 
+// Certificate persistence related errors specified with CertStoreError
+const (
+	// InsertionFailed occurs when a SQL insert query failes to complete.
+	InsertionFailed = 100 * (iota + 1)
+	// RecordNotFound occurs when a SQL query targeting on one unique
+	// record failes to update the specified row in the table.
+	RecordNotFound
+)
+
 // The error interface implementation, which formats to a JSON object string.
 func (e *Error) Error() string {
 	marshaled, err := json.Marshal(e)

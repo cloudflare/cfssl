@@ -48,3 +48,5 @@
     10000: Unknown
     10100: PrecertSubmissionFailed
 11XXX: CertStoreError
+    11100: InsertFailed
+    11200: RecordNotFound

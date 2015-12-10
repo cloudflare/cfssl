@@ -15,19 +15,23 @@ const (
 
 func TestSQLite(t *testing.T) {
 	db := testdb.SQLiteDB(sqliteDBFile)
-
-	testInsertCertificateAndGetCertificate(db, t)
-	testInsertCertificateAndGetUnexpiredCertificate(db, t)
-	testUpdateCertificateAndGetCertificate(db, t)
-	testInsertOCSPAndGetOCSP(db, t)
-	testInsertOCSPAndGetUnexpiredOCSP(db, t)
-	testUpdateOCSPAndGetOCSP(db, t)
+	testEverything(db, t)
 }
 
 // roughlySameTime decides if t1 and t2 are close enough.
 func roughlySameTime(t1, t2 time.Time) bool {
 	// return true if the difference is smaller than 1 sec.
 	return math.Abs(float64(t1.Sub(t2))) < float64(time.Second)
+}
+
+func testEverything(db *sql.DB, t *testing.T) {
+	testInsertCertificateAndGetCertificate(db, t)
+	testInsertCertificateAndGetUnexpiredCertificate(db, t)
+	testUpdateCertificateAndGetCertificate(db, t)
+	testInsertOCSPAndGetOCSP(db, t)
+	testInsertOCSPAndGetUnexpiredOCSP(db, t)
+	testUpdateOCSPAndGetOCSP(db, t)
+	testUpsertOCSPAndGetOCSP(db, t)
 }
 
 func testInsertCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
@@ -221,6 +225,44 @@ func testUpdateOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
 	}
 
 	got, err := GetOCSP(db, want.Serial)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want.Expiry = newExpiry
+	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
+		!roughlySameTime(newExpiry, got.Expiry) {
+		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+	}
+}
+
+func testUpsertOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
+	want := &OCSPRecord{
+		Serial: "fake serial 3",
+		Body:   "fake body",
+		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
+	}
+
+	if err := UpsertOCSP(db, want.Serial, want.Body, want.Expiry); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := GetOCSP(db, want.Serial)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want.Serial != got.Serial || want.Body != got.Body ||
+		!roughlySameTime(want.Expiry, got.Expiry) {
+		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+	}
+
+	newExpiry := time.Now().Add(time.Hour)
+	if err := UpsertOCSP(db, want.Serial, "fake body revoked", newExpiry); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err = GetOCSP(db, want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
