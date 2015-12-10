@@ -145,7 +145,7 @@ type CertificateRequest struct {
 // BasicKeyRequest.
 func New() *CertificateRequest {
 	return &CertificateRequest{
-		KeyRequest: &BasicKeyRequest{},
+		KeyRequest: NewBasicKeyRequest(),
 	}
 }
 
