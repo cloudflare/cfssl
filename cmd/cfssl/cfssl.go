@@ -31,7 +31,8 @@ import (
 	"github.com/cloudflare/cfssl/cli/gencrl"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/info"
-	"github.com/cloudflare/cfssl/cli/ocspgen"
+	"github.com/cloudflare/cfssl/cli/ocspdump"
+	"github.com/cloudflare/cfssl/cli/ocsprefresh"
 	"github.com/cloudflare/cfssl/cli/ocspserve"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/printdefault"
@@ -59,7 +60,8 @@ func main() {
 		"genkey":         genkey.Command,
 		"gencert":        gencert.Command,
 		"gencrl":         gencrl.Command,
-		"ocspgen":        ocspgen.Command,
+		"ocspdump":       ocspdump.Command,
+		"ocsprefresh":    ocsprefresh.Command,
 		"ocspsign":       ocspsign.Command,
 		"ocspserve":      ocspserve.Command,
 		"selfsign":       selfsign.Command,
