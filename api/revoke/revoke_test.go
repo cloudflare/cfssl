@@ -35,13 +35,9 @@ func prepDB() (db *sql.DB, err error) {
 
 	expirationTime := time.Now().AddDate(1, 0, 0)
 	var cert = &certdb.CertificateRecord{
-		Serial:    "1",
-		CALabel:   "",
-		Status:    "",
-		Reason:    0,
-		Expiry:    expirationTime,
-		RevokedAt: time.Now(),
-		PEM:       "unexpired cert",
+		Serial: "1",
+		Expiry: expirationTime,
+		PEM:    "unexpired cert",
 	}
 
 	err = certdb.InsertCertificate(db, cert)

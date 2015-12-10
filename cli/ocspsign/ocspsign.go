@@ -16,7 +16,7 @@ var ocspSignerUsageText = `cfssl ocspsign -- signs an OCSP response for a given 
 Returns a base64-encoded OCSP response.
 
 Usage of ocspsign:
-        cfssl ocspsign -ca cert -responder cert -responder-key key -cert cert [-status status] [-reason code] [-revoked-at YYYY-MM-DD]
+        cfssl ocspsign -ca cert -responder cert -responder-key key -cert cert [-status status] [-reason code] [-revoked-at YYYY-MM-DD] [-interval 96h]
 
 Flags:
 `

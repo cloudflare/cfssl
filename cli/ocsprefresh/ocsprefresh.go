@@ -1,9 +1,7 @@
-// Package ocspgen implements the ocspgen command.
-package ocspgen
+// Package ocsprefresh implements the ocsprefresh command.
+package ocsprefresh
 
 import (
-	"encoding/base64"
-	"fmt"
 	"time"
 
 	"database/sql"
@@ -15,21 +13,21 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 )
 
-// Usage text of 'cfssl ocspgen'
-var ocspgenUsageText = `cfssl ocspgen -- generates a series of concatenated OCSP responses
-for use with ocspserve from all unexpired certs in the cert store
+// Usage text of 'cfssl ocsprefresh'
+var ocsprefreshUsageText = `cfssl ocsprefresh -- refreshes the ocsp_responses table
+with new OCSP responses for all known unexpired certificates
 
-Usage of ocspgen:
-        cfssl ocspgen -db-config db-config -ca cert -responder cert -responder-key key
+Usage of ocsprefresh:
+        cfssl ocsprefresh -db-config db-config -ca cert -responder cert -responder-key key [-interval 96h]
 
 Flags:
 `
 
-// Flags of 'cfssl ocspgen'
-var ocspgenFlags = []string{"ca", "responder", "responder-key", "db-config"}
+// Flags of 'cfssl ocsprefresh'
+var ocsprefreshFlags = []string{"ca", "responder", "responder-key", "db-config", "interval"}
 
-// ocspgenMain is the main CLI of OCSP generation functionality.
-func ocspgenMain(args []string, c cli.Config) (err error) {
+// ocsprefreshMain is the main CLI of OCSP refresh functionality.
+func ocsprefreshMain(args []string, c cli.Config) (err error) {
 	s, err := SignerFromConfig(c)
 	if err != nil {
 		log.Critical("Unable to create OCSP signer: ", err)
@@ -53,6 +51,8 @@ func ocspgenMain(args []string, c cli.Config) (err error) {
 		return err
 	}
 
+	// Set an expiry timestamp for all certificates refreshed in this batch
+	ocspExpiry := time.Now().Add(time.Duration(c.Interval))
 	for _, certRecord := range certs {
 		cert, err := helpers.ParseCertificatePEM([]byte(certRecord.PEM))
 		if err != nil {
@@ -76,18 +76,9 @@ func ocspgenMain(args []string, c cli.Config) (err error) {
 			return err
 		}
 
-		// Update the OCSP record to expire in 1 day
-		certdb.UpdateOCSP(nil, cert.SerialNumber.String(), string(resp), time.Now().AddDate(0, 0, 1))
+		certdb.UpsertOCSP(db, cert.SerialNumber.String(), string(resp), ocspExpiry)
 	}
 
-	var records []*certdb.OCSPRecord
-	records, err = certdb.GetUnexpiredOCSPs(db)
-	if err != nil {
-		return err
-	}
-	for _, certRecord := range records {
-		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString([]byte(certRecord.Body)))
-	}
 	return nil
 }
 
@@ -102,5 +93,5 @@ func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
 	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval))
 }
 
-// Command assembles the definition of Command 'ocspgen'
-var Command = &cli.Command{UsageText: ocspgenUsageText, Flags: ocspgenFlags, Main: ocspgenMain}
+// Command assembles the definition of Command 'ocsprefresh'
+var Command = &cli.Command{UsageText: ocsprefreshUsageText, Flags: ocsprefreshFlags, Main: ocsprefreshMain}
