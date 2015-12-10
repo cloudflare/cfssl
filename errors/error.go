@@ -55,6 +55,9 @@ const (
 
 	// CTError indicates a problem with the certificate transparency process
 	CTError // 10XXX
+
+	// CertStoreError indicates a problem with the certificate store
+	CertStoreError // 11XXX
 )
 
 // None is a non-specified error.
@@ -183,6 +186,31 @@ const (
 	// PrecertSubmissionFailed occurs when submitting a precertificate to
 	// a log server fails
 	PrecertSubmissionFailed = 100 * (iota + 1)
+)
+
+// Certificate store errors specified with CertStoreError
+const (
+	// DatabaseInitializationFailed occurs when initializing the certificate
+	// store database fails
+	DatabaseInitializationFailed = 100 * (iota + 1)
+
+	// GetCertificateRecordFailed occurs when the certificate store fails to get
+	// a particular certificate record from the database
+	GetCertificateRecordFailed
+
+	// GetUnexpiredCertsFailed occurs when the certificate store fails to get
+	// unexpired certificates from the database
+	GetUnexpiredCertsFailed
+
+	// NoMatchingCert occurs when a requested certificate can't be found in the
+	// certificate store
+	NoMatchingCert
+
+	// RevokeCertFailed occurs when the certificate store fails to revoke a cert
+	RevokeCertFailed
+
+	// RecordCertFailed occurs when the certificate store fails to record a cert
+	RecordCertFailed
 )
 
 // The error interface implementation, which formats to a JSON object string.
@@ -348,6 +376,25 @@ func New(category Category, reason Reason) *Error {
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CTError.", reason))
 		}
+	case CertStoreError:
+		switch reason {
+		case Unknown:
+			msg = "Certificate store action failed due to unknown error"
+		case DatabaseInitializationFailed:
+			msg = "Certificate store database could not be initialized"
+		case GetCertificateRecordFailed:
+			msg = "Certificate store failed to get unexpired certificates"
+		case GetUnexpiredCertsFailed:
+			msg = "Certificate store failed to get unexpired certificates"
+		case NoMatchingCert:
+			msg = "No matching certificate in certificate store"
+		case RevokeCertFailed:
+			msg = "Certificate store failed to revoke certificate"
+		case RecordCertFailed:
+			msg = "Certificate store failed to record certificate"
+		default:
+			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CertStoreError.", reason))
+		}
 
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",
@@ -383,7 +430,7 @@ func Wrap(category Category, reason Reason, err error) *Error {
 				errorCode += unknownAuthority
 			}
 		}
-	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError, CSRError, CTError:
+	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError, APIClientError, CSRError, CTError, CertStoreError:
 	// no-op, just use the error
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",

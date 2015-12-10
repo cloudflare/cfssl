@@ -14,11 +14,29 @@ import (
 	"io/ioutil"
 	"time"
 
+	"strconv"
+	"strings"
+
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"golang.org/x/crypto/ocsp"
 )
+
+// revocationReasonCodes is a map between string reason codes
+// to integers as defined in RFC 5280
+var revocationReasonCodes = map[string]int{
+	"unspecified":          ocsp.Unspecified,
+	"keycompromise":        ocsp.KeyCompromise,
+	"cacompromise":         ocsp.CACompromise,
+	"affiliationchanged":   ocsp.AffiliationChanged,
+	"superseded":           ocsp.Superseded,
+	"cessationofoperation": ocsp.CessationOfOperation,
+	"certificatehold":      ocsp.CertificateHold,
+	"removefromcrl":        ocsp.RemoveFromCRL,
+	"privilegewithdrawn":   ocsp.PrivilegeWithdrawn,
+	"aacompromise":         ocsp.AACompromise,
+}
 
 // StatusCode is a map between string statuses sent by cli/api
 // to ocsp int statuses
@@ -54,6 +72,23 @@ type StandardSigner struct {
 	responder *x509.Certificate
 	key       crypto.Signer
 	interval  time.Duration
+}
+
+// ReasonStringToCode tries to convert a reason string to an integer code
+func ReasonStringToCode(reason string) (reasonCode int, err error) {
+	// default to 0
+	if reason == "" {
+		return 0, nil
+	}
+
+	reasonCode, present := revocationReasonCodes[strings.ToLower(reason)]
+	if !present {
+		reasonCode, err = strconv.Atoi(reason)
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 // NewSignerFromFile reads the issuer cert, the responder cert and the responder key

@@ -2,6 +2,7 @@ package remote
 
 import (
 	"crypto/x509"
+	"database/sql"
 	"encoding/json"
 	"errors"
 
@@ -104,6 +105,11 @@ func (s *Signer) SigAlgo() x509.SignatureAlgorithm {
 // SetPolicy sets the signer's signature policy.
 func (s *Signer) SetPolicy(policy *config.Signing) {
 	s.policy = policy
+}
+
+// SetDB sets the signer's cert db
+func (s *Signer) SetDB(db *sql.DB) {
+	// noop
 }
 
 // Policy returns the signer's policy.

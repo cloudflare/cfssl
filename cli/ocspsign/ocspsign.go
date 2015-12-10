@@ -44,8 +44,14 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 	}
 
 	if c.Status == "revoked" {
-		req.Reason = c.Reason
+		var reasonCode int
+		reasonCode, err = ocsp.ReasonStringToCode(c.Reason)
+		if err != nil {
+			log.Critical("Invalid reason code: ", err)
+			return
+		}
 
+		req.Reason = reasonCode
 		req.RevokedAt = time.Now()
 		if c.RevokedAt != "now" {
 			req.RevokedAt, err = time.Parse("2006-01-02", c.RevokedAt)
