@@ -2,9 +2,8 @@
 package ocsprefresh
 
 import (
-	"time"
-
 	"database/sql"
+	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
