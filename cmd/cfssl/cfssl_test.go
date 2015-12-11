@@ -31,13 +31,7 @@ const addressToTest = "127.0.0.1"
 const portToTest = 8888
 
 // This is the generic endpoint for our server
-var postStr = fmt.Sprintf("http://%s:%s/api/v1/cfssl/", addressToTest,
-	strconv.Itoa(portToTest))
-
-// JSON requests to ping our server with
-var keyReq, _ = ioutil.ReadFile("testdata/newkeyRequest.json")
-var newcertReq, _ = ioutil.ReadFile("testdata/newcertRequest.json")
-var signReq, _ = ioutil.ReadFile("testdata/signRequest.json")
+var postStr = fmt.Sprintf("http://%s:%s/api/v1/cfssl/", addressToTest, strconv.Itoa(portToTest))
 
 // Var which holds the CA Request which is used to create our CA
 // Certificate to start CFSSL server
@@ -87,25 +81,6 @@ type APIBundleResponse struct {
 // Scan struct utilizes ScannerResult struct defined in
 // scan/scan_common.go.
 type CLIScanResponse struct {
-	Connectivity struct {
-		CloudFlareStatus struct {
-			scan.ScannerResult
-		} `json:"CloudFlareStatus"`
-		DNSLookup struct {
-			scan.ScannerResult
-		} `json:"DNSLookup"`
-	} `json:"Connectivity"`
-	PKI struct {
-		ChainExpiration struct {
-			scan.ScannerResult
-		} `json:"ChainExpiration"`
-		ChainValidation struct {
-			scan.ScannerResult
-		} `json:"ChainValidation"`
-		CipherSuite struct {
-			scan.ScannerResult
-		} `json:"CipherSuite"`
-	} `json:"PKI"`
 	TLSHandshake struct {
 		CertsByCiphers struct {
 			scan.ScannerResult
@@ -159,9 +134,8 @@ func setup() {
 	}
 	// Set up a test server using our CA certificate and key.
 	serverData := testsuite.CFSSLServerData{CA: CACert, CAKey: CAKey}
-	s, err := testsuite.StartCFSSLServer(addressToTest, portToTest,
+	server, err = testsuite.StartCFSSLServer(addressToTest, portToTest,
 		serverData)
-	server = s
 	if err != nil {
 		setdown()
 		panic(err)
@@ -177,12 +151,10 @@ func setdown() {
 }
 
 // Return API output
-func apiOut(request string, jsonStr []byte,
-	endpoint string, t *testing.T) []byte {
+func apiOut(request string, jsonStr []byte, endpoint string, t *testing.T) []byte {
 	setup()
 	// Generate request
-	req, err := http.NewRequest(request, endpoint,
-		bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest(request, endpoint, bytes.NewBuffer(jsonStr))
 	if err != nil {
 		setdown()
 		t.Fatalf("Error creating new HTTP request, %v", err)
@@ -216,15 +188,21 @@ func cliOut(command *exec.Cmd, t *testing.T) []byte {
 }
 
 // Format the API/CLI Output into the following structs
-func apiFormat(body []byte) APIResponse {
+func apiFormat(body []byte, t *testing.T) APIResponse {
 	apiRes := APIResponse{}
-	json.Unmarshal(body, &apiRes)
+	err := json.Unmarshal(body, &apiRes)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s", string(body))
+	}
 	return apiRes
 }
 
-func responseUnmarshal(body []byte) api.Response {
+func apiFormat2(body []byte, t *testing.T) api.Response {
 	res := api.Response{}
-	json.Unmarshal(body, &res)
+	err := json.Unmarshal(body, &res)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s", string(body))
+	}
 	return res
 }
 
@@ -236,13 +214,19 @@ func TestBundle(t *testing.T) {
 	jsonStr := []byte(`{"domain": "cloudflare.com"}`)
 	body := apiOut("POST", jsonStr, postStr+"bundle", t)
 	bundleAPIResp := APIBundleResponse{}
-	json.Unmarshal(body, &bundleAPIResp)
+	err := json.Unmarshal(body, &bundleAPIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into bundleAPIResp", string(body))
+	}
 
 	// bundleCLIResp holds response from cfssl bundle (command line)
 	command := exec.Command("cfssl", "bundle", "-domain=cloudflare.com")
 	body = cliOut(command, t)
 	bundleCLIResp := CLIBundleResponse{}
-	json.Unmarshal(body, &bundleCLIResp)
+	err = json.Unmarshal(body, &bundleCLIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into bundleCLIResp", string(body))
+	}
 
 	if !bundleAPIResp.Success {
 		t.Fatalf("Bundle API Request Failed.")
@@ -258,7 +242,6 @@ func TestBundle(t *testing.T) {
 	if !reflect.DeepEqual(bundleAPIResp.Result.Root, bundleCLIResp.Root) {
 		t.Fatalf("Bundle API Root did not match with CLI")
 	}
-
 }
 
 // Sign Test: Since cfssl sign generates different certificates each time,
@@ -266,8 +249,12 @@ func TestBundle(t *testing.T) {
 // "correctness" of a certificate from API to CLI.
 // Therefore, in TestSign, we just check for successful output.
 func TestSign(t *testing.T) {
+	signReq, err := ioutil.ReadFile("testdata/signRequest.json")
+	if err != nil {
+		t.Fatalf("Error reading signRequest.json file")
+	}
 	response := apiOut("POST", signReq, postStr+"sign", t)
-	signAPIResp := apiFormat(response)
+	signAPIResp := apiFormat(response, t)
 	if !signAPIResp.Success {
 		t.Fatalf("Sign API Failed Response")
 	}
@@ -278,7 +265,10 @@ func TestScan(t *testing.T) {
 	// scanAPIResp holds response from cfssl scan using scan endpoint
 	body := apiOut("GET", nil, postStr+"scan?host=cloudflare.com", t)
 	scanAPIResp := APIScanResponse{}
-	json.Unmarshal(body, &scanAPIResp)
+	err := json.Unmarshal(body, &scanAPIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into scanAPIResp", string(body))
+	}
 
 	// scanCLIResp holds response from cfssl scan (command line)
 	command := exec.Command("cfssl", "scan", "cloudflare.com")
@@ -286,14 +276,16 @@ func TestScan(t *testing.T) {
 	index := strings.Index(string(body), "{")
 	cliout := string(body)[index:]
 	scanCLIResp := CLIScanResponse{}
-	json.Unmarshal([]byte(cliout), &scanCLIResp)
+	err = json.Unmarshal([]byte(cliout), &scanCLIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into scanCLIResp", string(body))
+	}
 
 	if !scanAPIResp.Success {
 		t.Fatalf("Scan API Request Failed")
 	}
 	// Checks for correctness between API and CLI responses
-	if !reflect.DeepEqual(scanAPIResp.Result.TLSHandshake,
-		scanCLIResp.TLSHandshake) {
+	if !reflect.DeepEqual(scanAPIResp.Result.TLSHandshake, scanCLIResp.TLSHandshake) {
 		t.Fatalf("Scan API TLSHandshake (%s) did not match with CLI (%s)",
 			scanAPIResp.Result.TLSHandshake, scanCLIResp.TLSHandshake)
 	}
@@ -305,13 +297,19 @@ func TestCertInfo(t *testing.T) {
 	jsonStr := []byte(`{"domain": "cloudflare.com"}`)
 	body := apiOut("POST", jsonStr, postStr+"certinfo", t)
 	certinfoAPIResp := APICertInfoResponse{}
-	json.Unmarshal(body, &certinfoAPIResp)
+	err := json.Unmarshal(body, &certinfoAPIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into certinfoAPIResp", string(body))
+	}
 
 	// certinfoCLIResp holds response from cfssl certinfo (command line)
 	command := exec.Command("cfssl", "certinfo", "-domain=cloudflare.com")
 	body = cliOut(command, t)
 	certinfoCLIResp := certinfo.Certificate{}
-	json.Unmarshal(body, &certinfoCLIResp)
+	err = json.Unmarshal(body, &certinfoCLIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into certinfoCLIResp", string(body))
+	}
 
 	if !certinfoAPIResp.Success {
 		t.Fatalf("CertInfo API Request Failed")
@@ -344,13 +342,16 @@ func TestInfo(t *testing.T) {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	// infoAPIResp holds response from cfssl info using info endpoint
-	infoAPIResp := apiFormat(body)
+	infoAPIResp := apiFormat(body, t)
 
 	// infoCLIResp holds response from cfssl info (command line)
 	command := exec.Command("cfssl", "info", "-remote=127.0.0.1:8888")
 	infoCLIResp := info.Resp{}
 	body = cliOut(command, t)
-	json.Unmarshal(body, &infoCLIResp)
+	err := json.Unmarshal(body, &infoCLIResp)
+	if err != nil {
+		t.Fatalf("Error Unmarshalling %s into infoCLIResp", string(body))
+	}
 	setdown()
 
 	if !infoAPIResp.Success {
@@ -368,32 +369,44 @@ func TestInfo(t *testing.T) {
 // not necessarily matching any existing CLI output.
 func TestScanInfo(t *testing.T) {
 	response := apiOut("GET", nil, postStr+"scaninfo", t)
-	scaninfoAPIResp := responseUnmarshal(response)
+	scaninfoAPIResp := apiFormat2(response, t)
 	if !scaninfoAPIResp.Success {
 		t.Fatalf("ScanInfo API Failed Response")
 	}
 }
 
 func TestInitCA(t *testing.T) {
+	keyReq, err := ioutil.ReadFile("testdata/newkeyRequest.json")
+	if err != nil {
+		t.Fatalf("Error reading newkeyRequest.json file")
+	}
 	response := apiOut("POST", keyReq, postStr+"init_ca", t)
-	initcaAPIResp := responseUnmarshal(response)
+	initcaAPIResp := apiFormat2(response, t)
 	if !initcaAPIResp.Success {
 		t.Fatalf("InitCA API Failed Response")
 	}
 }
 
 func TestNewCert(t *testing.T) {
+	newcertReq, err := ioutil.ReadFile("testdata/newcertRequest.json")
+	if err != nil {
+		t.Fatalf("Error reading newcertRequest.json file")
+	}
 	jsonStr := []byte(`{ "request": ` + string(newcertReq) + ` }`)
 	response := apiOut("POST", jsonStr, postStr+"newcert", t)
-	newcertAPIResp := responseUnmarshal(response)
+	newcertAPIResp := apiFormat2(response, t)
 	if !newcertAPIResp.Success {
 		t.Fatalf("NewCert API Failed Response")
 	}
 }
 
 func TestNewKey(t *testing.T) {
+	keyReq, err := ioutil.ReadFile("testdata/newkeyRequest.json")
+	if err != nil {
+		t.Fatalf("Error reading newkeyRequest.json file")
+	}
 	response := apiOut("POST", keyReq, postStr+"newkey", t)
-	newkeyAPIResp := responseUnmarshal(response)
+	newkeyAPIResp := apiFormat2(response, t)
 	if !newkeyAPIResp.Success {
 		t.Fatalf("NewKey API Failed Response")
 	}
@@ -421,6 +434,8 @@ func TestAuthSign(t *testing.T) {
 	client := &http.Client{}
 
 	// Start up server + Execute request
+	// Note that we are using a custom config file
+	// with the authkey above specified (inside config file)
 	cmd := exec.Command("cfssl", "serve", "-address="+addressToTest,
 		"-port="+strconv.Itoa(portToTest), "-ca=testdata/cert.pem",
 		"-ca-key=testdata/cert-key.pem", "-config=testdata/config.json")
@@ -439,7 +454,7 @@ func TestAuthSign(t *testing.T) {
 	cmd.Process.Kill()
 
 	// Unmarshal the response
-	signAPIResp := apiFormat(body)
+	signAPIResp := apiFormat(body, t)
 	if !signAPIResp.Success {
 		t.Fatalf("AuthSign API Failed Response")
 	}
