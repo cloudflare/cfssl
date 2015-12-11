@@ -2,9 +2,8 @@
 package revoke
 
 import (
-	goerr "errors"
-
 	"database/sql"
+	goerr "errors"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"

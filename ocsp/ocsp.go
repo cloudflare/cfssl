@@ -12,10 +12,9 @@ import (
 	"crypto"
 	"crypto/x509"
 	"io/ioutil"
-	"time"
-
 	"strconv"
 	"strings"
+	"time"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"

@@ -2,10 +2,9 @@
 package ocspdump
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"fmt"
-
-	"database/sql"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"

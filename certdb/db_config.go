@@ -1,17 +1,15 @@
 package certdb
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 
-	"database/sql"
-
-	_ "github.com/lib/pq"           // import just to initialize Postgres
-	_ "github.com/mattn/go-sqlite3" // import just to initialize SQLite
-
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
+	_ "github.com/lib/pq"           // import just to initialize Postgres
+	_ "github.com/mattn/go-sqlite3" // import just to initialize SQLite
 )
 
 // DBConfig contains the database driver name and configuration to be passed to Open
