@@ -1,8 +1,11 @@
 package scan
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"sync"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -19,7 +22,7 @@ Arguments:
         HOST:    Host(s) to scan (including port)
 Flags:
 `
-var scanFlags = []string{"list", "family", "scanner", "timeout", "ip", "ca-bundle"}
+var scanFlags = []string{"list", "family", "scanner", "timeout", "ip", "ca-bundle", "csv", "max-hosts"}
 
 func printJSON(v interface{}) {
 	b, err := json.MarshalIndent(v, "", "  ")
@@ -52,12 +55,42 @@ func (ctx *context) RunScans(host string) {
 	ctx.Done()
 }
 
+func parseCSV(hosts []string, csvFile string, maxHosts int) ([]string, error) {
+	f, err := os.Open(csvFile)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	for err == nil && len(hosts) < maxHosts {
+		var record []string
+		record, err = r.Read()
+		hosts = append(hosts, record[len(record)-1])
+	}
+	if err == io.EOF {
+		err = nil
+	}
+
+	return hosts, err
+}
+
 func scanMain(args []string, c cli.Config) (err error) {
 	if c.List {
 		printJSON(scan.Default)
 	} else {
 		if err = scan.LoadRootCAs(c.CABundleFile); err != nil {
 			return
+		}
+
+		if len(args) >= c.MaxHosts {
+			log.Warningf("Only scanning max-hosts=%d out of %d args given", c.MaxHosts, len(args))
+			args = args[:c.MaxHosts]
+		} else if c.CSVFile != "" {
+			args, err = parseCSV(args, c.CSVFile, c.MaxHosts)
+			if err != nil {
+				return
+			}
 		}
 
 		ctx := newContext(c, len(args))

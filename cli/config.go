@@ -54,6 +54,8 @@ type Config struct {
 	Family            string
 	Timeout           time.Duration
 	Scanner           string
+	CSVFile           string
+	MaxHosts          int
 	Responses         string
 	Path              string
 	Usage             string
@@ -97,6 +99,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
 	f.DurationVar(&c.Timeout, "timeout", 5*time.Minute, "duration (ns, us, ms, s, m, h) to scan each host before timing out")
+	f.StringVar(&c.CSVFile, "csv", "", "file containing CSV of hosts")
+	f.IntVar(&c.MaxHosts, "max-hosts", 10, "maximum number of hosts to scan")
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
