@@ -17,15 +17,15 @@ func main() {
 
 	var scanFlagSet = flag.NewFlagSet("scan", flag.ExitOnError)
 	var c cli.Config
-	var usageText = `cfssl-scan -- scan a host for issues
-		Usage of scan:
-        	scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] HOST+
-        	scan -list
+	var usageText = `cfssl scan -- scan a host for issues
+Usage of scan:
+        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] [-num-workers num] [-max-hosts num] [-csv hosts.csv] HOST+
+        cfssl scan -list
 
-		Arguments:
-        	HOST:    Host(s) to scan (including port)
-		Flags:
-		`
+Arguments:
+        HOST:    Host(s) to scan (including port)
+Flags:
+`
 	registerFlags(&c, scanFlagSet)
 
 	scanFlagSet.Usage = func() {
@@ -71,6 +71,9 @@ func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
 	f.DurationVar(&c.Timeout, "timeout", 5*time.Minute, "duration (ns, us, ms, s, m, h) to scan each host before timing out")
+	f.StringVar(&c.CSVFile, "csv", "", "file containing CSV of hosts")
+	f.IntVar(&c.NumWorkers, "num-workers", 10, "number of workers to use for scan")
+	f.IntVar(&c.MaxHosts, "max-hosts", 100, "maximum number of hosts to scan")
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")
 	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
