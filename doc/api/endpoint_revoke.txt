@@ -1,0 +1,17 @@
+THE REVOKE ENDPOINT
+
+Endpoint: /api/v1/cfssl/revoke
+Method:   POST
+
+Required parameters:
+
+    * serial: a string specifying the serial number of a certificate
+
+Result:
+
+    The returned result is an empty JSON object
+
+Example:
+
+    $ curl -d '{"serial": "7961067322630364137"}' \
+          ${CFSSL_HOST}/api/v1/cfssl/revoke

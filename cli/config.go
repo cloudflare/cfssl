@@ -47,17 +47,22 @@ type Config struct {
 	ResponderFile     string
 	ResponderKeyFile  string
 	Status            string
-	Reason            int
+	Reason            string
 	RevokedAt         string
 	Interval          int64
 	List              bool
 	Family            string
 	Timeout           time.Duration
 	Scanner           string
+	CSVFile           string
+	NumWorkers        int
+	MaxHosts          int
 	Responses         string
 	Path              string
 	Usage             string
 	PGPPrivate        string
+	Serial            string
+	DBConfigFile      string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -90,18 +95,23 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.ResponderFile, "responder", "", "Certificate for OCSP responder")
 	f.StringVar(&c.ResponderKeyFile, "responder-key", "", "private key for OCSP responder certificate")
 	f.StringVar(&c.Status, "status", "good", "Status of the certificate: good, revoked, unknown")
-	f.IntVar(&c.Reason, "reason", 0, "Reason code for revocation")
+	f.StringVar(&c.Reason, "reason", "0", "Reason code for revocation")
 	f.StringVar(&c.RevokedAt, "revoked-at", "now", "Date of revocation (YYYY-MM-DD)")
 	f.Int64Var(&c.Interval, "interval", int64(4*helpers.OneDay), "Interval between OCSP updates, in seconds (default: 4 days)")
 	f.BoolVar(&c.List, "list", false, "list possible scanners")
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")
 	f.DurationVar(&c.Timeout, "timeout", 5*time.Minute, "duration (ns, us, ms, s, m, h) to scan each host before timing out")
+	f.StringVar(&c.CSVFile, "csv", "", "file containing CSV of hosts")
+	f.IntVar(&c.NumWorkers, "num-workers", 10, "number of workers to use for scan")
+	f.IntVar(&c.MaxHosts, "max-hosts", 100, "maximum number of hosts to scan")
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
 	f.StringVar(&c.Usage, "usage", "", "usage of private key")
-	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption.")
+	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption")
+	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
+	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
 
 	if pkcs11.Enabled {
 		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
