@@ -14,9 +14,9 @@ To tear down a SQLite DB using goose
 
 ## Use goose to start and terminate a PostegreSQL DB
 To start a PostgreSQL using goose:
-'goose -path GOPATH/src/github.com/cloudflare/cfssl/certdb/pq up'
+'goose -path GOPATH/src/github.com/cloudflare/cfssl/certdb/pg up'
 To tear down a PostgreSQL DB using goose
-'goose -path GOPATH/src/github.com/cloudflare/cfssl/certdb/pq down'
+'goose -path GOPATH/src/github.com/cloudflare/cfssl/certdb/pg down'
 
 Note: the administration of PostgreSQL DB is not included. We assume
 the databases being connected to are already created and access control
