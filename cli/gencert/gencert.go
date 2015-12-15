@@ -9,13 +9,14 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/sign"
+	"github.com/cloudflare/cfssl/crypto/pkcs12"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
 
-var gencertUsageText = `cfssl gencert -- generate a new key and signed certificate
+var gencertUsageText = `cfssl gencert -- generate a new key and signed certificate (or PKCS#12 bundle)
 
 Usage of gencert:
     Generate a new key and cert from CSR:
@@ -29,13 +30,17 @@ Usage of gencert:
     Re-generate a CA cert with the CA key and certificate:
         cfssl gencert -renewca -ca cert -ca-key key
 
+    Generate a PKCS#12 file with a new key and cert from CSR:
+    	cfssl gencert -initca -format pkcs12 [-password password] CSRJSON
+    	cfssl gencert -ca cert -ca-key key -format pkcs12 [-password password] CSRJSON
+
 Arguments:
         CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
 
 Flags:
 `
 
-var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "hostname", "profile", "label"}
+var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "hostname", "profile", "label", "format", "password"}
 
 func gencertMain(args []string, c cli.Config) error {
 	if c.RenewCA {
@@ -84,7 +89,16 @@ func gencertMain(args []string, c cli.Config) error {
 			}
 
 		}
-		cli.PrintCert(key, csrPEM, cert)
+		if c.Format == "pkcs12" {
+			var password []byte
+			if c.Password != "0" {
+				password = []byte(c.Password)
+			}
+			file := pkcs12.ParseAndEncode(key, cert, password)
+			cli.PrintCertAndFile(key, csrPEM, cert, file)
+		} else {
+			cli.PrintCert(key, csrPEM, cert)
+		}
 
 	default:
 		if req.CA != nil {
@@ -143,7 +157,16 @@ func gencertMain(args []string, c cli.Config) error {
 			log.Warning(generator.CSRNoHostMessage)
 		}
 
-		cli.PrintCert(key, csrBytes, cert)
+		if c.Format == "pkcs12" {
+			var password []byte
+			if c.Password != "0" {
+				password = []byte(c.Password)
+			}
+			file := pkcs12.ParseAndEncode(key, cert, password)
+			cli.PrintCertAndFile(key, csrBytes, cert, file)
+		} else {
+			cli.PrintCert(key, csrBytes, cert)
+		}
 	}
 	return nil
 }

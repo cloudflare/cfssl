@@ -28,6 +28,12 @@
 			"Rev": "ba14da1f827188454a4591717fff29999010887f"
 		},
 		{
+
+			"ImportPath": "github.com/AGWA-forks/go-pkcs12",
+			"Rev": "800c1a19d11c8a89298008a8321f9700ba2f0e06"
+
+		},
+		{
 			"ImportPath": "github.com/cloudflare/cf-tls/tls",
 			"Rev": "28cbf4e4c1f859789a26b308eb8b684f34f38312"
 		},
