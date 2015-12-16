@@ -57,30 +57,30 @@ func TestInvalidPort(t *testing.T) {
 }
 
 func TestAuthSign(t *testing.T) {
-	s := NewServer("1.1")
+	s := NewServer(".X")
 	testProvider, _ = auth.New(testKey, nil)
 	testRequest := []byte(`testing 1 2 3`)
-	as, _ := s.AuthSign(testRequest, testAD, testProvider)
-	if as != nil {
-		t.Fatal("fatal error with auth sign function")
+	as, err := s.AuthSign(testRequest, testAD, testProvider)
+	if as != nil || err == nil {
+		t.Fatal("expected error with auth sign function")
 	}
 }
 
 func TestDefaultAuthSign(t *testing.T) {
 	testProvider, _ = auth.New(testKey, nil)
-	s := NewAuthServer("1.1", testProvider)
+	s := NewAuthServer(".X", testProvider)
 	testRequest := []byte(`testing 1 2 3`)
-	as, _ := s.Sign(testRequest)
-	if as != nil {
-		t.Fatal("fatal error with auth sign function")
+	as, err := s.Sign(testRequest)
+	if as != nil || err == nil{
+		t.Fatal("expected error with auth sign function")
 	}
 }
 
 func TestSign(t *testing.T) {
-	s := NewServer("1.1")
-	sign, _ := s.Sign([]byte{5, 5, 5, 5})
-	if sign != nil {
-		t.Fatalf("%v", sign)
+	s := NewServer(".X")
+	sign, err := s.Sign([]byte{5, 5, 5, 5})
+	if sign != nil || err == nil {
+		t.Fatalf("expected error with sign function")
 	}
 }
 
