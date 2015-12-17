@@ -9,6 +9,7 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
 	"encoding/asn1"
 	"errors"
 	"math/big"
@@ -94,6 +95,7 @@ func SplitHosts(hostList string) []string {
 type Signer interface {
 	Info(info.Req) (*info.Resp, error)
 	Policy() *config.Signing
+	SetDB(*sql.DB)
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)

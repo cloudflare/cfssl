@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/cloudflare/cfssl",
-	"GoVersion": "go1.5.1-cf1",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
@@ -19,35 +19,39 @@
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/client",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/core",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/cryptor",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/ecdh",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/keycache",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
+		},
+		{
+			"ImportPath": "github.com/cloudflare/redoctober/msp",
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/padding",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/passvault",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/cloudflare/redoctober/symcrypt",
-			"Rev": "b7956979f4570593d6057b3b950b0ba295a6b819"
+			"Rev": "1bfa291c370c137cee14ddee7029554ae0d4fc88"
 		},
 		{
 			"ImportPath": "github.com/daaku/go.zipexe",
@@ -102,6 +106,10 @@
 		{
 			"ImportPath": "golang.org/x/crypto/scrypt",
 			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
+			"ImportPath": "bitbucket.org/liamstask/goose/lib/goose",
+			"Rev": "8488cc47d90c8a502b1c41a462a6d9cc8ee0a895"
 		}
 	]
 }

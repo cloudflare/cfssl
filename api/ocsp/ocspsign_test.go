@@ -2,17 +2,19 @@ package ocsp
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"encoding/base64"
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/ocsp"
 	goocsp "golang.org/x/crypto/ocsp"
-	"time"
+
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 const (
@@ -210,21 +212,13 @@ func TestSign(t *testing.T) {
 
 			var r time.Time
 			if test.RevokedAt == "" || test.RevokedAt == "now" {
-				r = time.Now()
+				r = time.Now().UTC().Truncate(helpers.OneDay)
 			} else {
 				r, _ = time.Parse("2006-01-02", test.RevokedAt)
 			}
 
-			if ocspResp.RevokedAt.Year() != r.Year() {
-				t.Fatalf("Test %d incorrect revokedAt: expected: %v, have %v", i, test.RevokedAt, ocspResp.RevokedAt)
-				t.Fatal(ocspResp.RevokedAt, test.RevokedAt, ocspResp)
-			}
-			if ocspResp.RevokedAt.Month() != r.Month() {
-				t.Fatalf("Test %d incorrect revokedAt: expected: %v, have %v", i, test.RevokedAt, ocspResp.RevokedAt)
-				t.Fatal(ocspResp.RevokedAt, test.RevokedAt, ocspResp)
-			}
-			if ocspResp.RevokedAt.Day() != r.Day() {
-				t.Fatalf("Test %d incorrect revokedAt: expected: %v, have %v", i, test.RevokedAt, ocspResp.RevokedAt)
+			if !ocspResp.RevokedAt.Truncate(helpers.OneDay).Equal(r) {
+				t.Fatalf("Test %d incorrect revokedAt: expected: %v, have %v", i, r, ocspResp.RevokedAt)
 				t.Fatal(ocspResp.RevokedAt, test.RevokedAt, ocspResp)
 			}
 		}

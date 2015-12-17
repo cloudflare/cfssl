@@ -7,6 +7,9 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
+	"encoding/asn1"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
@@ -16,17 +19,15 @@ import (
 	"math/big"
 	"net"
 	"net/mail"
+	"time"
 
-	"encoding/asn1"
-	"encoding/binary"
-
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
 )
@@ -38,6 +39,7 @@ type Signer struct {
 	priv    crypto.Signer
 	policy  *config.Signing
 	sigAlgo x509.SignatureAlgorithm
+	db      *sql.DB
 }
 
 // NewSigner creates a new Signer directly from a
@@ -58,6 +60,7 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 		priv:    priv,
 		sigAlgo: sigAlgo,
 		policy:  policy,
+		db:      nil,
 	}, nil
 }
 
@@ -323,7 +326,31 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
-	return s.sign(&certTBS, profile)
+	var signedCert []byte
+	signedCert, err = s.sign(&certTBS, profile)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.db != nil {
+		var certRecord = &certdb.CertificateRecord{
+			Serial:    certTBS.SerialNumber.String(),
+			CALabel:   req.Label,
+			Status:    "",
+			Reason:    0,
+			Expiry:    certTBS.NotAfter,
+			RevokedAt: time.Now(),
+			PEM:       string(signedCert),
+		}
+
+		err = certdb.InsertCertificate(s.db, certRecord)
+		if err != nil {
+			return nil, err
+		}
+		log.Debug("saved certificate with serial number ", certTBS.SerialNumber)
+	}
+
+	return signedCert, nil
 }
 
 func serializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
@@ -378,6 +405,11 @@ func (s *Signer) Certificate(label, profile string) (*x509.Certificate, error) {
 // SetPolicy sets the signer's signature policy.
 func (s *Signer) SetPolicy(policy *config.Signing) {
 	s.policy = policy
+}
+
+// SetDB sets the signer's cert db
+func (s *Signer) SetDB(db *sql.DB) {
+	s.db = db
 }
 
 // Policy returns the signer's policy.
