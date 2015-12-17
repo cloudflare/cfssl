@@ -123,6 +123,16 @@ func main() {
 		})
 	}
 
+	if contents, ok := input["encrypted_key"]; ok {
+		encKey := contents.(string)
+		outs = append(outs, outputFile{
+			Filename: baseName + "-key.enc",
+			Contents: encKey,
+			IsBinary: true,
+			Perms:    0600,
+		})
+	}
+
 	if contents, ok := input["csr"]; ok {
 		csr = contents.(string)
 	} else if contents, ok = input["certificate_request"]; ok {
