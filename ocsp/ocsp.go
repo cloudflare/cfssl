@@ -86,7 +86,11 @@ func ReasonStringToCode(reason string) (reasonCode int, err error) {
 		if err != nil {
 			return
 		}
+		if reasonCode >= ocsp.AACompromise || reasonCode <= ocsp.Unspecified {
+			return 0, cferr.New(cferr.OCSPError, cferr.InvalidStatus)
+		}
 	}
+
 	return
 }
 

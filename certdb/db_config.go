@@ -14,8 +14,8 @@ import (
 
 // DBConfig contains the database driver name and configuration to be passed to Open
 type DBConfig struct {
-	DriverName     string
-	DataSourceName string
+	DriverName     string `json:"driver"`
+	DataSourceName string `json:"data_source"`
 }
 
 // LoadFile attempts to load the db configuration file stored at the path
@@ -43,7 +43,6 @@ func LoadFile(path string) (cfg *DBConfig, err error) {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("invalid db configuration"))
 	}
 
-	log.Info("db configuration ok")
 	return
 }
 

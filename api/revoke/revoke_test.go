@@ -10,29 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/liamstask/goose/lib/goose"
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/testdb"
 )
 
-// Largely duplicates the functionality of prepDB in certdb_test
 func prepDB() (db *sql.DB, err error) {
-	db, err = sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		return nil, err
-	}
-
-	var dbconf *goose.DBConf
-	dbconf, err = goose.NewDBConf("../../certdb/sqlite/", "test", "")
-	if err != nil {
-		return nil, err
-	}
-
-	err = goose.RunMigrationsOnDb(dbconf, "../../certdb/sqlite/", 1, db)
-	if err != nil {
-		return nil, err
-	}
-
+	db = testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	expirationTime := time.Now().AddDate(1, 0, 0)
 	var cert = &certdb.CertificateRecord{
 		Serial: "1",
@@ -106,10 +90,9 @@ func TestRevocation(t *testing.T) {
 		t.Fatalf("failed to read response body: %v", err)
 	}
 
-	var cert *certdb.CertificateRecord
-	cert, err = certdb.GetCertificate(db, "1")
+	cert, err := certdb.GetCertificate(db, "1")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("failed to get certificate ", err)
 	}
 
 	if cert.Status != "revoked" || cert.Reason != 5 {

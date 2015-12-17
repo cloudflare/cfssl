@@ -2,17 +2,18 @@ package ocsp
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"encoding/base64"
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/ocsp"
 	goocsp "golang.org/x/crypto/ocsp"
-	"time"
+
 	"github.com/cloudflare/cfssl/helpers"
 )
 
@@ -216,7 +217,7 @@ func TestSign(t *testing.T) {
 				r, _ = time.Parse("2006-01-02", test.RevokedAt)
 			}
 
-			if !ocspResp.RevokedAt.Truncate(helpers.OneDay).Equal(r)  {
+			if !ocspResp.RevokedAt.Truncate(helpers.OneDay).Equal(r) {
 				t.Fatalf("Test %d incorrect revokedAt: expected: %v, have %v", i, r, ocspResp.RevokedAt)
 				t.Fatal(ocspResp.RevokedAt, test.RevokedAt, ocspResp)
 			}

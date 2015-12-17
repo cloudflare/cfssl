@@ -347,6 +347,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Debug("saved certificate with serial number ", certTBS.SerialNumber)
 	}
 
 	return signedCert, nil

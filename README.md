@@ -268,7 +268,7 @@ command:
 cfssl serve [-address address] [-ca cert] [-ca-bundle bundle] \
             [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
             [-metadata file] [-remote remote_host] [-config config] \
-            [-responder cert] [-responder-key key]
+            [-responder cert] [-responder-key key] [-db-config db-config]
 ```
 
 Address and port default to "127.0.0.1:8888". The `-ca` and `-ca-key`

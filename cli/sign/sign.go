@@ -58,7 +58,6 @@ func SignerFromConfigAndDB(c cli.Config, db *sql.DB) (signer.Signer, error) {
 	}
 
 	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
-
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,7 @@ package revoke
 
 import (
 	"database/sql"
-	goerr "errors"
+	"errors"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
@@ -27,16 +27,15 @@ var revokeFlags = []string{"serial", "reason"}
 
 func revokeMain(args []string, c cli.Config) (err error) {
 	if len(args) > 0 {
-		return goerr.New("argument is provided but not defined; please refer to the usage by flag -h.")
+		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
 	}
 
 	if len(c.Serial) == 0 {
-		return goerr.New("serial number is required but not provided")
+		return errors.New("serial number is required but not provided")
 	}
 
 	if c.DBConfigFile == "" {
-		log.Error("need DB config file (provide with -db-config)")
-		return
+		return errors.New("need DB config file (provide with -db-config)")
 	}
 
 	var db *sql.DB
