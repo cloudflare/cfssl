@@ -34,6 +34,10 @@ var TLSHandshake = &Family{
 			"Determines host's certificate signature algorithm matching client's accepted ciphers",
 			certSigAlgsScanByCipher,
 		},
+		"ECCurves": {
+			"Determines the host's ec curve support for TLS 1.2",
+			ecCurveScan,
+		},
 	},
 }
 
@@ -340,5 +344,31 @@ func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output,
 	} else {
 		err = errors.New("no cipher supported")
 	}
+	return
+}
+
+// ecCurveScan returns the elliptic curves supported by the host.
+func ecCurveScan(addr, hostname string) (grade Grade, output Output, err error) {
+	allCurves := allCurvesIDs()
+	curves := make([]tls.CurveID, len(allCurves))
+	copy(curves, allCurves)
+	var supportedCurves []string
+	for len(curves) > 0 {
+		var curveIndex int
+		_, curveIndex, _, err = sayHello(addr, hostname, nil, curves, tls.VersionTLS12, nil)
+		if err != nil {
+			// This case is expected, because eventually we ask only for curves the server doesn't support
+			if err == errHelloFailed {
+				err = nil
+				break
+			}
+			return
+		}
+		curveID := curves[curveIndex]
+		supportedCurves = append(supportedCurves, tls.Curves[curveID])
+		curves = append(curves[:curveIndex], curves[curveIndex+1:]...)
+	}
+	output = supportedCurves
+	grade = Good
 	return
 }
