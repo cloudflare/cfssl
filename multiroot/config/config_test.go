@@ -136,6 +136,7 @@ func TestLoadKSMRoot(t *testing.T) {
 
 func TestLoadBadRootConfs(t *testing.T) {
 	confs := []string{
+		"testdata/roots_bad_db.conf",
 		"testdata/roots_bad_certificate.conf",
 		"testdata/roots_bad_private_key.conf",
 		"testdata/roots_badconfig.conf",
@@ -250,5 +251,22 @@ func TestLoadIPv6Whitelist(t *testing.T) {
 		if wl.Permitted(badIPs[i]) {
 			t.Fatalf("ACL should not have permitted IP %v", badIPs[i])
 		}
+	}
+}
+
+const confDBConfig = "testdata/roots_db.conf"
+
+func TestLoadDBConfig(t *testing.T) {
+	roots, err := Parse(confDBConfig)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if roots["backup"].DB != nil {
+		t.Fatal("Expected a nil DB for the backup root")
+	}
+
+	if roots["primary"].DB == nil {
+		t.Fatal("Expected a non-nil DB for the primary root")
 	}
 }

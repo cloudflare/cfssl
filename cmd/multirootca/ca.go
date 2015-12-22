@@ -25,6 +25,9 @@ func parseSigner(root *config.Root) (signer.Signer, error) {
 			return nil, err
 		}
 		s.SetPolicy(root.Config)
+		if root.DB != nil {
+			s.SetDB(root.DB)
+		}
 		return s, nil
 	default:
 		return nil, errors.New("unsupported private key type")
