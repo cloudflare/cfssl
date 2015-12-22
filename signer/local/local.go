@@ -14,8 +14,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"net"
 	"net/mail"
@@ -257,11 +257,25 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 		safeTemplate.SerialNumber = req.Serial
 	} else {
-		serialNumber, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+		// RFC 5280 4.1.2.2:
+		// Certificate users MUST be able to handle serialNumber
+		// values up to 20 octets.  Conforming CAs MUST NOT use
+		// serialNumber values longer than 20 octets.
+		//
+		// If CFSSL is providing the serial numbers, it makes
+		// sense to use the max supported size.
+		serialNumber := make([]byte, 20)
+		_, err = io.ReadFull(rand.Reader, serialNumber)
 		if err != nil {
 			return nil, cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
 		}
-		safeTemplate.SerialNumber = serialNumber
+
+		// SetBytes interprets buf as the bytes of a big-endian
+		// unsigned integer. The leading byte should be masked
+		// off to ensure it isn't negative.
+		serialNumber[0] &= 0x7F
+
+		safeTemplate.SerialNumber = new(big.Int).SetBytes(serialNumber)
 	}
 
 	if len(req.Extensions) > 0 {
