@@ -47,3 +47,31 @@ func TestNewCRLFromFile(t *testing.T) {
 		t.Fatal("Wrong number of expired certificates")
 	}
 }
+
+func TestNewCRLFromFileWithoutRevocations(t *testing.T) {
+	tryTwoKeyBytes, err := ioutil.ReadFile(tryTwoKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tryTwoCertBytes, err := ioutil.ReadFile(tryTwoCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	crl, err := NewCRLFromFile([]byte("\n \n"), tryTwoCertBytes, tryTwoKeyBytes, "0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	certList, err := x509.ParseDERCRL(crl)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	numCerts := len(certList.TBSCertList.RevokedCertificates)
+	expectedNum := 0
+	if expectedNum != numCerts {
+		t.Fatal("Wrong number of expired certificates")
+	}
+}
