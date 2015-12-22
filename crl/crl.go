@@ -43,6 +43,10 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 
 	// For every new line, create a new revokedCertificate and add it to slice
 	for _, value := range individualCerts {
+		if len(strings.TrimSpace(value)) == 0 {
+			continue
+		}
+
 		tempBigInt := new(big.Int)
 		tempBigInt.SetString(value, 10)
 		tempCert := pkix.RevokedCertificate{
