@@ -19,8 +19,6 @@ import (
 	"math/big"
 	"net"
 	"net/mail"
-	"time"
-
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -336,10 +334,8 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var certRecord = &certdb.CertificateRecord{
 			Serial:    certTBS.SerialNumber.String(),
 			CALabel:   req.Label,
-			Status:    "",
-			Reason:    0,
+			Status:    "good",
 			Expiry:    certTBS.NotAfter,
-			RevokedAt: time.Now(),
 			PEM:       string(signedCert),
 		}
 
