@@ -7,6 +7,9 @@ import (
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/kisielk/sqlstruct"
+
+	// Blank import so that Godeps picks this up
+	_ "bitbucket.org/liamstask/goose/lib/goose"
 )
 
 // CertificateRecord encodes a certificate and its metadata
