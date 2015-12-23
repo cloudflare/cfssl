@@ -106,10 +106,6 @@
 		{
 			"ImportPath": "golang.org/x/crypto/scrypt",
 			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
-		},
-		{
-			"ImportPath": "bitbucket.org/liamstask/goose/lib/goose",
-			"Rev": "8488cc47d90c8a502b1c41a462a6d9cc8ee0a895"
 		}
 	]
 }
