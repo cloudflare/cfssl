@@ -19,7 +19,7 @@ fi
 
 for package in $PACKAGES
 do
-    fgt golint ${package##github.com/cloudflare/cfssl/}/*.go
+    fgt golint ${package}
 done
 
 # Build and install cfssl executable in PATH
