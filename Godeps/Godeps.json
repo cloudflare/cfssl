@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "bitbucket.org/liamstask/goose/lib/goose",
+			"Rev": "8488cc47d90c8a502b1c41a462a6d9cc8ee0a895"
+		},
+		{
 			"ImportPath": "github.com/GeertJohan/go.rice",
 			"Rev": "ada95a01c963696fb73320ee662195af68be81ae"
 		},
@@ -58,6 +62,11 @@
 			"Rev": "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
 		},
 		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-125-gd512f20",
+			"Rev": "d512f204a577a4ab037a1816604c48c9c13210be"
+		},
+		{
 			"ImportPath": "github.com/google/certificate-transparency/go",
 			"Rev": "3f987269ebe76f2bf3bbf88e10d21a45f4bffb04"
 		},
@@ -72,6 +81,11 @@
 		{
 			"ImportPath": "github.com/kisielk/sqlstruct",
 			"Rev": "648daed35d49dac24a4bff253b190a80da3ab6a5"
+		},
+		{
+			"ImportPath": "github.com/kylelemons/go-gypsy/yaml",
+			"Comment": "go.weekly.2011-11-02-19-g42fc2c7",
+			"Rev": "42fc2c7ee9b8bd0ff636cd2d7a8c0a49491044c5"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
@@ -90,6 +104,21 @@
 		{
 			"ImportPath": "github.com/mreiferson/go-httpclient",
 			"Rev": "63fe23f7434723dc904c901043af07931f293c47"
+		},
+		{
+			"ImportPath": "github.com/ziutek/mymysql/godrv",
+			"Comment": "v1.5.4-13-g75ce5fb",
+			"Rev": "75ce5fbba34b1912a3641adbd58cf317d7315821"
+		},
+		{
+			"ImportPath": "github.com/ziutek/mymysql/mysql",
+			"Comment": "v1.5.4-13-g75ce5fb",
+			"Rev": "75ce5fbba34b1912a3641adbd58cf317d7315821"
+		},
+		{
+			"ImportPath": "github.com/ziutek/mymysql/native",
+			"Comment": "v1.5.4-13-g75ce5fb",
+			"Rev": "75ce5fbba34b1912a3641adbd58cf317d7315821"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ocsp",
