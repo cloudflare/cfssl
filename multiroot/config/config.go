@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"crypto"
 	"crypto/x509"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
@@ -102,6 +104,7 @@ type Root struct {
 	Certificate *x509.Certificate
 	Config      *config.Signing
 	ACL         whitelist.NetACL
+	DB          *sql.DB
 }
 
 // LoadRoot parses a config structure into a Root structure
@@ -151,6 +154,16 @@ func LoadRoot(cfg map[string]string) (*Root, error) {
 			return nil, err
 		}
 	}
+
+	dbConfig := cfg["dbconfig"]
+	if dbConfig != "" {
+		db, err := certdb.DBFromConfig(dbConfig)
+		if err != nil {
+			return nil, err
+		}
+		root.DB = db
+	}
+
 	return &root, nil
 }
 
