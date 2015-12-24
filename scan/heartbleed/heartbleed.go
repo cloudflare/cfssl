@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/FiloSottile/Heartbleed/heartbleed/tls"
+	"github.com/cloudflare/cfssl/scan/heartbleed/tls"
 )
 
 // Target struct holds host info
