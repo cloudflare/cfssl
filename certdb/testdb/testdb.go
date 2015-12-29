@@ -36,6 +36,10 @@ DELETE FROM ocsp_responses;
 func PostgreSQLDB() *sql.DB {
 	connStr := "dbname=certdb_development host=/var/run/postgresql sslmode=disable"
 
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		connStr = dbURL
+	}
+
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
