@@ -2,6 +2,7 @@ package testdb
 
 import (
 	"database/sql"
+	"os"
 
 	_ "github.com/lib/pq"           // register postgresql driver
 	_ "github.com/mattn/go-sqlite3" // register sqlite3 driver
@@ -35,6 +36,10 @@ DELETE FROM ocsp_responses;
 // PostgreSQLDB returns a PostgreSQL db instance for certdb testing.
 func PostgreSQLDB() *sql.DB {
 	connStr := "dbname=certdb_development host=/var/run/postgresql sslmode=disable"
+
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		connStr = dbURL
+	}
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
