@@ -21,7 +21,7 @@ import (
 	apiocsp "github.com/cloudflare/cfssl/api/ocsp"
 	"github.com/cloudflare/cfssl/api/revoke"
 	"github.com/cloudflare/cfssl/api/scan"
-	apisign "github.com/cloudflare/cfssl/api/sign"
+	"github.com/cloudflare/cfssl/api/signhandler"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
@@ -109,14 +109,14 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return apisign.NewHandlerFromSigner(s)
+		return signhandler.NewHandlerFromSigner(s)
 	},
 
 	"authsign": func() (http.Handler, error) {
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return apisign.NewAuthHandlerFromSigner(s)
+		return signhandler.NewAuthHandlerFromSigner(s)
 	},
 
 	"info": func() (http.Handler, error) {

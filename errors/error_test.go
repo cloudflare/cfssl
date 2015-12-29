@@ -154,6 +154,10 @@ func TestNew(t *testing.T) {
 	if code != 5300 {
 		t.Fatal("Improper error code")
 	}
+	code = New(PolicyError, UnknownProfile).ErrorCode
+	if code != 5400 {
+		t.Fatal("Improper error code")
+	}
 
 	code = New(DialError, Unknown).ErrorCode
 	if code != 6000 {

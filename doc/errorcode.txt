@@ -28,6 +28,7 @@
     5100: NoKeyUsages
     5200: InvalidPolicy
     5300: InvalidRequest
+    5400: UnknownProfile
 6XXX: DialError
 7XXX: APIClientError
     7100: AuthenticationFailure

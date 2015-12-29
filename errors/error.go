@@ -146,6 +146,9 @@ const (
 	// InvalidRequest indicates a certificate request violated the
 	// constraints of the policy being applied to the request.
 	InvalidRequest // 53XX
+
+	// UnknownProfile indicates that the profile does not exist.
+	UnknownProfile // 54XX
 )
 
 // The following are API client related errors, and should be
@@ -308,6 +311,8 @@ func New(category Category, reason Reason) *Error {
 			msg = "Invalid or unknown policy"
 		case InvalidRequest:
 			msg = "Policy violation request"
+		case UnknownProfile:
+			msg = "Unknown policy profile"
 		default:
 			panic(fmt.Sprintf("Unsupported CFSSL error reason %d under category PolicyError.",
 				reason))
