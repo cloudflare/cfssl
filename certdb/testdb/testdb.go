@@ -2,6 +2,7 @@ package testdb
 
 import (
 	"database/sql"
+	"os"
 
 	_ "github.com/lib/pq"           // register postgresql driver
 	_ "github.com/mattn/go-sqlite3" // register sqlite3 driver
