@@ -36,7 +36,7 @@ The requirements to build without Docker are:
 To build with PKCS #11 support, run:
 
     $ go get -d ./...
-    $ go build cmd/...
+    $ find ./cmd -type f -iname '*.go' | xargs -n 1 go build
 
 To build without PKCS #11 support:
 
