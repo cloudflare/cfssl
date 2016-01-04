@@ -49,7 +49,7 @@ type Config struct {
 	Status            string
 	Reason            string
 	RevokedAt         string
-	Interval          int64
+	Interval          time.Duration
 	List              bool
 	Family            string
 	Timeout           time.Duration
@@ -97,7 +97,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Status, "status", "good", "Status of the certificate: good, revoked, unknown")
 	f.StringVar(&c.Reason, "reason", "0", "Reason code for revocation")
 	f.StringVar(&c.RevokedAt, "revoked-at", "now", "Date of revocation (YYYY-MM-DD)")
-	f.Int64Var(&c.Interval, "interval", int64(4*helpers.OneDay), "Interval between OCSP updates, in seconds (default: 4 days)")
+	f.DurationVar(&c.Interval, "interval", 4*helpers.OneDay, "Interval between OCSP updates (default: 96h)")
 	f.BoolVar(&c.List, "list", false, "list possible scanners")
 	f.StringVar(&c.Family, "family", "", "scanner family regular expression")
 	f.StringVar(&c.Scanner, "scanner", "", "scanner regular expression")

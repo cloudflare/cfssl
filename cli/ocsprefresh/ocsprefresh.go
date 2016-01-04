@@ -27,15 +27,30 @@ var ocsprefreshFlags = []string{"ca", "responder", "responder-key", "db-config",
 
 // ocsprefreshMain is the main CLI of OCSP refresh functionality.
 func ocsprefreshMain(args []string, c cli.Config) (err error) {
+	if c.DBConfigFile == "" {
+		log.Error("need DB config file (provide with -db-config)")
+		return
+	}
+
+	if c.ResponderFile == "" {
+		log.Error("need responder certificate (provide with -responder)")
+		return
+	}
+
+	if c.ResponderKeyFile == "" {
+		log.Error("need responder key (provide with -responder-key)")
+		return
+	}
+
+	if c.CAFile == "" {
+		log.Error("need CA certificate (provide with -ca)")
+		return
+	}
+
 	s, err := SignerFromConfig(c)
 	if err != nil {
 		log.Critical("Unable to create OCSP signer: ", err)
 		return err
-	}
-
-	if c.DBConfigFile == "" {
-		log.Error("need DB config file (provide with -db-config)")
-		return
 	}
 
 	var db *sql.DB
@@ -51,7 +66,7 @@ func ocsprefreshMain(args []string, c cli.Config) (err error) {
 	}
 
 	// Set an expiry timestamp for all certificates refreshed in this batch
-	ocspExpiry := time.Now().Add(time.Duration(c.Interval))
+	ocspExpiry := time.Now().Add(c.Interval)
 	for _, certRecord := range certs {
 		cert, err := helpers.ParseCertificatePEM([]byte(certRecord.PEM))
 		if err != nil {
@@ -61,10 +76,10 @@ func ocsprefreshMain(args []string, c cli.Config) (err error) {
 
 		req := ocsp.SignRequest{
 			Certificate: cert,
-			Status:      c.Status,
+			Status:      certRecord.Status,
 		}
 
-		if certRecord.Status != "revoked" {
+		if certRecord.Status == "revoked" {
 			req.Reason = int(certRecord.Reason)
 			req.RevokedAt = certRecord.RevokedAt
 		}
@@ -75,7 +90,11 @@ func ocsprefreshMain(args []string, c cli.Config) (err error) {
 			return err
 		}
 
-		certdb.UpsertOCSP(db, cert.SerialNumber.String(), string(resp), ocspExpiry)
+		err = certdb.UpsertOCSP(db, cert.SerialNumber.String(), string(resp), ocspExpiry)
+		if err != nil {
+			log.Critical("Unable to save OCSP response: ", err)
+			return err
+		}
 	}
 
 	return nil
