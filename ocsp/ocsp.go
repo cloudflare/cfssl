@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -52,6 +53,7 @@ type SignRequest struct {
 	Status      string
 	Reason      int
 	RevokedAt   time.Time
+	Extensions  []pkix.Extension
 }
 
 // Signer represents a general signer of OCSP responses.  It is
@@ -176,11 +178,12 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 	}
 
 	template := ocsp.Response{
-		Status:       status,
-		SerialNumber: req.Certificate.SerialNumber,
-		ThisUpdate:   thisUpdate,
-		NextUpdate:   nextUpdate,
-		Certificate:  certificate,
+		Status:          status,
+		SerialNumber:    req.Certificate.SerialNumber,
+		ThisUpdate:      thisUpdate,
+		NextUpdate:      nextUpdate,
+		Certificate:     certificate,
+		ExtraExtensions: req.Extensions,
 	}
 
 	if status == ocsp.Revoked {

@@ -93,19 +93,19 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ocsp",
-			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/pbkdf2",
-			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/pkcs12",
-			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/scrypt",
-			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		}
 	]
 }
