@@ -121,11 +121,12 @@ type FamilySet map[string]*Family
 
 // Default contains each scan Family that is defined
 var Default = FamilySet{
-	"Connectivity": Connectivity,
-	"TLSHandshake": TLSHandshake,
-	"TLSSession":   TLSSession,
-	"PKI":          PKI,
-	"Broad":        Broad,
+	"Connectivity":  Connectivity,
+	"TLSHandshake":  TLSHandshake,
+	"TLSSession":    TLSSession,
+	"TLSRevocation": TLSRevocation,
+	"PKI":           PKI,
+	"Broad":         Broad,
 }
 
 // ScannerResult contains the result for a single scan.
