@@ -9,13 +9,13 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"database/sql"
 	"encoding/asn1"
 	"errors"
 	"math/big"
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -95,7 +95,7 @@ func SplitHosts(hostList string) []string {
 type Signer interface {
 	Info(info.Req) (*info.Resp, error)
 	Policy() *config.Signing
-	SetDB(*sql.DB)
+	SetDBAccessor(certdb.Accessor)
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)

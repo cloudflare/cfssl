@@ -16,7 +16,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
@@ -157,7 +157,7 @@ func LoadRoot(cfg map[string]string) (*Root, error) {
 
 	dbConfig := cfg["dbconfig"]
 	if dbConfig != "" {
-		db, err := certdb.DBFromConfig(dbConfig)
+		db, err := dbconf.DBFromConfig(dbConfig)
 		if err != nil {
 			return nil, err
 		}

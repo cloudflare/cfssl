@@ -2,13 +2,13 @@
 package ocspdump
 
 import (
-	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/log"
 )
 
 // Usage text of 'cfssl ocspdump'
@@ -25,20 +25,18 @@ Flags:
 var ocspdumpFlags = []string{"db-config"}
 
 // ocspdumpMain is the main CLI of OCSP dump functionality.
-func ocspdumpMain(args []string, c cli.Config) (err error) {
+func ocspdumpMain(args []string, c cli.Config) error {
 	if c.DBConfigFile == "" {
-		log.Error("need DB config file (provide with -db-config)")
-		return
+		return errors.New("need DB config file (provide with -db-config)")
 	}
 
-	var db *sql.DB
-	db, err = certdb.DBFromConfig(c.DBConfigFile)
+	db, err := dbconf.DBFromConfig(c.DBConfigFile)
 	if err != nil {
 		return err
 	}
 
-	var records []*certdb.OCSPRecord
-	records, err = certdb.GetUnexpiredOCSPs(db)
+	dbAccessor := sql.NewAccessor(db)
+	records, err := dbAccessor.GetUnexpiredOCSPs()
 	if err != nil {
 		return err
 	}

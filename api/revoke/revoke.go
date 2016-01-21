@@ -2,7 +2,6 @@
 package revoke
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -16,14 +15,14 @@ import (
 // A Handler accepts requests with a serial number parameter
 // and revokes
 type Handler struct {
-	db *sql.DB
+	dbAccessor certdb.Accessor
 }
 
 // NewHandler returns a new http.Handler that handles a revoke request.
-func NewHandler(db *sql.DB) http.Handler {
+func NewHandler(dbAccessor certdb.Accessor) http.Handler {
 	return &api.HTTPHandler{
 		Handler: &Handler{
-			db: db,
+			dbAccessor: dbAccessor,
 		},
 		Methods: []string{"POST"},
 	}
@@ -61,7 +60,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("Invalid reason code")
 	}
 
-	err = certdb.RevokeCertificate(h.db, req.Serial, reasonCode)
+	err = h.dbAccessor.RevokeCertificate(req.Serial, reasonCode)
 	result := map[string]string{}
 	return api.SendResponse(w, result)
 }

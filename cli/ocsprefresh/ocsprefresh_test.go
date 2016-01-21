@@ -6,12 +6,15 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/helpers"
 	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
-	"github.com/cloudflare/cfssl/helpers"
 )
+
+var dbAccessor certdb.Accessor
 
 func TestOCSPRefreshMain(t *testing.T) {
 	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
@@ -29,25 +32,25 @@ func TestOCSPRefreshMain(t *testing.T) {
 		Status: "good",
 	}
 
-	err = certdb.InsertCertificate(db, cert)
+	dbAccessor = sql.NewAccessor(db)
+	err = dbAccessor.InsertCertificate(cert)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = ocsprefreshMain([]string{}, cli.Config{
-		CAFile: "../../ocsp/testdata/ca.pem",
-		ResponderFile:"../../ocsp/testdata/server.crt",
-		ResponderKeyFile:"../../ocsp/testdata/server.key",
-		DBConfigFile: "../testdata/db-config.json",
-		Interval:helpers.OneDay,
+		CAFile:           "../../ocsp/testdata/ca.pem",
+		ResponderFile:    "../../ocsp/testdata/server.crt",
+		ResponderKeyFile: "../../ocsp/testdata/server.key",
+		DBConfigFile:     "../testdata/db-config.json",
+		Interval:         helpers.OneDay,
 	})
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var records []*certdb.OCSPRecord
-	records, err = certdb.GetUnexpiredOCSPs(db)
+	records, err := dbAccessor.GetUnexpiredOCSPs()
 	if err != nil {
 		t.Fatal("Failed to get OCSP responses")
 	}
@@ -65,24 +68,24 @@ func TestOCSPRefreshMain(t *testing.T) {
 		t.Fatal("Expected cert status 'good'")
 	}
 
-	err = certdb.RevokeCertificate(db, cert.Serial, ocsp.KeyCompromise)
+	err = dbAccessor.RevokeCertificate(cert.Serial, ocsp.KeyCompromise)
 	if err != nil {
 		t.Fatal("Failed to revoke certificate")
 	}
 
 	err = ocsprefreshMain([]string{}, cli.Config{
-		CAFile: "../../ocsp/testdata/ca.pem",
-		ResponderFile:"../../ocsp/testdata/server.crt",
-		ResponderKeyFile:"../../ocsp/testdata/server.key",
-		DBConfigFile: "../testdata/db-config.json",
-		Interval:helpers.OneDay,
+		CAFile:           "../../ocsp/testdata/ca.pem",
+		ResponderFile:    "../../ocsp/testdata/server.crt",
+		ResponderKeyFile: "../../ocsp/testdata/server.key",
+		DBConfigFile:     "../testdata/db-config.json",
+		Interval:         helpers.OneDay,
 	})
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	records, err = certdb.GetUnexpiredOCSPs(db)
+	records, err = dbAccessor.GetUnexpiredOCSPs()
 	if err != nil {
 		t.Fatal("Failed to get OCSP responses")
 	}

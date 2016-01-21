@@ -3,9 +3,9 @@ package sign
 import (
 	"testing"
 
-	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
+	"github.com/cloudflare/cfssl/cli"
 )
 
 func TestSignFromConfig(t *testing.T) {
@@ -40,16 +40,16 @@ func TestSignerWithDB(t *testing.T) {
 	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	err := signerMain([]string{"../../testdata/server.csr"},
 		cli.Config{
-			CAFile: "../../testdata/server.crt",
-			CAKeyFile: "../../testdata/server.key",
-			Hostname: "www.cloudflare.com",
-			DBConfigFile:"../testdata/db-config.json"})
+			CAFile:       "../../testdata/server.crt",
+			CAKeyFile:    "../../testdata/server.key",
+			Hostname:     "www.cloudflare.com",
+			DBConfigFile: "../testdata/db-config.json"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var crs []*certdb.CertificateRecord
-	crs, err = certdb.GetUnexpiredCertificates(db)
+	dbAccessor := sql.NewAccessor(db)
+	crs, err := dbAccessor.GetUnexpiredCertificates()
 	if err != nil {
 		t.Fatal("Failed to get unexpired certificates")
 	}

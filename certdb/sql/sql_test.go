@@ -1,21 +1,30 @@
-package certdb
+package sql
 
 import (
-	"database/sql"
 	"math"
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 )
 
 const (
-	sqliteDBFile = "testdb/certstore_development.db"
+	sqliteDBFile = "../testdb/certstore_development.db"
 )
+
+func TestNoDB(t *testing.T) {
+	dba := &Accessor{}
+	_, err := dba.GetCertificate("foobar")
+	if err == nil {
+		t.Fatal("should return error")
+	}
+}
 
 func TestSQLite(t *testing.T) {
 	db := testdb.SQLiteDB(sqliteDBFile)
-	testEverything(db, t)
+	dba := NewAccessor(db)
+	testEverything(dba, t)
 }
 
 // roughlySameTime decides if t1 and t2 are close enough.
@@ -24,19 +33,19 @@ func roughlySameTime(t1, t2 time.Time) bool {
 	return math.Abs(float64(t1.Sub(t2))) < float64(time.Second)
 }
 
-func testEverything(db *sql.DB, t *testing.T) {
-	testInsertCertificateAndGetCertificate(db, t)
-	testInsertCertificateAndGetUnexpiredCertificate(db, t)
-	testUpdateCertificateAndGetCertificate(db, t)
-	testInsertOCSPAndGetOCSP(db, t)
-	testInsertOCSPAndGetUnexpiredOCSP(db, t)
-	testUpdateOCSPAndGetOCSP(db, t)
-	testUpsertOCSPAndGetOCSP(db, t)
+func testEverything(dba certdb.Accessor, t *testing.T) {
+	testInsertCertificateAndGetCertificate(dba, t)
+	testInsertCertificateAndGetUnexpiredCertificate(dba, t)
+	testUpdateCertificateAndGetCertificate(dba, t)
+	testInsertOCSPAndGetOCSP(dba, t)
+	testInsertOCSPAndGetUnexpiredOCSP(dba, t)
+	testUpdateOCSPAndGetOCSP(dba, t)
+	testUpsertOCSPAndGetOCSP(dba, t)
 }
 
-func testInsertCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
+func testInsertCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
-	want := &CertificateRecord{
+	want := &certdb.CertificateRecord{
 		PEM:     "fake cert data",
 		Serial:  "fake serial",
 		CALabel: "default",
@@ -45,11 +54,11 @@ func testInsertCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
 		Expiry:  expiry,
 	}
 
-	if err := InsertCertificate(db, want); err != nil {
+	if err := dba.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetCertificate(db, want.Serial)
+	got, err := dba.GetCertificate(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +70,7 @@ func testInsertCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
 		t.Errorf("want Certificate %+v, got %+v", *want, *got)
 	}
 
-	unexpired, err := GetUnexpiredCertificates(db)
+	unexpired, err := dba.GetUnexpiredCertificates()
 
 	if err != nil {
 		t.Fatal(err)
@@ -72,9 +81,9 @@ func testInsertCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
 	}
 }
 
-func testInsertCertificateAndGetUnexpiredCertificate(db *sql.DB, t *testing.T) {
+func testInsertCertificateAndGetUnexpiredCertificate(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Now().Add(time.Minute)
-	want := &CertificateRecord{
+	want := &certdb.CertificateRecord{
 		PEM:     "fake cert data",
 		Serial:  "fake serial 2",
 		CALabel: "default",
@@ -83,11 +92,11 @@ func testInsertCertificateAndGetUnexpiredCertificate(db *sql.DB, t *testing.T) {
 		Expiry:  expiry,
 	}
 
-	if err := InsertCertificate(db, want); err != nil {
+	if err := dba.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetCertificate(db, want.Serial)
+	got, err := dba.GetCertificate(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +108,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(db *sql.DB, t *testing.T) {
 		t.Errorf("want Certificate %+v, got %+v", *want, *got)
 	}
 
-	unexpired, err := GetUnexpiredCertificates(db)
+	unexpired, err := dba.GetUnexpiredCertificates()
 
 	if err != nil {
 		t.Fatal(err)
@@ -110,9 +119,9 @@ func testInsertCertificateAndGetUnexpiredCertificate(db *sql.DB, t *testing.T) {
 	}
 }
 
-func testUpdateCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
+func testUpdateCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
-	want := &CertificateRecord{
+	want := &certdb.CertificateRecord{
 		PEM:     "fake cert data",
 		Serial:  "fake serial 3",
 		CALabel: "default",
@@ -121,16 +130,16 @@ func testUpdateCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
 		Expiry:  expiry,
 	}
 
-	if err := InsertCertificate(db, want); err != nil {
+	if err := dba.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
 
 	// reason 2 is CACompromise
-	if err := RevokeCertificate(db, want.Serial, 2); err != nil {
+	if err := dba.RevokeCertificate(want.Serial, 2); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetCertificate(db, want.Serial)
+	got, err := dba.GetCertificate(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,19 +152,19 @@ func testUpdateCertificateAndGetCertificate(db *sql.DB, t *testing.T) {
 	}
 }
 
-func testInsertOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
+func testInsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
-	want := &OCSPRecord{
+	want := &certdb.OCSPRecord{
 		Serial: "fake serial",
 		Body:   "fake body",
 		Expiry: expiry,
 	}
 
-	if err := InsertOCSP(db, want); err != nil {
+	if err := dba.InsertOCSP(want); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetOCSP(db, want.Serial)
+	got, err := dba.GetOCSP(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +174,7 @@ func testInsertOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
 		t.Errorf("want OCSP %+v, got %+v", *want, *got)
 	}
 
-	unexpired, err := GetUnexpiredOCSPs(db)
+	unexpired, err := dba.GetUnexpiredOCSPs()
 
 	if err != nil {
 		t.Fatal(err)
@@ -176,18 +185,18 @@ func testInsertOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
 	}
 }
 
-func testInsertOCSPAndGetUnexpiredOCSP(db *sql.DB, t *testing.T) {
-	want := &OCSPRecord{
+func testInsertOCSPAndGetUnexpiredOCSP(dba certdb.Accessor, t *testing.T) {
+	want := &certdb.OCSPRecord{
 		Serial: "fake serial 2",
 		Body:   "fake body",
 		Expiry: time.Now().Add(time.Minute),
 	}
 
-	if err := InsertOCSP(db, want); err != nil {
+	if err := dba.InsertOCSP(want); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetOCSP(db, want.Serial)
+	got, err := dba.GetOCSP(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +206,7 @@ func testInsertOCSPAndGetUnexpiredOCSP(db *sql.DB, t *testing.T) {
 		t.Errorf("want OCSP %+v, got %+v", *want, *got)
 	}
 
-	unexpired, err := GetUnexpiredOCSPs(db)
+	unexpired, err := dba.GetUnexpiredOCSPs()
 
 	if err != nil {
 		t.Fatal(err)
@@ -208,23 +217,23 @@ func testInsertOCSPAndGetUnexpiredOCSP(db *sql.DB, t *testing.T) {
 	}
 }
 
-func testUpdateOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
-	want := &OCSPRecord{
+func testUpdateOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
+	want := &certdb.OCSPRecord{
 		Serial: "fake serial 3",
 		Body:   "fake body",
 		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
 	}
 
-	if err := InsertOCSP(db, want); err != nil {
+	if err := dba.InsertOCSP(want); err != nil {
 		t.Fatal(err)
 	}
 
 	newExpiry := time.Now().Add(time.Hour)
-	if err := UpdateOCSP(db, want.Serial, "fake body revoked", newExpiry); err != nil {
+	if err := dba.UpdateOCSP(want.Serial, "fake body revoked", newExpiry); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetOCSP(db, want.Serial)
+	got, err := dba.GetOCSP(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,18 +245,18 @@ func testUpdateOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
 	}
 }
 
-func testUpsertOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
-	want := &OCSPRecord{
+func testUpsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
+	want := &certdb.OCSPRecord{
 		Serial: "fake serial 3",
 		Body:   "fake body",
 		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
 	}
 
-	if err := UpsertOCSP(db, want.Serial, want.Body, want.Expiry); err != nil {
+	if err := dba.UpsertOCSP(want.Serial, want.Body, want.Expiry); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := GetOCSP(db, want.Serial)
+	got, err := dba.GetOCSP(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,11 +267,11 @@ func testUpsertOCSPAndGetOCSP(db *sql.DB, t *testing.T) {
 	}
 
 	newExpiry := time.Now().Add(time.Hour)
-	if err := UpsertOCSP(db, want.Serial, "fake body revoked", newExpiry); err != nil {
+	if err := dba.UpsertOCSP(want.Serial, "fake body revoked", newExpiry); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err = GetOCSP(db, want.Serial)
+	got, err = dba.GetOCSP(want.Serial)
 	if err != nil {
 		t.Fatal(err)
 	}

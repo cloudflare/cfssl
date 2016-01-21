@@ -23,7 +23,8 @@ import (
 	"github.com/cloudflare/cfssl/api/scan"
 	"github.com/cloudflare/cfssl/api/signhandler"
 	"github.com/cloudflare/cfssl/bundler"
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
+	certsql "github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
 	ocspsign "github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -175,7 +176,7 @@ var endpoints = map[string]func() (http.Handler, error){
 		if db == nil {
 			return nil, errNoCertDBConfigured
 		}
-		return revoke.NewHandler(db), nil
+		return revoke.NewHandler(certsql.NewAccessor(db)), nil
 	},
 
 	"/": func() (http.Handler, error) {
@@ -219,7 +220,7 @@ func serverMain(args []string, c cli.Config) error {
 	}
 
 	if c.DBConfigFile != "" {
-		db, err = certdb.DBFromConfig(c.DBConfigFile)
+		db, err = dbconf.DBFromConfig(c.DBConfigFile)
 		if err != nil {
 			return err
 		}

@@ -2,10 +2,10 @@
 package revoke
 
 import (
-	"database/sql"
 	"errors"
 
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
@@ -25,7 +25,7 @@ Flags:
 
 var revokeFlags = []string{"serial", "reason"}
 
-func revokeMain(args []string, c cli.Config) (err error) {
+func revokeMain(args []string, c cli.Config) error {
 	if len(args) > 0 {
 		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
 	}
@@ -38,22 +38,20 @@ func revokeMain(args []string, c cli.Config) (err error) {
 		return errors.New("need DB config file (provide with -db-config)")
 	}
 
-	var db *sql.DB
-	db, err = certdb.DBFromConfig(c.DBConfigFile)
+	db, err := dbconf.DBFromConfig(c.DBConfigFile)
 	if err != nil {
 		return err
 	}
 
-	var reasonCode int
-	reasonCode, err = ocsp.ReasonStringToCode(c.Reason)
+	dbAccessor := sql.NewAccessor(db)
+
+	reasonCode, err := ocsp.ReasonStringToCode(c.Reason)
 	if err != nil {
 		log.Error("Invalid reason code: ", err)
-		return
+		return err
 	}
 
-	err = certdb.RevokeCertificate(db, c.Serial, reasonCode)
-
-	return
+	return dbAccessor.RevokeCertificate(c.Serial, reasonCode)
 }
 
 // Command assembles the definition of Command 'revoke'

@@ -2,10 +2,11 @@
 package ocsprefresh
 
 import (
-	"database/sql"
+	"errors"
 	"time"
 
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -26,25 +27,21 @@ Flags:
 var ocsprefreshFlags = []string{"ca", "responder", "responder-key", "db-config", "interval"}
 
 // ocsprefreshMain is the main CLI of OCSP refresh functionality.
-func ocsprefreshMain(args []string, c cli.Config) (err error) {
+func ocsprefreshMain(args []string, c cli.Config) error {
 	if c.DBConfigFile == "" {
-		log.Error("need DB config file (provide with -db-config)")
-		return
+		return errors.New("need DB config file (provide with -db-config)")
 	}
 
 	if c.ResponderFile == "" {
-		log.Error("need responder certificate (provide with -responder)")
-		return
+		return errors.New("need responder certificate (provide with -responder)")
 	}
 
 	if c.ResponderKeyFile == "" {
-		log.Error("need responder key (provide with -responder-key)")
-		return
+		return errors.New("need responder key (provide with -responder-key)")
 	}
 
 	if c.CAFile == "" {
-		log.Error("need CA certificate (provide with -ca)")
-		return
+		return errors.New("need CA certificate (provide with -ca)")
 	}
 
 	s, err := SignerFromConfig(c)
@@ -53,14 +50,13 @@ func ocsprefreshMain(args []string, c cli.Config) (err error) {
 		return err
 	}
 
-	var db *sql.DB
-	db, err = certdb.DBFromConfig(c.DBConfigFile)
+	db, err := dbconf.DBFromConfig(c.DBConfigFile)
 	if err != nil {
 		return err
 	}
 
-	var certs []*certdb.CertificateRecord
-	certs, err = certdb.GetUnexpiredCertificates(db)
+	dbAccessor := sql.NewAccessor(db)
+	certs, err := dbAccessor.GetUnexpiredCertificates()
 	if err != nil {
 		return err
 	}
@@ -90,7 +86,7 @@ func ocsprefreshMain(args []string, c cli.Config) (err error) {
 			return err
 		}
 
-		err = certdb.UpsertOCSP(db, cert.SerialNumber.String(), string(resp), ocspExpiry)
+		err = dbAccessor.UpsertOCSP(cert.SerialNumber.String(), string(resp), ocspExpiry)
 		if err != nil {
 			log.Critical("Unable to save OCSP response: ", err)
 			return err

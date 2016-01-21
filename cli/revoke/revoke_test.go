@@ -2,18 +2,19 @@ package revoke
 
 import (
 	"testing"
-
-	"database/sql"
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/cli"
 	"golang.org/x/crypto/ocsp"
 )
 
-func prepDB() (db *sql.DB, err error) {
-	db = testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
+var dbAccessor certdb.Accessor
+
+func prepDB() (err error) {
+	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	expirationTime := time.Now().AddDate(1, 0, 0)
 	var cert = &certdb.CertificateRecord{
 		Serial: "1",
@@ -21,16 +22,17 @@ func prepDB() (db *sql.DB, err error) {
 		PEM:    "unexpired cert",
 	}
 
-	err = certdb.InsertCertificate(db, cert)
+	dbAccessor = sql.NewAccessor(db)
+	err = dbAccessor.InsertCertificate(cert)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	return
 }
 
 func TestRevokeMain(t *testing.T) {
-	db, err := prepDB()
+	err := prepDB()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +42,7 @@ func TestRevokeMain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var crs *certdb.CertificateRecord
-	crs, err = certdb.GetCertificate(db, "1")
+	crs, err := dbAccessor.GetCertificate("1")
 	if err != nil {
 		t.Fatal("Failed to get certificate")
 	}
@@ -55,7 +56,7 @@ func TestRevokeMain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	crs, err = certdb.GetCertificate(db, "1")
+	crs, err = dbAccessor.GetCertificate("1")
 	if err != nil {
 		t.Fatal("Failed to get certificate")
 	}
@@ -69,7 +70,7 @@ func TestRevokeMain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	crs, err = certdb.GetCertificate(db, "1")
+	crs, err = dbAccessor.GetCertificate("1")
 	if err != nil {
 		t.Fatal("Failed to get certificate")
 	}
