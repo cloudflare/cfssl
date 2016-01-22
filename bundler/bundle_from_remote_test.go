@@ -29,7 +29,6 @@ const (
 	ValidSSLSite           = "google.com"
 	SelfSignedSSLSite      = "cacert.org"
 	MismatchedHostnameSite = "www.capitol.state.tx.us"
-	ExpiredCertSite        = "testssl-expire.disig.sk"
 	ECCCertSite            = "benflare.us"
 	InvalidSite            = "cloudflare1337.com"
 	ValidSNI               = "alice.sni.velox.ch"
@@ -70,11 +69,6 @@ var remoteTests = []remoteTest{
 	},
 	{
 		hostname:           MismatchedHostnameSite,
-		bundlerConstructor: newBundler,
-		errorCallback:      ExpectErrorMessages([]string{`"code":12`}), // only check it is a 12xx error
-	},
-	{
-		hostname:           ExpiredCertSite,
 		bundlerConstructor: newBundler,
 		errorCallback:      ExpectErrorMessages([]string{`"code":12`}), // only check it is a 12xx error
 	},
