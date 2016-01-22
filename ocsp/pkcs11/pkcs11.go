@@ -1,4 +1,4 @@
-// +build !nopkcs11
+// +build !nopkcs11,!appengine
 
 // Package pkcs11 in the ocsp directory provides a way to construct a
 // PKCS#11-based OCSP signer.
