@@ -80,3 +80,11 @@ func (b *Backoff) Duration() time.Duration {
 
 	return t
 }
+
+// Reset clears the backoff.
+func (b *Backoff) Reset() {
+	b.setup()
+	b.lock.Lock()
+	b.tries = 0
+	b.lock.Unlock()
+}
