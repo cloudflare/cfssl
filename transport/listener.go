@@ -12,7 +12,6 @@ import (
 type Listener struct {
 	*Transport
 	net.Listener
-	config *tls.Config
 }
 
 // Listen sets up a new server. If an error is returned, it means
@@ -20,12 +19,12 @@ type Listener struct {
 func Listen(address string, tr *Transport) (*Listener, error) {
 	var err error
 	l := &Listener{Transport: tr}
-	l.config, err = tr.getConfig()
+	config, err := tr.getConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	l.Listener, err = tls.Listen("tcp", address, l.config)
+	l.Listener, err = tls.Listen("tcp", address, config)
 	return l, err
 }
 
@@ -93,8 +92,17 @@ func (l *Listener) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- error
 			certUpdates <- time.Now()
 		}
 
-		var err error
-		l.config, err = l.getConfig()
+		config, err := l.getConfig()
+		if err != nil {
+			log.Debug("immediately after getting a new certificate, the Transport is reporting errors: %v", err)
+			if errChan != nil {
+				errChan <- err
+			}
+		}
+
+		address := l.Listener.Addr().String()
+		lnet := l.Listener.Addr().Network()
+		l.Listener, err = tls.Listen(lnet, address, config)
 		if err != nil {
 			log.Debug("immediately after getting a new certificate, the Transport is reporting errors: %v", err)
 			if errChan != nil {
@@ -103,5 +111,6 @@ func (l *Listener) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- error
 		}
 
 		log.Debug("listener: auto update of certificate complete")
+		l.Transport.Backoff.Reset()
 	}
 }

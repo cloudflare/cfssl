@@ -321,5 +321,7 @@ func (tr *Transport) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- err
 		if certUpdates != nil {
 			certUpdates <- time.Now()
 		}
+
+		tr.Backoff.Reset()
 	}
 }
