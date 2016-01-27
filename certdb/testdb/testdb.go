@@ -35,7 +35,7 @@ DELETE FROM ocsp_responses;
 
 // PostgreSQLDB returns a PostgreSQL db instance for certdb testing.
 func PostgreSQLDB() *sql.DB {
-	connStr := "dbname=certdb_development host=/var/run/postgresql sslmode=disable"
+	connStr := "dbname=certdb_development sslmode=disable"
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
 		connStr = dbURL
