@@ -386,6 +386,8 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 	for i := range req.Hosts {
 		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
 			tpl.IPAddresses = append(tpl.IPAddresses, ip)
+		} else if email, err := mail.ParseAddress(req.Hosts[i]); err == nil && email != nil {
+			tpl.EmailAddresses = append(tpl.EmailAddresses, email.Address)
 		} else {
 			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
 		}
