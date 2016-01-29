@@ -107,7 +107,7 @@ func TestParseRequest(t *testing.T) {
 				OU: "Systems Engineering",
 			},
 		},
-		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com"},
 		KeyRequest: NewBasicKeyRequest(),
 	}
 
@@ -221,7 +221,7 @@ func TestDefaultBasicKeyRequest(t *testing.T) {
 			},
 		},
 		CN:    "cloudflare.com",
-		Hosts: []string{"cloudflare.com", "www.cloudflare.com"},
+		Hosts: []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com"},
 	}
 	_, priv, err := ParseRequest(req)
 	if err != nil {
@@ -261,7 +261,7 @@ func TestRSACertRequest(t *testing.T) {
 			},
 		},
 		CN:         "cloudflare.com",
-		Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com"},
 		KeyRequest: &BasicKeyRequest{"rsa", 2048},
 	}
 	_, _, err := ParseRequest(req)
@@ -318,7 +318,7 @@ func TestGenerator(t *testing.T) {
 			},
 		},
 		CN:         "cloudflare.com",
-		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com"},
 		KeyRequest: &BasicKeyRequest{"rsa", 2048},
 	}
 
@@ -346,6 +346,10 @@ func TestGenerator(t *testing.T) {
 	}
 
 	if len(csr.IPAddresses) != 1 {
+		t.Fatal("SAN parsing error")
+	}
+
+	if len(csr.EmailAddresses) != 1 {
 		t.Fatal("SAN parsing error")
 	}
 
@@ -388,7 +392,7 @@ func TestWeakCSR(t *testing.T) {
 			},
 		},
 		CN:         "cloudflare.com",
-		Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com"},
 		KeyRequest: &BasicKeyRequest{"rsa", 1024},
 	}
 	g := &Generator{testValidator}
@@ -449,7 +453,7 @@ func TestGenerate(t *testing.T) {
 			},
 		},
 		CN:         "cloudflare.com",
-		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1"},
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com"},
 		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
 	}
 
@@ -468,9 +472,21 @@ func TestGenerate(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	_, _, err = helpers.ParseCSR(csrPEM)
+	csr, _, err := helpers.ParseCSR(csrPEM)
 	if err != nil {
 		t.Fatalf("%v", err)
+	}
+
+	if len(csr.DNSNames) != 2 {
+		t.Fatal("SAN parsing error")
+	}
+
+	if len(csr.IPAddresses) != 1 {
+		t.Fatal("SAN parsing error")
+	}
+
+	if len(csr.EmailAddresses) != 1 {
+		t.Fatal("SAN parsing error")
 	}
 }
 
