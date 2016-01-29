@@ -274,6 +274,9 @@ func getHosts(cert *x509.Certificate) []string {
 	for _, dns := range cert.DNSNames {
 		hosts = append(hosts, dns)
 	}
+	for _, email := range cert.EmailAddresses {
+		hosts = append(hosts, email)
+	}
 
 	return hosts
 }
