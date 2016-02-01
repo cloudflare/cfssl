@@ -174,6 +174,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		SignatureAlgorithm: s.SigAlgo(),
 		DNSNames:           csr.DNSNames,
 		IPAddresses:        csr.IPAddresses,
+		EmailAddresses:     csr.EmailAddresses,
 	}
 
 	return

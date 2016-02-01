@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"net"
+	"net/mail"
 	"strings"
 
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -221,6 +222,8 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	for i := range req.Hosts {
 		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
 			tpl.IPAddresses = append(tpl.IPAddresses, ip)
+		} else if email, err := mail.ParseAddress(req.Hosts[i]); err == nil && email != nil {
+			tpl.EmailAddresses = append(tpl.EmailAddresses, req.Hosts[i])
 		} else {
 			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
 		}
@@ -270,6 +273,9 @@ func getHosts(cert *x509.Certificate) []string {
 	}
 	for _, dns := range cert.DNSNames {
 		hosts = append(hosts, dns)
+	}
+	for _, email := range cert.EmailAddresses {
+		hosts = append(hosts, email)
 	}
 
 	return hosts
@@ -380,6 +386,8 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 	for i := range req.Hosts {
 		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
 			tpl.IPAddresses = append(tpl.IPAddresses, ip)
+		} else if email, err := mail.ParseAddress(req.Hosts[i]); err == nil && email != nil {
+			tpl.EmailAddresses = append(tpl.EmailAddresses, email.Address)
 		} else {
 			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
 		}

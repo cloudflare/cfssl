@@ -19,6 +19,7 @@ import (
 	"math/big"
 	"net"
 	"net/mail"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -103,12 +104,14 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 			return
 		}
 		template.DNSNames = nil
+		template.EmailAddresses = nil
 		s.ca = template
 		initRoot = true
 		template.MaxPathLen = signer.MaxPathLen
 	} else if template.IsCA {
 		template.MaxPathLen = 1
 		template.DNSNames = nil
+		template.EmailAddresses = nil
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
@@ -229,6 +232,9 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		if profile.CSRWhitelist.IPAddresses {
 			safeTemplate.IPAddresses = csrTemplate.IPAddresses
 		}
+		if profile.CSRWhitelist.EmailAddresses {
+			safeTemplate.EmailAddresses = csrTemplate.EmailAddresses
+		}
 	}
 
 	OverrideHosts(&safeTemplate, req.Hosts)
@@ -242,6 +248,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			}
 		}
 		for _, name := range safeTemplate.DNSNames {
+			if profile.NameWhitelist.Find([]byte(name)) == nil {
+				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+			}
+		}
+		for _, name := range safeTemplate.EmailAddresses {
 			if profile.NameWhitelist.Find([]byte(name)) == nil {
 				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
 			}
@@ -346,11 +357,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if s.db != nil {
 		var certRecord = &certdb.CertificateRecord{
-			Serial:    certTBS.SerialNumber.String(),
-			CALabel:   req.Label,
-			Status:    "good",
-			Expiry:    certTBS.NotAfter,
-			PEM:       string(signedCert),
+			Serial:  certTBS.SerialNumber.String(),
+			CALabel: req.Label,
+			Status:  "good",
+			Expiry:  certTBS.NotAfter,
+			PEM:     string(signedCert),
 		}
 
 		err = certdb.InsertCertificate(s.db, certRecord)

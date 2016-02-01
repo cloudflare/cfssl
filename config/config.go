@@ -31,7 +31,7 @@ import (
 // mechanism.
 type CSRWhitelist struct {
 	Subject, PublicKeyAlgorithm, PublicKey, SignatureAlgorithm bool
-	DNSNames, IPAddresses                                      bool
+	DNSNames, IPAddresses, EmailAddresses                      bool
 }
 
 // OID is our own version of asn1's ObjectIdentifier, so we can define a custom
