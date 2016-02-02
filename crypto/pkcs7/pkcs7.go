@@ -36,14 +36,14 @@
 // this system's use of PKCS #7 data.  Version is an integer type, note that PKCS #7 is
 // recursive, this second layer of ContentInfo is similar ignored for our degenerate
 // usage.  The ExtendedCertificatesAndCertificates type consists of a sequence of choices
-// between PKCS #6 extended certificates andx509 certificates.  Any sequence consisting
-// of any number of  extended certificates is not yet supported in this implementation
+// between PKCS #6 extended certificates and x509 certificates.  Any sequence consisting
+// of any number of extended certificates is not yet supported in this implementation.
 //
-// The ContentType Data is simpy a raw octet string and is parsed directly into a Go []byte
+// The ContentType Data is simply a raw octet string and is parsed directly into a Go []byte slice.
 //
 // The ContentType encryptedData is the most complicated and its form can be gathered by
 // the go type below.  It essentially contains a raw octet string of encrypted data and an
-// algorithm identifier for use in decrypting this data
+// algorithm identifier for use in decrypting this data.
 package pkcs7
 
 import (
@@ -55,7 +55,7 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 )
 
-// Types used for asn1 Unmarshaling
+// Types used for asn1 Unmarshaling.
 
 type signedData struct {
 	Version          int
@@ -72,7 +72,7 @@ type initPKCS7 struct {
 	Content     asn1.RawValue `asn1:"tag:0,explicit,optional"`
 }
 
-// Object identifiers strings of the three implemented PKCS7 types
+// Object identifier strings of the three implemented PKCS7 types.
 const (
 	ObjIDData          = "1.2.840.113549.1.7.1"
 	ObjIDSignedData    = "1.2.840.113549.1.7.2"
@@ -84,21 +84,21 @@ const (
 // the ContentInfo field, the other two being nil.  SignedData
 // is the degenerate SignedData Content info without signature used
 // to hold certificates and crls.  Data is raw bytes, and EncryptedData
-// is as defined in PKCS #7 standard
+// is as defined in PKCS #7 standard.
 type PKCS7 struct {
 	Raw         asn1.RawContent
 	ContentInfo string
 	Content     Content
 }
 
-// Content implements three of the six possible PKCS7 data types.  Only one is non-nil
+// Content implements three of the six possible PKCS7 data types.  Only one is non-nil.
 type Content struct {
 	Data          []byte
 	SignedData    SignedData
 	EncryptedData EncryptedData
 }
 
-// SignedData defines the typical carrier of certificates and crls
+// SignedData defines the typical carrier of certificates and crls.
 type SignedData struct {
 	Raw          asn1.RawContent
 	Version      int
@@ -106,19 +106,19 @@ type SignedData struct {
 	Crl          *pkix.CertificateList
 }
 
-// Data contains raw bytes.  Used as a subtype in PKCS12
+// Data contains raw bytes.  Used as a subtype in PKCS12.
 type Data struct {
 	Bytes []byte
 }
 
-// EncryptedData contains encrypted data.  Used as a subtype in PKCS12
+// EncryptedData contains encrypted data.  Used as a subtype in PKCS12.
 type EncryptedData struct {
 	Raw                  asn1.RawContent
 	Version              int
 	EncryptedContentInfo EncryptedContentInfo
 }
 
-// EncryptedContentInfo is a subtype of PKCS7EncryptedData
+// EncryptedContentInfo is a subtype of PKCS7EncryptedData.
 type EncryptedContentInfo struct {
 	Raw                        asn1.RawContent
 	ContentType                asn1.ObjectIdentifier
@@ -127,7 +127,7 @@ type EncryptedContentInfo struct {
 }
 
 // ParsePKCS7 attempts to parse the DER encoded bytes of a
-// PKCS7 structure
+// PKCS7 structure.
 func ParsePKCS7(raw []byte) (msg *PKCS7, err error) {
 
 	var pkcs7 initPKCS7
