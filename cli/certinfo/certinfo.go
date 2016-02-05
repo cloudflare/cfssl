@@ -2,6 +2,7 @@
 package certinfo
 
 import (
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,8 @@ var dataUsageText = `cfssl certinfo -- output certinfo about the given cert
 Usage of certinfo:
 	- Data from local certificate files
         cfssl certinfo -cert file
+	- Data from local CSR file
+        cfssl certinfo -csr file
 	- Data from certificate from remote server.
         cfssl certinfo -domain domain_name
 
@@ -23,11 +26,12 @@ Flags:
 `
 
 // flags used by 'cfssl certinfo'
-var certinfoFlags = []string{"cert", "domain"}
+var certinfoFlags = []string{"cert", "csr", "domain"}
 
 // certinfoMain is the main CLI of certinfo functionality
 func certinfoMain(args []string, c cli.Config) (err error) {
 	var cert *certinfo.Certificate
+	var csr *x509.CertificateRequest
 
 	if c.CertFile != "" {
 		if c.CertFile == "-" {
@@ -44,16 +48,35 @@ func certinfoMain(args []string, c cli.Config) (err error) {
 				return
 			}
 		}
+	} else if c.CSRFile != "" {
+		if c.CSRFile == "-" {
+			var csrPEM []byte
+			if csrPEM, err = cli.ReadStdin(c.CSRFile); err != nil {
+				return
+			}
+			if csr, err = certinfo.ParseCSRPEM(csrPEM); err != nil {
+				return
+			}
+		} else {
+			if csr, err = certinfo.ParseCSRFile(c.CSRFile); err != nil {
+				return
+			}
+		}
 	} else if c.Domain != "" {
 		if cert, err = certinfo.ParseCertificateDomain(c.Domain); err != nil {
 			return
 		}
 	} else {
-		return errors.New("Must specify certinfo target through -cert or -domain")
+		return errors.New("Must specify certinfo target through -cert, -csr, or -domain")
 	}
 
 	var b []byte
-	b, err = json.MarshalIndent(cert, "", "  ")
+	if cert != nil {
+		b, err = json.MarshalIndent(cert, "", "  ")
+	} else if csr != nil {
+		b, err = json.MarshalIndent(csr, "", "  ")
+	}
+
 	if err != nil {
 		return
 	}

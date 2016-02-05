@@ -36,6 +36,8 @@ const (
 	testPKCS12EmptyPswd          = "testdata/emptypasswordpkcs12.p12"
 	testPKCS12Passwordispassword = "testdata/passwordpkcs12.p12"
 	testPKCS12MultipleCerts      = "testdata/multiplecerts.p12"
+	testCSRPEM                   = "testdata/test.csr.pem"
+	testCSRPEMBad                = "testdata/test.bad.csr.pem"
 )
 
 func TestParseCertificatesDER(t *testing.T) {
@@ -384,4 +386,24 @@ func TestParseCSRPEM(t *testing.T) {
 		t.Fatalf("Expected an invalid CSR.")
 	}
 	in[12]--
+}
+
+func TestParseCSRPEMMore(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(testCSRPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ParseCSRPEM(csrPEM); err != nil {
+		t.Fatal(err)
+	}
+
+	csrPEM, err = ioutil.ReadFile(testCSRPEMBad)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ParseCSRPEM(csrPEM); err == nil {
+		t.Fatal(err)
+	}
 }

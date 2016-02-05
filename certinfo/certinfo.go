@@ -100,6 +100,27 @@ func ParseCertificatePEM(certPEM []byte) (*Certificate, error) {
 	return ParseCertificate(cert), nil
 }
 
+func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
+	// block, _ := pem.Decode([]byte(csrPEM))
+	// der := block.Bytes
+	// csr_object, err := x509.ParseCertificateRequest(der)
+	csr_object, err := helpers.ParseCSRPEM(csrPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	return csr_object, nil
+}
+
+func ParseCSRFile(csrFile string) (*x509.CertificateRequest, error) {
+	csrPEM, err := ioutil.ReadFile(csrFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseCSRPEM(csrPEM)
+}
+
 // ParseCertificateDomain parses the certificate served by the given domain.
 func ParseCertificateDomain(domain string) (cert *Certificate, err error) {
 	var host, port string
