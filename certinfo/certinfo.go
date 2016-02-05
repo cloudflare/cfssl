@@ -101,9 +101,6 @@ func ParseCertificatePEM(certPEM []byte) (*Certificate, error) {
 }
 
 func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
-	// block, _ := pem.Decode([]byte(csrPEM))
-	// der := block.Bytes
-	// csr_object, err := x509.ParseCertificateRequest(der)
 	csr_object, err := helpers.ParseCSRPEM(csrPEM)
 	if err != nil {
 		return nil, err
