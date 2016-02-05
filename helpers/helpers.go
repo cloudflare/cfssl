@@ -427,13 +427,13 @@ func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) 
 func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 	block, _ := pem.Decode([]byte(csrPEM))
 	der := block.Bytes
-	csr_object, err := x509.ParseCertificateRequest(der)
+	csrObject, err := x509.ParseCertificateRequest(der)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return csr_object, nil
+	return csrObject, nil
 }
 
 // SignerAlgo returns an X.509 signature algorithm corresponding to
