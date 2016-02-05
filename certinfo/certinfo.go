@@ -100,7 +100,7 @@ func ParseCertificatePEM(certPEM []byte) (*Certificate, error) {
 	return ParseCertificate(cert), nil
 }
 
-// Uses the helper to parse an x509 CSR PEM.
+// ParseCSRPEM uses the helper to parse an x509 CSR PEM.
 func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 	csrObject, err := helpers.ParseCSRPEM(csrPEM)
 	if err != nil {
@@ -110,7 +110,7 @@ func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 	return csrObject, nil
 }
 
-// Uses the helper to parse an x509 CSR PEM file.
+// ParseCSRFile uses the helper to parse an x509 CSR PEM file.
 func ParseCSRFile(csrFile string) (*x509.CertificateRequest, error) {
 	csrPEM, err := ioutil.ReadFile(csrFile)
 	if err != nil {
