@@ -1,4 +1,4 @@
-package certdb
+package dbconf
 
 import "testing"
 

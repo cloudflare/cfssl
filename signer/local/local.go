@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"database/sql"
 	"encoding/asn1"
 	"encoding/binary"
 	"encoding/hex"
@@ -34,11 +33,11 @@ import (
 // Signer contains a signer that uses the standard library to
 // support both ECDSA and RSA CA keys.
 type Signer struct {
-	ca      *x509.Certificate
-	priv    crypto.Signer
-	policy  *config.Signing
-	sigAlgo x509.SignatureAlgorithm
-	db      *sql.DB
+	ca         *x509.Certificate
+	priv       crypto.Signer
+	policy     *config.Signing
+	sigAlgo    x509.SignatureAlgorithm
+	dbAccessor certdb.Accessor
 }
 
 // NewSigner creates a new Signer directly from a
@@ -59,7 +58,6 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 		priv:    priv,
 		sigAlgo: sigAlgo,
 		policy:  policy,
-		db:      nil,
 	}, nil
 }
 
@@ -355,7 +353,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return nil, err
 	}
 
-	if s.db != nil {
+	if s.dbAccessor != nil {
 		var certRecord = &certdb.CertificateRecord{
 			Serial:  certTBS.SerialNumber.String(),
 			CALabel: req.Label,
@@ -364,7 +362,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			PEM:     string(signedCert),
 		}
 
-		err = certdb.InsertCertificate(s.db, certRecord)
+		err = s.dbAccessor.InsertCertificate(certRecord)
 		if err != nil {
 			return nil, err
 		}
@@ -428,9 +426,9 @@ func (s *Signer) SetPolicy(policy *config.Signing) {
 	s.policy = policy
 }
 
-// SetDB sets the signer's cert db
-func (s *Signer) SetDB(db *sql.DB) {
-	s.db = db
+// SetDBAccessor sets the signers' cert db accessor
+func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
+	s.dbAccessor = dba
 }
 
 // Policy returns the signer's policy.

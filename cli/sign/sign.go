@@ -6,7 +6,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
+	certsql "github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
@@ -62,7 +63,10 @@ func SignerFromConfigAndDB(c cli.Config, db *sql.DB) (signer.Signer, error) {
 		return nil, err
 	}
 
-	s.SetDB(db)
+	if db != nil {
+		dbAccessor := certsql.NewAccessor(db)
+		s.SetDBAccessor(dbAccessor)
+	}
 
 	return s, nil
 }
@@ -72,7 +76,7 @@ func SignerFromConfigAndDB(c cli.Config, db *sql.DB) (signer.Signer, error) {
 func SignerFromConfig(c cli.Config) (s signer.Signer, err error) {
 	var db *sql.DB
 	if c.DBConfigFile != "" {
-		db, err = certdb.DBFromConfig(c.DBConfigFile)
+		db, err = dbconf.DBFromConfig(c.DBConfigFile)
 		if err != nil {
 			return nil, err
 		}

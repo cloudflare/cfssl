@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/signer"
@@ -34,6 +35,8 @@ var validLocalConfigLongerExpiry = `
 	}
 }`
 
+var dbAccessor certdb.Accessor
+
 func TestSignerDBPersistence(t *testing.T) {
 	conf, err := config.LoadConfig([]byte(validLocalConfigLongerExpiry))
 	if err != nil {
@@ -51,7 +54,8 @@ func TestSignerDBPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s.SetDB(db)
+	dbAccessor = sql.NewAccessor(db)
+	s.SetDBAccessor(dbAccessor)
 
 	var handler *api.HTTPHandler
 	handler, err = NewHandlerFromSigner(signer.Signer(s))
@@ -99,12 +103,12 @@ func TestSignerDBPersistence(t *testing.T) {
 	}
 
 	var crs []*certdb.CertificateRecord
-	crs, err = certdb.GetUnexpiredCertificates(db)
+	crs, err = dbAccessor.GetUnexpiredCertificates()
 	if err != nil {
 		t.Fatal("Failed to get unexpired certificates")
 	}
 
 	if len(crs) != 1 {
-		t.Fatal("Expected 1 unexpired certificate in the database after signing 1")
+		t.Fatal("Expected 1 unexpired certificate in the database after signing 1: len(crs)=", len(crs))
 	}
 }

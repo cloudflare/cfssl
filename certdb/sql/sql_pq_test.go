@@ -1,6 +1,6 @@
 // +build postgresql
 
-package certdb
+package sql
 
 import (
 	"testing"
@@ -10,5 +10,6 @@ import (
 
 func TestPostgreSQL(t *testing.T) {
 	db := testdb.PostgreSQLDB()
-	testEverything(db, t)
+	dba := NewAccessor(db)
+	testEverything(dba, t)
 }

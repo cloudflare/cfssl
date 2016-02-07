@@ -2,7 +2,6 @@ package revoke
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -12,11 +11,12 @@ import (
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 )
 
-func prepDB() (db *sql.DB, err error) {
-	db = testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
+func prepDB() (certdb.Accessor, error) {
+	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	expirationTime := time.Now().AddDate(1, 0, 0)
 	var cert = &certdb.CertificateRecord{
 		Serial: "1",
@@ -24,16 +24,17 @@ func prepDB() (db *sql.DB, err error) {
 		PEM:    "unexpired cert",
 	}
 
-	err = certdb.InsertCertificate(db, cert)
+	dbAccessor := sql.NewAccessor(db)
+	err := dbAccessor.InsertCertificate(cert)
 	if err != nil {
 		return nil, err
 	}
 
-	return
+	return dbAccessor, nil
 }
 
-func testRevokeCert(t *testing.T, db *sql.DB, serial string, reason string) (resp *http.Response, body []byte) {
-	ts := httptest.NewServer(NewHandler(db))
+func testRevokeCert(t *testing.T, dbAccessor certdb.Accessor, serial string, reason string) (resp *http.Response, body []byte) {
+	ts := httptest.NewServer(NewHandler(dbAccessor))
 	defer ts.Close()
 
 	obj := map[string]interface{}{}
@@ -61,12 +62,12 @@ func testRevokeCert(t *testing.T, db *sql.DB, serial string, reason string) (res
 }
 
 func TestInvalidRevocation(t *testing.T) {
-	db, err := prepDB()
+	dbAccessor, err := prepDB()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resp, _ := testRevokeCert(t, db, "", "")
+	resp, _ := testRevokeCert(t, dbAccessor, "", "")
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatal("expected bad request response")
@@ -74,12 +75,12 @@ func TestInvalidRevocation(t *testing.T) {
 }
 
 func TestRevocation(t *testing.T) {
-	db, err := prepDB()
+	dbAccessor, err := prepDB()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resp, body := testRevokeCert(t, db, "1", "5")
+	resp, body := testRevokeCert(t, dbAccessor, "1", "5")
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatal("unexpected HTTP status code; expected OK", string(body))
@@ -90,7 +91,7 @@ func TestRevocation(t *testing.T) {
 		t.Fatalf("failed to read response body: %v", err)
 	}
 
-	cert, err := certdb.GetCertificate(db, "1")
+	cert, err := dbAccessor.GetCertificate("1")
 	if err != nil {
 		t.Fatal("failed to get certificate ", err)
 	}
