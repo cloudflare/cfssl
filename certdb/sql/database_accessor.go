@@ -1,58 +1,61 @@
 package sql
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/cloudflare/cfssl/certdb"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
+
+	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
 )
+
+// Match to sqlx
+func init() {
+	sqlstruct.TagName = "db"
+}
 
 const (
 	insertSQL = `
 INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
+	VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem);`
 
 	selectSQL = `
 SELECT %s FROM certificates
-	WHERE (serial_number = $1 AND authority_key_identifier=$2);`
-
-	selectAllSQL = `
-SELECT %s FROM certificates;`
+	WHERE (serial_number = ? AND authority_key_identifier = ?);`
 
 	selectAllUnexpiredSQL = `
 SELECT %s FROM certificates
-WHERE CURRENT_TIMESTAMP < expiry;`
+	WHERE CURRENT_TIMESTAMP < expiry;`
 
 	updateRevokeSQL = `
 UPDATE certificates
-	SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason=$1
-	WHERE (serial_number = $2 AND authority_key_identifier = $3);`
+	SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason=:reason
+	WHERE (serial_number = :serial_number AND authority_key_identifier = :authority_key_identifier);`
 
 	insertOCSPSQL = `
 INSERT INTO ocsp_responses (serial_number, authority_key_identifier, body, expiry)
-    VALUES ($1, $2, $3, $4);`
+  VALUES (:serial_number, :authority_key_identifier, :body, :expiry);`
 
 	updateOCSPSQL = `
 UPDATE ocsp_responses
-    SET body=$3, expiry=$4
-	WHERE (serial_number = $1 AND authority_key_identifier = $2);`
+  SET body = :body, expiry = :expiry
+	WHERE (serial_number = :serial_number AND authority_key_identifier = :authority_key_identifier);`
 
 	selectAllUnexpiredOCSPSQL = `
 SELECT %s FROM ocsp_responses
-WHERE CURRENT_TIMESTAMP < expiry;`
+	WHERE CURRENT_TIMESTAMP < expiry;`
 
 	selectOCSPSQL = `
 SELECT %s FROM ocsp_responses
-    WHERE (serial_number = $1 AND authority_key_identifier = $2);`
+  WHERE (serial_number = ? AND authority_key_identifier = ?);`
 )
 
 // Accessor implements certdb.Accessor interface.
 type Accessor struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func wrapSQLError(err error) error {
@@ -71,12 +74,12 @@ func (d *Accessor) checkDB() error {
 }
 
 // NewAccessor returns a new Accessor.
-func NewAccessor(db *sql.DB) *Accessor {
+func NewAccessor(db *sqlx.DB) *Accessor {
 	return &Accessor{db: db}
 }
 
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
-func (d *Accessor) SetDB(db *sql.DB) {
+func (d *Accessor) SetDB(db *sqlx.DB) {
 	d.db = db
 	return
 }
@@ -88,22 +91,21 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		return err
 	}
 
-	res, err := d.db.Exec(
-		insertSQL,
-		cr.Serial,
-		cr.AKI,
-		cr.CALabel,
-		cr.Status,
-		cr.Reason,
-		cr.Expiry.UTC(),
-		cr.RevokedAt,
-		cr.PEM,
-	)
+	res, err := d.db.NamedExec(insertSQL, &certdb.CertificateRecord{
+		Serial:    cr.Serial,
+		AKI:       cr.AKI,
+		CALabel:   cr.CALabel,
+		Status:    cr.Status,
+		Reason:    cr.Reason,
+		Expiry:    cr.Expiry.UTC(),
+		RevokedAt: cr.RevokedAt.UTC(),
+		PEM:       cr.PEM,
+	})
 	if err != nil {
 		return wrapSQLError(err)
 	}
 
-	numRowsAffected, _ := res.RowsAffected()
+	numRowsAffected, err := res.RowsAffected()
 
 	if numRowsAffected == 0 {
 		return cferr.Wrap(cferr.CertStoreError, cferr.InsertionFailed, fmt.Errorf("failed to insert the certificate record"))
@@ -113,7 +115,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		return wrapSQLError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
 
-	return nil
+	return err
 }
 
 // GetCertificate gets a certdb.CertificateRecord indexed by serial.
@@ -123,19 +125,9 @@ func (d *Accessor) GetCertificate(serial, aki string) (crs []certdb.CertificateR
 		return nil, err
 	}
 
-	cr := certdb.CertificateRecord{}
-	rows, err := d.db.Query(fmt.Sprintf(selectSQL, sqlstruct.Columns(cr)), serial, aki)
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(certdb.CertificateRecord{})), serial, aki)
 	if err != nil {
 		return nil, wrapSQLError(err)
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		err = sqlstruct.Scan(&cr, rows)
-		if err != nil {
-			return nil, wrapSQLError(err)
-		}
-		crs = append(crs, cr)
 	}
 
 	return crs, nil
@@ -148,19 +140,9 @@ func (d *Accessor) GetUnexpiredCertificates() (crs []certdb.CertificateRecord, e
 		return nil, err
 	}
 
-	cr := certdb.CertificateRecord{}
-	rows, err := d.db.Query(fmt.Sprintf(selectAllUnexpiredSQL, sqlstruct.Columns(cr)))
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredSQL), sqlstruct.Columns(certdb.CertificateRecord{})))
 	if err != nil {
 		return nil, wrapSQLError(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		err = sqlstruct.Scan(&cr, rows)
-		if err != nil {
-			return nil, wrapSQLError(err)
-		}
-		crs = append(crs, cr)
 	}
 
 	return crs, nil
@@ -173,13 +155,16 @@ func (d *Accessor) RevokeCertificate(serial, aki string, reasonCode int) error {
 		return err
 	}
 
-	result, err := d.db.Exec(updateRevokeSQL, reasonCode, serial, aki)
-
+	result, err := d.db.NamedExec(updateRevokeSQL, &certdb.CertificateRecord{
+		AKI:    aki,
+		Reason: reasonCode,
+		Serial: serial,
+	})
 	if err != nil {
 		return wrapSQLError(err)
 	}
 
-	numRowsAffected, _ := result.RowsAffected()
+	numRowsAffected, err := result.RowsAffected()
 
 	if numRowsAffected == 0 {
 		return cferr.Wrap(cferr.CertStoreError, cferr.RecordNotFound, fmt.Errorf("failed to revoke the certificate: certificate not found"))
@@ -189,7 +174,7 @@ func (d *Accessor) RevokeCertificate(serial, aki string, reasonCode int) error {
 		return wrapSQLError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
 
-	return nil
+	return err
 }
 
 // InsertOCSP puts a new certdb.OCSPRecord into the db.
@@ -199,18 +184,17 @@ func (d *Accessor) InsertOCSP(rr certdb.OCSPRecord) error {
 		return err
 	}
 
-	res, err := d.db.Exec(
-		insertOCSPSQL,
-		rr.Serial,
-		rr.AKI,
-		rr.Body,
-		rr.Expiry.UTC(),
-	)
+	result, err := d.db.NamedExec(insertOCSPSQL, &certdb.OCSPRecord{
+		AKI:    rr.AKI,
+		Body:   rr.Body,
+		Expiry: rr.Expiry.UTC(),
+		Serial: rr.Serial,
+	})
 	if err != nil {
 		return wrapSQLError(err)
 	}
 
-	numRowsAffected, _ := res.RowsAffected()
+	numRowsAffected, err := result.RowsAffected()
 
 	if numRowsAffected == 0 {
 		return cferr.Wrap(cferr.CertStoreError, cferr.InsertionFailed, fmt.Errorf("failed to insert the OCSP record"))
@@ -220,56 +204,37 @@ func (d *Accessor) InsertOCSP(rr certdb.OCSPRecord) error {
 		return wrapSQLError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
 
-	return nil
+	return err
 }
 
 // GetOCSP retrieves a certdb.OCSPRecord from db by serial.
-func (d *Accessor) GetOCSP(serial, aki string) (rrs []certdb.OCSPRecord, err error) {
+func (d *Accessor) GetOCSP(serial, aki string) (ors []certdb.OCSPRecord, err error) {
 	err = d.checkDB()
 	if err != nil {
 		return nil, err
 	}
 
-	rr := certdb.OCSPRecord{}
-	rows, err := d.db.Query(fmt.Sprintf(selectOCSPSQL, sqlstruct.Columns(rr)), serial, aki)
+	err = d.db.Select(&ors, fmt.Sprintf(d.db.Rebind(selectOCSPSQL), sqlstruct.Columns(certdb.OCSPRecord{})), serial, aki)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
-	defer rows.Close()
 
-	if rows.Next() {
-		err = sqlstruct.Scan(&rr, rows)
-		if err != nil {
-			return nil, wrapSQLError(err)
-		}
-		rrs = append(rrs, rr)
-	}
-	return rrs, nil
+	return ors, nil
 }
 
 // GetUnexpiredOCSPs retrieves all unexpired certdb.OCSPRecord from db.
-func (d *Accessor) GetUnexpiredOCSPs() (rrs []certdb.OCSPRecord, err error) {
+func (d *Accessor) GetUnexpiredOCSPs() (ors []certdb.OCSPRecord, err error) {
 	err = d.checkDB()
 	if err != nil {
 		return nil, err
 	}
 
-	rr := certdb.OCSPRecord{}
-	rows, err := d.db.Query(fmt.Sprintf(selectAllUnexpiredOCSPSQL, sqlstruct.Columns(rr)))
+	err = d.db.Select(&ors, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredOCSPSQL), sqlstruct.Columns(certdb.OCSPRecord{})))
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		err = sqlstruct.Scan(&rr, rows)
-		if err != nil {
-			return nil, wrapSQLError(err)
-		}
-		rrs = append(rrs, rr)
-	}
-
-	return rrs, nil
+	return ors, nil
 }
 
 // UpdateOCSP updates a ocsp response record with a given serial number.
@@ -279,8 +244,12 @@ func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error 
 		return err
 	}
 
-	result, err := d.db.Exec(updateOCSPSQL, serial, aki, body, expiry.UTC())
-
+	result, err := d.db.NamedExec(updateOCSPSQL, &certdb.OCSPRecord{
+		AKI:    aki,
+		Body:   body,
+		Expiry: expiry.UTC(),
+		Serial: serial,
+	})
 	if err != nil {
 		return wrapSQLError(err)
 	}
@@ -294,6 +263,7 @@ func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error 
 	if numRowsAffected != 1 {
 		return wrapSQLError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
+
 	return err
 }
 
@@ -319,7 +289,12 @@ func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error 
 		return err
 	}
 
-	result, err := d.db.Exec(updateOCSPSQL, serial, aki, body, expiry)
+	result, err := d.db.NamedExec(updateOCSPSQL, &certdb.OCSPRecord{
+		AKI:    aki,
+		Body:   body,
+		Expiry: expiry.UTC(),
+		Serial: serial,
+	})
 
 	if err != nil {
 		return wrapSQLError(err)
@@ -334,5 +309,6 @@ func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error 
 	if numRowsAffected != 1 {
 		return wrapSQLError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
 	}
+
 	return err
 }

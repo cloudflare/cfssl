@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"crypto"
 	"crypto/x509"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +24,7 @@ import (
 
 	"github.com/cloudflare/redoctober/client"
 	"github.com/cloudflare/redoctober/core"
+	"github.com/jmoiron/sqlx"
 )
 
 // RawMap is shorthand for the type used as a map from string to raw Root struct.
@@ -104,7 +104,7 @@ type Root struct {
 	Certificate *x509.Certificate
 	Config      *config.Signing
 	ACL         whitelist.NetACL
-	DB          *sql.DB
+	DB          *sqlx.DB
 }
 
 // LoadRoot parses a config structure into a Root structure

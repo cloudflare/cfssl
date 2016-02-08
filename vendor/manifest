@@ -170,6 +170,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/jmoiron/sqlx",
+			"repository": "https://github.com/jmoiron/sqlx",
+			"revision": "398dd5876282499cdfd4cb8ea0f31a672abe9495",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/kardianos/osext",
 			"repository": "https://github.com/kardianos/osext",
 			"revision": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc",

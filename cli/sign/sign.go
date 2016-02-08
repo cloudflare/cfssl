@@ -2,7 +2,6 @@
 package sign
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 
@@ -13,6 +12,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // Usage text of 'cfssl sign'
@@ -37,7 +38,7 @@ var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile
 
 // SignerFromConfigAndDB takes the Config and creates the appropriate
 // signer.Signer object with a specified db
-func SignerFromConfigAndDB(c cli.Config, db *sql.DB) (signer.Signer, error) {
+func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 	// If there is a config, use its signing policy. Otherwise create a default policy.
 	var policy *config.Signing
 	if c.CFG != nil {
@@ -74,7 +75,7 @@ func SignerFromConfigAndDB(c cli.Config, db *sql.DB) (signer.Signer, error) {
 // SignerFromConfig takes the Config and creates the appropriate
 // signer.Signer object
 func SignerFromConfig(c cli.Config) (s signer.Signer, err error) {
-	var db *sql.DB
+	var db *sqlx.DB
 	if c.DBConfigFile != "" {
 		db, err = dbconf.DBFromConfig(c.DBConfigFile)
 		if err != nil {
