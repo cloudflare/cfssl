@@ -6,8 +6,10 @@
 package log
 
 import (
+	"flag"
 	"fmt"
 	golog "log"
+	"log/syslog"
 	"os"
 )
 
@@ -30,18 +32,72 @@ var levelPrefix = [...]string{
 	LevelFatal:    "[FATAL] ",
 }
 
+var levelPriority = [...]syslog.Priority{
+	LevelDebug:    syslog.LOG_DEBUG,
+	LevelInfo:     syslog.LOG_INFO,
+	LevelWarning:  syslog.LOG_WARNING,
+	LevelError:    syslog.LOG_ERR,
+	LevelCritical: syslog.LOG_CRIT,
+	LevelFatal:    syslog.LOG_EMERG,
+}
+
 // Level stores the current logging level.
 var Level = LevelDebug
 
+var (
+	//UseSyslog controls if syslog is used instead of stdout/err.
+	UseSyslog bool
+	//SyslogNetwork controls the network protocol syslog uses.
+	SyslogNetwork string
+	//SyslogRaddr is the address of a remote syslog instance.
+	SyslogRaddr string
+	//SyslogTag is the tag to pass to syslog.
+	SyslogTag string
+)
+
+func init() {
+	flag.IntVar(&Level, "loglevel", LevelDebug, "Log level")
+	flag.BoolVar(&UseSyslog, "syslog", false, "Whether or not to use syslog logging")
+	flag.StringVar(&SyslogNetwork, "syslog-network", "udp", "Syslog network to use.")
+	flag.StringVar(&SyslogRaddr, "syslog-remote", "", "Syslog server to use. Defaults to local on empty string.")
+	flag.StringVar(&SyslogTag, "syslog-tag", "udp", "Syslog tag to use.")
+}
+
 func outputf(l int, format string, v []interface{}) {
 	if l >= Level {
-		golog.Printf(fmt.Sprint(levelPrefix[l], format), v...)
+		msg := fmt.Sprintf(fmt.Sprint(levelPrefix[l], format), v...)
+		if UseSyslog {
+			logger, err := syslog.Dial(SyslogNetwork, SyslogRaddr, levelPriority[l], SyslogTag)
+			defer logger.Close()
+			if err != nil {
+				golog.Fatal(err)
+			}
+			golog.SetOutput(logger)
+		} else if l > 2 {
+			golog.SetOutput(os.Stderr)
+		} else {
+			golog.SetOutput(os.Stdout)
+		}
+		golog.Print(msg)
 	}
 }
 
 func output(l int, v []interface{}) {
 	if l >= Level {
-		golog.Print(levelPrefix[l], fmt.Sprint(v...))
+		msg := fmt.Sprint(levelPrefix[l], fmt.Sprint(v...))
+		if UseSyslog {
+			logger, err := syslog.Dial(SyslogNetwork, SyslogRaddr, levelPriority[l], SyslogTag)
+			defer logger.Close()
+			if err != nil {
+				golog.Fatal(err)
+			}
+			golog.SetOutput(logger)
+		} else if l > 2 {
+			golog.SetOutput(os.Stderr)
+		} else {
+			golog.SetOutput(os.Stdout)
+		}
+		golog.Print(msg)
 	}
 }
 
