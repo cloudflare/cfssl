@@ -8,7 +8,6 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/log"
 )
 
 // main defines the newkey usage and registers all defined commands and flags.
@@ -71,5 +70,4 @@ func printDefaultValue(f *flag.Flag) {
 func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.BoolVar(&c.IsCA, "initca", false, "initialise new CA")
 	f.StringVar(&c.ConfigFile, "config", "", "path to configuration file")
-	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 }

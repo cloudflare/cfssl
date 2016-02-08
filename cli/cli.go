@@ -24,6 +24,7 @@ Use "cfssl [command] -help" to find out more about a command.
 */
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -31,7 +32,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"encoding/base64"
 	"github.com/cloudflare/cfssl/config"
 )
 

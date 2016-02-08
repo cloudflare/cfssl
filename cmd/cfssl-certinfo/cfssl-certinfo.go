@@ -8,7 +8,6 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/certinfo"
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/log"
 )
 
 // main defines the newkey usage and registers all defined commands and flags.
@@ -69,5 +68,4 @@ func printDefaultValue(f *flag.Flag) {
 func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
 	f.StringVar(&c.Domain, "domain", "", "remote server domain name")
-	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 }
