@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -80,10 +79,10 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	if err != nil {
 		return nil, err
 	}
-	
+
 	strPassword := os.Getenv("CFSSL_CA_PK_PASSWORD")
 	password := []byte(strPassword)
-	if (strPassword == "") {
+	if strPassword == "" {
 		password = nil
 	}
 
@@ -266,7 +265,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if profile.ClientProvidesSerialNumbers {
 		if req.Serial == nil {
-			fmt.Printf("xx %#v\n", profile)
 			return nil, cferr.New(cferr.CertificateError, cferr.MissingSerial)
 		}
 		safeTemplate.SerialNumber = req.Serial
