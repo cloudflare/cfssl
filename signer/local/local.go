@@ -18,6 +18,7 @@ import (
 	"math/big"
 	"net"
 	"net/mail"
+	"os"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
@@ -79,8 +80,14 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	if err != nil {
 		return nil, err
 	}
+	
+	strPassword := os.Getenv("CFSSL_CA_PK_PASSWORD")
+	password := []byte(strPassword)
+	if (strPassword == "") {
+		password = nil
+	}
 
-	priv, err := helpers.ParsePrivateKeyPEM(cakey)
+	priv, err := helpers.ParsePrivateKeyPEMWithPassword(cakey, password)
 	if err != nil {
 		log.Debug("Malformed private key %v", err)
 		return nil, err
