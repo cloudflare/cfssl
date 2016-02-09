@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -55,9 +56,15 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 		}
 		revokedCerts = append(revokedCerts, tempCert)
 	}
+		
+	strPassword := os.Getenv("CFSSL_CA_PK_PASSWORD")
+	password := []byte(strPassword)
+	if (strPassword == "") {
+		password = nil
+	}
 
 	// Parse the key given
-	key, err := helpers.ParsePrivateKeyPEM(keyFile)
+	key, err := helpers.ParsePrivateKeyPEMWithPassword(keyFile, password)
 	if err != nil {
 		log.Debug("Malformed private key %v", err)
 		return nil, err
