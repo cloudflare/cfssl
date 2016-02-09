@@ -13,8 +13,8 @@ import (
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, authority_key_identifier, status, reason, expiry, revoked_at, pem)
-	VALUES ($1, $2, $3, $4, $5, $6, $7);`
+INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -92,6 +92,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		insertSQL,
 		cr.Serial,
 		cr.AKI,
+		cr.CALabel,
 		cr.Status,
 		cr.Reason,
 		cr.Expiry.UTC(),

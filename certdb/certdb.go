@@ -9,6 +9,7 @@ import (
 type CertificateRecord struct {
 	Serial    string    `sql:"serial_number"`
 	AKI       string    `sql:"authority_key_identifier"`
+	CALabel   string    `sql:"ca_label"`
 	Status    string    `sql:"status"`
 	Reason    int       `sql:"reason"`
 	Expiry    time.Time `sql:"expiry"`
