@@ -6,43 +6,82 @@
 package log
 
 import (
+	"flag"
 	"fmt"
-	golog "log"
+	"log"
+	"log/syslog"
 	"os"
 )
 
 // The following constants represent logging levels in increasing levels of seriousness.
 const (
+	// LevelDebug is the log level for Debug statements.
 	LevelDebug = iota
+	// LevelInfo is the log level for Info statements.
 	LevelInfo
+	// LevelWarning is the log level for Warning statements.
 	LevelWarning
+	// LevelError is the log level for Error statements.
 	LevelError
+	// LevelCritical is the log level for Critical statements.
 	LevelCritical
+	// LevelFatal is the log level for Fatal statements.
 	LevelFatal
 )
 
 var levelPrefix = [...]string{
-	LevelDebug:    "[DEBUG] ",
-	LevelInfo:     "[INFO] ",
-	LevelWarning:  "[WARNING] ",
-	LevelError:    "[ERROR] ",
-	LevelCritical: "[CRITICAL] ",
-	LevelFatal:    "[FATAL] ",
+	LevelDebug:    "DEBUG",
+	LevelInfo:     "INFO",
+	LevelWarning:  "WARNING",
+	LevelError:    "ERROR",
+	LevelCritical: "CRITICAL",
+	LevelFatal:    "FATAL",
 }
 
-// Level stores the current logging level.
-var Level = LevelDebug
+var (
+	// Level stores the current logging level.
+	Level = LevelInfo
+	// SysLogger is a syslog Writer to be used if not nil.
+	SysLogger *syslog.Writer
+)
+
+func init() {
+	flag.IntVar(&Level, "loglevel", LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
+}
+
+func print(l int, msg string) {
+	if l >= Level {
+		if SysLogger != nil {
+			var err error
+			switch l {
+			case LevelDebug:
+				err = SysLogger.Debug(msg)
+			case LevelInfo:
+				err = SysLogger.Info(msg)
+			case LevelWarning:
+				err = SysLogger.Warning(msg)
+			case LevelError:
+				err = SysLogger.Err(msg)
+			case LevelCritical:
+				err = SysLogger.Crit(msg)
+			case LevelFatal:
+				err = SysLogger.Emerg(msg)
+			}
+			if err != nil {
+				log.Printf("Unable to write syslog: %v for msg: %s\n", err, msg)
+			}
+		} else {
+			log.Printf("[%s] %s", levelPrefix[l], msg)
+		}
+	}
+}
 
 func outputf(l int, format string, v []interface{}) {
-	if l >= Level {
-		golog.Printf(fmt.Sprint(levelPrefix[l], format), v...)
-	}
+	print(l, fmt.Sprintf(format, v...))
 }
 
 func output(l int, v []interface{}) {
-	if l >= Level {
-		golog.Print(levelPrefix[l], fmt.Sprint(v...))
-	}
+	print(l, fmt.Sprint(v...))
 }
 
 // Fatalf logs a formatted message at the "fatal" level and then exits. The

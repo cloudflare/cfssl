@@ -2,7 +2,6 @@ package transport
 
 import (
 	"encoding/json"
-	"flag"
 	"os"
 	"testing"
 	"time"
@@ -51,8 +50,6 @@ func removeIfPresent(path string) error {
 }
 
 func TestMain(m *testing.M) {
-	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "log level (0 = DEBUG, 4 = ERROR)")
-	flag.Parse()
 	if fi, err := os.Stat("testdata"); os.IsNotExist(err) {
 		err = os.Mkdir("testdata", 0755)
 		if err != nil {

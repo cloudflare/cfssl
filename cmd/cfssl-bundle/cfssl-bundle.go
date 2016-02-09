@@ -8,7 +8,6 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/bundle"
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/log"
 )
 
 // main defines the bundle usage and registers all defined commands and flags.
@@ -78,5 +77,4 @@ func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.StringVar(&c.Domain, "domain", "", "remote server domain name")
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
-	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 }

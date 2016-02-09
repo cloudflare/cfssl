@@ -138,12 +138,9 @@ func scanFiles(paths chan string) {
 }
 
 func main() {
-	logLevel := flag.Int("loglevel", log.LevelWarning, "verbosity of logs (0-5, 0 is very noisy)")
 	bundleFile := flag.String("f", "cert-bundle.crt", "path to store certificate bundle")
 	numWorkers := flag.Int("nw", 4, "number of workers")
 	flag.Parse()
-
-	log.Level = *logLevel
 
 	paths := make(chan string)
 	bundler := make(chan *x509.Certificate)

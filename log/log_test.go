@@ -12,6 +12,7 @@ const teststring = "asdf123"
 func TestOutputf(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	outputf(LevelDebug, teststring, nil)
 
 	// outputf correctly prints string
@@ -24,6 +25,7 @@ func TestOutputf(t *testing.T) {
 func TestOutput(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	output(LevelDebug, nil)
 
 	// outputf correctly prints string with proper Debug prefix
@@ -111,6 +113,7 @@ func TestInfo(t *testing.T) {
 func TestDebugf(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	Debugf(teststring, nil)
 
 	// outputf correctly prints string
@@ -124,6 +127,7 @@ func TestDebugf(t *testing.T) {
 func TestDebug(t *testing.T) {
 	buf := new(bytes.Buffer)
 	log.SetOutput(buf)
+	Level = LevelDebug
 	Debug(nil)
 
 	// outputf correctly prints string

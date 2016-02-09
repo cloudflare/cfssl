@@ -42,14 +42,12 @@ import (
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/cli/version"
-	"github.com/cloudflare/cfssl/log"
 )
 
 // main defines the cfssl usage and registers all defined commands and flags.
 func main() {
 	// Add command names to cfssl usage
 	flag.Usage = nil // this is set to nil for testabilty
-	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 	// Register commands.
 	cmds := map[string]*cli.Command{
 		"bundle":         bundle.Command,

@@ -9,7 +9,6 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/scan"
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/log"
 )
 
 // main defines the scan usage and registers all defined commands and flags.
@@ -76,5 +75,4 @@ func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.IntVar(&c.MaxHosts, "max-hosts", 100, "maximum number of hosts to scan")
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")
-	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level")
 }
