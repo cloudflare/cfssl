@@ -31,6 +31,7 @@ func NewHandler(dbAccessor certdb.Accessor) http.Handler {
 // This type is meant to be unmarshalled from JSON
 type jsonRevokeRequest struct {
 	Serial string `json:"serial"`
+	AKI    string `json:"authority_key_id"`
 	Reason string `json:"reason"`
 }
 
@@ -60,7 +61,11 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("Invalid reason code")
 	}
 
-	err = h.dbAccessor.RevokeCertificate(req.Serial, reasonCode)
+	err = h.dbAccessor.RevokeCertificate(req.Serial, req.AKI, reasonCode)
+	if err != nil {
+		return err
+	}
+
 	result := map[string]string{}
 	return api.SendResponse(w, result)
 }
