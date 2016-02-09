@@ -25,7 +25,7 @@ func TestOCSPRefreshMain(t *testing.T) {
 	}
 
 	expirationTime := time.Now().AddDate(1, 0, 0)
-	var cert = &certdb.CertificateRecord{
+	var cert = certdb.CertificateRecord{
 		Serial: "1333308112180215502", // from cert.pem
 		Expiry: expirationTime,
 		PEM:    string(certPEM),

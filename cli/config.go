@@ -62,6 +62,7 @@ type Config struct {
 	Usage             string
 	PGPPrivate        string
 	Serial            string
+	AKI               string
 	DBConfigFile      string
 }
 
@@ -111,6 +112,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Usage, "usage", "", "usage of private key")
 	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption")
 	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
+	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
 	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
 
 	if pkcs11.Enabled {

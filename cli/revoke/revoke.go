@@ -4,8 +4,8 @@ package revoke
 import (
 	"errors"
 
-	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/dbconf"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
@@ -16,7 +16,7 @@ var revokeUsageTxt = `cfssl revoke -- revoke a certificate in the certificate st
 Usage:
 
 Revoke a certificate:
-	   cfssl revoke -db-config config_file -serial serial [-reason reason]
+	   cfssl revoke -db-config config_file -serial serial -aki authority_key_id [-reason reason]
 
 Reason can be an integer code or a string in ReasonFlags in RFC 5280
 
@@ -32,6 +32,10 @@ func revokeMain(args []string, c cli.Config) error {
 
 	if len(c.Serial) == 0 {
 		return errors.New("serial number is required but not provided")
+	}
+
+	if len(c.AKI) == 0 {
+		return errors.New("authority key id is required but not provided")
 	}
 
 	if c.DBConfigFile == "" {
@@ -51,7 +55,7 @@ func revokeMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	return dbAccessor.RevokeCertificate(c.Serial, reasonCode)
+	return dbAccessor.RevokeCertificate(c.Serial, c.AKI, reasonCode)
 }
 
 // Command assembles the definition of Command 'revoke'
