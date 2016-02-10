@@ -2,12 +2,15 @@
 package serve
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -28,6 +31,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	ocspsign "github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/sign"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
@@ -42,14 +46,14 @@ Usage of serve:
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
                     [-metadata file] [-remote remote_host] [-config config] \
                     [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key] \
-                    [-db-config db-config]
+                    [-mutual-tls-ca ca] [-mutual-tls-cn regex] [-db-config db-config]
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata",
-	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "db-config"}
+	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca", "mutual-tls-cn", "db-config"}
 
 var (
 	conf       cli.Config
@@ -244,9 +248,42 @@ func serverMain(args []string, c cli.Config) error {
 		log.Info("Now listening on ", addr)
 		return http.ListenAndServe(addr, nil)
 	}
+	if conf.MutualTLSCAFile != "" {
+		clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
+		if err != nil {
+			return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
+		}
 
+		server := http.Server{
+			Addr: addr,
+			TLSConfig: &tls.Config{
+				ClientAuth: tls.RequireAndVerifyClientCert,
+				ClientCAs:  clientPool,
+			},
+		}
+
+		if conf.MutualTLSCNRegex != "" {
+			log.Debugf(`Requiring CN matches regex "%s" for client connections`, conf.MutualTLSCNRegex)
+			re, err := regexp.Compile(conf.MutualTLSCNRegex)
+			if err != nil {
+				return fmt.Errorf("malformed CN regex: %s", err)
+			}
+			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+					if re.MatchString(r.TLS.PeerCertificates[0].Subject.CommonName) {
+						http.DefaultServeMux.ServeHTTP(w, r)
+						return
+					}
+					log.Warningf(`Rejected client cert CN "%s" does not match regex %s`,
+						r.TLS.PeerCertificates[0].Subject.CommonName, conf.MutualTLSCNRegex)
+				}
+				http.Error(w, "Invalid CN", http.StatusForbidden)
+			})
+		}
+		log.Info("Now listening with mutual TLS on https://", addr)
+		return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
+	}
 	log.Info("Now listening on https://", addr)
-
 	return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
 
 }
