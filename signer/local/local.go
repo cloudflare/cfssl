@@ -80,10 +80,10 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	if err != nil {
 		return nil, err
 	}
-	
+
 	strPassword := os.Getenv("CFSSL_CA_PK_PASSWORD")
 	password := []byte(strPassword)
-	if (strPassword == "") {
+	if strPassword == "" {
 		password = nil
 	}
 
@@ -163,7 +163,9 @@ func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
 	replaceSliceIfEmpty(&name.Locality, &req.Locality)
 	replaceSliceIfEmpty(&name.Organization, &req.Organization)
 	replaceSliceIfEmpty(&name.OrganizationalUnit, &req.OrganizationalUnit)
-
+	if name.SerialNumber == "" {
+		name.SerialNumber = req.SerialNumber
+	}
 	return name
 }
 

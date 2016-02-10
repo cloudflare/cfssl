@@ -501,6 +501,7 @@ func TestPopulateSubjectFromCSR(t *testing.T) {
 				OU: "OU",
 			},
 		},
+		SerialNumber: "deadbeef",
 	}
 
 	fullName := pkix.Name{
@@ -509,6 +510,7 @@ func TestPopulateSubjectFromCSR(t *testing.T) {
 		Province:           []string{"Province"},
 		Organization:       []string{"Organization"},
 		OrganizationalUnit: []string{"OrganizationalUnit"},
+		SerialNumber:       "SerialNumber",
 	}
 
 	noCN := *fullSubject
@@ -544,6 +546,13 @@ func TestPopulateSubjectFromCSR(t *testing.T) {
 	name = PopulateSubjectFromCSR(&noOU, fullName)
 	if !reflect.DeepEqual(name.OrganizationalUnit, fullName.OrganizationalUnit) {
 		t.Fatal("Failed to replace empty organizational unit")
+	}
+
+	noSerial := *fullSubject
+	noSerial.SerialNumber = ""
+	name = PopulateSubjectFromCSR(&noSerial, fullName)
+	if name.SerialNumber != fullName.SerialNumber {
+		t.Fatalf("Failed to replace empty serial number: want %#v, got %#v", fullName.SerialNumber, name.SerialNumber)
 	}
 
 }

@@ -29,8 +29,9 @@ var MaxPathLen = 2
 // Subject contains the information that should be used to override the
 // subject information when signing a certificate.
 type Subject struct {
-	CN    string
-	Names []csr.Name `json:"names"`
+	CN           string
+	Names        []csr.Name `json:"names"`
+	SerialNumber string
 }
 
 // Extension represents a raw extension to be included in the certificate.  The
@@ -77,6 +78,7 @@ func (s *Subject) Name() pkix.Name {
 		appendIf(n.O, &name.Organization)
 		appendIf(n.OU, &name.OrganizationalUnit)
 	}
+	name.SerialNumber = s.SerialNumber
 	return name
 }
 
