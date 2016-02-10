@@ -1,4 +1,4 @@
-// +build !nopkcs11
+// +build pkcs11
 
 // Package pkcs11 in the ocsp directory provides a way to construct a
 // PKCS#11-based OCSP signer.
@@ -6,6 +6,7 @@ package pkcs11
 
 import (
 	"io/ioutil"
+
 	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
