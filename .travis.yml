@@ -61,7 +61,7 @@ env:
     - GO15VENDOREXPERIMENT=1
   matrix:
     - BUILD_TAGS="postgresql"
-    - BUILD_TAGS="nopkcs11 postgresql"
+    - BUILD_TAGS="pkcs11 postgresql"
 matrix:
   include:
     - os: osx
