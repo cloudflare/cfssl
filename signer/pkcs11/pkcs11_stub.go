@@ -1,4 +1,4 @@
-// +build nopkcs11
+// +build !pkcs11
 
 package pkcs11
 

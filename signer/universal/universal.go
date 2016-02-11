@@ -10,7 +10,6 @@ import (
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
-	"github.com/cloudflare/cfssl/signer/pkcs11"
 	"github.com/cloudflare/cfssl/signer/remote"
 )
 
@@ -46,36 +45,7 @@ func fileBackedSigner(root *Root, policy *config.Signing) (signer.Signer, bool, 
 	return signer, true, err
 }
 
-// pkcs11Signer looks for token, module, slot, and PIN configuration
-// options in the root.
-func pkcs11Signer(root *Root, policy *config.Signing) (signer.Signer, bool, error) {
-	module := root.Config["pkcs11-module"]
-	tokenLabel := root.Config["pkcs11-token-label"]
-	privateKeyLabel := root.Config["pkcs11-private-key-label"]
-	userPIN := root.Config["pkcs11-user-pin"]
-	certFile := root.Config["cert-file"]
-
-	if module == "" && tokenLabel == "" && privateKeyLabel == "" && userPIN == "" {
-		return nil, false, nil
-	}
-
-	if !pkcs11.Enabled {
-		return nil, true, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
-	}
-
-	conf := pkcs11.Config{
-		Module: module,
-		Token:  tokenLabel,
-		Label:  privateKeyLabel,
-		PIN:    userPIN,
-	}
-
-	s, err := pkcs11.New(certFile, policy, &conf)
-	return s, true, err
-}
-
 var localSignerList = []localSignerCheck{
-	pkcs11Signer,
 	fileBackedSigner,
 }
 

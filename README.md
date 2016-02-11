@@ -35,11 +35,11 @@ See [BUILDING](BUILDING.md)
 
 Installation requires a
 [working Go installation](http://golang.org/doc/install) and a
-properly set `GOPATH`.  The default behaviour is to build with PKCS
-\#11, which requires the `gcc` compiler and the libtool development
+properly set `GOPATH`.  The default behaviour is to build without PKCS
+\#11. PKCS\#11 requires the `gcc` compiler and the libtool development
 library and header files. On Ubuntu, this is
 `libltdl-dev`. On Centos/RHEL, this is 'libtool' and 'libtool-ltdl'.
-If these are not installed, you can pass `-tags nopkcs11` to the below
+If these are installed, you can pass `-tags pkcs11` to the below
 go get commands.
 
 ```
