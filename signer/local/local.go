@@ -162,7 +162,9 @@ func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
 	replaceSliceIfEmpty(&name.Locality, &req.Locality)
 	replaceSliceIfEmpty(&name.Organization, &req.Organization)
 	replaceSliceIfEmpty(&name.OrganizationalUnit, &req.OrganizationalUnit)
-
+	if name.SerialNumber == "" {
+		name.SerialNumber = req.SerialNumber
+	}
 	return name
 }
 
