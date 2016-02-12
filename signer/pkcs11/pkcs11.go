@@ -1,4 +1,4 @@
-// +build !nopkcs11
+// +build !nopkcs11,!appengine
 
 package pkcs11
 

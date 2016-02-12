@@ -1,4 +1,4 @@
-// +build !nopkcs11
+// +build !nopkcs11,!appengine
 
 // Package pkcs11key implements crypto.Signer for PKCS #11 private
 // keys. Currently, only RSA keys are supported.
