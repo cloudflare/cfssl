@@ -18,7 +18,7 @@ var testIdentity = &core.Identity{
 		CN: "localhost test certificate",
 	},
 	Profiles: map[string]map[string]string{
-		"paths": map[string]string{
+		"paths": {
 			"private_key": testKey,
 			"certificate": testCert,
 		},

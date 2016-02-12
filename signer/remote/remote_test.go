@@ -230,7 +230,7 @@ func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error
 	var CAConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
-				"signature": &config.SigningProfile{
+				"signature": {
 					Usage:  []string{"digital signature"},
 					Expiry: expiry,
 				},

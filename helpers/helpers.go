@@ -348,7 +348,7 @@ func GetKeyDERFromPEM(in []byte, password []byte) ([]byte, error) {
 	if keyDER != nil {
 		if procType, ok := keyDER.Headers["Proc-Type"]; ok {
 			if strings.Contains(procType, "ENCRYPTED") {
-				if (password != nil) {
+				if password != nil {
 					return x509.DecryptPEMBlock(keyDER, password)
 				}
 				return nil, cferr.New(cferr.PrivateKeyError, cferr.Encrypted)

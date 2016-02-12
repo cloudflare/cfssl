@@ -16,8 +16,8 @@ const (
 
 func simpleHandle(w http.ResponseWriter, r *http.Request) error {
 	_, _, err := ProcessRequestOneOf(r, [][]string{
-		[]string{"compliment"},
-		[]string{"critique"},
+		{"compliment"},
+		{"critique"},
 	})
 	if err != nil {
 		return err
@@ -29,8 +29,8 @@ func simpleHandle(w http.ResponseWriter, r *http.Request) error {
 
 func cleverHandle(w http.ResponseWriter, r *http.Request) error {
 	_, matched, err := ProcessRequestFirstMatchOf(r, [][]string{
-		[]string{"compliment"},
-		[]string{"critique"},
+		{"compliment"},
+		{"critique"},
 	})
 	if err != nil {
 		return err

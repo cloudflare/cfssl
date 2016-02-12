@@ -478,7 +478,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 			name = constructCertFileName(cert)
 		}
 
-		chain = append([]*fetchedIntermediate{&fetchedIntermediate{cert, name}}, chain...)
+		chain = append([]*fetchedIntermediate{{cert, name}}, chain...)
 		seen[string(cert.Signature)] = true
 	}
 

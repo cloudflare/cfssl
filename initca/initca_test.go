@@ -180,11 +180,11 @@ var testValidations = []validation{
 		CN: "test CA",
 	}, true},
 	{&csr.CertificateRequest{
-		Names: []csr.Name{csr.Name{}},
+		Names: []csr.Name{{}},
 	}, false},
 	{&csr.CertificateRequest{
 		Names: []csr.Name{
-			csr.Name{O: "Example CA"},
+			{O: "Example CA"},
 		},
 	}, true},
 }

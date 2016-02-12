@@ -306,7 +306,7 @@ func cipherSuiteScan(addr, hostname string) (grade Grade, output Output, err err
 					goto exists
 				}
 			}
-			cvList = append(cvList, cipherVersions{cipherID, []cipherDatum{cipherDatum{vers, supportedCurves}}})
+			cvList = append(cvList, cipherVersions{cipherID, []cipherDatum{{vers, supportedCurves}}})
 		exists:
 			ciphers = append(ciphers[:cipherIndex], ciphers[cipherIndex+1:]...)
 		}
