@@ -46,7 +46,7 @@ var SHA1DeprecationPolicys = []SHA1DeprecationPolicy{
 	// Chrome:
 	//   if the leaf certificate expires between 01-01-2016 and 01-01-2017
 	//   and the chain (excluding root) contains SHA-1 cert, show "minor errors".
-	SHA1DeprecationPolicy{
+	{
 		Platform:       "Google Chrome",
 		Description:    "shows the SSL connection has minor problems",
 		Severity:       Medium,
@@ -55,7 +55,7 @@ var SHA1DeprecationPolicys = []SHA1DeprecationPolicy{
 	// Chrome:
 	//   if the leaf certificate expires after Jan. 1st 2017
 	//   and the chain (excluding root) contains SHA-1 cert, show "untrusted SSL".
-	SHA1DeprecationPolicy{
+	{
 		Platform:       "Google Chrome",
 		Description:    "shows the SSL connection is untrusted",
 		Severity:       High,
@@ -64,7 +64,7 @@ var SHA1DeprecationPolicys = []SHA1DeprecationPolicy{
 	// Mozilla Firefox:
 	//   if the leaf certificate expires after Jan. 1st 2017, and
 	//   the chain (excluding root) contains SHA-1 cert, show a warning in the developer console.
-	SHA1DeprecationPolicy{
+	{
 		Platform:       "Mozilla Firefox",
 		Description:    "gives warning in the developer console",
 		Severity:       Low,
@@ -73,7 +73,7 @@ var SHA1DeprecationPolicys = []SHA1DeprecationPolicy{
 	// Mozilla Firefox:
 	//   if a new certificate is issued after Jan. 1st 2016, and
 	//   it is a SHA-1 cert, reject it.
-	SHA1DeprecationPolicy{
+	{
 		Platform:        "Mozilla Firefox",
 		Description:     "shows the SSL connection is untrusted",
 		Severity:        Medium,
@@ -82,7 +82,7 @@ var SHA1DeprecationPolicys = []SHA1DeprecationPolicy{
 	},
 	// Mozilla Firefox:
 	//   deprecate all valid SHA-1 cert chain on Jan. 1st 2017
-	SHA1DeprecationPolicy{
+	{
 		Platform:       "Mozilla Firefox",
 		Description:    "shows the SSL connection is untrusted",
 		Severity:       High,
@@ -91,7 +91,7 @@ var SHA1DeprecationPolicys = []SHA1DeprecationPolicy{
 	},
 	// Microsoft Windows:
 	//   deprecate all valid SHA-1 cert chain on Jan. 1st 2017
-	SHA1DeprecationPolicy{
+	{
 		Platform:       "Microsoft Windows Vista and later",
 		Description:    "shows the SSL connection is untrusted",
 		Severity:       High,

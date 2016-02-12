@@ -71,7 +71,7 @@ func TestDefaultAuthSign(t *testing.T) {
 	s := NewAuthServer(".X", testProvider)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.Sign(testRequest)
-	if as != nil || err == nil{
+	if as != nil || err == nil {
 		t.Fatal("expected error with auth sign function")
 	}
 }

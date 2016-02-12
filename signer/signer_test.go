@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
 )
 
 func TestAppendIf(t *testing.T) {
@@ -49,7 +50,7 @@ func TestSplitHosts(t *testing.T) {
 func TestAddPolicies(t *testing.T) {
 	var cert x509.Certificate
 	addPolicies(&cert, []config.CertificatePolicy{
-		config.CertificatePolicy{
+		{
 			ID: config.OID([]int{1, 2, 3, 4}),
 		},
 	})
@@ -74,14 +75,14 @@ func TestAddPolicies(t *testing.T) {
 func TestAddPoliciesWithQualifiers(t *testing.T) {
 	var cert x509.Certificate
 	addPolicies(&cert, []config.CertificatePolicy{
-		config.CertificatePolicy{
+		{
 			ID: config.OID([]int{1, 2, 3, 4}),
 			Qualifiers: []config.CertificatePolicyQualifier{
-				config.CertificatePolicyQualifier{
+				{
 					Type:  "id-qt-cps",
 					Value: "http://example.com/cps",
 				},
-				config.CertificatePolicyQualifier{
+				{
 					Type:  "id-qt-unotice",
 					Value: "Do What Thou Wilt",
 				},
@@ -104,4 +105,46 @@ func TestAddPoliciesWithQualifiers(t *testing.T) {
 		t.Fatal(fmt.Sprintf("Value didn't match expected bytes: %s vs %s",
 			hex.EncodeToString(ext.Value), hex.EncodeToString(expectedBytes)))
 	}
+}
+
+func TestName(t *testing.T) {
+	sub := &Subject{
+		CN: "foobar",
+		Names: []csr.Name{
+			{
+				C:  "US",
+				ST: "CA",
+				L:  "Cool Locality",
+				O:  "Cool Org",
+				OU: "Really Cool Sub Org",
+			},
+			{
+				L: "Another Cool Locality",
+			},
+		},
+		SerialNumber: "deadbeef",
+	}
+	name := sub.Name()
+	if name.CommonName != sub.CN {
+		t.Errorf("CommonName: want %#v, got %#v", sub.CN, name.CommonName)
+	}
+	if name.SerialNumber != sub.SerialNumber {
+		t.Errorf("SerialNumber: want %#v, got %#v", sub.SerialNumber, name.SerialNumber)
+	}
+	if !reflect.DeepEqual([]string{"US"}, name.Country) {
+		t.Errorf("Country: want %s, got %s", []string{"US"}, name.Country)
+	}
+	if !reflect.DeepEqual([]string{"CA"}, name.Province) {
+		t.Errorf("Province: want %s, got %s", []string{"CA"}, name.Province)
+	}
+	if !reflect.DeepEqual([]string{"Cool Org"}, name.Organization) {
+		t.Errorf("Organization: want %s, got %s", []string{"Cool Org"}, name.Organization)
+	}
+	if !reflect.DeepEqual([]string{"Really Cool Sub Org"}, name.OrganizationalUnit) {
+		t.Errorf("Province: want %s, got %s", []string{"Really Cool Sub Org"}, name.OrganizationalUnit)
+	}
+	if !reflect.DeepEqual([]string{"Cool Locality", "Another Cool Locality"}, name.Locality) {
+		t.Errorf("Locality: want %s, got %s", []string{"CA"}, name.Locality)
+	}
+
 }

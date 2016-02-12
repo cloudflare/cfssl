@@ -56,10 +56,10 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 		}
 		revokedCerts = append(revokedCerts, tempCert)
 	}
-		
+
 	strPassword := os.Getenv("CFSSL_CA_PK_PASSWORD")
 	password := []byte(strPassword)
-	if (strPassword == "") {
+	if strPassword == "" {
 		password = nil
 	}
 

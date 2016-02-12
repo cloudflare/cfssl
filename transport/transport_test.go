@@ -94,10 +94,10 @@ var (
 			CN: "localhost test certificate",
 		},
 		Roots: []*core.Root{
-			&core.Root{
+			{
 				Type: "system",
 			},
-			&core.Root{
+			{
 				Type: "cfssl",
 				Metadata: map[string]string{
 					"host":    testRemote,
@@ -107,7 +107,7 @@ var (
 			},
 		},
 		Profiles: map[string]map[string]string{
-			"paths": map[string]string{
+			"paths": {
 				"private_key": testKey,
 				"certificate": testCert,
 			},
@@ -180,7 +180,7 @@ var (
 			Hosts: []string{"127.0.0.1"},
 		},
 		Profiles: map[string]map[string]string{
-			"paths": map[string]string{
+			"paths": {
 				"private_key": testLKey,
 				"certificate": testLCert,
 			},
@@ -191,10 +191,10 @@ var (
 			},
 		},
 		Roots: []*core.Root{
-			&core.Root{
+			{
 				Type: "system",
 			},
-			&core.Root{
+			{
 				Type: "cfssl",
 				Metadata: map[string]string{
 					"host":    testRemote,
