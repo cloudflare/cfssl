@@ -22,6 +22,9 @@ do
     fgt golint ${package}
 done
 
+# check go fmt
+test -z "$(gofmt -s -l . | grep -v Godeps/_workspace/src/ | tee /dev/stderr)"
+
 # Build and install cfssl executable in PATH
 go install -tags "$BUILD_TAGS" github.com/cloudflare/cfssl/cmd/cfssl
 
