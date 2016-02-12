@@ -24,8 +24,8 @@ func NewHandler() http.Handler {
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) (err error) {
 	blob, matched, err := api.ProcessRequestFirstMatchOf(r,
 		[][]string{
-			[]string{"certificate"},
-			[]string{"domain"},
+			{"certificate"},
+			{"domain"},
 		})
 	if err != nil {
 		log.Warningf("invalid request: %v", err)

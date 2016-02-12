@@ -50,7 +50,7 @@ func TestSplitHosts(t *testing.T) {
 func TestAddPolicies(t *testing.T) {
 	var cert x509.Certificate
 	addPolicies(&cert, []config.CertificatePolicy{
-		config.CertificatePolicy{
+		{
 			ID: config.OID([]int{1, 2, 3, 4}),
 		},
 	})
@@ -75,14 +75,14 @@ func TestAddPolicies(t *testing.T) {
 func TestAddPoliciesWithQualifiers(t *testing.T) {
 	var cert x509.Certificate
 	addPolicies(&cert, []config.CertificatePolicy{
-		config.CertificatePolicy{
+		{
 			ID: config.OID([]int{1, 2, 3, 4}),
 			Qualifiers: []config.CertificatePolicyQualifier{
-				config.CertificatePolicyQualifier{
+				{
 					Type:  "id-qt-cps",
 					Value: "http://example.com/cps",
 				},
-				config.CertificatePolicyQualifier{
+				{
 					Type:  "id-qt-unotice",
 					Value: "Do What Thou Wilt",
 				},

@@ -47,7 +47,7 @@ func TestNewSignerFromFilePolicy(t *testing.T) {
 	var CAConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
-				"signature": &config.SigningProfile{
+				"signature": {
 					Usage:  []string{"digital signature"},
 					Expiry: expiry,
 				},
@@ -70,11 +70,11 @@ func TestNewSignerFromFileInvalidPolicy(t *testing.T) {
 	var invalidConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
-				"invalid": &config.SigningProfile{
+				"invalid": {
 					Usage:  []string{"wiretapping"},
 					Expiry: expiry,
 				},
-				"empty": &config.SigningProfile{},
+				"empty": {},
 			},
 			Default: &config.SigningProfile{
 				Usage:  []string{"digital signature"},
@@ -96,11 +96,11 @@ func TestNewSignerFromFileNoUsageInPolicy(t *testing.T) {
 	var invalidConfig = &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
-				"invalid": &config.SigningProfile{
+				"invalid": {
 					Usage:  []string{},
 					Expiry: expiry,
 				},
-				"empty": &config.SigningProfile{},
+				"empty": {},
 			},
 			Default: &config.SigningProfile{
 				Usage:  []string{"digital signature"},
@@ -642,8 +642,8 @@ func TestOverwriteHosts(t *testing.T) {
 
 		for _, hosts := range [][]string{
 			nil,
-			[]string{},
-			[]string{"127.0.0.1", "localhost", "xyz@example.com"},
+			{},
+			{"127.0.0.1", "localhost", "xyz@example.com"},
 		} {
 			request := signer.SignRequest{
 				Hosts:   hosts,
@@ -914,7 +914,7 @@ func TestExtensionSign(t *testing.T) {
 	request := signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
-			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
+			{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 4})},
 		},
 	}
 
@@ -939,7 +939,7 @@ func TestExtensionSign(t *testing.T) {
 	request = signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
-			signer.Extension{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},
+			{ID: config.OID(asn1.ObjectIdentifier{1, 2, 3, 5})},
 		},
 	}
 
@@ -955,7 +955,7 @@ func TestExtensionSign(t *testing.T) {
 	request = signer.SignRequest{
 		Request: string(csrPEM),
 		Extensions: []signer.Extension{
-			signer.Extension{
+			{
 				ID:       config.OID(asn1.ObjectIdentifier{1, 2, 3, 4}),
 				Critical: false,
 				Value:    extValueHex,

@@ -35,8 +35,8 @@ func NewHandler(caBundleFile, intBundleFile string) (http.Handler, error) {
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	blob, matched, err := api.ProcessRequestFirstMatchOf(r,
 		[][]string{
-			[]string{"certificate"},
-			[]string{"domain"},
+			{"certificate"},
+			{"domain"},
 		})
 	if err != nil {
 		log.Warningf("invalid request: %v", err)
