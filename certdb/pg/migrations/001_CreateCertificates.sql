@@ -14,12 +14,11 @@ CREATE TABLE certificates (
 );
 
 CREATE TABLE ocsp_responses (
-  id                       serial,
   serial_number            bytea NOT NULL,
   authority_key_identifier bytea NOT NULL,
   body                     bytea NOT NULL,
   expiry                   timestamptz,
-  PRIMARY KEY(id),
+  PRIMARY KEY(serial_number, authority_key_identifier),
   FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
 );
 -- +goose Down
