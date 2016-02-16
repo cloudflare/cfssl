@@ -361,8 +361,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	if s.dbAccessor != nil {
-		var certRecord = &certdb.CertificateRecord{
-			Serial:  certTBS.SerialNumber.String(),
+		var certRecord = certdb.CertificateRecord{
+			Serial: certTBS.SerialNumber.String(),
+			// this relies on the specific behavior of x509.CreateCertificate
+			// which updates certTBS AuthorityKeyId from the signer's SubjectKeyId
+			AKI:     hex.EncodeToString(certTBS.AuthorityKeyId),
 			CALabel: req.Label,
 			Status:  "good",
 			Expiry:  certTBS.NotAfter,

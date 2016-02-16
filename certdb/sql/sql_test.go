@@ -11,11 +11,12 @@ import (
 
 const (
 	sqliteDBFile = "../testdb/certstore_development.db"
+	fakeAKI      = "fake_aki"
 )
 
 func TestNoDB(t *testing.T) {
 	dba := &Accessor{}
-	_, err := dba.GetCertificate("foobar")
+	_, err := dba.GetCertificate("foobar serial", "random aki")
 	if err == nil {
 		t.Fatal("should return error")
 	}
@@ -45,29 +46,35 @@ func testEverything(dba certdb.Accessor, t *testing.T) {
 
 func testInsertCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
-	want := &certdb.CertificateRecord{
-		PEM:     "fake cert data",
-		Serial:  "fake serial",
-		CALabel: "default",
-		Status:  "good",
-		Reason:  0,
-		Expiry:  expiry,
+	want := certdb.CertificateRecord{
+		PEM:    "fake cert data",
+		Serial: "fake serial",
+		AKI:    fakeAKI,
+		Status: "good",
+		Reason: 0,
+		Expiry: expiry,
 	}
 
 	if err := dba.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetCertificate(want.Serial)
+	rets, err := dba.GetCertificate(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	if len(rets) != 1 {
+		t.Fatal("should only return one record.")
+	}
+
+	got := rets[0]
+
 	// relfection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
-		want.CALabel != got.CALabel || !got.RevokedAt.IsZero() ||
+		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
-		t.Errorf("want Certificate %+v, got %+v", *want, *got)
+		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 
 	unexpired, err := dba.GetUnexpiredCertificates()
@@ -83,29 +90,35 @@ func testInsertCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 
 func testInsertCertificateAndGetUnexpiredCertificate(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Now().Add(time.Minute)
-	want := &certdb.CertificateRecord{
-		PEM:     "fake cert data",
-		Serial:  "fake serial 2",
-		CALabel: "default",
-		Status:  "good",
-		Reason:  0,
-		Expiry:  expiry,
+	want := certdb.CertificateRecord{
+		PEM:    "fake cert data",
+		Serial: "fake serial 2",
+		AKI:    fakeAKI,
+		Status: "good",
+		Reason: 0,
+		Expiry: expiry,
 	}
 
 	if err := dba.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetCertificate(want.Serial)
+	rets, err := dba.GetCertificate(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
+
 	// relfection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
-		want.CALabel != got.CALabel || !got.RevokedAt.IsZero() ||
+		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
-		t.Errorf("want Certificate %+v, got %+v", *want, *got)
+		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 
 	unexpired, err := dba.GetUnexpiredCertificates()
@@ -121,13 +134,13 @@ func testInsertCertificateAndGetUnexpiredCertificate(dba certdb.Accessor, t *tes
 
 func testUpdateCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
-	want := &certdb.CertificateRecord{
-		PEM:     "fake cert data",
-		Serial:  "fake serial 3",
-		CALabel: "default",
-		Status:  "good",
-		Reason:  0,
-		Expiry:  expiry,
+	want := certdb.CertificateRecord{
+		PEM:    "fake cert data",
+		Serial: "fake serial 3",
+		AKI:    fakeAKI,
+		Status: "good",
+		Reason: 0,
+		Expiry: expiry,
 	}
 
 	if err := dba.InsertCertificate(want); err != nil {
@@ -135,27 +148,34 @@ func testUpdateCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	}
 
 	// reason 2 is CACompromise
-	if err := dba.RevokeCertificate(want.Serial, 2); err != nil {
+	if err := dba.RevokeCertificate(want.Serial, want.AKI, 2); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetCertificate(want.Serial)
+	rets, err := dba.GetCertificate(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
+
 	// relfection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.CALabel != got.CALabel || got.RevokedAt.IsZero() ||
+		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
-		t.Errorf("want Certificate %+v, got %+v", *want, *got)
+		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 }
 
 func testInsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
-	want := &certdb.OCSPRecord{
+	want := certdb.OCSPRecord{
 		Serial: "fake serial",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: expiry,
 	}
@@ -164,14 +184,19 @@ func testInsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetOCSP(want.Serial)
+	rets, err := dba.GetOCSP(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
 
 	if want.Serial != got.Serial || want.Body != got.Body ||
 		!roughlySameTime(want.Expiry, got.Expiry) {
-		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 
 	unexpired, err := dba.GetUnexpiredOCSPs()
@@ -186,8 +211,9 @@ func testInsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 }
 
 func testInsertOCSPAndGetUnexpiredOCSP(dba certdb.Accessor, t *testing.T) {
-	want := &certdb.OCSPRecord{
+	want := certdb.OCSPRecord{
 		Serial: "fake serial 2",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: time.Now().Add(time.Minute),
 	}
@@ -196,14 +222,19 @@ func testInsertOCSPAndGetUnexpiredOCSP(dba certdb.Accessor, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetOCSP(want.Serial)
+	rets, err := dba.GetOCSP(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
 
 	if want.Serial != got.Serial || want.Body != got.Body ||
 		!roughlySameTime(want.Expiry, got.Expiry) {
-		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 
 	unexpired, err := dba.GetUnexpiredOCSPs()
@@ -218,8 +249,9 @@ func testInsertOCSPAndGetUnexpiredOCSP(dba certdb.Accessor, t *testing.T) {
 }
 
 func testUpdateOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
-	want := &certdb.OCSPRecord{
+	want := certdb.OCSPRecord{
 		Serial: "fake serial 3",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
 	}
@@ -228,57 +260,74 @@ func testUpdateOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 		t.Fatal(err)
 	}
 
+	want.Body = "fake body revoked"
 	newExpiry := time.Now().Add(time.Hour)
-	if err := dba.UpdateOCSP(want.Serial, "fake body revoked", newExpiry); err != nil {
+	if err := dba.UpdateOCSP(want.Serial, want.AKI, want.Body, newExpiry); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetOCSP(want.Serial)
+	rets, err := dba.GetOCSP(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
 
 	want.Expiry = newExpiry
 	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
 		!roughlySameTime(newExpiry, got.Expiry) {
-		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 }
 
 func testUpsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
-	want := &certdb.OCSPRecord{
+	want := certdb.OCSPRecord{
 		Serial: "fake serial 3",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
 	}
 
-	if err := dba.UpsertOCSP(want.Serial, want.Body, want.Expiry); err != nil {
+	if err := dba.UpsertOCSP(want.Serial, want.AKI, want.Body, want.Expiry); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := dba.GetOCSP(want.Serial)
+	rets, err := dba.GetOCSP(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
 
 	if want.Serial != got.Serial || want.Body != got.Body ||
 		!roughlySameTime(want.Expiry, got.Expiry) {
-		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 
 	newExpiry := time.Now().Add(time.Hour)
-	if err := dba.UpsertOCSP(want.Serial, "fake body revoked", newExpiry); err != nil {
+	if err := dba.UpsertOCSP(want.Serial, want.AKI, "fake body revoked", newExpiry); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err = dba.GetOCSP(want.Serial)
+	rets, err = dba.GetOCSP(want.Serial, want.AKI)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got = rets[0]
 
 	want.Expiry = newExpiry
 	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
 		!roughlySameTime(newExpiry, got.Expiry) {
-		t.Errorf("want OCSP %+v, got %+v", *want, *got)
+		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 }

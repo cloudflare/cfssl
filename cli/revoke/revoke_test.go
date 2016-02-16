@@ -13,11 +13,16 @@ import (
 
 var dbAccessor certdb.Accessor
 
+const (
+	fakeAKI = "fake aki"
+)
+
 func prepDB() (err error) {
 	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	expirationTime := time.Now().AddDate(1, 0, 0)
-	var cert = &certdb.CertificateRecord{
+	var cert = certdb.CertificateRecord{
 		Serial: "1",
+		AKI:    fakeAKI,
 		Expiry: expirationTime,
 		PEM:    "unexpired cert",
 	}
@@ -37,70 +42,88 @@ func TestRevokeMain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "1", DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{Serial: "1", AKI: fakeAKI, DBConfigFile: "../testdata/db-config.json"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	crs, err := dbAccessor.GetCertificate("1")
+	crs, err := dbAccessor.GetCertificate("1", fakeAKI)
 	if err != nil {
 		t.Fatal("Failed to get certificate")
 	}
 
-	if crs.Status != "revoked" {
+	if len(crs) != 1 {
+		t.Fatal("Failed to get exactly one certificate")
+	}
+
+	cr := crs[0]
+	if cr.Status != "revoked" {
 		t.Fatal("Certificate not marked revoked after we revoked it")
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "1", Reason: "2", DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{Serial: "1", AKI: fakeAKI, Reason: "2", DBConfigFile: "../testdata/db-config.json"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	crs, err = dbAccessor.GetCertificate("1")
+	crs, err = dbAccessor.GetCertificate("1", fakeAKI)
 	if err != nil {
 		t.Fatal("Failed to get certificate")
 	}
+	if len(crs) != 1 {
+		t.Fatal("Failed to get exactly one certificate")
+	}
 
-	if crs.Reason != 2 {
+	cr = crs[0]
+	if cr.Reason != 2 {
 		t.Fatal("Certificate revocation reason incorrect")
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "1", Reason: "Superseded", DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{Serial: "1", AKI: fakeAKI, Reason: "Superseded", DBConfigFile: "../testdata/db-config.json"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	crs, err = dbAccessor.GetCertificate("1")
+	crs, err = dbAccessor.GetCertificate("1", fakeAKI)
 	if err != nil {
 		t.Fatal("Failed to get certificate")
 	}
+	if len(crs) != 1 {
+		t.Fatal("Failed to get exactly one certificate")
+	}
 
-	if crs.Reason != ocsp.Superseded {
+	cr = crs[0]
+	if cr.Reason != ocsp.Superseded {
 		t.Fatal("Certificate revocation reason incorrect")
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "1", Reason: "invalid_reason", DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{Serial: "1", AKI: fakeAKI, Reason: "invalid_reason", DBConfigFile: "../testdata/db-config.json"})
 	if err == nil {
 		t.Fatal("Expected error from invalid reason")
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "1", Reason: "999", DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{Serial: "1", AKI: fakeAKI, Reason: "999", DBConfigFile: "../testdata/db-config.json"})
 	if err == nil {
 		t.Fatal("Expected error from invalid reason")
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "2", DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{Serial: "2", AKI: fakeAKI, DBConfigFile: "../testdata/db-config.json"})
 	if err == nil {
 		t.Fatal("Expected error from unrecognized serial number")
 	}
 
-	err = revokeMain([]string{}, cli.Config{DBConfigFile: "../testdata/db-config.json"})
+	err = revokeMain([]string{}, cli.Config{AKI: fakeAKI, DBConfigFile: "../testdata/db-config.json"})
 	if err == nil {
 		t.Fatal("Expected error from missing serial number")
 	}
 
-	err = revokeMain([]string{}, cli.Config{Serial: "1"})
+	err = revokeMain([]string{}, cli.Config{Serial: "1", AKI: fakeAKI})
 	if err == nil {
 		t.Fatal("Expected error from missing db config")
+	}
+
+	err = revokeMain([]string{}, cli.Config{Serial: "1", DBConfigFile: "../testdata/db-config.json"})
+	if err == nil {
+		t.Fatal("Expected error from missing aki")
 	}
 }

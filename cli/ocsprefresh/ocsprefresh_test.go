@@ -1,8 +1,8 @@
 package ocsprefresh
 
 import (
+	"encoding/hex"
 	"testing"
-
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
@@ -23,17 +23,22 @@ func TestOCSPRefreshMain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expirationTime := time.Now().AddDate(1, 0, 0)
-	var cert = &certdb.CertificateRecord{
-		Serial: "1333308112180215502", // from cert.pem
+	certRecord := certdb.CertificateRecord{
+		Serial: cert.SerialNumber.String(),
+		AKI:    hex.EncodeToString(cert.AuthorityKeyId),
 		Expiry: expirationTime,
 		PEM:    string(certPEM),
 		Status: "good",
 	}
 
 	dbAccessor = sql.NewAccessor(db)
-	err = dbAccessor.InsertCertificate(cert)
+	err = dbAccessor.InsertCertificate(certRecord)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +73,7 @@ func TestOCSPRefreshMain(t *testing.T) {
 		t.Fatal("Expected cert status 'good'")
 	}
 
-	err = dbAccessor.RevokeCertificate(cert.Serial, ocsp.KeyCompromise)
+	err = dbAccessor.RevokeCertificate(certRecord.Serial, certRecord.AKI, ocsp.KeyCompromise)
 	if err != nil {
 		t.Fatal("Failed to revoke certificate")
 	}
