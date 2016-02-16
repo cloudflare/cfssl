@@ -2,7 +2,7 @@
 -- SQL in section 'Up' is executed when this migration is applied
 
 CREATE TABLE certificates (
-  serial_number            bytea NOT NULL UNIQUE,
+  serial_number            bytea NOT NULL,
   authority_key_identifier bytea NOT NULL,
   ca_label                 bytea,
   status                   bytea NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE ocsp_responses (
   body                     bytea NOT NULL,
   expiry                   timestamp,
   PRIMARY KEY(serial_number, authority_key_identifier),
-  FOREIGN KEY(serial_number) REFERENCES certificates(serial_number)
+  FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
 );
 
 -- +goose Down
