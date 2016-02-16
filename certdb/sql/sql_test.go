@@ -11,6 +11,7 @@ import (
 
 const (
 	sqliteDBFile = "../testdb/certstore_development.db"
+	fakeAKI      = "fake_aki"
 )
 
 func TestNoDB(t *testing.T) {
@@ -48,7 +49,7 @@ func testInsertCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	want := certdb.CertificateRecord{
 		PEM:    "fake cert data",
 		Serial: "fake serial",
-		AKI:    "default",
+		AKI:    fakeAKI,
 		Status: "good",
 		Reason: 0,
 		Expiry: expiry,
@@ -92,7 +93,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(dba certdb.Accessor, t *tes
 	want := certdb.CertificateRecord{
 		PEM:    "fake cert data",
 		Serial: "fake serial 2",
-		AKI:    "default",
+		AKI:    fakeAKI,
 		Status: "good",
 		Reason: 0,
 		Expiry: expiry,
@@ -136,7 +137,7 @@ func testUpdateCertificateAndGetCertificate(dba certdb.Accessor, t *testing.T) {
 	want := certdb.CertificateRecord{
 		PEM:    "fake cert data",
 		Serial: "fake serial 3",
-		AKI:    "default",
+		AKI:    fakeAKI,
 		Status: "good",
 		Reason: 0,
 		Expiry: expiry,
@@ -174,7 +175,7 @@ func testInsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
 	want := certdb.OCSPRecord{
 		Serial: "fake serial",
-		AKI:    "fake aki",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: expiry,
 	}
@@ -212,7 +213,7 @@ func testInsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 func testInsertOCSPAndGetUnexpiredOCSP(dba certdb.Accessor, t *testing.T) {
 	want := certdb.OCSPRecord{
 		Serial: "fake serial 2",
-		AKI:    "fake aki",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: time.Now().Add(time.Minute),
 	}
@@ -250,7 +251,7 @@ func testInsertOCSPAndGetUnexpiredOCSP(dba certdb.Accessor, t *testing.T) {
 func testUpdateOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 	want := certdb.OCSPRecord{
 		Serial: "fake serial 3",
-		AKI:    "fake aki",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
 	}
@@ -285,7 +286,7 @@ func testUpdateOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 func testUpsertOCSPAndGetOCSP(dba certdb.Accessor, t *testing.T) {
 	want := certdb.OCSPRecord{
 		Serial: "fake serial 3",
-		AKI:    "fake aki",
+		AKI:    fakeAKI,
 		Body:   "fake body",
 		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
 	}
