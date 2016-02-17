@@ -412,10 +412,6 @@ with a Root object containing the module, pin, token label and private label
 from above, plus a path to your certificate. The structure of the Root object is
 documented in universal.go.
 
-The setup for an OCSP signer is slightly different. Import ocsp/pkcs11 and call
-NewPKCS11Signer with the appropriate configuration structure defined in
-`ocsp/config`.
-
 Alternately, you can construct a pkcs11key.Key or pkcs11key.Pool yourself, and
 pass it to ocsp.NewSigner (for OCSP) or local.NewSigner (for certificate
 signing). This will be necessary, for example, if you are using a single-session
