@@ -1,4 +1,4 @@
-// +build !nopkcs11
+// +build pkcs11
 
 package pkcs11key
 
@@ -9,10 +9,11 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/asn1"
-	"github.com/miekg/pkcs11"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/miekg/pkcs11"
 )
 
 type mockCtx struct {

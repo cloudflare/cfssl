@@ -29,16 +29,16 @@ The requirements to build without Docker are:
 1. Go version 1.4 is the minimum required version of Go.
 2. A properly configured go environment
 3. A properly configured GOPATH
-4. The default behaviour is to build with PKCS #11, which  requires the
+4. (Optional) The default behaviour is to build without PKCS #11, which  requires the
    `gcc` compiler and the libtool development library and header files. On
    Ubuntu, this is `libltdl-dev`.
 
-To build with PKCS #11 support, run:
+To build without PKCS #11 support, run:
 
     $ go get -d ./...
     $ go install ./cmd/...
 
-To build without PKCS #11 support:
+To build with PKCS #11 support:
 
     $ go get -d ./...
-    $ go install -tags nopkcs11 ./cmd/...
+    $ go install -tags pkcs11 ./cmd/...

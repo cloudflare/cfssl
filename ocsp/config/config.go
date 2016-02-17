@@ -2,10 +2,7 @@
 // signer.
 package config
 
-import (
-	"github.com/cloudflare/cfssl/crypto/pkcs11key"
-	"time"
-)
+import "time"
 
 // Config contains configuration information required to set up an OCSP
 // signer. If PKCS11.Module is non-empty, PKCS11 signing will be used.
@@ -15,5 +12,4 @@ type Config struct {
 	ResponderCertFile string
 	KeyFile           string
 	Interval          time.Duration
-	PKCS11            pkcs11key.Config
 }
