@@ -1,8 +1,18 @@
 sudo: false
 language: go
 go:
-  - 1.4
   - 1.5
+  - tip
+# Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-4.8
+install:
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8"; fi
+
 # Used by the certdb tests
 services:
   - postgresql
@@ -14,10 +24,6 @@ before_install:
   # own repo. To fix that, we add a symlink.
   - mkdir -p $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare
   - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && ln -s $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
-  - go get github.com/tools/godep
-
-# Dependencies are vendored with Godeps and don't need to be installed.
-install: godep restore
 
 # Only build pull requests, pushes to the master branch, and branches
 # starting with `test-`. This is a convenient way to push branches to
