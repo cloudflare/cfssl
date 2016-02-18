@@ -295,20 +295,18 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	if len(req.Extensions) > 0 {
 		for _, ext := range req.Extensions {
 			oid := asn1.ObjectIdentifier(ext.ID)
-			if !profile.ExtensionWhitelist[oid.String()] {
-				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
-			}
+			if profile.ExtensionWhitelist[oid.String()] {
+				rawValue, err := hex.DecodeString(ext.Value)
+				if err != nil {
+					return nil, cferr.Wrap(cferr.CertificateError, cferr.InvalidRequest, err)
+				}
 
-			rawValue, err := hex.DecodeString(ext.Value)
-			if err != nil {
-				return nil, cferr.Wrap(cferr.CertificateError, cferr.InvalidRequest, err)
+				safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, pkix.Extension{
+					Id:       oid,
+					Critical: ext.Critical,
+					Value:    rawValue,
+				})
 			}
-
-			safeTemplate.ExtraExtensions = append(safeTemplate.ExtraExtensions, pkix.Extension{
-				Id:       oid,
-				Critical: ext.Critical,
-				Value:    rawValue,
-			})
 		}
 	}
 
