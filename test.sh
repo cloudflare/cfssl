@@ -23,7 +23,10 @@ do
 done
 
 # check go fmt
-test -z "$(gofmt -s -l . | grep -v Godeps/_workspace/src/ | tee /dev/stderr)"
+for package in $PACKAGES
+do
+    test -z "$(gofmt -s -l $GOPATH/src/$package/ | tee /dev/stderr)"
+done
 
 # Build and install cfssl executable in PATH
 go install -tags "$BUILD_TAGS" github.com/cloudflare/cfssl/cmd/cfssl

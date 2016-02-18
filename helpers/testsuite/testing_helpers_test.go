@@ -308,6 +308,8 @@ func chainsEqual(chain1, chain2 []*x509.Certificate) bool {
 func nullifyTimeDependency(cert *x509.Certificate) *x509.Certificate {
 	cert.Raw = nil
 	cert.RawTBSCertificate = nil
+	cert.RawSubject = nil
+	cert.RawIssuer = nil
 	cert.RawSubjectPublicKeyInfo = nil
 	cert.Signature = nil
 	cert.PublicKey = nil
@@ -317,6 +319,11 @@ func nullifyTimeDependency(cert *x509.Certificate) *x509.Certificate {
 	cert.Extensions = nil
 	cert.SubjectKeyId = nil
 	cert.AuthorityKeyId = nil
+
+	cert.Subject.Names = nil
+	cert.Subject.ExtraNames = nil
+	cert.Issuer.Names = nil
+	cert.Issuer.ExtraNames = nil
 
 	return cert
 }

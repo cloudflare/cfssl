@@ -36,11 +36,11 @@ func TestBasicKeyRequest(t *testing.T) {
 	switch priv.(type) {
 	case *rsa.PrivateKey:
 		if kr.Algo() != "rsa" {
-			t.Fatal("RSA key generated, but expected", kr.Algo)
+			t.Fatal("RSA key generated, but expected", kr.Algo())
 		}
 	case *ecdsa.PrivateKey:
 		if kr.Algo() != "ecdsa" {
-			t.Fatal("ECDSA key generated, but expected", kr.Algo)
+			t.Fatal("ECDSA key generated, but expected", kr.Algo())
 		}
 	}
 }
