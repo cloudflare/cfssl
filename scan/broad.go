@@ -1,12 +1,12 @@
 package scan
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/cloudflare/cf-tls/tls"
 	"github.com/cloudflare/cfssl/bundler"
 )
 

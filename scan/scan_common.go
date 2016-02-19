@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"net"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudflare/cf-tls/tls"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
