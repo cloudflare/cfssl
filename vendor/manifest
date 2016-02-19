@@ -42,13 +42,6 @@
 			"path": "/coff"
 		},
 		{
-			"importpath": "github.com/cloudflare/cf-tls/tls",
-			"repository": "https://github.com/cloudflare/cf-tls",
-			"revision": "358b61f346ff4384bd2b051a8d1a24c48444e388",
-			"branch": "master",
-			"path": "/tls"
-		},
-		{
 			"importpath": "github.com/cloudflare/cfssl_trust",
 			"repository": "https://github.com/cloudflare/cfssl_trust",
 			"revision": "555f7ac5ef2bac5643fa0567bcdc174e0dfd72c1",

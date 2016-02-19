@@ -2,11 +2,11 @@ package scan
 
 import (
 	"bytes"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"time"
 
-	"github.com/cloudflare/cf-tls/tls"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/revoke"
 )

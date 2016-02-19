@@ -2,12 +2,12 @@ package scan
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"strings"
 
-	"github.com/cloudflare/cf-tls/tls"
 	"github.com/cloudflare/cfssl/helpers"
 )
 

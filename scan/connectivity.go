@@ -2,13 +2,12 @@ package scan
 
 import (
 	"bufio"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"strings"
-
-	"github.com/cloudflare/cf-tls/tls"
 )
 
 // Connectivity contains scanners testing basic connectivity to the host

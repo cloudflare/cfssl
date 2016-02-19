@@ -1,6 +1,6 @@
 package scan
 
-import "github.com/cloudflare/cf-tls/tls"
+import "crypto/tls"
 
 // TLSSession contains tests of host TLS Session Resumption via
 // Session Tickets and Session IDs
