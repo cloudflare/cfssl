@@ -6,12 +6,12 @@ import (
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
+	"github.com/letsencrypt/pkcs11key"
 )
 
 // Enabled is set to true if PKCS #11 support is present.

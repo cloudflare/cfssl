@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cloudflare/cfssl/crypto/pkcs11key"
 	"github.com/cloudflare/cfssl/errors"
+	"github.com/letsencrypt/pkcs11key"
 )
 
 func setIfPresent(val url.Values, k string, target *string) {

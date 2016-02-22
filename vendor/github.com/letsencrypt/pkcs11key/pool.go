@@ -1,5 +1,3 @@
-// +build pkcs11
-
 package pkcs11key
 
 import (

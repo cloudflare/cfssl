@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cloudflare/cfssl/crypto/pkcs11key"
+	"github.com/letsencrypt/pkcs11key"
 )
 
 type pkcs11UriTest struct {
