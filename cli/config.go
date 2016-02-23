@@ -2,12 +2,10 @@ package cli
 
 import (
 	"flag"
-	"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/signer/pkcs11"
 	"github.com/cloudflare/cfssl/signer/universal"
 )
 
@@ -42,10 +40,6 @@ type Config struct {
 	Remote            string
 	Label             string
 	AuthKey           string
-	Module            string
-	Token             string
-	PIN               string
-	PKCS11Label       string
 	ResponderFile     string
 	ResponderKeyFile  string
 	Status            string
@@ -118,13 +112,6 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
 	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
 	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
-
-	if pkcs11.Enabled {
-		f.StringVar(&c.Module, "pkcs11-module", "", "PKCS #11 module")
-		f.StringVar(&c.Token, "pkcs11-token", "", "PKCS #11 token")
-		f.StringVar(&c.PIN, "pkcs11-pin", os.Getenv("USER_PIN"), "PKCS #11 user PIN")
-		f.StringVar(&c.PKCS11Label, "pkcs11-label", "", "PKCS #11 label")
-	}
 }
 
 // RootFromConfig returns a universal signer Root structure that can
@@ -132,12 +119,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 func RootFromConfig(c *Config) universal.Root {
 	return universal.Root{
 		Config: map[string]string{
-			"pkcs11-module":   c.Module,
-			"pkcs11-token":    c.Token,
-			"pkcs11-label":    c.PKCS11Label,
-			"pkcs11-user-pin": c.PIN,
-			"cert-file":       c.CAFile,
-			"key-file":        c.CAKeyFile,
+			"cert-file": c.CAFile,
+			"key-file":  c.CAKeyFile,
 		},
 		ForceRemote: c.Remote != "",
 	}
