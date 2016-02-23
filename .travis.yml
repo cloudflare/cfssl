@@ -67,11 +67,10 @@ env:
     - GO15VENDOREXPERIMENT=1
   matrix:
     - BUILD_TAGS="postgresql"
-    - BUILD_TAGS="pkcs11 postgresql"
 matrix:
   include:
     - os: osx
-      go: 1.5
+      go: 1.6
       env: BUILD_TAGS=
 after_success:
   - bash <(curl -s https://codecov.io/bash) -f coverprofile.txt
