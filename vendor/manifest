@@ -182,12 +182,6 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/letsencrypt/pkcs11key",
-			"repository": "https://github.com/letsencrypt/pkcs11key",
-			"revision": "b55b000fd13b10698be5f09e2f94155197edc41d",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/lib/pq",
 			"repository": "https://github.com/lib/pq",
 			"revision": "69552e54d2a9d4c6a2438926a774930f7bc398ec",
