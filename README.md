@@ -57,6 +57,14 @@ $ go get -u github.com/cloudflare/cfssl/cmd/...
 This will download, build, and install `cfssl`, `cfssljson`, and
 `mkbundle` into `$GOPATH/bin/`.
 
+Note that CFSSL makes use of vendored packages; in Go 1.5, the
+`GO15VENDOREXPERIMENT` environment variable will need to be set, e.g.
+
+```
+export GO15VENDOREXPERIMENT=1
+```
+
+In Go 1.6, this works out of the box.
 
 ### Using the Command Line Tool
 
