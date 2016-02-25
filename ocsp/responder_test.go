@@ -92,9 +92,9 @@ func TestCacheHeaders(t *testing.T) {
 		header string
 		value  string
 	}{
-		{"Last-Modified", "Wed, 21 Oct 2015 20:55:00 UTC"},
+		{"Last-Modified", "Tue, 20 Oct 2015 00:00:00 UTC"},
 		{"Expires", "Sun, 20 Oct 2030 00:00:00 UTC"},
-		{"Cache-Control", "max-age=471398400"},
+		{"Cache-Control", "max-age=471398400, public, no-transform, must-revalidate"},
 	}
 	for _, tc := range testCases {
 		headers, ok := rw.HeaderMap[tc.header]

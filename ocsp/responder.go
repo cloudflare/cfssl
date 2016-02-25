@@ -104,6 +104,17 @@ func NewResponder(source Source) *Responder {
 // strings of repeated '/' into a single '/', which will break the base64
 // encoding.
 func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	var maxAge *int
+	defer func() {
+		value := "max-age=0, no-cache"
+		if maxAge != nil {
+			value = fmt.Sprintf(
+				"max-age=%d, public, no-transform, must-revalidate",
+				*maxAge,
+			)
+		}
+		response.Header().Add("Cache-Control", value)
+	}()
 	// Read response from request
 	var requestBody []byte
 	var err error
@@ -179,11 +190,15 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	}
 
 	// Write OCSP response to response
-	response.Header().Add("Last-Modified", parsedResponse.ProducedAt.Format(time.RFC1123))
+	response.Header().Add("Last-Modified", parsedResponse.ThisUpdate.Format(time.RFC1123))
 	response.Header().Add("Expires", parsedResponse.NextUpdate.Format(time.RFC1123))
-	maxAge := int64(parsedResponse.NextUpdate.Sub(rs.clk.Now()) / time.Second)
-	if maxAge > 0 {
-		response.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d", maxAge))
+	now := rs.clk.Now()
+	if now.Before(parsedResponse.NextUpdate) {
+		expiresIn := int(parsedResponse.NextUpdate.Sub(now) / time.Second)
+		maxAge = &expiresIn
+	} else {
+		zero := 0
+		maxAge = &zero
 	}
 	response.WriteHeader(http.StatusOK)
 	response.Write(ocspResponse)
