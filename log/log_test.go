@@ -136,3 +136,57 @@ func TestDebug(t *testing.T) {
 	}
 	return
 }
+
+type testSyslogger struct {
+	*bytes.Buffer
+}
+
+func (l testSyslogger) Debug(s string) error {
+	l.WriteString("[DEBUG] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Info(s string) error {
+	l.WriteString("[INFO] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Warning(s string) error {
+	l.WriteString("[WARN] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Err(s string) error {
+	l.WriteString("[ERROR] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Crit(s string) error {
+	l.WriteString("[CRIT] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func (l testSyslogger) Emerg(s string) error {
+	l.WriteString("[FATAL] ")
+	_, err := l.WriteString(s)
+	return err
+}
+
+func TestSetLogger(t *testing.T) {
+	buf := new(bytes.Buffer)
+	SetLogger(testSyslogger{buf})
+	Level = LevelDebug
+	outputf(LevelDebug, teststring, nil)
+
+	// outputf correctly prints string
+	if !strings.Contains(buf.String(), teststring) {
+		t.Fail()
+	}
+	SetLogger(nil)
+	return
+}
