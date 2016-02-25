@@ -197,8 +197,8 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		expiresIn := int(parsedResponse.NextUpdate.Sub(now) / time.Second)
 		maxAge = &expiresIn
 	} else {
-		zero := 0
-		maxAge = &zero
+		zero := 0      // XXX: we want max-age=0 but since this is technically an authorized OCSP response
+		maxAge = &zero //      (despite being stale) and 5019 forbids attaching no-cache we get a little tricky
 	}
 	response.WriteHeader(http.StatusOK)
 	response.Write(ocspResponse)
