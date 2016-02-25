@@ -42,12 +42,6 @@
 			"path": "/coff"
 		},
 		{
-			"importpath": "github.com/cloudflare/cfssl_trust",
-			"repository": "https://github.com/cloudflare/cfssl_trust",
-			"revision": "555f7ac5ef2bac5643fa0567bcdc174e0dfd72c1",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/cloudflare/go-metrics",
 			"repository": "https://github.com/cloudflare/go-metrics",
 			"revision": "6a9aea36fb410b71add0d0e58438e0cfc44d3076",
