@@ -104,17 +104,11 @@ func NewResponder(source Source) *Responder {
 // strings of repeated '/' into a single '/', which will break the base64
 // encoding.
 func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	var maxAge *int
-	defer func() {
-		value := "max-age=0, no-cache"
-		if maxAge != nil {
-			value = fmt.Sprintf(
-				"max-age=%d, public, no-transform, must-revalidate",
-				*maxAge,
-			)
-		}
-		response.Header().Add("Cache-Control", value)
-	}()
+	// By default we set a 'max-age=0, no-cache' Cache-Control header, this
+	// is only returned to the client if a valid authorized OCSP response
+	// is not found or an error is returned. If a response if found the header
+	// will be altered to contain the proper max-age and modifiers.
+	response.Header().Add("Cache-Control", "max-age=0, no-cache")
 	// Read response from request
 	var requestBody []byte
 	var err error
@@ -193,13 +187,21 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	response.Header().Add("Last-Modified", parsedResponse.ThisUpdate.Format(time.RFC1123))
 	response.Header().Add("Expires", parsedResponse.NextUpdate.Format(time.RFC1123))
 	now := rs.clk.Now()
+	maxAge := 0
 	if now.Before(parsedResponse.NextUpdate) {
-		expiresIn := int(parsedResponse.NextUpdate.Sub(now) / time.Second)
-		maxAge = &expiresIn
+		maxAge = int(parsedResponse.NextUpdate.Sub(now) / time.Second)
 	} else {
-		zero := 0      // XXX: we want max-age=0 but since this is technically an authorized OCSP response
-		maxAge = &zero //      (despite being stale) and 5019 forbids attaching no-cache we get a little tricky
+		// TODO(#530): we want max-age=0 but this is technically an authorized OCSP response
+		//             (despite being stale) and 5019 forbids attaching no-cache
+		maxAge = 0
 	}
+	response.Header().Set(
+		"Cache-Control",
+		fmt.Sprintf(
+			"max-age=%d, public, no-transform, must-revalidate",
+			maxAge,
+		),
+	)
 	response.WriteHeader(http.StatusOK)
 	response.Write(ocspResponse)
 }
