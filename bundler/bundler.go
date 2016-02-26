@@ -147,10 +147,12 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 		b.KnownIssuers[string(c.Signature)] = true
 	}
 
+	b.mutex.Lock()
 	for _, c := range intermediates {
 		b.IntermediatePool.AddCert(c)
 		b.KnownIssuers[string(c.Signature)] = true
 	}
+	b.mutex.Unlock()
 
 	log.Debug("bundler set up")
 	return b, nil
@@ -411,7 +413,6 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 		b.mutex.Lock()
 		b.IntermediatePool.AddCert(cert.Cert)
 		b.KnownIssuers[string(cert.Cert.Signature)] = true
-		b.mutex.Unlock()
 
 		if IntermediateStash != "" {
 			fileName := filepath.Join(IntermediateStash, cert.Name)
@@ -427,6 +428,7 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 				log.Info("stashed new intermediate ", cert.Name)
 			}
 		}
+		b.mutex.Unlock()
 	}
 	return true
 }
