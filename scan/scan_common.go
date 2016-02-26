@@ -187,34 +187,24 @@ func (ctx *context) newfamilyContext(numScanners int) *familyContext {
 }
 
 func (ctx *context) copyResults(timeout time.Duration) map[string]FamilyResult {
-	var timedOut bool
-	done := make(chan bool, 1)
 	results := make(map[string]FamilyResult)
-
-	go func() {
-		for result := range ctx.resultChan {
-			if timedOut {
-				log.Debugf("Received result after timeout: %v", result)
-				continue
+	for {
+		var result *Result
+		select {
+		case <-time.After(timeout):
+			log.Warningf("Scan timed out after %v", timeout)
+			return results
+		case result = <-ctx.resultChan:
+			if result == nil {
+				return results
 			}
-
-			if results[result.Family] == nil {
-				results[result.Family] = make(FamilyResult)
-			}
-
-			results[result.Family][result.Scanner] = result.ScannerResult
 		}
-		done <- true
-	}()
 
-	select {
-	case <-done:
-	case <-time.After(timeout):
-		timedOut = true
-		log.Warningf("Scan timed out after %v", timeout)
+		if results[result.Family] == nil {
+			results[result.Family] = make(FamilyResult)
+		}
+		results[result.Family][result.Scanner] = result.ScannerResult
 	}
-
-	return results
 }
 
 func (familyCtx *familyContext) runScanner(familyName, scannerName string, scanner *Scanner) {
