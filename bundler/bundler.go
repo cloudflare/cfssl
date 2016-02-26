@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cfssl/errors"
@@ -63,6 +64,7 @@ type Bundler struct {
 	RootPool         *x509.CertPool
 	IntermediatePool *x509.CertPool
 	KnownIssuers     map[string]bool
+	mutex            *sync.Mutex
 }
 
 // NewBundler creates a new Bundler from the files passed in; these
@@ -128,6 +130,7 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 	b := &Bundler{
 		KnownIssuers:     map[string]bool{},
 		IntermediatePool: x509.NewCertPool(),
+		mutex:            new(sync.Mutex),
 	}
 
 	log.Debug("building certificate pools")
@@ -405,8 +408,10 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 		}
 
 		log.Debug("add certificate to intermediate pool:", cert.Name)
+		b.mutex.Lock()
 		b.IntermediatePool.AddCert(cert.Cert)
 		b.KnownIssuers[string(cert.Cert.Signature)] = true
+		b.mutex.Unlock()
 
 		if IntermediateStash != "" {
 			fileName := filepath.Join(IntermediateStash, cert.Name)
