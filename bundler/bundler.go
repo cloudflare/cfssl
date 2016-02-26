@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cfssl/errors"
@@ -63,6 +64,7 @@ type Bundler struct {
 	RootPool         *x509.CertPool
 	IntermediatePool *x509.CertPool
 	KnownIssuers     map[string]bool
+	mutex            *sync.Mutex
 }
 
 // NewBundler creates a new Bundler from the files passed in; these
@@ -128,6 +130,7 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 	b := &Bundler{
 		KnownIssuers:     map[string]bool{},
 		IntermediatePool: x509.NewCertPool(),
+		mutex:            new(sync.Mutex),
 	}
 
 	log.Debug("building certificate pools")
@@ -144,10 +147,12 @@ func NewBundlerFromPEM(caBundlePEM, intBundlePEM []byte) (*Bundler, error) {
 		b.KnownIssuers[string(c.Signature)] = true
 	}
 
+	b.mutex.Lock()
 	for _, c := range intermediates {
 		b.IntermediatePool.AddCert(c)
 		b.KnownIssuers[string(c.Signature)] = true
 	}
+	b.mutex.Unlock()
 
 	log.Debug("bundler set up")
 	return b, nil
@@ -405,6 +410,7 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 		}
 
 		log.Debug("add certificate to intermediate pool:", cert.Name)
+		b.mutex.Lock()
 		b.IntermediatePool.AddCert(cert.Cert)
 		b.KnownIssuers[string(cert.Cert.Signature)] = true
 
@@ -422,6 +428,7 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 				log.Info("stashed new intermediate ", cert.Name)
 			}
 		}
+		b.mutex.Unlock()
 	}
 	return true
 }
@@ -602,7 +609,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 
 		// verify and store input intermediates to the intermediate pool.
 		// Ignore the returned error here, will treat it in the second call.
-		go b.fetchIntermediates(certs)
+		b.fetchIntermediates(certs)
 
 		chains, err := cert.Verify(b.VerifyOptions())
 		if err != nil {
