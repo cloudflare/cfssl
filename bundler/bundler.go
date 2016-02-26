@@ -602,7 +602,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 
 		// verify and store input intermediates to the intermediate pool.
 		// Ignore the returned error here, will treat it in the second call.
-		go b.fetchIntermediates(certs)
+		b.fetchIntermediates(certs)
 
 		chains, err := cert.Verify(b.VerifyOptions())
 		if err != nil {
