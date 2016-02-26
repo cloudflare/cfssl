@@ -91,7 +91,7 @@ var defaultSignatureAndHashAlgorithms []signatureAndHash
 var AllSignatureAndHashAlgorithms []SignatureAndHash
 
 // skxsLock prevents the concurrent modification of supportedSignatureAlgorithms.
-var skxsLock sync.Mutex
+var skxsLock sync.RWMutex
 
 func init() {
 	defaultSignatureAndHashAlgorithms = supportedSignatureAlgorithms

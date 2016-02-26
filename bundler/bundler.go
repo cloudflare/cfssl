@@ -600,20 +600,13 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 			return nil, errors.New(errors.CertificateError, errors.SelfSigned)
 		}
 
-		// verify and store input intermediates to the intermediate pool.
-		// Ignore the returned error here, will treat it in the second call.
-		go b.fetchIntermediates(certs)
-
 		chains, err := cert.Verify(b.VerifyOptions())
 		if err != nil {
 			log.Debugf("verification failed: %v", err)
 			// If the error was an unknown authority, try to fetch
 			// the intermediate specified in the AIA and add it to
 			// the intermediates bundle.
-			switch err := err.(type) {
-			case x509.UnknownAuthorityError:
-				// Do nothing -- have the default case return out.
-			default:
+			if _, ok := err.(x509.UnknownAuthorityError); !ok {
 				return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 			}
 

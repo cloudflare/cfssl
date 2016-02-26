@@ -96,6 +96,8 @@ NextCipherSuite:
 	}
 
 	if hello.vers >= VersionTLS12 {
+		skxsLock.RLock()
+		defer skxsLock.RUnlock()
 		hello.signatureAndHashes = supportedSignatureAlgorithms
 	}
 
