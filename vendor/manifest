@@ -194,12 +194,6 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/miekg/pkcs11",
-			"repository": "https://github.com/miekg/pkcs11",
-			"revision": "74aa863db218504bef2e31e361d0784bf8f6e0da",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/mitchellh/gox",
 			"repository": "https://github.com/mitchellh/gox",
 			"revision": "39862d88e853ecc97f45e91c1cdcb1b312c51eaa",
