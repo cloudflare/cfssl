@@ -34,13 +34,8 @@ See [BUILDING](BUILDING.md)
 ### Installation
 
 Installation requires a
-[working Go installation](http://golang.org/doc/install) and a
-properly set `GOPATH`.  The default behaviour is to build without PKCS
-\#11. PKCS\#11 requires the `gcc` compiler and the libtool development
-library and header files. On Ubuntu, this is
-`libltdl-dev`. On Centos/RHEL, this is 'libtool' and 'libtool-ltdl'.
-If these are installed, you can pass `-tags pkcs11` to the below
-go get commands.
+[working Go 1.5+ installation](http://golang.org/doc/install) and a
+properly set `GOPATH`.
 
 ```
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssl
@@ -65,6 +60,14 @@ export GO15VENDOREXPERIMENT=1
 ```
 
 In Go 1.6, this works out of the box.
+
+#### Installing pre-Go 1.5
+With a Go 1.4 or earlier installation, you won't be able to install the latest version of CFSSL. However, you can checkout the `1.1.0` release and build that.
+
+```
+git clone -b 1.1.0 https://github.com/cloudflare/cfssl.git $GOPATH/src/github.com/cloudflare/cfssl
+go get github.com/cloudflare/cfssl/cmd/cfssl
+```
 
 ### Using the Command Line Tool
 
