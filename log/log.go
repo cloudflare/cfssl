@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 )
 
 // The following constants represent logging levels in increasing levels of seriousness.
@@ -63,8 +64,12 @@ func SetLogger(logger SyslogWriter) {
 	syslogWriter = logger
 }
 
+// once ensures that the loglevel flag isn't redefined
+// if multiple packages import "github.com/cloudflare/cfssl/log"
+var once sync.Once
+
 func init() {
-	flag.IntVar(&Level, "loglevel", LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
+	once.Do(func() { flag.IntVar(&Level, "loglevel", LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)") })
 }
 
 func print(l int, msg string) {
