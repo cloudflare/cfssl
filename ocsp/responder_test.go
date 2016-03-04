@@ -95,19 +95,36 @@ func TestCacheHeaders(t *testing.T) {
 		{"Last-Modified", "Tue, 20 Oct 2015 00:00:00 UTC"},
 		{"Expires", "Sun, 20 Oct 2030 00:00:00 UTC"},
 		{"Cache-Control", "max-age=471398400, public, no-transform, must-revalidate"},
+		{"Etag", "\"8169FB0843B081A76E9F6F13FD70C8411597BEACF8B182136FFDD19FBD26140A\""},
 	}
 	for _, tc := range testCases {
 		headers, ok := rw.HeaderMap[tc.header]
 		if !ok {
 			t.Errorf("Header %s missing from HTTP response", tc.header)
+			continue
 		}
 		if len(headers) != 1 {
 			t.Errorf("Wrong number of headers in HTTP response. Wanted 1, got %d", len(headers))
+			continue
 		}
 		actual := headers[0]
 		if actual != tc.value {
 			t.Errorf("Got header %s: %s. Expected %s", tc.header, actual, tc.value)
 		}
+	}
+
+	rw = httptest.NewRecorder()
+	headers := http.Header{}
+	headers.Add("If-None-Match", "\"8169FB0843B081A76E9F6F13FD70C8411597BEACF8B182136FFDD19FBD26140A\"")
+	responder.ServeHTTP(rw, &http.Request{
+		Method: "GET",
+		URL: &url.URL{
+			Path: "MEMwQTA/MD0wOzAJBgUrDgMCGgUABBSwLsMRhyg1dJUwnXWk++D57lvgagQU6aQ/7p6l5vLV13lgPJOmLiSOl6oCAhJN",
+		},
+		Header: headers,
+	})
+	if rw.Code != http.StatusNotModified {
+		t.Fatalf("Got wrong status code: expected %d, got %d", http.StatusNotModified, rw.Code)
 	}
 }
 

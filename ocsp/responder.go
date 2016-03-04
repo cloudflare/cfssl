@@ -1,6 +1,7 @@
 package ocsp
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -202,6 +203,18 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			maxAge,
 		),
 	)
+	responseHash := sha256.Sum256(ocspResponse)
+	response.Header().Add("ETag", fmt.Sprintf("\"%X\"", responseHash))
+
+	// RFC 7232 says that a 304 response must contain the above
+	// headers if they would also be sent for a 200 for the same
+	// request, so we have to wait until here to do this
+	if etag := request.Header.Get("If-None-Match"); etag != "" {
+		if etag == fmt.Sprintf("\"%X\"", responseHash) {
+			response.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
 	response.WriteHeader(http.StatusOK)
 	response.Write(ocspResponse)
 }
