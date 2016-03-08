@@ -115,7 +115,7 @@ The subject is an optional file that contains subject information that
 should be used in place of the information from the CSR. It should be
 a JSON file with the type:
 
-```
+```json
 {
     "CN": "example.com",
     "names": [
@@ -170,7 +170,7 @@ cfssl bundle [-ca-bundle bundle] [-int-bundle bundle] \
 
 The bundle output form should follow the example
 
-```
+```json
 {
     "bundle": "CERT_BUNDLE_IN_PEM",
     "crt": "LEAF_CERT_IN_PEM",
@@ -206,7 +206,7 @@ cfssl genkey csr.json
 To generate a private key and corresponding certificate request, specify
 the key request as a JSON file. This file should follow the form
 
-```
+```json
 {
     "hosts": [
         "example.com",
