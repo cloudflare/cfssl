@@ -1,6 +1,10 @@
 package dbconf
 
-import "testing"
+import (
+	"testing"
+
+	_ "github.com/mattn/go-sqlite3" // import just to initialize SQLite testing
+)
 
 func TestLoadFile(t *testing.T) {
 	config, err := LoadFile("testdata/db-config.json")
