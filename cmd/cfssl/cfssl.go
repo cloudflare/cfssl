@@ -42,6 +42,8 @@ import (
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/cli/version"
+
+	_ "github.com/lib/pq" // import to support Postgres
 )
 
 // main defines the cfssl usage and registers all defined commands and flags.
