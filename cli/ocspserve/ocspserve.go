@@ -41,7 +41,7 @@ func ocspServerMain(args []string, c cli.Config) error {
 	}
 
 	log.Info("Registering OCSP responder handler")
-	http.Handle(c.Path, ocsp.Responder{Source: src})
+	http.Handle(c.Path, ocsp.NewResponder(src))
 
 	addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
 	log.Info("Now listening on ", addr)
