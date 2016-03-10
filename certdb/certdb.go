@@ -7,23 +7,23 @@ import (
 // CertificateRecord encodes a certificate and its metadata
 // that will be recorded in a database.
 type CertificateRecord struct {
-	Serial    string    `sql:"serial_number"`
-	AKI       string    `sql:"authority_key_identifier"`
-	CALabel   string    `sql:"ca_label"`
-	Status    string    `sql:"status"`
-	Reason    int       `sql:"reason"`
-	Expiry    time.Time `sql:"expiry"`
-	RevokedAt time.Time `sql:"revoked_at"`
-	PEM       string    `sql:"pem"`
+	Serial    string    `db:"serial_number"`
+	AKI       string    `db:"authority_key_identifier"`
+	CALabel   string    `db:"ca_label"`
+	Status    string    `db:"status"`
+	Reason    int       `db:"reason"`
+	Expiry    time.Time `db:"expiry"`
+	RevokedAt time.Time `db:"revoked_at"`
+	PEM       string    `db:"pem"`
 }
 
 // OCSPRecord encodes a OCSP response body and its metadata
 // that will be recorded in a database.
 type OCSPRecord struct {
-	Serial string    `sql:"serial_number"`
-	AKI    string    `sql:"authority_key_identifier"`
-	Body   string    `sql:"body"`
-	Expiry time.Time `sql:"expiry"`
+	Serial string    `db:"serial_number"`
+	AKI    string    `db:"authority_key_identifier"`
+	Body   string    `db:"body"`
+	Expiry time.Time `db:"expiry"`
 }
 
 // Accessor abstracts the CRUD of certdb objects from a DB.

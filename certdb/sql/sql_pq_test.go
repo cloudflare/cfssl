@@ -10,6 +10,9 @@ import (
 
 func TestPostgreSQL(t *testing.T) {
 	db := testdb.PostgreSQLDB()
-	dba := NewAccessor(db)
-	testEverything(dba, t)
+	ta := TestAccessor{
+		Accessor: NewAccessor(db),
+		DB:       db,
+	}
+	testEverything(ta, t)
 }

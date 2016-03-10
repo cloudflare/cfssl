@@ -3,7 +3,6 @@ package serve
 
 import (
 	"crypto/tls"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -36,6 +35,8 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/ubiquity"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // Usage text of 'cfssl serve'
@@ -59,7 +60,7 @@ var (
 	conf       cli.Config
 	s          signer.Signer
 	ocspSigner ocsp.Signer
-	db         *sql.DB
+	db         *sqlx.DB
 )
 
 // V1APIPrefix is the prefix of all CFSSL V1 API Endpoints.
