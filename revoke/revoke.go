@@ -1,7 +1,6 @@
 // Package revoke provides functionality for checking the validity of
 // a cert. Specifically, the temporal validity of the certificate is
-// checked first, then any CRL in the cert is checked. OCSP is not
-// supported at this time.
+// checked first, then any CRL and OCSP url in the cert is checked.
 package revoke
 
 import (
@@ -27,10 +26,6 @@ import (
 // status of a certificate (i.e. due to network failure) causes
 // verification to fail (a hard failure).
 var HardFail = false
-
-// TODO (kyle): figure out a good mechanism for OCSP; this requires
-// presenting both the certificate and the issuer, and we don't have a
-// good way at this time of getting the issuer.
 
 // CRLSet associates a PKIX certificate list with the URL the CRL is
 // fetched from.
@@ -116,6 +111,21 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	return x509.ParseCRL(body)
 }
 
+func getIssuer(cert *x509.Certificate) *x509.Certificate {
+	var issuer *x509.Certificate
+	var err error
+	for _, issuingCert := range cert.IssuingCertificateURL {
+		issuer, err = fetchRemote(issuingCert)
+		if err != nil {
+			continue
+		}
+		break
+	}
+
+	return issuer
+
+}
+
 // check a cert against a specific CRL. Returns the same bool pair
 // as revCheck.
 func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
@@ -132,6 +142,8 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 		}
 	}
 
+	issuer := getIssuer(cert)
+
 	if shouldFetchCRL {
 		var err error
 		crl, err = fetchCRL(url)
@@ -139,6 +151,16 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 			log.Warningf("failed to fetch CRL: %v", err)
 			return false, false
 		}
+
+		// check CRL signature
+		if issuer != nil {
+			err = issuer.CheckCRLSignature(crl)
+			if err != nil {
+				log.Warningf("failed to verify CRL: %v", err)
+				return false, false
+			}
+		}
+
 		CRLSet[url] = crl
 	}
 
@@ -199,17 +221,10 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 		return false, true
 	}
 
-	var issuer *x509.Certificate
-	for _, issuingCert := range leaf.IssuingCertificateURL {
-		issuer, err = fetchRemote(issuingCert)
-		if err != nil {
-			continue
-		}
-		break
-	}
+	issuer := getIssuer(leaf)
 
 	if issuer == nil {
-		return
+		return false, false
 	}
 
 	ocspRequest, err := ocsp.CreateRequest(leaf, issuer, &ocspOpts)
@@ -224,6 +239,9 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 				return
 			}
 			continue
+		}
+		if err = resp.CheckSignatureFrom(issuer); err != nil {
+			return false, false
 		}
 
 		// There wasn't an error fetching the OCSP status.
