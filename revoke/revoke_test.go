@@ -12,7 +12,7 @@ import (
 
 // The first three test cases represent known revoked, expired, and good
 // certificates that were checked on the date listed in the log. The
-// good certificate will eventually need to be replaced.
+// good certificate will eventually need to be replaced in year 2029.
 
 // If there is a soft-fail, the test will pass to mimic the default
 // behaviour used in this software. However, it will print a warning
@@ -75,36 +75,44 @@ Kz5vh+5tmytUPKA8hUgmLWe94lMb7Uqq2wgZKsqun5DAWleKu81w7wEcOrjiiB+x
 jeBHq7OnpWm+ccTOPCE6H4ZN4wWVS7biEBUdop/8HgXBPQHWAdjL
 -----END CERTIFICATE-----`)
 
-// 2014/05/22 14:18:51 added misc/intermediate_ca/GandiProSSLCA.crt to intermediate bundle
-var goodstring = (`-----BEGIN CERTIFICATE-----
-MIIEnjCCA4agAwIBAgIQPBkQvAZ54yVvTfQWo16zFDANBgkqhkiG9w0BAQUFADCB
-lzELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAlVUMRcwFQYDVQQHEw5TYWx0IExha2Ug
-Q2l0eTEeMBwGA1UEChMVVGhlIFVTRVJUUlVTVCBOZXR3b3JrMSEwHwYDVQQLExho
-dHRwOi8vd3d3LnVzZXJ0cnVzdC5jb20xHzAdBgNVBAMTFlVUTi1VU0VSRmlyc3Qt
-SGFyZHdhcmUwHhcNMDgxMDIzMDAwMDAwWhcNMjAwNTMwMTA0ODM4WjA8MQswCQYD
-VQQGEwJGUjESMBAGA1UEChMJR0FOREkgU0FTMRkwFwYDVQQDExBHYW5kaSBQcm8g
-U1NMIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw5nFDd2ffWY4
-OxZxUVj2uQ49ms1N68h471Kq5j3R9OkVJYwObJqozTZvnlcmJ/QG5lZY9+RXDNyU
-V1EKVL92l4vHkngDhhTQaoIB0sNeJMdnCzzjebnmN3VTbSTniQhYEZPg1554Zo+2
-U39kHBCPKZbwNk11EP4f7U7goyatkNJl0b28zEjbfGvJbPNE6vfaiBfM06spAHft
-gJbCC2lzmv9L5R+KlixFFk3P8IkZInLnrGZ6iP0XIckVI8ENoMxu0SXb5JnfF8OS
-QKdqBZKFBMbNJCCBQjXiv50hQEvVTX/INrqoMUfOVV1OT2HmuhPEBdoU0tU75mwm
-VArKuQAdwwIDAQABo4IBPjCCATowHwYDVR0jBBgwFoAUoXJfJhsomEOVXQc31YWW
-nUvSw0UwHQYDVR0OBBYEFMGxMoDxE5IUL21nMJIYqnw5VRQ+MA4GA1UdDwEB/wQE
-AwIBBjASBgNVHRMBAf8ECDAGAQH/AgEAMBgGA1UdIAQRMA8wDQYLKwYBBAGyMQEC
-AhowRAYDVR0fBD0wOzA5oDegNYYzaHR0cDovL2NybC51c2VydHJ1c3QuY29tL1VU
-Ti1VU0VSRmlyc3QtSGFyZHdhcmUuY3JsMHQGCCsGAQUFBwEBBGgwZjA9BggrBgEF
-BQcwAoYxaHR0cDovL2NydC51c2VydHJ1c3QuY29tL1VUTkFkZFRydXN0U2VydmVy
-X0NBLmNydDAlBggrBgEFBQcwAYYZaHR0cDovL29jc3AudXNlcnRydXN0LmNvbTAN
-BgkqhkiG9w0BAQUFAAOCAQEAjSvVDlj6cT/RDFCrOvqpd1gZD7rzKzDGpfi3IciU
-cjatYny806bAaAxRqL56e3O4rRMr+Jw1sHGpcqfKkm3YBW0CyJAum4vI07lYjZpn
-9ihcWeatDX4gp/6Pm862lGITpB6TLriX1G7EYdnjOudIajawz64vnyTdvzmC18BV
-+wC3A9f57mnqzm5SghMSeGlF78y9vPUXWPfBx9JY4Ga/r+U59djQrgbKY93sgyXD
-3LS+K6NqGCKt58LcXQq75/e0OnHoJ3tiPMiB1IuYoIRCXevitc1ynVyP/m5wuZqB
-wHHiX3Eo2RFMBCfSE7mSUoSwgHWtp1tHh0IvL8H7dmKjZQ==
+// A Comodo intermediate CA certificate with issuer url, CRL url and OCSP url
+var goodComodoCA = (`-----BEGIN CERTIFICATE-----
+MIIGCDCCA/CgAwIBAgIQKy5u6tl1NmwUim7bo3yMBzANBgkqhkiG9w0BAQwFADCB
+hTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G
+A1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQxKzApBgNV
+BAMTIkNPTU9ETyBSU0EgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTQwMjEy
+MDAwMDAwWhcNMjkwMjExMjM1OTU5WjCBkDELMAkGA1UEBhMCR0IxGzAZBgNVBAgT
+EkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMR
+Q09NT0RPIENBIExpbWl0ZWQxNjA0BgNVBAMTLUNPTU9ETyBSU0EgRG9tYWluIFZh
+bGlkYXRpb24gU2VjdXJlIFNlcnZlciBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEP
+ADCCAQoCggEBAI7CAhnhoFmk6zg1jSz9AdDTScBkxwtiBUUWOqigwAwCfx3M28Sh
+bXcDow+G+eMGnD4LgYqbSRutA776S9uMIO3Vzl5ljj4Nr0zCsLdFXlIvNN5IJGS0
+Qa4Al/e+Z96e0HqnU4A7fK31llVvl0cKfIWLIpeNs4TgllfQcBhglo/uLQeTnaG6
+ytHNe+nEKpooIZFNb5JPJaXyejXdJtxGpdCsWTWM/06RQ1A/WZMebFEh7lgUq/51
+UHg+TLAchhP6a5i84DuUHoVS3AOTJBhuyydRReZw3iVDpA3hSqXttn7IzW3uLh0n
+c13cRTCAquOyQQuvvUSH2rnlG51/ruWFgqUCAwEAAaOCAWUwggFhMB8GA1UdIwQY
+MBaAFLuvfgI9+qbxPISOre44mOzZMjLUMB0GA1UdDgQWBBSQr2o6lFoL2JDqElZz
+30O0Oija5zAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNV
+HSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwGwYDVR0gBBQwEjAGBgRVHSAAMAgG
+BmeBDAECATBMBgNVHR8ERTBDMEGgP6A9hjtodHRwOi8vY3JsLmNvbW9kb2NhLmNv
+bS9DT01PRE9SU0FDZXJ0aWZpY2F0aW9uQXV0aG9yaXR5LmNybDBxBggrBgEFBQcB
+AQRlMGMwOwYIKwYBBQUHMAKGL2h0dHA6Ly9jcnQuY29tb2RvY2EuY29tL0NPTU9E
+T1JTQUFkZFRydXN0Q0EuY3J0MCQGCCsGAQUFBzABhhhodHRwOi8vb2NzcC5jb21v
+ZG9jYS5jb20wDQYJKoZIhvcNAQEMBQADggIBAE4rdk+SHGI2ibp3wScF9BzWRJ2p
+mj6q1WZmAT7qSeaiNbz69t2Vjpk1mA42GHWx3d1Qcnyu3HeIzg/3kCDKo2cuH1Z/
+e+FE6kKVxF0NAVBGFfKBiVlsit2M8RKhjTpCipj4SzR7JzsItG8kO3KdY3RYPBps
+P0/HEZrIqPW1N+8QRcZs2eBelSaz662jue5/DJpmNXMyYE7l3YphLG5SEXdoltMY
+dVEVABt0iN3hxzgEQyjpFv3ZBdRdRydg1vs4O2xyopT4Qhrf7W8GjEXCBgCq5Ojc
+2bXhc3js9iPc0d1sjhqPpepUfJa3w/5Vjo1JXvxku88+vZbrac2/4EjxYoIQ5QxG
+V/Iz2tDIY+3GH5QFlkoakdH368+PUq4NCNk+qKBR6cGHdNXJ93SrLlP7u3r7l+L4
+HyaPs9Kg4DdbKDsx5Q5XLVq4rXmsXiBmGqW5prU5wfWYQ//u+aen/e7KJD2AFsQX
+j4rBYKEMrltDR5FL1ZoXX/nUh8HCjLfn4g8wGTeGrODcQgPmlKidrv0PJFGUzpII
+0fxQ8ANAe4hZ7Q7drNJ3gjTcBpUC2JD5Leo31Rpg0Gcg19hCC0Wvgmje3WYkN5Ap
+lBlGGSW4gNfL1IYoakRwJiNiqZ+Gb7+6kHDSVneFeO/qJakXzlByjAA6quPbYzSf
++AZxAeKCINT+b72x
 -----END CERTIFICATE-----`)
 
-var goodCert = mustParse(goodstring)
+var goodCert = mustParse(goodComodoCA)
 
 func mustParse(pemData string) *x509.Certificate {
 	block, _ := pem.Decode([]byte(pemData))
@@ -147,7 +155,7 @@ func TestGood(t *testing.T) {
 }
 
 func TestLdap(t *testing.T) {
-	ldapCert := mustParse(goodstring)
+	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints = append(ldapCert.CRLDistributionPoints, "ldap://myldap.example.com")
 	if revoked, ok := VerifyCertificate(ldapCert); revoked || !ok {
 		t.Fatalf("ldap certificate should have been recognized")
@@ -170,7 +178,7 @@ func TestCertNotYetValid(t *testing.T) {
 }
 
 func TestCRLFetchError(t *testing.T) {
-	ldapCert := mustParse(goodstring)
+	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
 	if revoked, ok := VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
@@ -183,7 +191,7 @@ func TestCRLFetchError(t *testing.T) {
 }
 
 func TestBadCRLSet(t *testing.T) {
-	ldapCert := mustParse(goodstring)
+	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
 	CRLSet[""] = nil
 	certIsRevokedCRL(ldapCert, "")
