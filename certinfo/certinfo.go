@@ -16,6 +16,8 @@ import (
 // Certificate represents a JSON description of an X.509 certificate.
 type Certificate struct {
 	Subject            Name      `json:"subject,omitempty"`
+	Issuer             Name      `json:"issuer,omitempty"`
+	SerialNumber       string    `json:"serial_number,omitempty"`
 	SANs               []string  `json:"sans,omitempty"`
 	NotBefore          time.Time `json:"not_before"`
 	NotAfter           time.Time `json:"not_after"`
@@ -72,7 +74,9 @@ func ParseCertificate(cert *x509.Certificate) *Certificate {
 		NotBefore:          cert.NotBefore,
 		NotAfter:           cert.NotAfter,
 		Subject:            ParseName(cert.Subject),
+		Issuer:             ParseName(cert.Issuer),
 		SANs:               cert.DNSNames,
+		SerialNumber:       cert.SerialNumber.String(),
 	}
 	for _, ip := range cert.IPAddresses {
 		c.SANs = append(c.SANs, ip.String())
