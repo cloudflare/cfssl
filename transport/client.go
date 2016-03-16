@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/transport/ca"
 	"github.com/cloudflare/cfssl/transport/core"
 	"github.com/cloudflare/cfssl/transport/kp"
@@ -68,6 +70,12 @@ type Transport struct {
 	// when it is attempting to automatically update a certificate
 	// as part of AutoUpdate.
 	Backoff *core.Backoff
+
+	// RevokeSoftFail, if true, will cause a failure to check
+	// revocation (such that the revocation status of a
+	// certificate cannot be checked) to not be treated as an
+	// error.
+	RevokeSoftFail bool
 }
 
 // TLSClientAuthClientConfig returns a new client authentication TLS
@@ -276,7 +284,26 @@ func Dial(address string, tr *Transport) (*tls.Conn, error) {
 		return nil, err
 	}
 
-	return tls.Dial("tcp", address, cfg)
+	conn, err := tls.Dial("tcp", address, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	state := conn.ConnectionState()
+	if len(state.VerifiedChains) == 0 {
+		return nil, errors.New(errors.CertificateError, errors.VerifyFailed)
+	}
+
+	for _, chain := range state.VerifiedChains {
+		for _, cert := range chain {
+			revoked, ok := revoke.VerifyCertificate(cert)
+			if (!tr.RevokeSoftFail && !ok) || revoked {
+				return nil, errors.New(errors.CertificateError, errors.VerifyFailed)
+			}
+		}
+	}
+
+	return conn, nil
 }
 
 // AutoUpdate will automatically update the listener. If a non-nil
