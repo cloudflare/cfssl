@@ -21,9 +21,9 @@ before_install:
   # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs11key.
   # That means, by default, if someone forks the repo and makes changes across
   # multiple packages within CFSSL, Travis won't pass for the branch on their
-  # own repo. To fix that, we add a symlink.
+  # own repo. To fix that, we move the directory
   - mkdir -p $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare
-  - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && ln -s $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
+  - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && mv $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
 
 # Only build pull requests, pushes to the master branch, and branches
 # starting with `test-`. This is a convenient way to push branches to
