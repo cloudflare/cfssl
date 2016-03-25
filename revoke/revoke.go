@@ -257,8 +257,6 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 	return
 }
 
-var ocspUnauthorised = []byte{0x30, 0x03, 0x0a, 0x01, 0x06}
-var ocspMalformed = []byte{0x30, 0x03, 0x0a, 0x01, 0x01}
 
 // sendOCSPRequest attempts to request an OCSP response from the
 // server. The error only indicates a failure to *fetch* the
@@ -287,11 +285,12 @@ func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (ocspR
 	}
 	resp.Body.Close()
 
-	if bytes.Equal(body, ocspUnauthorised) {
-		return
-	}
-
-	if bytes.Equal(body, ocspMalformed) {
+	switch {
+	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse),
+             bytes.Equal(body, ocsp.MalformedRequestErrorResponse),
+             bytes.Equal(body, ocsp.InternalErrorErrorResponse),
+             bytes.Equal(body, ocsp.TryLaterErrorResponse),
+             bytes.Equal(body, ocsp.SigRequredErrorResponse):
 		return
 	}
 
