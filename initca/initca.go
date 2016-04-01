@@ -47,10 +47,11 @@ func validator(req *csr.CertificateRequest) error {
 
 // New creates a new root certificate from the certificate request.
 func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
+	policy := CAPolicy()
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
-			CAPolicy.Default.ExpiryString = req.CA.Expiry
-			CAPolicy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			policy.Default.ExpiryString = req.CA.Expiry
+			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
 		}
 
 		if req.CA.PathLength != 0 {
@@ -77,7 +78,7 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		log.Errorf("failed to create signer: %v", err)
 		return
 	}
-	s.SetPolicy(CAPolicy)
+	s.SetPolicy(policy)
 
 	signReq := signer.SignRequest{Hosts: req.Hosts, Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
@@ -133,10 +134,11 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 
 // NewFromSigner creates a new root certificate from a crypto.Signer.
 func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+	policy := CAPolicy()
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
-			CAPolicy.Default.ExpiryString = req.CA.Expiry
-			CAPolicy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			policy.Default.ExpiryString = req.CA.Expiry
+			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -195,6 +197,7 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 // signWithCSR creates a new root certificate from signing a X509.CertificateRequest
 // by a crypto.Signer.
 func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+	policy := CAPolicy()
 	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
@@ -218,7 +221,7 @@ func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer) (cert, csrPEM
 		log.Errorf("failed to create signer: %v", err)
 		return
 	}
-	s.SetPolicy(CAPolicy)
+	s.SetPolicy(policy)
 
 	signReq := signer.SignRequest{Request: string(csrPEM)}
 	cert, err = s.Sign(signReq)
@@ -268,11 +271,13 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 }
 
 // CAPolicy contains the CA issuing policy as default policy.
-var CAPolicy = &config.Signing{
-	Default: &config.SigningProfile{
-		Usage:        []string{"cert sign", "crl sign"},
-		ExpiryString: "43800h",
-		Expiry:       5 * helpers.OneYear,
-		CA:           true,
-	},
+var CAPolicy = func() *config.Signing {
+	return &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"cert sign", "crl sign"},
+			ExpiryString: "43800h",
+			Expiry:       5 * helpers.OneYear,
+			CA:           true,
+		},
+	}
 }

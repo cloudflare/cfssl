@@ -95,20 +95,24 @@ func TestInitCA(t *testing.T) {
 			}
 		}
 
-		// Start a signer
-		var CAPolicy = &config.Signing{
-			Default: &config.SigningProfile{
-				Usage:        []string{"cert sign", "crl sign"},
-				ExpiryString: "300s",
-				Expiry:       300 * time.Second,
-				CA:           true,
-			},
+		// Replace the default CAPolicy with a test (short expiry) version.
+		CAPolicy = func() *config.Signing {
+			return &config.Signing{
+				Default: &config.SigningProfile{
+					Usage:        []string{"cert sign", "crl sign"},
+					ExpiryString: "300s",
+					Expiry:       300 * time.Second,
+					CA:           true,
+				},
+			}
 		}
+
+		// Start a signer
 		s, err := local.NewSigner(key, cert, signer.DefaultSigAlgo(key), nil)
 		if err != nil {
 			t.Fatal("Signer Creation error:", err)
 		}
-		s.SetPolicy(CAPolicy)
+		s.SetPolicy(CAPolicy())
 
 		// Sign RSA and ECDSA customer CSRs.
 		for _, csrFile := range csrFiles {
