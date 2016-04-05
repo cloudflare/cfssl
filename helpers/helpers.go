@@ -410,7 +410,7 @@ func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) 
 	in = bytes.TrimSpace(in)
 	p, rest := pem.Decode(in)
 	if p != nil {
-		if p.Type != "CERTIFICATE REQUEST" {
+		if p.Type != "NEW CERTIFICATE REQUEST" && p.Type != "CERTIFICATE REQUEST" {
 			return nil, rest, cferr.New(cferr.CSRError, cferr.BadRequest)
 		}
 
