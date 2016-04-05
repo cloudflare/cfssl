@@ -362,6 +362,12 @@ var csrTests = []csrTest{
 		keyLen:        521,
 		errorCallback: nil,
 	},
+	{
+		file:          "testdata/rsa-old.csr",
+		keyAlgo:       "rsa",
+		keyLen:        2048,
+		errorCallback: nil,
+	},
 }
 
 func TestSignCSRs(t *testing.T) {
