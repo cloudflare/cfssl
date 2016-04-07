@@ -119,14 +119,14 @@ func gencertMain(args []string, c cli.Config) error {
 		}
 
 		var cert []byte
-		req := signer.SignRequest{
+		signReq := signer.SignRequest{
 			Request: string(csrBytes),
 			Hosts:   signer.SplitHosts(c.Hostname),
 			Profile: c.Profile,
 			Label:   c.Label,
 		}
 
-		cert, err = s.Sign(req)
+		cert, err = s.Sign(signReq)
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func gencertMain(args []string, c cli.Config) error {
 		// "Applicant information MUST include, but not be limited to, at least one
 		// Fully-Qualified Domain Name or IP address to be included in the Certificate’s
 		// SubjectAltName extension."
-		if len(req.Hosts) == 0 {
+		if len(signReq.Hosts) == 0 && len(req.Hosts) == 0 {
 			log.Warning(generator.CSRNoHostMessage)
 		}
 

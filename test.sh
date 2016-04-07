@@ -35,7 +35,7 @@ COVPROFILES=""
 for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
 do
     profile="$GOPATH/src/$package/.coverprofile"
-    go test -tags "$BUILD_TAGS" --coverprofile=$profile $package
+    go test -race -tags "$BUILD_TAGS" --coverprofile=$profile $package
     [ -s $profile ] && COVPROFILES="$COVPROFILES $profile"
 done
 cat $COVPROFILES > coverprofile.txt

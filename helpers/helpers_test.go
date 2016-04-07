@@ -407,3 +407,18 @@ func TestParseCSRPEMMore(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Imported from signers/local/testdata/
+const rsaOldTestCSR = "testdata/rsa-old.csr"
+
+func TestParseOldCSR(t *testing.T) {
+	in, err := ioutil.ReadFile(rsaOldTestCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, _, err = ParseCSR(in)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}

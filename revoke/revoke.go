@@ -257,12 +257,12 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 	return
 }
 
-
 // sendOCSPRequest attempts to request an OCSP response from the
 // server. The error only indicates a failure to *fetch* the
 // certificate, and *does not* mean the certificate is valid.
-func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (ocspResponse *ocsp.Response, err error) {
+func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (*ocsp.Response, error) {
 	var resp *http.Response
+	var err error
 	if len(req) > 256 {
 		buf := bytes.NewBuffer(req)
 		resp, err = http.Post(server, "application/ocsp-request", buf)
@@ -272,25 +272,25 @@ func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (ocspR
 	}
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return
+		return nil, errors.New("failed to retrieve OSCP")
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return
+		return nil, err
 	}
 	resp.Body.Close()
 
 	switch {
 	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse),
-             bytes.Equal(body, ocsp.MalformedRequestErrorResponse),
-             bytes.Equal(body, ocsp.InternalErrorErrorResponse),
-             bytes.Equal(body, ocsp.TryLaterErrorResponse),
-             bytes.Equal(body, ocsp.SigRequredErrorResponse):
+		bytes.Equal(body, ocsp.MalformedRequestErrorResponse),
+		bytes.Equal(body, ocsp.InternalErrorErrorResponse),
+		bytes.Equal(body, ocsp.TryLaterErrorResponse),
+		bytes.Equal(body, ocsp.SigRequredErrorResponse):
 		return
 	}
 
