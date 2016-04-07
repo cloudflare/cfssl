@@ -26,6 +26,9 @@ import (
 // MaxPathLen is the default path length for a new CA certificate.
 var MaxPathLen = 2
 
+// MaxPathLenZero indicates whether a new CA certificate has pathlen=0
+var MaxPathLenZero = false
+
 // Subject contains the information that should be used to override the
 // subject information when signing a certificate.
 type Subject struct {

@@ -54,8 +54,11 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
 		}
 
-		if req.CA.PathLength != 0 {
-			signer.MaxPathLen = req.CA.PathLength
+		signer.MaxPathLen = req.CA.PathLength
+		if req.CA.PathLength != 0 && req.CA.PathLenZero == true {
+			log.Infof("ignore invalid 'pathlenzero' value")
+		} else {
+			signer.MaxPathLenZero = req.CA.PathLenZero
 		}
 	}
 
@@ -144,8 +147,11 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 			}
 		}
 
-		if req.CA.PathLength != 0 {
-			signer.MaxPathLen = req.CA.PathLength
+		signer.MaxPathLen = req.CA.PathLength
+		if req.CA.PathLength != 0 && req.CA.PathLenZero == true {
+			log.Infof("ignore invalid 'pathlenzero' value")
+		} else {
+			signer.MaxPathLenZero = req.CA.PathLenZero
 		}
 	}
 
@@ -191,13 +197,15 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 		}
 	}
 
-	return signWithCSR(&tpl, priv)
+	return signWithCSR(&tpl, priv, policy)
 }
 
 // signWithCSR creates a new root certificate from signing a X509.CertificateRequest
 // by a crypto.Signer.
-func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
-	policy := CAPolicy()
+func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer, policy *config.Signing) (cert, csrPEM []byte, err error) {
+	if policy == nil {
+		policy = CAPolicy()
+	}
 	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)

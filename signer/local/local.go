@@ -112,6 +112,7 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 		s.ca = template
 		initRoot = true
 		template.MaxPathLen = signer.MaxPathLen
+		template.MaxPathLenZero = signer.MaxPathLenZero
 	} else if template.IsCA {
 		template.MaxPathLen = 1
 		template.DNSNames = nil
