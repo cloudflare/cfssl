@@ -36,12 +36,10 @@ branches:
     - /^test-.*$/
 
 before_script:
-  - go get golang.org/x/tools/cmd/vet
   - go get golang.org/x/tools/cmd/goimports
   - go get github.com/onsi/gomega
   - go get github.com/onsi/ginkgo
   - go get -u github.com/golang/lint/golint
-  - go get golang.org/x/tools/cmd/cover
   - go get github.com/modocache/gover
   - go get -v github.com/GeertJohan/fgt
   # Setup DBs + run migrations
