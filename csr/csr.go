@@ -129,8 +129,9 @@ func (kr *BasicKeyRequest) SigAlgo() x509.SignatureAlgorithm {
 
 // CAConfig is a section used in the requests initialising a new CA.
 type CAConfig struct {
-	PathLength int    `json:"pathlen"`
-	Expiry     string `json:"expiry"`
+	PathLength  int    `json:"pathlen"`
+	PathLenZero bool   `json:"pathlenzero"`
+	Expiry      string `json:"expiry"`
 }
 
 // A CertificateRequest encapsulates the API interface to the
@@ -265,6 +266,7 @@ func ExtractCertificateRequest(cert *x509.Certificate) *CertificateRequest {
 		// issue date and expiry date.
 		req.CA.Expiry = cert.NotAfter.Sub(cert.NotBefore).String()
 		req.CA.PathLength = cert.MaxPathLen
+		req.CA.PathLenZero = cert.MaxPathLenZero
 	}
 
 	return req
