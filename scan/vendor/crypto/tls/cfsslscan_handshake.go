@@ -2,9 +2,13 @@ package tls
 
 // SayHello constructs a simple Client Hello to a server, parses its serverHelloMsg response
 // and returns the negotiated ciphersuite ID, and, if an EC cipher suite, the curve ID
-func (c *Conn) SayHello() (cipherID, curveType uint16, curveID CurveID, version uint16, certs [][]byte, err error) {
-	skxsLock.RLock()
-	defer skxsLock.RUnlock()
+func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint16, curveID CurveID, version uint16, certs [][]byte, err error) {
+	// Set the supported signatures and hashes to the set `newSigAls`
+	supportedSignatureAlgorithms := make([]signatureAndHash, len(newSigAls))
+	for i := range newSigAls {
+		supportedSignatureAlgorithms[i] = newSigAls[i].internal()
+	}
+
 	hello := &clientHelloMsg{
 		vers:                c.config.maxVersion(),
 		compressionMethods:  []uint8{compressionNone},
