@@ -379,7 +379,7 @@ func Regenerate(priv crypto.Signer, csr []byte) ([]byte, error) {
 // Generate creates a new CSR from a CertificateRequest structure and
 // an existing key. The KeyRequest field is ignored.
 func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
-	sigAlgo := helpers.SignerAlgo(priv, crypto.SHA256)
+	sigAlgo := helpers.SignerAlgo(priv)
 	if sigAlgo == x509.UnknownSignatureAlgorithm {
 		return nil, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
 	}
