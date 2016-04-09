@@ -17,6 +17,7 @@ import (
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
+	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -709,6 +710,116 @@ func expectOneValueOf(t *testing.T, s []string, e, n string) {
 func expectEmpty(t *testing.T, s []string, n string) {
 	if len(s) != 0 {
 		t.Fatalf("Expected no values in %s, but have %d values: %v", n, len(s), s)
+	}
+}
+
+func TestCASignPathlen(t *testing.T) {
+	// testdata/inter_pathlen_0.csr
+	var csrPathlenTests = []struct {
+		file      string
+		caProfile bool
+		err       error
+		pathlen   int
+		isZero    bool
+		isCA      bool
+	}{
+		{
+			file:      "testdata/inter_pathlen_0.csr",
+			caProfile: true,
+			err:       nil,
+			pathlen:   0,
+			isZero:    true,
+			isCA:      true,
+		},
+		{
+			file:      "testdata/inter_pathlen_1.csr",
+			caProfile: true,
+			err:       nil,
+			pathlen:   1,
+			isZero:    false,
+			isCA:      true,
+		},
+		{
+			file:      "testdata/inter_pathlen_unspecified.csr",
+			caProfile: true,
+			err:       nil,
+			// golang x509 parses unspecified pathlen as MaxPathLen == -1 and
+			// MaxPathLenZero == false
+			pathlen: -1,
+			isZero:  false,
+			isCA:    true,
+		},
+		{
+			file:      "testdata/inter_pathlen_0.csr",
+			caProfile: false,
+			err:       cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+		},
+		{
+			file:      "testdata/inter_pathlen_1.csr",
+			caProfile: false,
+			err:       cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+		},
+		{
+			file:      "testdata/inter_pathlen_unspecified.csr",
+			caProfile: false,
+			err:       cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+		},
+	}
+
+	for _, testCase := range csrPathlenTests {
+		csrPEM, err := ioutil.ReadFile(testCase.file)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		req := &signer.Subject{
+			Names: []csr.Name{
+				{O: "sam certificate authority"},
+			},
+			CN: "localhost",
+		}
+
+		s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+		// No policy CSR whitelist: the normal set of CSR fields get passed through to
+		// certificate.
+		s.policy = &config.Signing{
+			Default: &config.SigningProfile{
+				Usage:        []string{"cert sign", "crl sign"},
+				ExpiryString: "1h",
+				Expiry:       1 * time.Hour,
+				CA:           testCase.caProfile,
+			},
+		}
+
+		request := signer.SignRequest{
+			Hosts:   []string{"127.0.0.1", "localhost"},
+			Request: string(csrPEM),
+			Subject: req,
+		}
+
+		certPEM, err := s.Sign(request)
+		if !reflect.DeepEqual(err, testCase.err) {
+			t.Fatalf("%v: expected: %v, actual: %v", testCase.file, testCase.err, err)
+		}
+
+		if err == nil {
+			cert, err := helpers.ParseCertificatePEM(certPEM)
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+
+			if cert.IsCA != testCase.isCA {
+				t.Fatalf("%s: unexpected IsCA value: %v", testCase.file, cert.IsCA)
+			}
+
+			if cert.MaxPathLen != testCase.pathlen {
+				t.Fatalf("%s: unexpected pathlen value: %v", testCase.file, cert.MaxPathLen)
+			}
+
+			if cert.MaxPathLenZero != testCase.isZero {
+				t.Fatalf("%s: unexpected pathlen value: %v", testCase.file, cert.MaxPathLenZero)
+			}
+		}
 	}
 }
 

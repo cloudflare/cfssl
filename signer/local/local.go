@@ -111,10 +111,7 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 		template.EmailAddresses = nil
 		s.ca = template
 		initRoot = true
-		template.MaxPathLen = signer.MaxPathLen
-		template.MaxPathLenZero = signer.MaxPathLenZero
 	} else if template.IsCA {
-		template.MaxPathLen = 1
 		template.DNSNames = nil
 		template.EmailAddresses = nil
 	}
@@ -242,6 +239,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		if profile.CSRWhitelist.EmailAddresses {
 			safeTemplate.EmailAddresses = csrTemplate.EmailAddresses
 		}
+	}
+
+	if safeTemplate.IsCA && !profile.CA {
+		return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 	}
 
 	OverrideHosts(&safeTemplate, req.Hosts)
