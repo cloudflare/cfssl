@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"net"
@@ -174,6 +175,12 @@ func (cr *CertificateRequest) Name() pkix.Name {
 	}
 	name.SerialNumber = cr.SerialNumber
 	return name
+}
+
+// BasicConstraints CSR information RFC 5280, 4.2.1.9
+type BasicConstraints struct {
+	IsCA       bool `asn1:"optional"`
+	MaxPathLen int  `asn1:"optional,default:-1"`
 }
 
 // ParseRequest takes a certificate request and generates a key and
@@ -376,6 +383,14 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 		}
 	}
 
+	if req.CA != nil {
+		err = appendCAInfoToCSR(req.CA, &tpl)
+		if err != nil {
+			err = cferr.Wrap(cferr.CSRError, cferr.GenerationFailed, err)
+			return
+		}
+	}
+
 	csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
@@ -390,4 +405,27 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 	log.Info("encoded CSR")
 	csr = pem.EncodeToMemory(&block)
 	return
+}
+
+// appendCAInfoToCSR appends CAConfig BasicConstraint extension to a CSR
+func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
+	pathlen := reqConf.PathLength
+	if pathlen == 0 && !reqConf.PathLenZero {
+		pathlen = -1
+	}
+	val, err := asn1.Marshal(BasicConstraints{true, pathlen})
+
+	if err != nil {
+		return err
+	}
+
+	csr.ExtraExtensions = []pkix.Extension{
+		{
+			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
+			Value:    val,
+			Critical: true,
+		},
+	}
+
+	return nil
 }
