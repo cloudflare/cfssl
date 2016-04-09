@@ -115,10 +115,7 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 		template.EmailAddresses = nil
 		s.ca = template
 		initRoot = true
-		template.MaxPathLen = signer.MaxPathLen
-		template.MaxPathLenZero = signer.MaxPathLenZero
 	} else if template.IsCA {
-		template.MaxPathLen = 1
 		template.DNSNames = nil
 		template.EmailAddresses = nil
 	}
@@ -251,6 +248,23 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	if req.CRLOverride != "" {
 		safeTemplate.CRLDistributionPoints = []string{req.CRLOverride}
 	}
+
+	if safeTemplate.IsCA {
+		if !profile.CA {
+			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+		}
+
+		if s.ca != nil && s.ca.MaxPathLen > 0 {
+			if safeTemplate.MaxPathLen >= s.ca.MaxPathLen {
+				// do not sign a cert with pathlen > current
+				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+			}
+		} else if s.ca != nil && s.ca.MaxPathLen == 0 && s.ca.MaxPathLenZero {
+			// signer has pathlen of 0, do not sign more intermediate CAs
+			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+		}
+	}
+
 	OverrideHosts(&safeTemplate, req.Hosts)
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
