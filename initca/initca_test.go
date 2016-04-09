@@ -105,6 +105,10 @@ func TestInitCA(t *testing.T) {
 				}
 			}
 
+			if !cert.BasicConstraintsValid {
+				t.Fatal("InitCA cert did not have valid BasicConstraints")
+			}
+
 			// Verify CA MaxPathLen
 			if caconfig.PathLength == 0 && cert.MaxPathLenZero != caconfig.PathLenZero {
 				t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect %v, got %v", caconfig.PathLenZero, cert.MaxPathLenZero)
@@ -115,7 +119,7 @@ func TestInitCA(t *testing.T) {
 					t.Fatalf("fail to init a CA cert with specified CA pathlen: expect %d, got %d", caconfig.PathLength, cert.MaxPathLen)
 				}
 				if cert.MaxPathLenZero != false {
-					t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect false, got %d", cert.MaxPathLenZero)
+					t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect false, got %v", cert.MaxPathLenZero)
 				}
 			}
 

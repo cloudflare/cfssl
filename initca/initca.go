@@ -60,6 +60,9 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		} else {
 			signer.MaxPathLenZero = req.CA.PathLenZero
 		}
+	} else {
+		// include BasicConstraint CA=true and unspecified pathlen
+		req.CA = &csr.CAConfig{PathLength: 0, PathLenZero: false}
 	}
 
 	g := &csr.Generator{Validator: validator}
