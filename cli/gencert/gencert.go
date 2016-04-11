@@ -66,6 +66,9 @@ func gencertMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
+	if c.CNOverride != "" {
+		req.CN = c.CNOverride
+	}
 	switch {
 	case c.IsCA:
 		var key, csrPEM, cert []byte
