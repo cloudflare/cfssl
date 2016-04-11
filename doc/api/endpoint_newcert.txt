@@ -1,13 +1,13 @@
-THE CERTIFICATAE GENERATING ENDPOINT
+THE CERTIFICATE GENERATING ENDPOINT
 
 Endpoint: /api/v1/cfssl/newcert
 Method:   POST
 
 Required parameters:
-    
+
     * request: a json object specifying the certificate request,
     exactly the one which can be sent to /api/v1/cfssl/newkey
-    to generate a certificate sigining request
+    to generate a certificate signing request
     (referring to endpoint_newkey for how to write such object)
 
 Optional parameters:
@@ -56,4 +56,3 @@ Example:
     },
     "success": true
 }
-

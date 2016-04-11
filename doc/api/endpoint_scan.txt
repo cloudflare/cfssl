@@ -5,19 +5,19 @@ Method:   GET
 
 Required parameters:
 
-    * host: the hostname (optionall including port) to scan
+    * host: the hostname (optionally including port) to scan
 
 Optional parameters:
 
     * ip: IP Address to override DNS lookup of host
-    * timeout: The ammount of time allotted for the scan to complete (default: 1 minute)
+    * timeout: The amount of time allotted for the scan to complete (default: 1 minute)
 
-    The following parameters are used by the scanner to select which 
+    The following parameters are used by the scanner to select which
     scans to run.
 
     * family:  regular expression specifying scan famil(ies) to run
     * scanner: regular expression specifying scanner(s) to run
-    
+
 
 Result:
 
@@ -33,7 +33,7 @@ Result:
         * "Skipped": indicates that the scan was not performed for some reason
     * error: any error encountered during the scan process
     * output: arbitrary JSON data retrieved during the scan
-    
+
 
 Example:
 

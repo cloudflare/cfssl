@@ -4,10 +4,10 @@ Endpoint: /api/v1/cfssl/newkey
 Method:   POST
 
 Required parameters:
-    
+
     * hosts: the list of SANs (subject alternative names) for the
     requested CSR (certificate signing request)
-    * names: the certifcate subject for the requested CSR
+    * names: the certificate subject for the requested CSR
 
 Optional parameters:
 
