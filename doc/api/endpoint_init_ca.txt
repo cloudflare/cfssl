@@ -4,10 +4,10 @@ Endpoint: /api/v1/cfssl/init_ca
 Method:   POST
 
 Required parameters:
-    
+
     * hosts: the list of SANs (subject alternative names) for the
     requested CA certificate
-    * names: the certifcate subject for the requested CA certificate
+    * names: the certificate subject for the requested CA certificate
 
 Optional parameters:
 

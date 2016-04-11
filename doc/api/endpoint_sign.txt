@@ -9,7 +9,7 @@ Required parameters:
 
 Optional parameters:
 
-    * hosts: an array of SAN (subject alternatvie names)
+    * hosts: an array of SAN (subject alternative names)
     which overrides the ones in the CSR
     * subject: the certificate subject which overrides
     the ones in the CSR

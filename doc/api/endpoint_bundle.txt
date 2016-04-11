@@ -41,7 +41,7 @@ Result:
 
 	The bundle endpoint returns a JSON object with the following
 	keys:
-	
+
         * bundle contains the concatenated list of PEM certificates
         forming the certificate chain; this forms the actual
         bundle. The remaining parameters are additional metadata
@@ -83,7 +83,7 @@ Result:
           algorithms, it will be rejected by Windows XP SP2), ECDSA
           compatibility warning (if the bundle contains ECDSA certificates,
           it will be rejected by Windows XP, Android 2.2 and Android 2.3
-          etc) and root trust warnning (if the bundle cannot be trusted
+          etc) and root trust warning (if the bundle cannot be trusted
           by some major OSes or browsers).
           * rebundled indicates whether the server had to rebundle the
           certificate. The server will rebundle the uploaded
@@ -93,7 +93,7 @@ Result:
           mark rebundled as true.
           * untrusted_root_stores contains the names of any major
           OSes and browsers that doesn't trust the bundle. The names
-          are used to contruct the root trust warnings in the messages
+          are used to construct the root trust warnings in the messages
           list
         * subject contains the X.509 subject identifier from the
         certificate.
