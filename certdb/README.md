@@ -21,7 +21,7 @@ Currently supported:
 
 ### Get goose
 
-    go get https://bitbucket.org/liamstask/goose/
+    go get bitbucket.org/liamstask/goose/cmd/goose
 
 ### Use goose to start and terminate a SQLite DB
 To start a SQLite DB using goose:
