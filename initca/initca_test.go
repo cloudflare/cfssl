@@ -11,6 +11,7 @@ import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
 )
@@ -105,6 +106,10 @@ func TestInitCA(t *testing.T) {
 				}
 			}
 
+			if !cert.BasicConstraintsValid {
+				t.Fatal("InitCA cert did not have valid BasicConstraints")
+			}
+
 			// Verify CA MaxPathLen
 			if caconfig.PathLength == 0 && cert.MaxPathLenZero != caconfig.PathLenZero {
 				t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect %v, got %v", caconfig.PathLenZero, cert.MaxPathLenZero)
@@ -115,7 +120,7 @@ func TestInitCA(t *testing.T) {
 					t.Fatalf("fail to init a CA cert with specified CA pathlen: expect %d, got %d", caconfig.PathLength, cert.MaxPathLen)
 				}
 				if cert.MaxPathLenZero != false {
-					t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect false, got %d", cert.MaxPathLenZero)
+					t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect false, got %v", cert.MaxPathLenZero)
 				}
 			}
 
@@ -226,6 +231,58 @@ func TestValidations(t *testing.T) {
 
 		if !tv.v && err == nil {
 			t.Fatalf("%d: expected error, but no error was reported", i)
+		}
+	}
+}
+
+func TestRenewPathlens(t *testing.T) {
+	var renewTests = []struct {
+		pemFile    string
+		keyFile    string
+		expPathlen int
+	}{
+		{
+			pemFile:    "testdata/pathlen_0.pem",
+			keyFile:    "testdata/pathlen_0-key.pem",
+			expPathlen: 0,
+		},
+		{
+			pemFile:    "testdata/pathlen_1.pem",
+			keyFile:    "testdata/pathlen_1-key.pem",
+			expPathlen: 1,
+		},
+		{
+			pemFile: "testdata/pathlen_unspecified.pem",
+			keyFile: "testdata/pathlen_unspecified-key.pem",
+			// golang x509 parses unspecified pathlen as MaxPathLen == -1 and
+			// MaxPathLenZero == false
+			expPathlen: -1,
+		},
+	}
+
+	for _, testCase := range renewTests {
+		certPEM, err := RenewFromPEM(testCase.pemFile, testCase.keyFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// must parse ok
+		cert, err := helpers.ParseCertificatePEM(certPEM)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !cert.IsCA {
+			t.Fatal("renewed CA certificate is not CA")
+		}
+
+		if !cert.BasicConstraintsValid {
+			t.Fatal("renewed cert did not have valid BasicConstraints")
+		}
+
+		if cert.MaxPathLen != testCase.expPathlen {
+			log.Info(cert.MaxPathLenZero)
+			t.Fatalf("Unexpected pathlen - expected: %v, actual: %v", testCase.expPathlen, cert.MaxPathLen)
 		}
 	}
 }

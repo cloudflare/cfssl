@@ -5,14 +5,10 @@ package initca
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"io/ioutil"
-	"net"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -60,6 +56,9 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		} else {
 			signer.MaxPathLenZero = req.CA.PathLenZero
 		}
+	} else {
+		// include BasicConstraint CA=true and unspecified pathlen
+		req.CA = &csr.CAConfig{PathLength: 0, PathLenZero: false}
 	}
 
 	g := &csr.Generator{Validator: validator}
@@ -87,7 +86,6 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	cert, err = s.Sign(signReq)
 
 	return
-
 }
 
 // NewFromPEM creates a new root certificate from the key file passed in.
@@ -153,76 +151,15 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 		} else {
 			signer.MaxPathLenZero = req.CA.PathLenZero
 		}
+	} else {
+		// include BasicConstraint CA=true and unspecified pathlen
+		req.CA = &csr.CAConfig{PathLength: 0, PathLenZero: false}
 	}
 
-	var sigAlgo x509.SignatureAlgorithm
-	switch pub := priv.Public().(type) {
-	case *rsa.PublicKey:
-		bitLength := pub.N.BitLen()
-		switch {
-		case bitLength >= 4096:
-			sigAlgo = x509.SHA512WithRSA
-		case bitLength >= 3072:
-			sigAlgo = x509.SHA384WithRSA
-		case bitLength >= 2048:
-			sigAlgo = x509.SHA256WithRSA
-		default:
-			sigAlgo = x509.SHA1WithRSA
-		}
-	case *ecdsa.PublicKey:
-		switch pub.Curve {
-		case elliptic.P521():
-			sigAlgo = x509.ECDSAWithSHA512
-		case elliptic.P384():
-			sigAlgo = x509.ECDSAWithSHA384
-		case elliptic.P256():
-			sigAlgo = x509.ECDSAWithSHA256
-		default:
-			sigAlgo = x509.ECDSAWithSHA1
-		}
-	default:
-		sigAlgo = x509.UnknownSignatureAlgorithm
-	}
-
-	var tpl = x509.CertificateRequest{
-		Subject:            req.Name(),
-		SignatureAlgorithm: sigAlgo,
-	}
-
-	for i := range req.Hosts {
-		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
-			tpl.IPAddresses = append(tpl.IPAddresses, ip)
-		} else {
-			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
-		}
-	}
-
-	return signWithCSR(&tpl, priv, policy)
-}
-
-// signWithCSR creates a new root certificate from signing a X509.CertificateRequest
-// by a crypto.Signer.
-func signWithCSR(tpl *x509.CertificateRequest, priv crypto.Signer, policy *config.Signing) (cert, csrPEM []byte, err error) {
-	if policy == nil {
-		policy = CAPolicy()
-	}
-	csrPEM, err = x509.CreateCertificateRequest(rand.Reader, tpl, priv)
+	csrPEM, err = csr.Generate(priv, req)
 	if err != nil {
-		log.Errorf("failed to generate a CSR: %v", err)
-		// The use of CertificateError was a matter of some
-		// debate; it is the one edge case in which a new
-		// error category specifically for CSRs might be
-		// useful, but it was deemed that one edge case did
-		// not a new category justify.
-		err = cferr.Wrap(cferr.CertificateError, cferr.BadRequest, err)
-		return
+		return nil, nil, err
 	}
-
-	p := &pem.Block{
-		Type:  "CERTIFICATE REQUEST",
-		Bytes: csrPEM,
-	}
-	csrPEM = pem.EncodeToMemory(p)
 
 	s, err := local.NewSigner(priv, nil, signer.DefaultSigAlgo(priv), nil)
 	if err != nil {
