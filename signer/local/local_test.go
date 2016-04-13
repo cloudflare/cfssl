@@ -714,35 +714,67 @@ func expectEmpty(t *testing.T, s []string, n string) {
 }
 
 func TestCASignPathlen(t *testing.T) {
-	// testdata/inter_pathlen_0.csr
 	var csrPathlenTests = []struct {
-		file      string
-		caProfile bool
-		err       error
-		pathlen   int
-		isZero    bool
-		isCA      bool
+		name       string
+		caCertFile string
+		caKeyFile  string
+		caProfile  bool
+		csrFile    string
+		err        error
+		pathlen    int
+		isZero     bool
+		isCA       bool
 	}{
 		{
-			file:      "testdata/inter_pathlen_0.csr",
-			caProfile: true,
-			err:       nil,
-			pathlen:   0,
-			isZero:    true,
-			isCA:      true,
+			name:       "pathlen 1 signing pathlen 0",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_0.csr",
+			err:        nil,
+			pathlen:    0,
+			isZero:     true,
+			isCA:       true,
 		},
 		{
-			file:      "testdata/inter_pathlen_1.csr",
-			caProfile: true,
-			err:       nil,
-			pathlen:   1,
-			isZero:    false,
-			isCA:      true,
+			name:       "pathlen 1 signing pathlen 1",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_1.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
 		},
 		{
-			file:      "testdata/inter_pathlen_unspecified.csr",
-			caProfile: true,
-			err:       nil,
+			name:       "pathlen 0 signing pathlen 0",
+			caCertFile: testCaFile,
+			caKeyFile:  testCaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_0.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 0 signing pathlen 1",
+			caCertFile: testCaFile,
+			caKeyFile:  testCaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_1.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 0 signing pathlen unspecified",
+			caCertFile: testCaFile,
+			caKeyFile:  testCaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_unspecified.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+		},
+		{
+			name:       "pathlen 1 signing unspecified pathlen",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  true,
+			csrFile:    "testdata/inter_pathlen_unspecified.csr",
+			err:        nil,
 			// golang x509 parses unspecified pathlen as MaxPathLen == -1 and
 			// MaxPathLenZero == false
 			pathlen: -1,
@@ -750,24 +782,33 @@ func TestCASignPathlen(t *testing.T) {
 			isCA:    true,
 		},
 		{
-			file:      "testdata/inter_pathlen_0.csr",
-			caProfile: false,
-			err:       cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			name:       "non-ca singing profile sighing pathlen 0",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  false,
+			csrFile:    "testdata/inter_pathlen_0.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
 		},
 		{
-			file:      "testdata/inter_pathlen_1.csr",
-			caProfile: false,
-			err:       cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			name:       "non-ca singing profile sighing pathlen 1",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  false,
+			csrFile:    "testdata/inter_pathlen_1.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
 		},
 		{
-			file:      "testdata/inter_pathlen_unspecified.csr",
-			caProfile: false,
-			err:       cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			name:       "non-ca singing profile sighing pathlen 0",
+			caCertFile: testECDSACaFile,
+			caKeyFile:  testECDSACaKeyFile,
+			caProfile:  false,
+			csrFile:    "testdata/inter_pathlen_unspecified.csr",
+			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
 		},
 	}
 
 	for _, testCase := range csrPathlenTests {
-		csrPEM, err := ioutil.ReadFile(testCase.file)
+		csrPEM, err := ioutil.ReadFile(testCase.csrFile)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
@@ -779,7 +820,7 @@ func TestCASignPathlen(t *testing.T) {
 			CN: "localhost",
 		}
 
-		s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+		s := newCustomSigner(t, testCase.caCertFile, testCase.caKeyFile)
 		// No policy CSR whitelist: the normal set of CSR fields get passed through to
 		// certificate.
 		s.policy = &config.Signing{
@@ -799,25 +840,25 @@ func TestCASignPathlen(t *testing.T) {
 
 		certPEM, err := s.Sign(request)
 		if !reflect.DeepEqual(err, testCase.err) {
-			t.Fatalf("%v: expected: %v, actual: %v", testCase.file, testCase.err, err)
+			t.Fatalf("%s: expected: %v, actual: %v", testCase.name, testCase.err, err)
 		}
 
 		if err == nil {
 			cert, err := helpers.ParseCertificatePEM(certPEM)
 			if err != nil {
-				t.Fatalf("%v", err)
+				t.Fatalf("%s: %v", testCase.name, err)
 			}
 
 			if cert.IsCA != testCase.isCA {
-				t.Fatalf("%s: unexpected IsCA value: %v", testCase.file, cert.IsCA)
+				t.Fatalf("%s: unexpected IsCA value: %v", testCase.name, cert.IsCA)
 			}
 
 			if cert.MaxPathLen != testCase.pathlen {
-				t.Fatalf("%s: unexpected pathlen value: %v", testCase.file, cert.MaxPathLen)
+				t.Fatalf("%s: unexpected pathlen value: %v", testCase.name, cert.MaxPathLen)
 			}
 
 			if cert.MaxPathLenZero != testCase.isZero {
-				t.Fatalf("%s: unexpected pathlen value: %v", testCase.file, cert.MaxPathLenZero)
+				t.Fatalf("%s: unexpected pathlen value: %v", testCase.name, cert.MaxPathLenZero)
 			}
 		}
 	}

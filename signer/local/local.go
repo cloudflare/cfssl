@@ -241,8 +241,20 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 	}
 
-	if safeTemplate.IsCA && !profile.CA {
-		return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+	if safeTemplate.IsCA {
+		if !profile.CA {
+			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+		}
+
+		if s.ca != nil && s.ca.MaxPathLen > 0 {
+			if safeTemplate.MaxPathLen >= s.ca.MaxPathLen {
+				// do not sign a cert with pathlen > current
+				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+			}
+		} else if s.ca != nil && s.ca.MaxPathLen == 0 && s.ca.MaxPathLenZero {
+			// signer has pathlen of 0, do not sign more intermediate CAs
+			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+		}
 	}
 
 	OverrideHosts(&safeTemplate, req.Hosts)
