@@ -96,7 +96,11 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 }
 
 func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
+	var distPoints = template.CRLDistributionPoints
 	err = signer.FillTemplate(template, s.policy.Default, profile)
+	if distPoints != nil && len(distPoints) > 0 {
+		template.CRLDistributionPoints = distPoints
+	}
 	if err != nil {
 		return
 	}
@@ -244,6 +248,9 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 	}
 
+	if req.CRLOverride != "" {
+		safeTemplate.CRLDistributionPoints = []string{req.CRLOverride}
+	}
 	OverrideHosts(&safeTemplate, req.Hosts)
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
