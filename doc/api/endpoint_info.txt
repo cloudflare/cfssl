@@ -24,7 +24,7 @@ Result:
 Example:
 
     $ curl -d '{"label": "primary"}' \
-          ${CFSSL_HOST}/api/v1/cfssl/sign  \
+          ${CFSSL_HOST}/api/v1/cfssl/info  \
           | python -m json.tool
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
