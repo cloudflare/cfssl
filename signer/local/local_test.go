@@ -57,7 +57,7 @@ func TestNewSignerFromFilePolicy(t *testing.T) {
 				Usage:        []string{"cert sign", "crl sign"},
 				ExpiryString: "43800h",
 				Expiry:       expiry,
-				CA:           true,
+				CAConstraint: config.CAConstraint{IsCA: true},
 			},
 		},
 	}
@@ -194,13 +194,14 @@ func testSign(t *testing.T) {
 	// nil ca
 	nilca := *signer
 	prof = signer.policy.Default
-	prof.CA = false
+	prof.CAConstraint.IsCA = false
 	nilca.ca = nil
 	_, err = nilca.sign(cert, prof)
 	if err == nil {
 		t.Fatal("nil ca with isca false raised an error")
 	}
-	prof.CA = true
+
+	prof.CAConstraint.IsCA = true
 	_, err = nilca.sign(cert, prof)
 	if err != nil {
 		t.Fatal("nil ca with CA true raised an error")
@@ -444,7 +445,7 @@ func TestCAIssuing(t *testing.T) {
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true, MaxPathLenZero: true},
 		},
 	}
 	var hostname = "cloudflare-inter.com"
@@ -488,6 +489,12 @@ func TestCAIssuing(t *testing.T) {
 				}
 				if cert.SignatureAlgorithm != interSigner.SigAlgo() {
 					t.Fatal("Cert Signature Algorithm does not match the issuer.")
+				}
+				if cert.MaxPathLen != 0 {
+					t.Fatal("CA Cert Max Path is not zero.")
+				}
+				if cert.MaxPathLenZero != true {
+					t.Fatal("CA Cert Max Path is not zero.")
 				}
 			}
 		}
@@ -885,7 +892,7 @@ func TestNoWhitelistSign(t *testing.T) {
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true},
 		},
 	}
 
@@ -939,7 +946,7 @@ func TestWhitelistSign(t *testing.T) {
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
 			Expiry:       1 * time.Hour,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true},
 			CSRWhitelist: &config.CSRWhitelist{
 				PublicKey:          true,
 				PublicKeyAlgorithm: true,
@@ -1011,7 +1018,7 @@ func TestNameWhitelistSign(t *testing.T) {
 			Usage:         []string{"cert sign", "crl sign"},
 			ExpiryString:  "1h",
 			Expiry:        1 * time.Hour,
-			CA:            true,
+			CAConstraint:  config.CAConstraint{IsCA: true},
 			NameWhitelist: wl,
 		},
 	}
@@ -1088,7 +1095,7 @@ func TestExtensionSign(t *testing.T) {
 			Usage:              []string{"cert sign", "crl sign"},
 			ExpiryString:       "1h",
 			Expiry:             1 * time.Hour,
-			CA:                 true,
+			CAConstraint:       config.CAConstraint{IsCA: true},
 			ExtensionWhitelist: map[string]bool{"1.2.3.4": true},
 		},
 	}
@@ -1154,7 +1161,7 @@ func TestCTFailure(t *testing.T) {
 	var config = &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
-			CA:           true,
+			CAConstraint: config.CAConstraint{IsCA: true},
 			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
 			ExpiryString: "8760h",
 			CTLogServers: []string{"https://ct.googleapis.com/pilot"},

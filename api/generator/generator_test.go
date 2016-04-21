@@ -109,7 +109,7 @@ func TestNewCertGeneratorHandlerFromSigner(t *testing.T) {
 				Usage:        []string{"cert sign", "crl sign"},
 				ExpiryString: "43800h",
 				Expiry:       expiry,
-				CA:           true,
+				CAConstraint: config.CAConstraint{IsCA: true},
 
 				ClientProvidesSerialNumbers: true,
 			},

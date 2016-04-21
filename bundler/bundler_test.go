@@ -301,9 +301,9 @@ func TestRebundleExpiring(t *testing.T) {
 	policy := &config.Signing{
 		Profiles: map[string]*config.SigningProfile{
 			"expireIn1Hour": {
-				Usage:  []string{"cert sign"},
-				Expiry: expiry,
-				CA:     true,
+				Usage:        []string{"cert sign"},
+				Expiry:       expiry,
+				CAConstraint: config.CAConstraint{IsCA: true},
 			},
 		},
 		Default: config.DefaultConfig(),

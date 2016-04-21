@@ -126,7 +126,7 @@ func TestInitCA(t *testing.T) {
 						Usage:        []string{"cert sign", "crl sign"},
 						ExpiryString: "300s",
 						Expiry:       300 * time.Second,
-						CA:           true,
+						CAConstraint: config.CAConstraint{IsCA: true},
 					},
 				}
 			}
