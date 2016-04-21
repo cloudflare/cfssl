@@ -218,34 +218,11 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 		panic("Generate should have failed to produce a valid key.")
 	}
 
-	var tpl = x509.CertificateRequest{
-		Subject:            req.Name(),
-		SignatureAlgorithm: req.KeyRequest.SigAlgo(),
-	}
-
-	for i := range req.Hosts {
-		if ip := net.ParseIP(req.Hosts[i]); ip != nil {
-			tpl.IPAddresses = append(tpl.IPAddresses, ip)
-		} else if email, err := mail.ParseAddress(req.Hosts[i]); err == nil && email != nil {
-			tpl.EmailAddresses = append(tpl.EmailAddresses, req.Hosts[i])
-		} else {
-			tpl.DNSNames = append(tpl.DNSNames, req.Hosts[i])
-		}
-	}
-
-	csr, err = x509.CreateCertificateRequest(rand.Reader, &tpl, priv)
+	csr, err = Generate(priv.(crypto.Signer), req)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
-		return
 	}
-	block := pem.Block{
-		Type:  "CERTIFICATE REQUEST",
-		Bytes: csr,
-	}
-
-	log.Info("encoded CSR")
-	csr = pem.EncodeToMemory(&block)
 	return
 }
 
@@ -379,7 +356,7 @@ func Regenerate(priv crypto.Signer, csr []byte) ([]byte, error) {
 // Generate creates a new CSR from a CertificateRequest structure and
 // an existing key. The KeyRequest field is ignored.
 func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
-	sigAlgo := helpers.SignerAlgo(priv, crypto.SHA256)
+	sigAlgo := helpers.SignerAlgo(priv)
 	if sigAlgo == x509.UnknownSignatureAlgorithm {
 		return nil, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
 	}
