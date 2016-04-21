@@ -151,7 +151,7 @@ func makeCASigner(certBytes, keyBytes []byte, sigAlgo x509.SignatureAlgorithm, t
 
 	defaultProfile := &config.SigningProfile{
 		Usage:        []string{"cert sign"},
-		CA:           true,
+		CAConstraint: config.CAConstraint{IsCA: true},
 		Expiry:       time.Hour,
 		ExpiryString: "1h",
 	}

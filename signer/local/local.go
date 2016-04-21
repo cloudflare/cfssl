@@ -247,7 +247,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	if safeTemplate.IsCA {
-		if !profile.CA {
+		if !profile.CAConstraint.IsCA {
 			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 		}
 

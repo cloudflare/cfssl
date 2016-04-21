@@ -333,7 +333,7 @@ func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error
 				Usage:        []string{"cert sign", "crl sign"},
 				ExpiryString: "43800h",
 				Expiry:       expiry,
-				CA:           true,
+				CAConstraint: config.CAConstraint{IsCA: true},
 
 				ClientProvidesSerialNumbers: true,
 			},
