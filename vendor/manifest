@@ -151,6 +151,13 @@
 			"path": "/spew"
 		},
 		{
+			"importpath": "github.com/go-sql-driver/mysql",
+			"repository": "https://github.com/go-sql-driver/mysql",
+			"revision": "a732e14c62dde3285440047bba97581bc472ae18",
+			"branch": "heads/v1.2",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/google/certificate-transparency/go",
 			"repository": "https://github.com/google/certificate-transparency",
 			"revision": "6e5648d13b43cdde25cc8274b87675230ffefbd6",
