@@ -124,7 +124,7 @@ func (src *DBsource) Response(request *ocsp.Request) (response []byte, present b
 func updateSource(src *DBsource) {
     start := time.Now()
 
-    log.Infof("OCSP responses are being updated")
+    log.Info("OCSP responses are being updated")
 
     // Get unexprired records
     records, err := src.DBaccessor.GetUnexpiredOCSPs()

@@ -64,6 +64,10 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 
 	// Set an expiry timestamp for all certificates refreshed in this batch
 	ocspExpiry := time.Now().Add(c.Interval)
+	start := time.Now()
+
+	log.Info("OCSP responses are being updated")
+
 	for _, certRecord := range certs {
 		cert, err := helpers.ParseCertificatePEM([]byte(certRecord.PEM))
 		if err != nil {
@@ -93,6 +97,8 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 			return err
 		}
 	}
+
+	log.Infof("OCSP responses update finished: %s", time.Since(start))
 
 	return nil
 }
