@@ -225,9 +225,8 @@ func (tr *Transport) RefreshKeys() (err error) {
 			log.Debugf("couldn't get a CSR: %v", err)
 			if tr.Provider.SignalFailure(err) {
 				return tr.RefreshKeys()
-			} else {
-				return err
 			}
+			return err
 		}
 
 		log.Debug("requesting certificate from CA")
@@ -235,10 +234,9 @@ func (tr *Transport) RefreshKeys() (err error) {
 		if err != nil {
 			if tr.Provider.SignalFailure(err) {
 				return tr.RefreshKeys()
-			} else {
-				log.Debugf("failed to get the certificate signed: %v", err)
-				return err
 			}
+			log.Debugf("failed to get the certificate signed: %v", err)
+			return err
 		}
 
 		log.Debug("giving the certificate to the provider")
@@ -247,9 +245,8 @@ func (tr *Transport) RefreshKeys() (err error) {
 			log.Debugf("failed to set the provider's certificate: %v", err)
 			if tr.Provider.SignalFailure(err) {
 				return tr.RefreshKeys()
-			} else {
-				return err
 			}
+			return err
 		}
 
 		if tr.Provider.Persistent() {
@@ -260,9 +257,8 @@ func (tr *Transport) RefreshKeys() (err error) {
 				log.Debugf("the provider failed to store the certificate: %v", err)
 				if tr.Provider.SignalFailure(err) {
 					return tr.RefreshKeys()
-				} else {
-					return err
 				}
+				return err
 			}
 		}
 	}
