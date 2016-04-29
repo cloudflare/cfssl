@@ -86,11 +86,9 @@ func sayHello(addr, hostname string, ciphers []uint16, curves []tls.CurveID, ver
 	if sigAlgs == nil {
 		sigAlgs = tls.AllSignatureAndHashAlgorithms
 	}
-	tls.SetSupportedSKXSignatureAlgorithms(sigAlgs)
-	defer tls.ResetSupportedSKXSignatureAlgorithms()
 
 	conn := tls.Client(tcpConn, config)
-	serverCipher, serverCurveType, serverCurve, serverVersion, certificates, err := conn.SayHello()
+	serverCipher, serverCurveType, serverCurve, serverVersion, certificates, err := conn.SayHello(sigAlgs)
 	certs = certificates
 	conn.Close()
 	if err != nil {

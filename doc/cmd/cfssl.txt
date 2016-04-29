@@ -130,11 +130,20 @@ blank.
 
     + auth_key: this should contain the name of an authentication key
       specified in the authentication portion of the configuration
-      file.
+      file. This key should be used by clients using the authentication
+      scheme described in 'authentication.txt'.
 
     + remote: this should contain the name of a remote signer as
       specified in the remote signer section of the configuration
-      file.
+      file. This is used for unauthenticated CFSSL remotes.
+
+    + auth_remote: this is an object containing an "auth_key" and
+      "remote" key. This is an entry for an authenticated remote
+      signer. The "auth_key" should contain the name of an
+      authentication key specified in the authentication portion of
+      the configuration file, and "remote" should contain the name of
+      a remote signer as specified in the remote signer section of the
+      configuration file.
 
     + not_before: if provided, this specifies an override for the Not
       Before date in certificates signed by the CA.

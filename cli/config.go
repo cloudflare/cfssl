@@ -55,9 +55,11 @@ type Config struct {
 	MaxHosts          int
 	Responses         string
 	Path              string
+	CRL               string
 	Usage             string
 	PGPPrivate        string
 	Serial            string
+	CNOverride        string
 	AKI               string
 	DBConfigFile      string
 }
@@ -106,10 +108,12 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.IntVar(&c.MaxHosts, "max-hosts", 100, "maximum number of hosts to scan")
 	f.StringVar(&c.Responses, "responses", "", "file to load OCSP responses from")
 	f.StringVar(&c.Path, "path", "/", "Path on which the server will listen")
+	f.StringVar(&c.CRL, "crl", "", "CRL URL Override")
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
 	f.StringVar(&c.Usage, "usage", "", "usage of private key")
 	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption")
 	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
+	f.StringVar(&c.CNOverride, "cn", "", "certificate common name (CN)")
 	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
 	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
 }

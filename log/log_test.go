@@ -141,40 +141,34 @@ type testSyslogger struct {
 	*bytes.Buffer
 }
 
-func (l testSyslogger) Debug(s string) error {
+func (l testSyslogger) Debug(s string) {
 	l.WriteString("[DEBUG] ")
-	_, err := l.WriteString(s)
-	return err
+	_, _ = l.WriteString(s)
 }
 
-func (l testSyslogger) Info(s string) error {
+func (l testSyslogger) Info(s string) {
 	l.WriteString("[INFO] ")
-	_, err := l.WriteString(s)
-	return err
+	_, _ = l.WriteString(s)
 }
 
-func (l testSyslogger) Warning(s string) error {
+func (l testSyslogger) Warning(s string) {
 	l.WriteString("[WARN] ")
-	_, err := l.WriteString(s)
-	return err
+	_, _ = l.WriteString(s)
 }
 
-func (l testSyslogger) Err(s string) error {
+func (l testSyslogger) Err(s string) {
 	l.WriteString("[ERROR] ")
-	_, err := l.WriteString(s)
-	return err
+	_, _ = l.WriteString(s)
 }
 
-func (l testSyslogger) Crit(s string) error {
+func (l testSyslogger) Crit(s string) {
 	l.WriteString("[CRIT] ")
-	_, err := l.WriteString(s)
-	return err
+	_, _ = l.WriteString(s)
 }
 
-func (l testSyslogger) Emerg(s string) error {
+func (l testSyslogger) Emerg(s string) {
 	l.WriteString("[FATAL] ")
-	_, err := l.WriteString(s)
-	return err
+	_, _ = l.WriteString(s)
 }
 
 func TestSetLogger(t *testing.T) {

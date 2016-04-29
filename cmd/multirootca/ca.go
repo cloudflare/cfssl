@@ -16,7 +16,8 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 	"github.com/cloudflare/cfssl/whitelist"
 
-	_ "github.com/lib/pq" // import to support Postgres
+	_ "github.com/go-sql-driver/mysql" // import to support MySQL
+	_ "github.com/lib/pq"              // import to support Postgres
 )
 
 func parseSigner(root *config.Root) (signer.Signer, error) {

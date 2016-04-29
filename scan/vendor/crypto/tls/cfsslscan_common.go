@@ -2,7 +2,6 @@ package tls
 
 import (
 	"fmt"
-	"sync"
 )
 
 type hashAlgID uint8
@@ -90,33 +89,12 @@ var defaultSignatureAndHashAlgorithms []signatureAndHash
 // hash algorithm pairs that the can be advertised in a TLS 1.2 ClientHello.
 var AllSignatureAndHashAlgorithms []SignatureAndHash
 
-// skxsLock prevents the concurrent modification of supportedSignatureAlgorithms.
-var skxsLock sync.RWMutex
-
 func init() {
 	defaultSignatureAndHashAlgorithms = supportedSignatureAlgorithms
 	for _, sighash := range supportedSignatureAlgorithms {
 		AllSignatureAndHashAlgorithms = append(AllSignatureAndHashAlgorithms,
 			SignatureAndHash{hashAlgID(sighash.hash), sigAlgID(sighash.signature)})
 	}
-}
-
-// SetSupportedSKXSignatureAlgorithms sets the supported signatures and hashes
-// to the given set.
-// ResetSupportedSKXSignatureAlgorithms() must be called afterwards to free.
-func SetSupportedSKXSignatureAlgorithms(newSigAls []SignatureAndHash) {
-	skxsLock.Lock()
-	supportedSignatureAlgorithms = make([]signatureAndHash, len(newSigAls))
-	for i := range newSigAls {
-		supportedSignatureAlgorithms[i] = newSigAls[i].internal()
-	}
-}
-
-// ResetSupportedSKXSignatureAlgorithms resets the supported signatures and
-// hashes to their default value.
-func ResetSupportedSKXSignatureAlgorithms() {
-	supportedSignatureAlgorithms = defaultSignatureAndHashAlgorithms
-	skxsLock.Unlock()
 }
 
 // TLSVersions is a list of the current SSL/TLS Versions implemented by Go

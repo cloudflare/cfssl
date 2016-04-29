@@ -1,3 +1,10 @@
+// Package ocsp implements an OCSP responder based on a generic storage backend.
+// It provides a couple of sample implementations.
+// Because OCSP responders handle high query volumes, we have to be careful
+// about how much logging we do. Error-level logs are reserved for problems
+// internal to the server, that can be fixed by an administrator. Any type of
+// incorrect input from a user should be logged and Info or below. For things
+// that are logged on every request, Debug is the appropriate level.
 package ocsp
 
 import (
@@ -117,7 +124,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	case "GET":
 		base64Request, err := url.QueryUnescape(request.URL.Path)
 		if err != nil {
-			log.Errorf("Error decoding URL: %s", request.URL.Path)
+			log.Infof("Error decoding URL: %s", request.URL.Path)
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -133,7 +140,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		}
 		requestBody, err = base64.StdEncoding.DecodeString(string(base64RequestBytes))
 		if err != nil {
-			log.Errorf("Error decoding base64 from URL: %s", base64Request)
+			log.Infof("Error decoding base64 from URL: %s", base64Request)
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -148,9 +155,8 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		response.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	// TODO log request
 	b64Body := base64.StdEncoding.EncodeToString(requestBody)
-	log.Infof("Received OCSP request: %s", b64Body)
+	log.Debugf("Received OCSP request: %s", b64Body)
 
 	// All responses after this point will be OCSP.
 	// We could check for the content type of the request, but that
@@ -163,7 +169,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	//      should return unauthorizedRequest instead of malformed.
 	ocspRequest, err := ocsp.ParseRequest(requestBody)
 	if err != nil {
-		log.Errorf("Error decoding request body: %s", b64Body)
+		log.Infof("Error decoding request body: %s", b64Body)
 		response.WriteHeader(http.StatusBadRequest)
 		response.Write(malformedRequestErrorResponse)
 		return
@@ -172,7 +178,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	// Look up OCSP response from source
 	ocspResponse, found := rs.Source.Response(ocspRequest)
 	if !found {
-		log.Errorf("No response found for request: %s", b64Body)
+		log.Infof("No response found for request: %s", b64Body)
 		response.Write(unauthorizedErrorResponse)
 		return
 	}
