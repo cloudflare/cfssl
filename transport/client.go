@@ -187,6 +187,7 @@ func (tr *Transport) Lifespan() time.Duration {
 
 	now = now.Add(tr.Before)
 	ls := cert.NotAfter.Sub(now)
+	log.Debugf("   LIFESPAN:\t%s", ls)
 	if ls < 0 {
 		return 0
 	}
@@ -211,7 +212,7 @@ func (tr *Transport) RefreshKeys() (err error) {
 			err = tr.Provider.Generate(kr.Algo(), kr.Size())
 			if err != nil {
 				log.Debugf("failed to generate key: %v", err)
-				return
+				return err
 			}
 		}
 	}
@@ -222,33 +223,49 @@ func (tr *Transport) RefreshKeys() (err error) {
 		req, err := tr.Provider.CertificateRequest(tr.Identity.Request)
 		if err != nil {
 			log.Debugf("couldn't get a CSR: %v", err)
-			return err
+			if tr.Provider.SignalFailure(err) {
+				return tr.RefreshKeys()
+			} else {
+				return err
+			}
 		}
 
 		log.Debug("requesting certificate from CA")
 		cert, err := tr.CA.SignCSR(req)
 		if err != nil {
-			log.Debugf("failed to get the certificate signed: %v", err)
-			return err
+			if tr.Provider.SignalFailure(err) {
+				return tr.RefreshKeys()
+			} else {
+				log.Debugf("failed to get the certificate signed: %v", err)
+				return err
+			}
 		}
 
 		log.Debug("giving the certificate to the provider")
 		err = tr.Provider.SetCertificatePEM(cert)
 		if err != nil {
 			log.Debugf("failed to set the provider's certificate: %v", err)
-			return err
+			if tr.Provider.SignalFailure(err) {
+				return tr.RefreshKeys()
+			} else {
+				return err
+			}
 		}
 
 		if tr.Provider.Persistent() {
 			log.Debug("storing the certificate")
 			err = tr.Provider.Store()
+
 			if err != nil {
 				log.Debugf("the provider failed to store the certificate: %v", err)
-				return err
+				if tr.Provider.SignalFailure(err) {
+					return tr.RefreshKeys()
+				} else {
+					return err
+				}
 			}
 		}
 	}
-
 	return nil
 }
 

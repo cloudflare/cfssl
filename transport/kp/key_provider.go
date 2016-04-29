@@ -71,6 +71,13 @@ type KeyProvider interface {
 	// associates it with this key provider.
 	SetCertificatePEM([]byte) error
 
+	// SignalFailure is used to notify the KeyProvider that an
+	// error has occurred obtaining a certificate. If this returns
+	// true, the caller should re-attempt to refresh the
+	// keys. This, for example, can be used to implement failover
+	// key providers that require different keys.
+	SignalFailure(err error) bool
+
 	// SignCSR allows a templated CSR to be signed.
 	SignCSR(csr *x509.CertificateRequest) ([]byte, error)
 
@@ -352,6 +359,12 @@ func (sp *StandardProvider) SetCertificatePEM(certPEM []byte) error {
 	sp.internal.certPEM = certPEM
 	sp.internal.cert = cert
 	return nil
+}
+
+// SignalFailure is provided to implement the KeyProvider interface,
+// and always returns false.
+func (sp *StandardProvider) SignalFailure(err error) bool {
+	return false
 }
 
 // SignCSR takes a template certificate request and signs it.
