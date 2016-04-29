@@ -239,11 +239,13 @@ func (tr *Transport) RefreshKeys() (err error) {
 			return err
 		}
 
-		log.Debug("storing the certificate")
-		err = tr.Provider.Store()
-		if err != nil {
-			log.Debugf("the provider failed to store the certificate: %v", err)
-			return err
+		if tr.Provider.Persistent() {
+			log.Debug("storing the certificate")
+			err = tr.Provider.Store()
+			if err != nil {
+				log.Debugf("the provider failed to store the certificate: %v", err)
+				return err
+			}
 		}
 	}
 
