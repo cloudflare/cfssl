@@ -286,12 +286,16 @@ func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (*ocsp
 	resp.Body.Close()
 
 	switch {
-	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse),
-		bytes.Equal(body, ocsp.MalformedRequestErrorResponse),
-		bytes.Equal(body, ocsp.InternalErrorErrorResponse),
-		bytes.Equal(body, ocsp.TryLaterErrorResponse),
-		bytes.Equal(body, ocsp.SigRequredErrorResponse):
-		return
+	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse):
+		return nil, errors.New("OSCP unauthorized")
+	case bytes.Equal(body, ocsp.MalformedRequestErrorResponse):
+		return nil, errors.New("OSCP malformed")
+	case bytes.Equal(body, ocsp.InternalErrorErrorResponse):
+		return nil, errors.New("OSCP internal error")
+	case bytes.Equal(body, ocsp.TryLaterErrorResponse):
+		return nil, errors.New("OSCP try later")
+	case bytes.Equal(body, ocsp.SigRequredErrorResponse):
+		return nil, errors.New("OSCP signature required")
 	}
 
 	return ocsp.ParseResponse(body, issuer)
