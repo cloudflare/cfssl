@@ -40,8 +40,8 @@ var defaults = map[string]string{
     "names": [
         {
             "C": "US",
-            "L": "CA",
-            "ST": "San Francisco"
+            "ST": "CA",
+            "L": "San Francisco"
         }
     ]
 }
