@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer/universal"
 )
 
@@ -116,6 +117,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.CNOverride, "cn", "", "certificate common name (CN)")
 	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
 	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
+	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 }
 
 // RootFromConfig returns a universal signer Root structure that can
