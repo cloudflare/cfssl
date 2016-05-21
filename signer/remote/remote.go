@@ -74,7 +74,7 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (resp interfa
 		return
 	}
 
-	server := client.NewServer(p.RemoteServer)
+	server := client.NewServer(p.RemoteServer, p.RemoteCAs, p.ClientCert)
 	if server == nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
 			errors.New("failed to connect to remote"))

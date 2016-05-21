@@ -12,6 +12,7 @@ import (
 	"github.com/cloudflare/cfssl/api/client"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/transport/core"
@@ -164,7 +165,7 @@ func (cap *CFSSL) setRemoteAndAuth() error {
 		if ok {
 			remote, ok := getRemote(cfsslConfig, profile)
 			if ok {
-				cap.remote = client.NewServer(remote)
+				cap.remote = client.NewServer(remote, profile.RemoteCAs, profile.ClientCert)
 				cap.provider = profile.Provider
 				return nil
 			}
@@ -269,7 +270,15 @@ func NewCFSSLProvider(id *core.Identity, defaultRemote client.Remote) (*CFSSL, e
 		cap.Profile = cfssl["profile"]
 
 		if cap.DefaultRemote == nil {
-			cap.DefaultRemote = client.NewServer(cfssl["remote"])
+            cert, err := helpers.LoadClientCertificate(cfssl["mutual-tls-cert"], cfssl["mutual-tls-key"])
+            if err != nil {
+        		return nil, err
+        	}
+            remoteCAs, err := helpers.LoadPEMCertPool(cfssl["tls-remote-ca"])
+            if err != nil {
+        		return nil, err
+        	}
+			cap.DefaultRemote = client.NewServer(cfssl["remote"], remoteCAs, cert)
 		}
 
 		cap.DefaultAuth.Type = cfssl["auth-type"]

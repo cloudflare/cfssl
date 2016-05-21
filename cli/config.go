@@ -20,6 +20,9 @@ type Config struct {
 	TLSKeyFile        string
 	MutualTLSCAFile   string
 	MutualTLSCNRegex  string
+	TLSRemoteCAs      string
+	MutualTLSCertFile string
+	MutualTLSKeyFile  string
 	KeyFile           string
 	IntermediatesFile string
 	CABundleFile      string
@@ -75,6 +78,9 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.TLSKeyFile, "tls-key", "", "Other endpoint CA private key")
 	f.StringVar(&c.MutualTLSCAFile, "mutual-tls-ca", "", "Mutual TLS - require clients be signed by this CA ")
 	f.StringVar(&c.MutualTLSCNRegex, "mutual-tls-cn", "", "Mutual TLS - regex for whitelist of allowed client CNs")
+	f.StringVar(&c.TLSRemoteCAs, "tls-remote-ca", "", "CAs to trust for remote TLS requests")
+	f.StringVar(&c.MutualTLSCertFile, "mutual-tls-client-cert", "", "Mutual TLS - client certificate to call remote instance requiring client certs")
+	f.StringVar(&c.MutualTLSKeyFile, "mutual-tls-client-key", "", "Mutual TLS - client key to call remote instance requiring client certs")
 	f.StringVar(&c.KeyFile, "key", "", "private key for the certificate")
 	f.StringVar(&c.IntermediatesFile, "intermediates", "", "intermediate certs")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")
