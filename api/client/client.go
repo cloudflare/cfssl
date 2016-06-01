@@ -82,7 +82,7 @@ func (srv *server) getURL(endpoint string) string {
 
 func (srv *server) createTransport() (transport *http.Transport) {
 	// Setup HTTPS client
-	var certs []tls.Certificate = nil
+	var certs []tls.Certificate
 	if srv.Cert != nil {
 	    certs = []tls.Certificate{*srv.Cert}
 	}

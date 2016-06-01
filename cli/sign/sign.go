@@ -65,9 +65,8 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 		if err != nil {
 			log.Infof("Invalid mutual-tls-cert: %s or mutual-tls-key: %s, defaulting to no client auth", c.MutualTLSCertFile, c.MutualTLSKeyFile)
 			return nil, err
-		} else {
-		    log.Infof("Using client auth with mutual-tls-cert: %s and mutual-tls-key: %s", c.MutualTLSCertFile, c.MutualTLSKeyFile)
 		}
+		log.Infof("Using client auth with mutual-tls-cert: %s and mutual-tls-key: %s", c.MutualTLSCertFile, c.MutualTLSKeyFile)
 	}
 	
 	if c.TLSRemoteCAs != "" {
@@ -75,9 +74,8 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 		if err != nil {
 			log.Infof("Invalid tls-remote-ca: %s, defaulting to system trust store", c.TLSRemoteCAs)
 			return nil, err
-		} else {
-		    log.Infof("Using trusted CA from tls-remote-ca: %s", c.TLSRemoteCAs)
 		}
+		log.Infof("Using trusted CA from tls-remote-ca: %s", c.TLSRemoteCAs)
 	}
 
 	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)

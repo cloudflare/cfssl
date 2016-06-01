@@ -491,7 +491,7 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 	}
 }
 
-// Load certificate from pem files
+// LoadClientCertificate load key/certificate from pem files
 func LoadClientCertificate(certFile string, keyFile string) (*tls.Certificate, error) {
     if certFile != "" && keyFile != "" {
     	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
