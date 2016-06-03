@@ -1,7 +1,7 @@
 package client
 
 import (
-    "crypto/tls"
+	"crypto/tls"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/helpers"
 	"net"
@@ -16,12 +16,12 @@ var (
 )
 
 func TestNewServer(t *testing.T) {
-	s := NewServer("1.1.1.1:::123456789", nil, nil)
+	s := NewServer("1.1.1.1:::123456789")
 	if s != nil {
 		t.Fatalf("fatal error, server created with too many colons %v", s)
 	}
 
-	s2 := NewServer("1.1.1.1:[]", nil, nil)
+	s2 := NewServer("1.1.1.1:[]")
 	if s != nil {
 		t.Fatalf("%v", s2)
 
@@ -33,19 +33,19 @@ func TestNewServer(t *testing.T) {
 
 	}
 
-	s = NewServer("127.0.0.1:8888", nil, nil)
+	s = NewServer("127.0.0.1:8888")
 	hosts := s.Hosts()
 	if len(hosts) != 1 || hosts[0] != "http://127.0.0.1:8888" {
 		t.Fatalf("expected [http://127.0.0.1:8888], but have %v", hosts)
 	}
 
-	s = NewServer("http://1.1.1.1:9999", nil, nil)
+	s = NewServer("http://1.1.1.1:9999")
 	hosts = s.Hosts()
 	if len(hosts) != 1 || hosts[0] != "http://1.1.1.1:9999" {
 		t.Fatalf("expected [http://1.1.1.1:9999], but have %v", hosts)
 	}
 
-	s = NewServer("https://1.1.1.1:8080", nil, nil)
+	s = NewServer("https://1.1.1.1:8080")
 	hosts = s.Hosts()
 	if len(hosts) != 1 || hosts[0] != "https://1.1.1.1:8080" {
 		t.Fatalf("expected [https://1.1.1.1:8080], but have %v", hosts)
@@ -53,14 +53,14 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestInvalidPort(t *testing.T) {
-	s := NewServer("1.1.1.1:99999999999999999999999999999", nil, nil)
+	s := NewServer("1.1.1.1:99999999999999999999999999999")
 	if s != nil {
 		t.Fatalf("%v", s)
 	}
 }
 
 func TestAuthSign(t *testing.T) {
-	s := NewServer(".X", nil, nil)
+	s := NewServer(".X")
 	testProvider, _ = auth.New(testKey, nil)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.AuthSign(testRequest, testAD, testProvider)
@@ -71,7 +71,7 @@ func TestAuthSign(t *testing.T) {
 
 func TestDefaultAuthSign(t *testing.T) {
 	testProvider, _ = auth.New(testKey, nil)
-	s := NewAuthServer(".X", nil, nil, testProvider)
+	s := NewAuthServer(".X", nil, testProvider)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.Sign(testRequest)
 	if as != nil || err == nil {
@@ -80,7 +80,7 @@ func TestDefaultAuthSign(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
-	s := NewServer(".X", nil, nil)
+	s := NewServer(".X")
 	sign, err := s.Sign([]byte{5, 5, 5, 5})
 	if sign != nil || err == nil {
 		t.Fatalf("expected error with sign function")
@@ -88,8 +88,8 @@ func TestSign(t *testing.T) {
 }
 
 func TestNewMutualTLSServer(t *testing.T) {
-    cert, _ := helpers.LoadClientCertificate("../../helpers/testdata/ca.pem", "../../helpers/testdata/ca_key.pem")
-	s := NewServer("https://nohost:8888", nil, cert)
+	cert, _ := helpers.LoadClientCertificate("../../helpers/testdata/ca.pem", "../../helpers/testdata/ca_key.pem")
+	s := NewServerTLS("https://nohost:8888", helpers.CreateTLSConfig(nil, cert))
 	if s == nil {
 		t.Fatalf("fatal error, empty server")
 	}
@@ -98,12 +98,12 @@ func TestNewMutualTLSServer(t *testing.T) {
 		t.Fatalf("expected error with sign function")
 	}
 	if !strings.Contains(err.Error(), "Post https://nohost:8888/api/v1/cfssl/sign: dial tcp: lookup nohost: no such host") {
-	    t.Fatalf("no error message %v", err)
+		t.Fatalf("no error message %v", err)
 	}
 }
 
 func TestNewServerGroup(t *testing.T) {
-	s := NewServer("cfssl1.local:8888, cfssl2.local:8888, http://cfssl3.local:8888, http://cfssl4.local:8888", nil, nil)
+	s := NewServer("cfssl1.local:8888, cfssl2.local:8888, http://cfssl3.local:8888, http://cfssl4.local:8888")
 
 	ogl, ok := s.(*orderedListGroup)
 	if !ok {
@@ -145,12 +145,12 @@ func TestNewTLSServerGroup(t *testing.T) {
 }
 
 func TestNewMutualTLSServerGroup(t *testing.T) {
-    cert, _ := helpers.LoadClientCertificate("../../helpers/testdata/ca.pem", "../../helpers/testdata/ca_key.pem")
-    NewTLSServerGroup(t, cert)
+	cert, _ := helpers.LoadClientCertificate("../../helpers/testdata/ca.pem", "../../helpers/testdata/ca_key.pem")
+	NewTLSServerGroup(t, cert)
 }
 
 func NewTLSServerGroup(t *testing.T, cert *tls.Certificate) {
-	s := NewServer("https://cfssl1.local:8888, https://cfssl2.local:8888", nil, cert)
+	s := NewServerTLS("https://cfssl1.local:8888, https://cfssl2.local:8888", helpers.CreateTLSConfig(nil, cert))
 
 	ogl, ok := s.(*orderedListGroup)
 	if !ok {
@@ -187,7 +187,7 @@ func TestNewOGLGroup(t *testing.T) {
 		t.Fatalf("expected StrategyOrderedList (%d) but have %d", StrategyOrderedList, strategy)
 	}
 
-	rem, err := NewGroup([]string{"ca1.local,", "ca2.local"}, nil, nil, strategy)
+	rem, err := NewGroup([]string{"ca1.local,", "ca2.local"}, nil, strategy)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

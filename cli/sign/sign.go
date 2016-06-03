@@ -35,7 +35,7 @@ Flags:
 
 // Flags of 'cfssl sign'
 var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote",
-    "mutual-tls-cert", "mutual-tls-key", "db-config"}
+	"mutual-tls-cert", "mutual-tls-key", "db-config"}
 
 // SignerFromConfigAndDB takes the Config and creates the appropriate
 // signer.Signer object with a specified db
@@ -59,7 +59,7 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 			return nil, err
 		}
 	}
-	
+
 	if c.MutualTLSCertFile != "" && c.MutualTLSKeyFile != "" {
 		err := policy.SetClientCertAndKey(c.MutualTLSCertFile, c.MutualTLSKeyFile)
 		if err != nil {
@@ -68,7 +68,7 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 		}
 		log.Infof("Using client auth with mutual-tls-cert: %s and mutual-tls-key: %s", c.MutualTLSCertFile, c.MutualTLSKeyFile)
 	}
-	
+
 	if c.TLSRemoteCAs != "" {
 		err := policy.SetRemoteCAsFromFile(c.TLSRemoteCAs)
 		if err != nil {

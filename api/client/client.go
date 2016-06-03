@@ -4,7 +4,6 @@ package client
 import (
 	"bytes"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	stderr "errors"
 	"fmt"
@@ -25,9 +24,8 @@ import (
 
 // A server points to a single remote CFSSL instance.
 type server struct {
-	URL string
-	RemoteCAs *x509.CertPool
-	Cert *tls.Certificate
+	URL       string
+	TLSConfig *tls.Config
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -47,19 +45,24 @@ type Remote interface {
 // If no protocol is given http is default. If no port
 // is specified, the CFSSL default port (8888) is used. If the name is
 // a comma-separated list of hosts, an ordered group will be returned.
-func NewServer(addr string, remoteCAs *x509.CertPool, cert *tls.Certificate) Remote {
-    addrs := strings.Split(addr, ",")
+func NewServer(addr string) Remote {
+	return NewServerTLS(addr, nil)
+}
+
+// NewServerTLS is the TLS version of NewServer
+func NewServerTLS(addr string, tlsConfig *tls.Config) Remote {
+	addrs := strings.Split(addr, ",")
 
 	var remote Remote
 
 	if len(addrs) > 1 {
-		remote, _ = NewGroup(addrs, remoteCAs, cert, StrategyOrderedList)
+		remote, _ = NewGroup(addrs, tlsConfig, StrategyOrderedList)
 	} else {
 		u, err := normalizeURL(addrs[0])
 		if err != nil {
 			return nil
 		}
-		srv, _ := newServer(u, remoteCAs, cert)
+		srv, _ := newServer(u, tlsConfig)
 		if srv != nil {
 			remote = srv
 		}
@@ -71,9 +74,9 @@ func (srv *server) Hosts() []string {
 	return []string{srv.URL}
 }
 
-func newServer(u *url.URL, remoteCAs *x509.CertPool, cert *tls.Certificate) (*server, error) {
+func newServer(u *url.URL, tlsConfig *tls.Config) (*server, error) {
 	URL := u.String()
-	return &server{URL, remoteCAs, cert}, nil
+	return &server{URL, tlsConfig}, nil
 }
 
 func (srv *server) getURL(endpoint string) string {
@@ -82,16 +85,9 @@ func (srv *server) getURL(endpoint string) string {
 
 func (srv *server) createTransport() (transport *http.Transport) {
 	// Setup HTTPS client
-	var certs []tls.Certificate
-	if srv.Cert != nil {
-	    certs = []tls.Certificate{*srv.Cert}
-	}
-    tlsConfig := &tls.Config {
-        Certificates: certs,
-        RootCAs: srv.RemoteCAs,
-    }
-    tlsConfig.BuildNameToCertificate()
-    return &http.Transport{TLSClientConfig: tlsConfig}
+	tlsConfig := srv.TLSConfig
+	tlsConfig.BuildNameToCertificate()
+	return &http.Transport{TLSClientConfig: tlsConfig}
 }
 
 // post connects to the remote server and returns a Response struct
@@ -99,14 +95,14 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	buf := bytes.NewBuffer(jsonData)
 	var resp *http.Response
 	var err error
-	if srv.Cert != nil || srv.RemoteCAs != nil {
-	    transport := srv.createTransport();
-        client := &http.Client{Transport: transport}
-        resp, err = client.Post(url, "application/json", buf)
-    } else {
-        resp, err = http.Post(url, "application/json", buf)
-    }
-    if err != nil {
+	if srv.TLSConfig != nil {
+		transport := srv.createTransport()
+		client := &http.Client{Transport: transport}
+		resp, err = client.Post(url, "application/json", buf)
+	} else {
+		resp, err = http.Post(url, "application/json", buf)
+	}
+	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
@@ -268,9 +264,9 @@ type AuthRemote struct {
 // NewAuthServer sets up a new auth server target with an addr
 // in the same format at NewServer and a default authentication provider to
 // use for Sign requests.
-func NewAuthServer(addr string, remoteCAs *x509.CertPool, cert *tls.Certificate, provider auth.Provider) *AuthRemote {
+func NewAuthServer(addr string, tlsConfig *tls.Config, provider auth.Provider) *AuthRemote {
 	return &AuthRemote{
-		Remote:   NewServer(addr, remoteCAs, cert),
+		Remote:   NewServerTLS(addr, tlsConfig),
 		provider: provider,
 	}
 }

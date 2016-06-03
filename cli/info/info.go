@@ -32,15 +32,15 @@ func getInfoFromRemote(c cli.Config) (resp *info.Resp, err error) {
 	req.Label = c.Label
 	req.Profile = c.Profile
 
-    cert, err := helpers.LoadClientCertificate(c.MutualTLSCertFile, c.MutualTLSKeyFile)
-    if err != nil {
+	cert, err := helpers.LoadClientCertificate(c.MutualTLSCertFile, c.MutualTLSKeyFile)
+	if err != nil {
 		return
 	}
-    remoteCAs, err := helpers.LoadPEMCertPool(c.TLSRemoteCAs)
-    if err != nil {
+	remoteCAs, err := helpers.LoadPEMCertPool(c.TLSRemoteCAs)
+	if err != nil {
 		return
 	}
-	serv := client.NewServer(c.Remote, remoteCAs, cert)
+	serv := client.NewServerTLS(c.Remote, helpers.CreateTLSConfig(remoteCAs, cert))
 	reqJSON, _ := json.Marshal(req)
 	resp, err = serv.Info(reqJSON)
 	if err != nil {

@@ -2,8 +2,8 @@
 package config
 
 import (
-	"crypto/x509"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/json"
 	"errors"
@@ -88,7 +88,7 @@ type SigningProfile struct {
 	RemoteProvider              auth.Provider
 	RemoteServer                string
 	RemoteCAs                   *x509.CertPool
-    ClientCert                  *tls.Certificate
+	ClientCert                  *tls.Certificate
 	CSRWhitelist                *CSRWhitelist
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
@@ -310,10 +310,10 @@ func (p *Signing) OverrideRemotes(remote string) error {
 // authenticated TLS remote requests
 func (p *Signing) SetClientCertAndKey(certFile string, keyFile string) error {
 	if certFile != "" && keyFile != "" {
-	    cert, err := helpers.LoadClientCertificate(certFile, keyFile);
-	    if err != nil {
-	        return err
-	    }
+		cert, err := helpers.LoadClientCertificate(certFile, keyFile)
+		if err != nil {
+			return err
+		}
 		for _, profile := range p.Profiles {
 			profile.ClientCert = cert
 		}
@@ -326,14 +326,15 @@ func (p *Signing) SetClientCertAndKey(certFile string, keyFile string) error {
 // remote requests
 func (p *Signing) SetRemoteCAsFromFile(caFile string) error {
 	if caFile != "" {
-	    remoteCAs, err := helpers.LoadPEMCertPool(caFile);
-	    if err != nil {
-	        return err
-	    }
-        p.SetRemoteCAs(remoteCAs);
+		remoteCAs, err := helpers.LoadPEMCertPool(caFile)
+		if err != nil {
+			return err
+		}
+		p.SetRemoteCAs(remoteCAs)
 	}
 	return nil
 }
+
 // SetRemoteCAs updates the properties to set remote CAs for TLS
 // remote requests
 func (p *Signing) SetRemoteCAs(remoteCAs *x509.CertPool) {

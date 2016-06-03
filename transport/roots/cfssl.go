@@ -21,15 +21,15 @@ func NewCFSSL(metadata map[string]string) ([]*x509.Certificate, error) {
 
 	label := metadata["label"]
 	profile := metadata["profile"]
-    cert, err := helpers.LoadClientCertificate(metadata["mutual-tls-cert"], metadata["mutual-tls-key"])
-    if err != nil {
+	cert, err := helpers.LoadClientCertificate(metadata["mutual-tls-cert"], metadata["mutual-tls-key"])
+	if err != nil {
 		return nil, err
 	}
-    remoteCAs, err := helpers.LoadPEMCertPool(metadata["tls-remote-ca"])
-    if err != nil {
+	remoteCAs, err := helpers.LoadPEMCertPool(metadata["tls-remote-ca"])
+	if err != nil {
 		return nil, err
 	}
-	srv := client.NewServer(host, remoteCAs, cert)
+	srv := client.NewServerTLS(host, helpers.CreateTLSConfig(remoteCAs, cert))
 	data, err := json.Marshal(info.Req{Label: label, Profile: profile})
 	if err != nil {
 		return nil, err

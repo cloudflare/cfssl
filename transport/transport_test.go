@@ -21,7 +21,7 @@ var (
 )
 
 func cfsslIsAvailable() bool {
-	defaultRemote := client.NewServer(testRemote, nil, nil)
+	defaultRemote := client.NewServer(testRemote)
 
 	infoReq := info.Req{
 		Profile: testProfile,

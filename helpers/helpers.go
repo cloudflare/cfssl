@@ -312,22 +312,22 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 
 // LoadPEMCertPool loads a pool of PEM certificates from file.
 func LoadPEMCertPool(certsFile string) (*x509.CertPool, error) {
-    if certsFile == "" {
-        return nil, nil
-    }
+	if certsFile == "" {
+		return nil, nil
+	}
 	pemCerts, err := ioutil.ReadFile(certsFile)
 	if err != nil {
 		return nil, err
 	}
 
-    return PEMToCertPool(pemCerts)
+	return PEMToCertPool(pemCerts)
 }
 
 // PEMToCertPool concerts PEM certificates to a CertPool.
 func PEMToCertPool(pemCerts []byte) (*x509.CertPool, error) {
-    if pemCerts == nil {
-        return nil, nil
-    }
+	if pemCerts == nil {
+		return nil, nil
+	}
 
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(pemCerts) {
@@ -493,14 +493,26 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 
 // LoadClientCertificate load key/certificate from pem files
 func LoadClientCertificate(certFile string, keyFile string) (*tls.Certificate, error) {
-    if certFile != "" && keyFile != "" {
-    	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-        if (err != nil) {
-            log.Critical("Unable to read client certificate from file: %s or key from file: %s", certFile, keyFile)
-            return nil, err
-        }
-        log.Debug("Client certificate loaded ")
-        return &cert, nil
-    }
-    return nil, nil
+	if certFile != "" && keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			log.Critical("Unable to read client certificate from file: %s or key from file: %s", certFile, keyFile)
+			return nil, err
+		}
+		log.Debug("Client certificate loaded ")
+		return &cert, nil
+	}
+	return nil, nil
+}
+
+// CreateTLSConfig creates a tls.Config object from certs and roots
+func CreateTLSConfig(remoteCAs *x509.CertPool, cert *tls.Certificate) *tls.Config {
+	var certs []tls.Certificate
+	if cert != nil {
+		certs = []tls.Certificate{*cert}
+	}
+	return &tls.Config{
+		Certificates: certs,
+		RootCAs:      remoteCAs,
+	}
 }

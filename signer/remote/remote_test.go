@@ -91,21 +91,21 @@ func TestRemoteInfo(t *testing.T) {
 }
 
 func TestRemoteTLSInfo(t *testing.T) {
-    remoteTLSInfo(t, false);
+	remoteTLSInfo(t, false)
 }
 
 func TestRemoteMutualTLSInfo(t *testing.T) {
-    remoteTLSInfo(t, true);
+	remoteTLSInfo(t, true)
 }
 
 func remoteTLSInfo(t *testing.T, isMutual bool) {
-    certPool, err := helpers.LoadPEMCertPool(testCaFile)
+	certPool, err := helpers.LoadPEMCertPool(testCaFile)
 	if err != nil {
-	    t.Fatal(err)
+		t.Fatal(err)
 	}
 	var clientCA *x509.CertPool
 	if isMutual {
-	    clientCA = certPool
+		clientCA = certPool
 	}
 	remoteServer := newTestInfoServer(t, true, clientCA)
 	defer closeTestServer(t, remoteServer)
@@ -115,13 +115,13 @@ func remoteTLSInfo(t *testing.T, isMutual bool) {
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL)
 	remoteConfig.Signing.SetRemoteCAs(certPool)
 	if isMutual {
-	    remoteConfig.Signing.SetClientCertAndKey(testClientFile, testClientKeyFile)
+		remoteConfig.Signing.SetClientCertAndKey(testClientFile, testClientKeyFile)
 	}
 	verifyRemoteInfo(t, remoteConfig)
 }
 
 func verifyRemoteInfo(t *testing.T, remoteConfig *config.Config) {
-    s := newRemoteSigner(t, remoteConfig.Signing)
+	s := newRemoteSigner(t, remoteConfig.Signing)
 	req := info.Req{}
 	resp, err := s.Info(req)
 	if err != nil {
@@ -150,21 +150,21 @@ func TestRemoteSign(t *testing.T) {
 }
 
 func TestRemoteTLSSign(t *testing.T) {
-    remoteTLSSign(t, false)
+	remoteTLSSign(t, false)
 }
 
 func TestRemoteMutualTLSSign(t *testing.T) {
-    remoteTLSSign(t, true)
+	remoteTLSSign(t, true)
 }
 
 func remoteTLSSign(t *testing.T, isMutual bool) {
-    certPool, err := helpers.LoadPEMCertPool(testCaFile)
+	certPool, err := helpers.LoadPEMCertPool(testCaFile)
 	if err != nil {
-	    t.Fatal(err)
+		t.Fatal(err)
 	}
 	var clientCA *x509.CertPool
 	if isMutual {
-	    clientCA = certPool
+		clientCA = certPool
 	}
 	remoteServer := newTestSignServer(t, true, clientCA)
 	defer closeTestServer(t, remoteServer)
@@ -174,7 +174,7 @@ func remoteTLSSign(t *testing.T, isMutual bool) {
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL)
 	remoteConfig.Signing.SetRemoteCAs(certPool)
 	if isMutual {
-	    remoteConfig.Signing.SetClientCertAndKey(testClientFile, testClientKeyFile)
+		remoteConfig.Signing.SetClientCertAndKey(testClientFile, testClientKeyFile)
 	}
 	verifyRemoteSign(t, remoteConfig)
 }
@@ -279,23 +279,23 @@ func newTestServer(t *testing.T, path string, handler http.Handler, isTLS bool, 
 	mux.Handle(path, handler)
 	ts := httptest.NewUnstartedServer(mux)
 	if isTLS {
-	    cert, err := tls.LoadX509KeyPair(testServerFile, testServerKeyFile)
-    	if err != nil {
-    	    t.Fatal(err)
-    	}
-	    clientCertRequired := tls.NoClientCert
-	    if certPool != nil {
-	        clientCertRequired = tls.RequireAndVerifyClientCert
-	    }
-	    ts.TLS = &tls.Config{
-	        Certificates: []tls.Certificate{cert},
-    		ClientCAs: certPool,
-    		ClientAuth: clientCertRequired,
-    	}
-    	ts.TLS.BuildNameToCertificate()
-	    ts.StartTLS()
+		cert, err := tls.LoadX509KeyPair(testServerFile, testServerKeyFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		clientCertRequired := tls.NoClientCert
+		if certPool != nil {
+			clientCertRequired = tls.RequireAndVerifyClientCert
+		}
+		ts.TLS = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ClientCAs:    certPool,
+			ClientAuth:   clientCertRequired,
+		}
+		ts.TLS.BuildNameToCertificate()
+		ts.StartTLS()
 	} else {
-	    ts.Start()
+		ts.Start()
 	}
 	return ts
 }
@@ -303,7 +303,7 @@ func newTestServer(t *testing.T, path string, handler http.Handler, isTLS bool, 
 func newTestSignServer(t *testing.T, isTLS bool, certPool *x509.CertPool) *httptest.Server {
 	ts := newTestServer(t, "/api/v1/cfssl/sign", newTestSignHandler(t), isTLS, certPool)
 	t.Log(ts.URL)
-    return ts
+	return ts
 }
 
 func newTestInfoServer(t *testing.T, isTLS bool, certPool *x509.CertPool) *httptest.Server {

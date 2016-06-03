@@ -428,25 +428,25 @@ const clientCertFile = "testdata/ca.pem"
 const clientKeyFile = "testdata/ca_key.pem"
 
 func TestClientCertParams(t *testing.T) {
-    cert, err := LoadClientCertificate(testCertFile, testPrivateRSAKey);
-    if err == nil {
-        t.Fatal("Unmatched cert/key should generate error")
-    }
-    
-    cert, err = LoadClientCertificate(clientCertFile, "");
-    if err != nil || cert != nil {
-       t.Fatal("Certificate atempted to loaded with missing key")
-    }
-    cert, err = LoadClientCertificate("", clientKeyFile);
-    if err != nil || cert != nil {
-       t.Fatal("Certificate atempted to loaded with missing cert")
-    }
-    
-    cert, err = LoadClientCertificate(clientCertFile, clientKeyFile);
-    if err != nil {
-        t.Fatal(err)
-    }
-    if cert == nil {
-        t.Fatal("cert not created")
-    }
+	cert, err := LoadClientCertificate(testCertFile, testPrivateRSAKey)
+	if err == nil {
+		t.Fatal("Unmatched cert/key should generate error")
+	}
+
+	cert, err = LoadClientCertificate(clientCertFile, "")
+	if err != nil || cert != nil {
+		t.Fatal("Certificate atempted to loaded with missing key")
+	}
+	cert, err = LoadClientCertificate("", clientKeyFile)
+	if err != nil || cert != nil {
+		t.Fatal("Certificate atempted to loaded with missing cert")
+	}
+
+	cert, err = LoadClientCertificate(clientCertFile, clientKeyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cert == nil {
+		t.Fatal("cert not created")
+	}
 }
