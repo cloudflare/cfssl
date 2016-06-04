@@ -97,7 +97,7 @@ func TestNewMutualTLSServer(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error with sign function")
 	}
-	if !strings.Contains(err.Error(), "Post https://nohost:8888/api/v1/cfssl/sign: dial tcp: lookup nohost: no such host") {
+	if !strings.Contains(err.Error(), "Post https://nohost:8888/api/v1/cfssl/sign: dial tcp: lookup nohost") {
 		t.Fatalf("no error message %v", err)
 	}
 }

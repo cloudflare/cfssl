@@ -115,7 +115,7 @@ func TestInitCA(t *testing.T) {
 					t.Fatalf("fail to init a CA cert with specified CA pathlen: expect %d, got %d", caconfig.PathLength, cert.MaxPathLen)
 				}
 				if cert.MaxPathLenZero != false {
-					t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect false, got %d", cert.MaxPathLenZero)
+					t.Fatalf("fail to init a CA cert with specified CA pathlen zero: expect false, got %t", cert.MaxPathLenZero)
 				}
 			}
 
