@@ -113,6 +113,8 @@ func Start(cmds map[string]*Command) error {
 		flag.Usage()
 		return errors.New("undefined command")
 	}
+	// always have flag 'loglevel' for each command
+	cmd.Flags = append(cmd.Flags, "loglevel")
 	// The usage of each individual command is re-written to mention
 	// flags defined and referenced only in that command.
 	cfsslFlagSet.Usage = func() {
