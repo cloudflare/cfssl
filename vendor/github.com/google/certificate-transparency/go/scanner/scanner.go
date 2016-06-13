@@ -95,6 +95,20 @@ func (m MatchSubjectRegex) PrecertificateMatches(p *ct.Precertificate) bool {
 	return false
 }
 
+// Matches on issuer cn by regex
+type MatchIssuerRegex struct {
+	CertificateIssuerRegex    *regexp.Regexp
+	PrecertificateIssuerRegex *regexp.Regexp
+}
+
+func (m MatchIssuerRegex) CertificateMatches(c *x509.Certificate) bool {
+	return m.CertificateIssuerRegex.FindStringIndex(c.Issuer.CommonName) != nil
+}
+
+func (m MatchIssuerRegex) PrecertificateMatches(p *ct.Precertificate) bool {
+	return m.PrecertificateIssuerRegex.FindStringIndex(p.TBSCertificate.Issuer.CommonName) != nil
+}
+
 // ScannerOptions holds configuration options for the Scanner
 type ScannerOptions struct {
 	// Custom matcher for x509 Certificates, functor will be called for each

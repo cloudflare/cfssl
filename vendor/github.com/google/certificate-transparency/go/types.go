@@ -342,3 +342,22 @@ type Precertificate struct {
 func (m *MerkleTreeLeaf) X509Certificate() (*x509.Certificate, error) {
 	return x509.ParseCertificate(m.TimestampedEntry.X509Entry)
 }
+
+type sctError int
+
+// Preallocate errors for performance
+var (
+	ErrInvalidVersion  error = sctError(1)
+	ErrNotEnoughBuffer error = sctError(2)
+)
+
+func (e sctError) Error() string {
+	switch e {
+	case ErrInvalidVersion:
+		return "invalid SCT version detected"
+	case ErrNotEnoughBuffer:
+		return "provided buffer was too small"
+	default:
+		return "unknown error"
+	}
+}

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <vector>
 
 #include "_cgo_export.h"
@@ -31,7 +32,7 @@ HASHER NewSha256Hasher() {
 }
 
 TREE NewMerkleTree(HASHER hasher) {
-  return new MerkleTree(H(hasher));
+  return new MerkleTree(std::unique_ptr<SerialHasher>(H(hasher)));
 }
 
 void DeleteMerkleTree(TREE tree) {

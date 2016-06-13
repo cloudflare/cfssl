@@ -16,22 +16,6 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/GeertJohan/go.rice/example",
-			"repository": "https://github.com/GeertJohan/go.rice",
-			"vcs": "",
-			"revision": "0f3f5fde32fd1f755632a3d31ba2ec6d449e387b",
-			"branch": "master",
-			"path": "/example"
-		},
-		{
-			"importpath": "github.com/GeertJohan/go.rice/rice",
-			"repository": "https://github.com/GeertJohan/go.rice",
-			"vcs": "",
-			"revision": "0f3f5fde32fd1f755632a3d31ba2ec6d449e387b",
-			"branch": "master",
-			"path": "/rice"
-		},
-		{
 			"importpath": "github.com/akavel/rsrc/binutil",
 			"repository": "https://github.com/akavel/rsrc",
 			"vcs": "",
@@ -60,14 +44,6 @@
 			"vcs": "",
 			"revision": "6a9aea36fb410b71add0d0e58438e0cfc44d3076",
 			"branch": "master"
-		},
-		{
-			"importpath": "github.com/cloudflare/go-metrics/stathat",
-			"repository": "https://github.com/cloudflare/go-metrics",
-			"vcs": "",
-			"revision": "6a9aea36fb410b71add0d0e58438e0cfc44d3076",
-			"branch": "master",
-			"path": "/stathat"
 		},
 		{
 			"importpath": "github.com/cloudflare/redoctober/client",
@@ -183,8 +159,8 @@
 		{
 			"importpath": "github.com/google/certificate-transparency/go",
 			"repository": "https://github.com/google/certificate-transparency",
-			"vcs": "",
-			"revision": "6e5648d13b43cdde25cc8274b87675230ffefbd6",
+			"vcs": "git",
+			"revision": "ceb124408274d5270de73c6cfcce6d4d03539c8e",
 			"branch": "master",
 			"path": "/go"
 		},

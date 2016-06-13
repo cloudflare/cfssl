@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/certificate-transparency/go"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -26,6 +30,8 @@ const (
 
 	CertEntryB64          = "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"
 	CertEntryExtraDataB64 = "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"
+
+	SubmissionCertB64 = "MIIEijCCA3KgAwIBAgICEk0wDQYJKoZIhvcNAQELBQAwKzEpMCcGA1UEAwwgY2Fja2xpbmcgY3J5cHRvZ3JhcGhlciBmYWtlIFJPT1QwHhcNMTUxMDIxMjAxMTUyWhcNMjAxMDE5MjAxMTUyWjAfMR0wGwYDVQQDExRoYXBweSBoYWNrZXIgZmFrZSBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMIKR3maBcUSsncXYzQT13D5Nr+Z3mLxMMh3TUdt6sACmqbJ0btRlgXfMtNLM2OU1I6a3Ju+tIZSdn2v21JBwvxUzpZQ4zy2cimIiMQDZCQHJwzC9GZn8HaW091iz9H0Go3A7WDXwYNmsdLNRi00o14UjoaVqaPsYrZWvRKaIRqaU0hHmS0AWwQSvN/93iMIXuyiwywmkwKbWnnxCQ/gsctKFUtcNrwEx9Wgj6KlhwDTyI1QWSBbxVYNyUgPFzKxrSmwMO0yNff7ho+QT9x5+Y/7XE59S4Mc4ZXxcXKew/gSlN9U5mvT+D2BhDtkCupdfsZNCQWp27A+b/DmrFI9NqsCAwEAAaOCAcIwggG+MBIGA1UdEwEB/wQIMAYBAf8CAQAwQwYDVR0eBDwwOqE4MAaCBC5taWwwCocIAAAAAAAAAAAwIocgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwDgYDVR0PAQH/BAQDAgGGMH8GCCsGAQUFBwEBBHMwcTAyBggrBgEFBQcwAYYmaHR0cDovL2lzcmcudHJ1c3RpZC5vY3NwLmlkZW50cnVzdC5jb20wOwYIKwYBBQUHMAKGL2h0dHA6Ly9hcHBzLmlkZW50cnVzdC5jb20vcm9vdHMvZHN0cm9vdGNheDMucDdjMB8GA1UdIwQYMBaAFOmkP+6epeby1dd5YDyTpi4kjpeqMFQGA1UdIARNMEswCAYGZ4EMAQIBMD8GCysGAQQBgt8TAQEBMDAwLgYIKwYBBQUHAgEWImh0dHA6Ly9jcHMucm9vdC14MS5sZXRzZW5jcnlwdC5vcmcwPAYDVR0fBDUwMzAxoC+gLYYraHR0cDovL2NybC5pZGVudHJ1c3QuY29tL0RTVFJPT1RDQVgzQ1JMLmNybDAdBgNVHQ4EFgQU+3hPEvlgFYMsnxd/NBmzLjbqQYkwDQYJKoZIhvcNAQELBQADggEBAA0YAeLXOklx4hhCikUUl+BdnFfn1g0W5AiQLVNIOL6PnqXu0wjnhNyhqdwnfhYMnoy4idRh4lB6pz8Gf9pnlLd/DnWSV3gS+/I/mAl1dCkKby6H2V790e6IHmIK2KYm3jm+U++FIdGpBdsQTSdmiX/rAyuxMDM0adMkNBwTfQmZQCz6nGHw1QcSPZMvZpsC8SkvekzxsjF1otOrMUPNPQvtTWrVx8GlR2qfx/4xbQa1v2frNvFBCmO59goz+jnWvfTtj2NjwDZ7vlMBsPm16dbKYC840uvRoZjxqsdc3ChCZjqimFqlNG/xoPA8+dTicZzCXE9ijPIcvW6y1aa3bGw="
 )
 
 func TestGetEntriesWorks(t *testing.T) {
@@ -102,5 +108,109 @@ func TestGetSTHWorks(t *testing.T) {
 	}
 	if bytes.Compare(sth.TreeHeadSignature.Signature, expectedDS.Signature) != 0 {
 		t.Fatalf("Invalid TreeHeadSignature.Signature: expected %v, got %v", sth.TreeHeadSignature.Signature, expectedDS.Signature)
+	}
+}
+
+func TestAddChainWithContext(t *testing.T) {
+	retryAfter := 0
+	currentFailures := 0
+	failuresBeforeSuccess := 0
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if failuresBeforeSuccess > 0 && currentFailures < failuresBeforeSuccess {
+			currentFailures++
+			if retryAfter > 0 {
+				w.Header().Add("Retry-After", strconv.Itoa(retryAfter))
+				w.WriteHeader(503)
+				return
+			}
+			w.WriteHeader(408)
+			return
+		}
+		_, err := w.Write([]byte(`{"sct_version":0,"id":"KHYaGJAn++880NYaAY12sFBXKcenQRvMvfYE9F1CYVM=","timestamp":1337,"extensions":"","signature":"BAMARjBEAiAIc21J5ZbdKZHw5wLxCP+MhBEsV5+nfvGyakOIv6FOvAIgWYMZb6Pw///uiNM7QTg2Of1OqmK1GbeGuEl9VJN8v8c="}`))
+		if err != nil {
+			return
+		}
+	}))
+	defer hs.Close()
+
+	certBytes, err := base64.StdEncoding.DecodeString(SubmissionCertB64)
+	if err != nil {
+		t.Fatalf("Failed to decode chain array B64: %s", err)
+	}
+	chain := []ct.ASN1Cert{certBytes}
+
+	c := New(hs.URL)
+	leeway := time.Millisecond * 100
+	instant := time.Millisecond
+	fiveSeconds := time.Second * 5
+
+	testCases := []struct {
+		deadlineLength        int
+		expected              time.Duration
+		retryAfter            int
+		failuresBeforeSuccess int
+		success               bool
+	}{
+		{-1, instant, 0, 0, true},
+		{6, fiveSeconds, 5, 1, true},
+		{5, fiveSeconds, 10, 1, false},
+		{10, fiveSeconds, 1, 5, true},
+		{1, instant * 10, 0, 10, true},
+	}
+
+	for _, tc := range testCases {
+		var deadline context.Context
+		if tc.deadlineLength >= 0 {
+			deadline, _ = context.WithDeadline(context.Background(), time.Now().Add(time.Duration(tc.deadlineLength)*time.Second))
+		}
+		retryAfter = tc.retryAfter
+		failuresBeforeSuccess = tc.failuresBeforeSuccess
+		currentFailures = 0
+
+		started := time.Now()
+		sct, err := c.AddChainWithContext(deadline, chain)
+		took := time.Since(started)
+		if math.Abs(float64(took-tc.expected)) > float64(leeway) {
+			t.Fatalf("Submission took an unexpected length of time: %s, expected ~%s", took, tc.expected)
+		}
+		if tc.success && err != nil {
+			t.Fatalf("Failed to submit chain: %s", err)
+		} else if !tc.success && err == nil {
+			t.Fatal("Expected AddChainWithContext to fail")
+		}
+		if tc.success && sct == nil {
+			t.Fatal("Nil SCT returned")
+		}
+	}
+}
+
+func TestAddJSON(t *testing.T) {
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(`{"sct_version":0,"id":"KHYaGJAn++880NYaAY12sFBXKcenQRvMvfYE9F1CYVM=","timestamp":1337,"extensions":"","signature":"BAMARjBEAiAIc21J5ZbdKZHw5wLxCP+MhBEsV5+nfvGyakOIv6FOvAIgWYMZb6Pw///uiNM7QTg2Of1OqmK1GbeGuEl9VJN8v8c="}`))
+		if err != nil {
+			return
+		}
+	}))
+	defer hs.Close()
+
+	c := New(hs.URL)
+
+	tests := []struct {
+		success bool
+		data    interface{}
+	}{
+		{true, struct{ hi string }{"bob"}},
+	}
+
+	for _, tc := range tests {
+		sct, err := c.AddJSON(tc.data)
+		if tc.success && err != nil {
+			t.Fatalf("Failed to submit json: %s", err)
+		} else if !tc.success && err == nil {
+			t.Fatal("Expected AddJSON to fail")
+		}
+		if tc.success && sct == nil {
+			t.Fatal("Nil SCT returned")
+		}
 	}
 }
