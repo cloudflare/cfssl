@@ -294,7 +294,15 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	template.KeyUsage = ku
 	template.ExtKeyUsage = eku
 	template.BasicConstraintsValid = true
-	template.IsCA = profile.CA
+	template.IsCA = profile.CAConstraint.IsCA
+	if template.IsCA {
+		template.MaxPathLen = profile.CAConstraint.MaxPathLen
+		if template.MaxPathLen == 0 {
+			template.MaxPathLenZero = profile.CAConstraint.MaxPathLenZero
+		}
+		template.DNSNames = nil
+		template.EmailAddresses = nil
+	}
 	template.SubjectKeyId = ski
 
 	if ocspURL != "" {

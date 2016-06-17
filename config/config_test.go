@@ -153,6 +153,36 @@ var validMinimalLocalConfig = `
 	}
 }`
 
+var validLocalConfigsWithCAConstraint = []string{
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": { "is_ca": true },
+				"expiry": "8000h"
+			}
+		}
+	}`,
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": { "is_ca": true, "max_path_len": 1 },
+				"expiry": "8000h"
+			}
+		}
+	}`,
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": { "is_ca": true, "max_path_len_zero": true },
+				"expiry": "8000h"
+			}
+		}
+	}`,
+}
+
 func TestInvalidProfile(t *testing.T) {
 	if invalidProfileConfig.Signing.Profiles["invalid"].validProfile(false) {
 		t.Fatal("invalid profile accepted as valid")
@@ -406,5 +436,14 @@ func TestBadAuthRemoteConfig(t *testing.T) {
 	_, err := LoadConfig([]byte(invalidRemoteConfig))
 	if err == nil {
 		t.Fatal("load invalid config should failed")
+	}
+}
+
+func TestValidCAConstraint(t *testing.T) {
+	for _, config := range validLocalConfigsWithCAConstraint {
+		_, err := LoadConfig([]byte(config))
+		if err != nil {
+			t.Fatal("can't parse valid ca constraint")
+		}
 	}
 }
