@@ -325,7 +325,7 @@ func LoadPEMCertPool(certsFile string) (*x509.CertPool, error) {
 
 // PEMToCertPool concerts PEM certificates to a CertPool.
 func PEMToCertPool(pemCerts []byte) (*x509.CertPool, error) {
-	if pemCerts == nil {
+	if len(pemCerts) == 0 {
 		return nil, nil
 	}
 

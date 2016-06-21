@@ -306,9 +306,9 @@ func (p *Signing) OverrideRemotes(remote string) error {
 	return nil
 }
 
-// SetClientCertAndKey updates the properties to set client certificates for mutual
+// SetClientCertKeyPairFromFile updates the properties to set client certificates for mutual
 // authenticated TLS remote requests
-func (p *Signing) SetClientCertAndKey(certFile string, keyFile string) error {
+func (p *Signing) SetClientCertKeyPairFromFile(certFile string, keyFile string) error {
 	if certFile != "" && keyFile != "" {
 		cert, err := helpers.LoadClientCertificate(certFile, keyFile)
 		if err != nil {

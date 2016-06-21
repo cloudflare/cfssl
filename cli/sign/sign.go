@@ -61,7 +61,7 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 	}
 
 	if c.MutualTLSCertFile != "" && c.MutualTLSKeyFile != "" {
-		err := policy.SetClientCertAndKey(c.MutualTLSCertFile, c.MutualTLSKeyFile)
+		err := policy.SetClientCertKeyPairFromFile(c.MutualTLSCertFile, c.MutualTLSKeyFile)
 		if err != nil {
 			log.Infof("Invalid mutual-tls-cert: %s or mutual-tls-key: %s, defaulting to no client auth", c.MutualTLSCertFile, c.MutualTLSKeyFile)
 			return nil, err

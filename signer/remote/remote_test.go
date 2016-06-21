@@ -115,7 +115,7 @@ func remoteTLSInfo(t *testing.T, isMutual bool) {
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL)
 	remoteConfig.Signing.SetRemoteCAs(certPool)
 	if isMutual {
-		remoteConfig.Signing.SetClientCertAndKey(testClientFile, testClientKeyFile)
+		remoteConfig.Signing.SetClientCertKeyPairFromFile(testClientFile, testClientKeyFile)
 	}
 	verifyRemoteInfo(t, remoteConfig)
 }
@@ -174,7 +174,7 @@ func remoteTLSSign(t *testing.T, isMutual bool) {
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL)
 	remoteConfig.Signing.SetRemoteCAs(certPool)
 	if isMutual {
-		remoteConfig.Signing.SetClientCertAndKey(testClientFile, testClientKeyFile)
+		remoteConfig.Signing.SetClientCertKeyPairFromFile(testClientFile, testClientKeyFile)
 	}
 	verifyRemoteSign(t, remoteConfig)
 }
