@@ -16,6 +16,15 @@
   };
   // < framework extensions
 
+  function getProp(obj, prop) {
+    var i = -1;
+    while (obj && (++i < prop.length)) {
+      var key = prop[i];
+      obj = obj[key];
+    }
+    return obj;
+  }
+
   var page = (function() {
     var title = '';
 
@@ -170,7 +179,7 @@
           m('.panel-heading', args.title),
           m('.panel-body', args.body),
           children
-        ])
+        ]);
       }
 
       return m('.panel.' + gradeToPanel(args.grade), [
@@ -276,7 +285,7 @@
     },
     controller: function() {
       scan.vm.init(m.route.param('domain'));
-      page.title(Tformat('scan.title'))
+      page.title(Tformat('scan.title'));
       return;
     },
     view: function() {
@@ -286,7 +295,7 @@
 
         out.push(m('h3.page-header', Tformat('scan.broad.title')), m('p', Tformat('scan.broad.description')));
 
-        if (ICAs && ICAs.grade) {
+        if (getProp(ICAs, ['grade'])) {
           out.push(m.component(panel, {
             grade: ICAs.grade,
             title: Tformat('scan.broad.ICAs.title'),
@@ -309,7 +318,7 @@
 
         out.push(m('h3.page-header', Tformat('scan.connectivity.title')), m('p', Tformat('scan.connectivity.description')));
 
-        if (DNSLookup && DNSLookup.grade) {
+        if (getProp(DNSLookup, ['grade'])) {
           out.push(m.component(panel, {
             grade: DNSLookup.grade,
             title: Tformat('scan.connectivity.DNSLookup.title'),
@@ -317,7 +326,7 @@
           }, m.component(listGroup, DNSLookup.output.sort())));
         }
 
-        if (TCPDial && TCPDial.grade) {
+        if (getProp(TCPDial, ['grade'])) {
           out.push(m.component(panel, {
             grade: TCPDial.grade,
             title: Tformat('scan.connectivity.TCPDial.title'),
@@ -325,7 +334,7 @@
           }));
         }
 
-        if (TLSDial && TLSDial.grade) {
+        if (getProp(TLSDial, ['grade'])) {
           out.push(m.component(panel, {
             grade: TLSDial.grade,
             title: Tformat('scan.connectivity.TLSDial.title'),
@@ -347,7 +356,7 @@
 
         out.push(m('h3.page-header', Tformat('scan.tlssession.title')), m('p', Tformat('scan.tlssession.description')));
 
-        if (SessionResume && SessionResume.grade) {
+        if (getProp(SessionResume, ['grade'])) {
           body = null;
           if (SessionResume.output) {
             body = m.component(table, {
@@ -385,7 +394,7 @@
 
         out.push(m('h3.page-header', Tformat('scan.pki.title')), m('p', Tformat('scan.pki.description')));
 
-        if (ChainExpiration && ChainExpiration.grade) {
+        if (getProp(ChainExpiration, ['grade'])) {
           body = null;
           if (ChainExpiration.output) {
             body = m.component(listGroup, [
@@ -410,7 +419,7 @@
           }, body));
         }
 
-        if (ChainValidation && ChainValidation.grade) {
+        if (getProp(ChainValidation, ['grade'])) {
           body = null;
           if (ChainValidation.output && Array.isArray(ChainValidation.output)) {
             body = m.component(listGroup, ChainValidation.output);
@@ -424,7 +433,7 @@
         }
 
         if (out.length === 2) {
-          return
+          return;
         }
 
         return out;
@@ -437,7 +446,7 @@
 
         out.push(m('h3.page-header', Tformat('scan.tlshandshake.title')), m('p', Tformat('scan.tlshandshake.description')));
 
-        if (CipherSuite && CipherSuite.grade) {
+        if (getProp(CipherSuite, ['grade'])) {
           body = null;
           if (CipherSuite.output) {
             body = m.component(table, {
@@ -458,10 +467,10 @@
 
                 return [
                   cipher,
-                  result[0] && result[0]['TLS 1.2'][0] || '-',
-                  result[1] && result[1]['TLS 1.1'][0] || '-',
-                  result[2] && result[2]['TLS 1.0'][0] || '-',
-                  result[3] && result[3]['SSL 3.0'][0] || '-',
+                  getProp(result, [0, 'TLS 1.2', 0]) || '-',
+                  getProp(result, [1, 'TLS 1.1', 0]) || '-',
+                  getProp(result, [2, 'TLS 1.0', 0]) || '-',
+                  getProp(result, [3, 'SSL 3.0', 0]) || '-'
                 ];
               })
             });
@@ -475,7 +484,7 @@
         }
 
         if (out.length === 2) {
-          return
+          return;
         }
 
         return out;
@@ -540,14 +549,14 @@
       .then(function(response) {
         var results = new scan.Model({
           domain: domain,
-          IntermediateCAs: response.Broad && response.Broad.IntermediateCAs,
-          DNSLookup: response.Connectivity.DNSLookup,
-          TCPDial: response.Connectivity.TCPDial,
-          TLSDial: response.Connectivity.TLSDial,
-          ChainExpiration: response.PKI.ChainExpiration,
-          ChainValidation: response.PKI.ChainValidation,
-          CipherSuite: response.TLSHandshake.CipherSuite,
-          SessionResume: response.TLSSession.SessionResume
+          IntermediateCAs: getProp(response, ['Broad', 'IntermediateCAs']),
+          DNSLookup: getProp(response, ['Connectivity', 'DNSLookup']),
+          TCPDial: getProp(response, ['Connectivity', 'TCPDial']),
+          TLSDial: getProp(response, ['Connectivity', 'TLSDial']),
+          ChainExpiration: getProp(response, ['PKI', 'ChainExpiration']),
+          ChainValidation: getProp(response, ['PKI', 'ChainValidation']),
+          CipherSuite: getProp(response, ['TLSHandshake', 'CipherSuite']),
+          SessionResume: getProp(response, ['TLSSession', 'SessionResume'])
         });
 
         return results;
@@ -603,7 +612,7 @@
     },
     controller: function() {
       bundle.vm.init(m.route.param('domain'));
-      page.title(Tformat('bundle.title'))
+      page.title(Tformat('bundle.title'));
       return;
     },
     view: function() {
@@ -690,7 +699,7 @@
     }
 
     return m.deferred.reject();
-  }
+  };
 
   m.route.mode = 'pathname';
 
