@@ -8,6 +8,8 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"regexp"
 	"sort"
@@ -1151,13 +1153,19 @@ func TestExtensionSign(t *testing.T) {
 }
 
 func TestCTFailure(t *testing.T) {
+	// start a fake CT server that returns bad request
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+	}))
+	defer ts.Close()
+
 	var config = &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
 			CA:           true,
 			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
 			ExpiryString: "8760h",
-			CTLogServers: []string{"https://ct.googleapis.com/pilot"},
+			CTLogServers: []string{ts.URL},
 		},
 	}
 	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
@@ -1175,8 +1183,44 @@ func TestCTFailure(t *testing.T) {
 	}
 	_, err = testSigner.Sign(validReq)
 
-	// This should fail because our CA cert is not trusted by Google's pilot log
 	if err == nil {
 		t.Fatal("Expected CT log submission failure")
+	}
+}
+
+func TestCTSuccess(t *testing.T) {
+	// start a fake CT server that will accept the submission
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"sct_version":0,"id":"KHYaGJAn++880NYaAY12sFBXKcenQRvMvfYE9F1CYVM=","timestamp":1337,"extensions":"","signature":"BAMARjBEAiAIc21J5ZbdKZHw5wLxCP+MhBEsV5+nfvGyakOIv6FOvAIgWYMZb6Pw///uiNM7QTg2Of1OqmK1GbeGuEl9VJN8v8c="}`))
+		w.WriteHeader(200)
+	}))
+	defer ts.Close()
+
+	var config = &config.Signing{
+		Default: &config.SigningProfile{
+			Expiry:       helpers.OneYear,
+			CA:           true,
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: "8760h",
+			CTLogServers: []string{ts.URL},
+		},
+	}
+	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	var pem []byte
+	pem, err = ioutil.ReadFile("testdata/ex.csr")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	validReq := signer.SignRequest{
+		Request: string(pem),
+		Hosts:   []string{"example.com"},
+	}
+	_, err = testSigner.Sign(validReq)
+
+	if err != nil {
+		t.Fatal("Expected CT log submission success")
 	}
 }
