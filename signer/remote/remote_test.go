@@ -2,6 +2,8 @@ package remote
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -21,8 +23,12 @@ import (
 )
 
 const (
-	testCaFile    = "testdata/ca.pem"
-	testCaKeyFile = "testdata/ca_key.pem"
+	testCaFile        = "testdata/ca.pem"
+	testCaKeyFile     = "testdata/ca_key.pem"
+	testServerFile    = "testdata/server.pem"
+	testServerKeyFile = "testdata/server-key.pem"
+	testClientFile    = "testdata/client.pem"
+	testClientKeyFile = "testdata/client-key.pem"
 )
 
 var validMinimalRemoteConfig = `
@@ -75,12 +81,46 @@ func TestNewAuthSigner(t *testing.T) {
 }
 
 func TestRemoteInfo(t *testing.T) {
-	remoteServer := newTestInfoServer(t)
+	remoteServer := newTestInfoServer(t, false, nil)
 	defer closeTestServer(t, remoteServer)
 
 	remoteConfig := testsuite.NewConfig(t, []byte(validMinimalRemoteConfig))
 	// override with test server address, ignore url prefix "http://"
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL[7:])
+	verifyRemoteInfo(t, remoteConfig)
+}
+
+func TestRemoteTLSInfo(t *testing.T) {
+	remoteTLSInfo(t, false)
+}
+
+func TestRemoteMutualTLSInfo(t *testing.T) {
+	remoteTLSInfo(t, true)
+}
+
+func remoteTLSInfo(t *testing.T, isMutual bool) {
+	certPool, err := helpers.LoadPEMCertPool(testCaFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var clientCA *x509.CertPool
+	if isMutual {
+		clientCA = certPool
+	}
+	remoteServer := newTestInfoServer(t, true, clientCA)
+	defer closeTestServer(t, remoteServer)
+
+	remoteConfig := testsuite.NewConfig(t, []byte(validMinimalRemoteConfig))
+	// override with full server URL to get https in protocol"
+	remoteConfig.Signing.OverrideRemotes(remoteServer.URL)
+	remoteConfig.Signing.SetRemoteCAs(certPool)
+	if isMutual {
+		remoteConfig.Signing.SetClientCertKeyPairFromFile(testClientFile, testClientKeyFile)
+	}
+	verifyRemoteInfo(t, remoteConfig)
+}
+
+func verifyRemoteInfo(t *testing.T, remoteConfig *config.Config) {
 	s := newRemoteSigner(t, remoteConfig.Signing)
 	req := info.Req{}
 	resp, err := s.Info(req)
@@ -100,12 +140,46 @@ func TestRemoteInfo(t *testing.T) {
 }
 
 func TestRemoteSign(t *testing.T) {
-	remoteServer := newTestSignServer(t)
+	remoteServer := newTestSignServer(t, false, nil)
 	defer closeTestServer(t, remoteServer)
 
 	remoteConfig := testsuite.NewConfig(t, []byte(validMinimalRemoteConfig))
 	// override with test server address, ignore url prefix "http://"
 	remoteConfig.Signing.OverrideRemotes(remoteServer.URL[7:])
+	verifyRemoteSign(t, remoteConfig)
+}
+
+func TestRemoteTLSSign(t *testing.T) {
+	remoteTLSSign(t, false)
+}
+
+func TestRemoteMutualTLSSign(t *testing.T) {
+	remoteTLSSign(t, true)
+}
+
+func remoteTLSSign(t *testing.T, isMutual bool) {
+	certPool, err := helpers.LoadPEMCertPool(testCaFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var clientCA *x509.CertPool
+	if isMutual {
+		clientCA = certPool
+	}
+	remoteServer := newTestSignServer(t, true, clientCA)
+	defer closeTestServer(t, remoteServer)
+
+	remoteConfig := testsuite.NewConfig(t, []byte(validMinimalRemoteConfig))
+	// override with full server URL to get https in protocol"
+	remoteConfig.Signing.OverrideRemotes(remoteServer.URL)
+	remoteConfig.Signing.SetRemoteCAs(certPool)
+	if isMutual {
+		remoteConfig.Signing.SetClientCertKeyPairFromFile(testClientFile, testClientKeyFile)
+	}
+	verifyRemoteSign(t, remoteConfig)
+}
+
+func verifyRemoteSign(t *testing.T, remoteConfig *config.Config) {
 	s := newRemoteSigner(t, remoteConfig.Signing)
 
 	hosts := []string{"cloudflare.com"}
@@ -139,7 +213,7 @@ func TestRemoteSign(t *testing.T) {
 }
 
 func TestRemoteSignBadServerAndOverride(t *testing.T) {
-	remoteServer := newTestSignServer(t)
+	remoteServer := newTestSignServer(t, false, nil)
 	defer closeTestServer(t, remoteServer)
 
 	// remoteConfig contains port 80 that no test server will listen on
@@ -200,20 +274,40 @@ func newTestInfoHandler(t *testing.T) (h http.Handler) {
 	return
 }
 
-func newTestSignServer(t *testing.T) *httptest.Server {
+func newTestServer(t *testing.T, path string, handler http.Handler, isTLS bool, certPool *x509.CertPool) *httptest.Server {
 	mux := http.NewServeMux()
-	mux.Handle("/api/v1/cfssl/sign", newTestSignHandler(t))
+	mux.Handle(path, handler)
 	ts := httptest.NewUnstartedServer(mux)
-	ts.Start()
+	if isTLS {
+		cert, err := tls.LoadX509KeyPair(testServerFile, testServerKeyFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		clientCertRequired := tls.NoClientCert
+		if certPool != nil {
+			clientCertRequired = tls.RequireAndVerifyClientCert
+		}
+		ts.TLS = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ClientCAs:    certPool,
+			ClientAuth:   clientCertRequired,
+		}
+		ts.TLS.BuildNameToCertificate()
+		ts.StartTLS()
+	} else {
+		ts.Start()
+	}
+	return ts
+}
+
+func newTestSignServer(t *testing.T, isTLS bool, certPool *x509.CertPool) *httptest.Server {
+	ts := newTestServer(t, "/api/v1/cfssl/sign", newTestSignHandler(t), isTLS, certPool)
 	t.Log(ts.URL)
 	return ts
 }
 
-func newTestInfoServer(t *testing.T) *httptest.Server {
-	mux := http.NewServeMux()
-	mux.Handle("/api/v1/cfssl/info", newTestInfoHandler(t))
-	ts := httptest.NewUnstartedServer(mux)
-	ts.Start()
+func newTestInfoServer(t *testing.T, isTLS bool, certPool *x509.CertPool) *httptest.Server {
+	ts := newTestServer(t, "/api/v1/cfssl/info", newTestInfoHandler(t), isTLS, certPool)
 	t.Log(ts.URL)
 	return ts
 }

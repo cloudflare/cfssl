@@ -18,12 +18,14 @@ import (
 
 	"github.com/google/certificate-transparency/go"
 	"github.com/mreiferson/go-httpclient"
+	"golang.org/x/net/context"
 )
 
 // URI paths for CT Log endpoints
 const (
 	AddChainPath    = "/ct/v1/add-chain"
 	AddPreChainPath = "/ct/v1/add-pre-chain"
+	AddJSONPath     = "/ct/v1/add-json"
 	GetSTHPath      = "/ct/v1/get-sth"
 	GetEntriesPath  = "/ct/v1/get-entries"
 )
@@ -54,6 +56,12 @@ type addChainResponse struct {
 	Timestamp  uint64     `json:"timestamp"`   // Timestamp of issuance
 	Extensions string     `json:"extensions"`  // Holder for any CT extensions
 	Signature  string     `json:"signature"`   // Log signature for this SCT
+}
+
+// addJSONRequest represents the JSON request body sent ot the add-json CT
+// method.
+type addJSONRequest struct {
+	Data interface{} `json:"data"`
 }
 
 // getSTHResponse respresents the JSON response to the get-sth CT method
@@ -123,7 +131,6 @@ func (c *LogClient) fetchAndParse(uri string, res interface{}) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Keep-Alive", "timeout=15, max=100")
 	resp, err := c.httpClient.Do(req)
 	var body []byte
 	if resp != nil {
@@ -154,7 +161,6 @@ func (c *LogClient) postAndParse(uri string, req interface{}, res interface{}) (
 	if err != nil {
 		return nil, "", err
 	}
-	httpReq.Header.Set("Keep-Alive", "timeout=15, max=100")
 	httpReq.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(httpReq)
 	// Read all of the body, if there is one, so that the http.Client can do
@@ -178,44 +184,65 @@ func (c *LogClient) postAndParse(uri string, req interface{}, res interface{}) (
 	return resp, string(body), nil
 }
 
+func backoffForRetry(ctx context.Context, d time.Duration) error {
+	backoffTimer := time.NewTimer(d)
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-backoffTimer.C:
+		}
+	} else {
+		<-backoffTimer.C
+	}
+	return nil
+}
+
 // Attempts to add |chain| to the log, using the api end-point specified by
-// |path|.
-func (c *LogClient) addChainWithRetry(path string, chain []ct.ASN1Cert) (*ct.SignedCertificateTimestamp, error) {
+// |path|. If provided context expires before submission is complete an
+// error will be returned.
+func (c *LogClient) addChainWithRetry(ctx context.Context, path string, chain []ct.ASN1Cert) (*ct.SignedCertificateTimestamp, error) {
 	var resp addChainResponse
 	var req addChainRequest
 	for _, link := range chain {
 		req.Chain = append(req.Chain, base64.StdEncoding.EncodeToString(link))
 	}
-	done := false
 	httpStatus := "Unknown"
+	backoffSeconds := 0
+	done := false
 	for !done {
-		backoffSeconds := 0
+		if backoffSeconds > 0 {
+			log.Printf("Got %s, backing-off %d seconds", httpStatus, backoffSeconds)
+		}
+		err := backoffForRetry(ctx, time.Second*time.Duration(backoffSeconds))
+		if err != nil {
+			return nil, err
+		}
+		if backoffSeconds > 0 {
+			backoffSeconds = 0
+		}
 		httpResp, errorBody, err := c.postAndParse(c.uri+path, &req, &resp)
 		if err != nil {
-			log.Printf("Got %s, backing off.", err)
 			backoffSeconds = 10
-		} else {
-			switch {
-			case httpResp.StatusCode == 200:
-				done = true
-				break
-			case httpResp.StatusCode == 408:
-			case httpResp.StatusCode == 503:
-				// Retry
-				backoffSeconds = 10
-				if retryAfter := httpResp.Header.Get("Retry-After"); retryAfter != "" {
-					if seconds, err := strconv.Atoi(retryAfter); err != nil {
-						backoffSeconds = seconds
-					}
-				}
-			default:
-				return nil, fmt.Errorf("Got HTTP Status %s: %s", httpResp.Status, errorBody)
-			}
-			httpStatus = httpResp.Status
+			continue
 		}
-		// Now back-off before retrying
-		log.Printf("Got %s, backing-off %d seconds.", httpStatus, backoffSeconds)
-		time.Sleep(time.Duration(backoffSeconds) * time.Second)
+		switch {
+		case httpResp.StatusCode == 200:
+			done = true
+		case httpResp.StatusCode == 408:
+			// request timeout, retry immediately
+		case httpResp.StatusCode == 503:
+			// Retry
+			backoffSeconds = 10
+			if retryAfter := httpResp.Header.Get("Retry-After"); retryAfter != "" {
+				if seconds, err := strconv.Atoi(retryAfter); err == nil {
+					backoffSeconds = seconds
+				}
+			}
+		default:
+			return nil, fmt.Errorf("got HTTP Status %s: %s", httpResp.Status, errorBody)
+		}
+		httpStatus = httpResp.Status
 	}
 
 	rawLogID, err := base64.StdEncoding.DecodeString(resp.ID)
@@ -242,12 +269,49 @@ func (c *LogClient) addChainWithRetry(path string, chain []ct.ASN1Cert) (*ct.Sig
 
 // AddChain adds the (DER represented) X509 |chain| to the log.
 func (c *LogClient) AddChain(chain []ct.ASN1Cert) (*ct.SignedCertificateTimestamp, error) {
-	return c.addChainWithRetry(AddChainPath, chain)
+	return c.addChainWithRetry(nil, AddChainPath, chain)
 }
 
 // AddPreChain adds the (DER represented) Precertificate |chain| to the log.
 func (c *LogClient) AddPreChain(chain []ct.ASN1Cert) (*ct.SignedCertificateTimestamp, error) {
-	return c.addChainWithRetry(AddPreChainPath, chain)
+	return c.addChainWithRetry(nil, AddPreChainPath, chain)
+}
+
+// AddChainWithContext adds the (DER represented) X509 |chain| to the log and
+// fails if the provided context expires before the chain is submitted.
+func (c *LogClient) AddChainWithContext(ctx context.Context, chain []ct.ASN1Cert) (*ct.SignedCertificateTimestamp, error) {
+	return c.addChainWithRetry(ctx, AddChainPath, chain)
+}
+
+func (c *LogClient) AddJSON(data interface{}) (*ct.SignedCertificateTimestamp, error) {
+	req := addJSONRequest{
+		Data: data,
+	}
+	var resp addChainResponse
+	_, _, err := c.postAndParse(c.uri+AddJSONPath, &req, &resp)
+	if err != nil {
+		return nil, err
+	}
+	rawLogID, err := base64.StdEncoding.DecodeString(resp.ID)
+	if err != nil {
+		return nil, err
+	}
+	rawSignature, err := base64.StdEncoding.DecodeString(resp.Signature)
+	if err != nil {
+		return nil, err
+	}
+	ds, err := ct.UnmarshalDigitallySigned(bytes.NewReader(rawSignature))
+	if err != nil {
+		return nil, err
+	}
+	var logID ct.SHA256Hash
+	copy(logID[:], rawLogID)
+	return &ct.SignedCertificateTimestamp{
+		SCTVersion: resp.SCTVersion,
+		LogID:      logID,
+		Timestamp:  resp.Timestamp,
+		Extensions: ct.CTExtensions(resp.Extensions),
+		Signature:  *ds}, nil
 }
 
 // GetSTH retrieves the current STH from the log.

@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -74,7 +75,7 @@ func (s *Signer) remoteOp(req interface{}, profile, target string) (resp interfa
 		return
 	}
 
-	server := client.NewServer(p.RemoteServer)
+	server := client.NewServerTLS(p.RemoteServer, helpers.CreateTLSConfig(p.RemoteCAs, p.ClientCert))
 	if server == nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
 			errors.New("failed to connect to remote"))

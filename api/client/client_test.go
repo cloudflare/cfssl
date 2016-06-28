@@ -1,8 +1,11 @@
 package client
 
 import (
+	"crypto/tls"
 	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/helpers"
 	"net"
+	"strings"
 	"testing"
 )
 
@@ -68,7 +71,7 @@ func TestAuthSign(t *testing.T) {
 
 func TestDefaultAuthSign(t *testing.T) {
 	testProvider, _ = auth.New(testKey, nil)
-	s := NewAuthServer(".X", testProvider)
+	s := NewAuthServer(".X", nil, testProvider)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.Sign(testRequest)
 	if as != nil || err == nil {
@@ -81,6 +84,21 @@ func TestSign(t *testing.T) {
 	sign, err := s.Sign([]byte{5, 5, 5, 5})
 	if sign != nil || err == nil {
 		t.Fatalf("expected error with sign function")
+	}
+}
+
+func TestNewMutualTLSServer(t *testing.T) {
+	cert, _ := helpers.LoadClientCertificate("../../helpers/testdata/ca.pem", "../../helpers/testdata/ca_key.pem")
+	s := NewServerTLS("https://nohost:8888", helpers.CreateTLSConfig(nil, cert))
+	if s == nil {
+		t.Fatalf("fatal error, empty server")
+	}
+	_, err := s.Sign([]byte{5, 5, 5, 5})
+	if err == nil {
+		t.Fatalf("expected error with sign function")
+	}
+	if !strings.Contains(err.Error(), "Post https://nohost:8888/api/v1/cfssl/sign: dial tcp: lookup nohost") {
+		t.Fatalf("no error message %v", err)
 	}
 }
 
@@ -123,7 +141,16 @@ func TestNewServerGroup(t *testing.T) {
 }
 
 func TestNewTLSServerGroup(t *testing.T) {
-	s := NewServer("https://cfssl1.local:8888, https://cfssl2.local:8888")
+	NewTLSServerGroup(t, nil)
+}
+
+func TestNewMutualTLSServerGroup(t *testing.T) {
+	cert, _ := helpers.LoadClientCertificate("../../helpers/testdata/ca.pem", "../../helpers/testdata/ca_key.pem")
+	NewTLSServerGroup(t, cert)
+}
+
+func NewTLSServerGroup(t *testing.T, cert *tls.Certificate) {
+	s := NewServerTLS("https://cfssl1.local:8888, https://cfssl2.local:8888", helpers.CreateTLSConfig(nil, cert))
 
 	ogl, ok := s.(*orderedListGroup)
 	if !ok {
@@ -160,7 +187,7 @@ func TestNewOGLGroup(t *testing.T) {
 		t.Fatalf("expected StrategyOrderedList (%d) but have %d", StrategyOrderedList, strategy)
 	}
 
-	rem, err := NewGroup([]string{"ca1.local,", "ca2.local"}, strategy)
+	rem, err := NewGroup([]string{"ca1.local,", "ca2.local"}, nil, strategy)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

@@ -422,3 +422,75 @@ func TestParseOldCSR(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+// Imported from signers/local/testdata/
+const clientCertFile = "testdata/ca.pem"
+const clientKeyFile = "testdata/ca_key.pem"
+
+func TestClientCertParams(t *testing.T) {
+	cert, err := LoadClientCertificate(testCertFile, testPrivateRSAKey)
+	if err == nil {
+		t.Fatal("Unmatched cert/key should generate error")
+	}
+
+	cert, err = LoadClientCertificate("", "")
+	if err != nil || cert != nil {
+		t.Fatal("Certificate atempted to loaded with missing key and cert")
+	}
+	cert, err = LoadClientCertificate(clientCertFile, "")
+	if err != nil || cert != nil {
+		t.Fatal("Certificate atempted to loaded with missing key")
+	}
+	cert, err = LoadClientCertificate("", clientKeyFile)
+	if err != nil || cert != nil {
+		t.Fatal("Certificate atempted to loaded with missing cert")
+	}
+
+	cert, err = LoadClientCertificate(clientCertFile, clientKeyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cert == nil {
+		t.Fatal("cert not created")
+	}
+}
+
+func TestLoadPEMCertPool(t *testing.T) {
+	certPool, err := PEMToCertPool([]byte{})
+	if certPool != nil || err != nil {
+		t.Fatal("Empty file name should not generate error or a cert pool")
+	}
+
+	in, err := ioutil.ReadFile(testEmptyPem)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	certPool, err = PEMToCertPool(in)
+	if certPool != nil {
+		t.Fatal("Empty file should not generate a cert pool")
+	} else if err == nil {
+		t.Fatal("Expected error for empty file")
+	}
+
+	in, err = ioutil.ReadFile(testEmptyCertFile)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	certPool, err = PEMToCertPool(in)
+	if certPool != nil {
+		t.Fatal("Empty cert should not generate a cert pool")
+	} else if err == nil {
+		t.Fatal("Expected error for empty cert")
+	}
+
+	in, err = ioutil.ReadFile(clientCertFile)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	certPool, err = PEMToCertPool(in)
+	if err != nil {
+		t.Fatalf("%v", err)
+	} else if certPool == nil {
+		t.Fatal("cert pool not created")
+	}
+}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"errors"
 	"strings"
 
@@ -40,14 +41,14 @@ func StrategyFromString(s string) Strategy {
 
 // NewGroup will use the collection of remotes specified with the
 // given strategy.
-func NewGroup(remotes []string, strategy Strategy) (Remote, error) {
+func NewGroup(remotes []string, tlsConfig *tls.Config, strategy Strategy) (Remote, error) {
 	var servers = make([]*server, len(remotes))
 	for i := range remotes {
 		u, err := normalizeURL(remotes[i])
 		if err != nil {
 			return nil, err
 		}
-		servers[i], _ = newServer(u)
+		servers[i], _ = newServer(u, tlsConfig)
 	}
 
 	switch strategy {

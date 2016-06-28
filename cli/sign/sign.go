@@ -20,8 +20,8 @@ import (
 var signerUsageText = `cfssl sign -- signs a client cert with a host name by a given CA and CA key
 
 Usage of sign:
-        cfssl sign -ca cert -ca-key key [-config config] [-profile profile] [-hostname hostname] [-db-config db-config] CSR [SUBJECT]
-        cfssl sign -remote remote_host [-config config] [-profile profile] [-label label] [-hostname hostname] CSR [SUBJECT]
+        cfssl sign -ca cert -ca-key key [mutual-tls-cert cert] [mutual-tls-key key] [-config config] [-profile profile] [-hostname hostname] [-db-config db-config] CSR [SUBJECT]
+        cfssl sign -remote remote_host [mutual-tls-cert cert] [mutual-tls-key key] [-config config] [-profile profile] [-label label] [-hostname hostname] CSR [SUBJECT]
 
 Arguments:
         CSR:        PEM file for certificate request, use '-' for reading PEM from stdin.
@@ -34,7 +34,8 @@ Flags:
 `
 
 // Flags of 'cfssl sign'
-var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote", "db-config"}
+var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote",
+	"mutual-tls-cert", "mutual-tls-key", "db-config"}
 
 // SignerFromConfigAndDB takes the Config and creates the appropriate
 // signer.Signer object with a specified db
@@ -57,6 +58,24 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 			log.Infof("Invalid remote %v, reverting to configuration default", c.Remote)
 			return nil, err
 		}
+	}
+
+	if c.MutualTLSCertFile != "" && c.MutualTLSKeyFile != "" {
+		err := policy.SetClientCertKeyPairFromFile(c.MutualTLSCertFile, c.MutualTLSKeyFile)
+		if err != nil {
+			log.Infof("Invalid mutual-tls-cert: %s or mutual-tls-key: %s, defaulting to no client auth", c.MutualTLSCertFile, c.MutualTLSKeyFile)
+			return nil, err
+		}
+		log.Infof("Using client auth with mutual-tls-cert: %s and mutual-tls-key: %s", c.MutualTLSCertFile, c.MutualTLSKeyFile)
+	}
+
+	if c.TLSRemoteCAs != "" {
+		err := policy.SetRemoteCAsFromFile(c.TLSRemoteCAs)
+		if err != nil {
+			log.Infof("Invalid tls-remote-ca: %s, defaulting to system trust store", c.TLSRemoteCAs)
+			return nil, err
+		}
+		log.Infof("Using trusted CA from tls-remote-ca: %s", c.TLSRemoteCAs)
 	}
 
 	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)

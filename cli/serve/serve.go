@@ -47,14 +47,17 @@ Usage of serve:
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
                     [-metadata file] [-remote remote_host] [-config config] \
                     [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key] \
-                    [-mutual-tls-ca ca] [-mutual-tls-cn regex] [-db-config db-config]
+                    [-mutual-tls-ca ca] [-mutual-tls-cn regex] \
+                    [-tls-remote-ca ca] [-mutual-tls-client-cert cert] [-mutual-tls-client-key key] \
+                    [-db-config db-config]
 
 Flags:
 `
 
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata",
-	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca", "mutual-tls-cn", "db-config"}
+	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca", "mutual-tls-cn",
+	"tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config"}
 
 var (
 	conf       cli.Config

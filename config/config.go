@@ -2,6 +2,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/json"
@@ -86,6 +87,8 @@ type SigningProfile struct {
 	Provider                    auth.Provider
 	RemoteProvider              auth.Provider
 	RemoteServer                string
+	RemoteCAs                   *x509.CertPool
+	ClientCert                  *tls.Certificate
 	CSRWhitelist                *CSRWhitelist
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
@@ -301,6 +304,44 @@ func (p *Signing) OverrideRemotes(remote string) error {
 		}
 	}
 	return nil
+}
+
+// SetClientCertKeyPairFromFile updates the properties to set client certificates for mutual
+// authenticated TLS remote requests
+func (p *Signing) SetClientCertKeyPairFromFile(certFile string, keyFile string) error {
+	if certFile != "" && keyFile != "" {
+		cert, err := helpers.LoadClientCertificate(certFile, keyFile)
+		if err != nil {
+			return err
+		}
+		for _, profile := range p.Profiles {
+			profile.ClientCert = cert
+		}
+		p.Default.ClientCert = cert
+	}
+	return nil
+}
+
+// SetRemoteCAsFromFile reads root CAs from file and updates the properties to set remote CAs for TLS
+// remote requests
+func (p *Signing) SetRemoteCAsFromFile(caFile string) error {
+	if caFile != "" {
+		remoteCAs, err := helpers.LoadPEMCertPool(caFile)
+		if err != nil {
+			return err
+		}
+		p.SetRemoteCAs(remoteCAs)
+	}
+	return nil
+}
+
+// SetRemoteCAs updates the properties to set remote CAs for TLS
+// remote requests
+func (p *Signing) SetRemoteCAs(remoteCAs *x509.CertPool) {
+	for _, profile := range p.Profiles {
+		profile.RemoteCAs = remoteCAs
+	}
+	p.Default.RemoteCAs = remoteCAs
 }
 
 // NeedsRemoteSigner returns true if one of the profiles has a remote set

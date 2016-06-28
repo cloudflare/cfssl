@@ -80,12 +80,11 @@ func readVarBytes(r io.Reader, numLenBytes int) ([]byte, error) {
 		return nil, err
 	}
 	data := make([]byte, l)
-	n, err := r.Read(data)
-	if err != nil {
+	if n, err := io.ReadFull(r, data);  err != nil {
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			return nil, fmt.Errorf("short read: expected %d but got %d", l, n)
+		}
 		return nil, err
-	}
-	if n != int(l) {
-		return nil, fmt.Errorf("short read: expected %d but got %d", l, n)
 	}
 	return data, nil
 }
@@ -227,19 +226,28 @@ func UnmarshalDigitallySigned(r io.Reader) (*DigitallySigned, error) {
 	}, nil
 }
 
+func marshalDigitallySignedHere(ds DigitallySigned, here []byte) ([]byte, error) {
+	sigLen := len(ds.Signature)
+	dsOutLen := 2 + SignatureLengthBytes + sigLen
+	if here == nil {
+		here = make([]byte, dsOutLen)
+	}
+	if len(here) < dsOutLen {
+		return nil, ErrNotEnoughBuffer
+	}
+	here = here[0:dsOutLen]
+
+	here[0] = byte(ds.HashAlgorithm)
+	here[1] = byte(ds.SignatureAlgorithm)
+	binary.BigEndian.PutUint16(here[2:4], uint16(sigLen))
+	copy(here[4:], ds.Signature)
+
+	return here, nil
+}
+
 // MarshalDigitallySigned marshalls a DigitallySigned structure into a byte array
 func MarshalDigitallySigned(ds DigitallySigned) ([]byte, error) {
-	var b bytes.Buffer
-	if err := b.WriteByte(byte(ds.HashAlgorithm)); err != nil {
-		return nil, fmt.Errorf("failed to write HashAlgorithm: %v", err)
-	}
-	if err := b.WriteByte(byte(ds.SignatureAlgorithm)); err != nil {
-		return nil, fmt.Errorf("failed to write SignatureAlgorithm: %v", err)
-	}
-	if err := writeVarBytes(&b, ds.Signature, SignatureLengthBytes); err != nil {
-		return nil, fmt.Errorf("failed to write HashAlgorithm: %v", err)
-	}
-	return b.Bytes(), nil
+	return marshalDigitallySignedHere(ds, nil)
 }
 
 func checkCertificateFormat(cert ASN1Cert) error {
@@ -350,42 +358,82 @@ func SerializeSCTSignatureInput(sct SignedCertificateTimestamp, entry LogEntry) 
 	}
 }
 
-func serializeV1SCT(sct SignedCertificateTimestamp) ([]byte, error) {
-	if err := checkExtensionsFormat(sct.Extensions); err != nil {
-		return nil, err
+// SerializedLength will return the space (in bytes)
+func (sct SignedCertificateTimestamp) SerializedLength() (int, error) {
+	switch sct.SCTVersion {
+	case V1:
+		extLen := len(sct.Extensions)
+		sigLen := len(sct.Signature.Signature)
+		return 1 + 32 + 8 + 2 + extLen + 2 + 2 + sigLen, nil
+	default:
+		return 0, ErrInvalidVersion
 	}
-	var buf bytes.Buffer
-	if err := binary.Write(&buf, binary.BigEndian, V1); err != nil {
-		return nil, err
+}
+
+func serializeV1SCTHere(sct SignedCertificateTimestamp, here []byte) ([]byte, error) {
+	if sct.SCTVersion != V1 {
+		return nil, ErrInvalidVersion
 	}
-	if err := binary.Write(&buf, binary.BigEndian, sct.LogID); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(&buf, binary.BigEndian, sct.Timestamp); err != nil {
-		return nil, err
-	}
-	if err := writeVarBytes(&buf, sct.Extensions, ExtensionsLengthBytes); err != nil {
-		return nil, err
-	}
-	sig, err := MarshalDigitallySigned(sct.Signature)
+	sctLen, err := sct.SerializedLength()
 	if err != nil {
 		return nil, err
 	}
-	if err := binary.Write(&buf, binary.BigEndian, sig); err != nil {
+	if here == nil {
+		here = make([]byte, sctLen)
+	}
+	if len(here) < sctLen {
+		return nil, ErrNotEnoughBuffer
+	}
+	if err := checkExtensionsFormat(sct.Extensions); err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	here = here[0:sctLen]
+
+	// Write Version
+	here[0] = byte(sct.SCTVersion)
+
+	// Write LogID
+	copy(here[1:33], sct.LogID[:])
+
+	// Write Timestamp
+	binary.BigEndian.PutUint64(here[33:41], sct.Timestamp)
+
+	// Write Extensions
+	extLen := len(sct.Extensions)
+	binary.BigEndian.PutUint16(here[41:43], uint16(extLen))
+	n := 43 + extLen
+	copy(here[43:n], sct.Extensions)
+
+	// Write Signature
+	_, err = marshalDigitallySignedHere(sct.Signature, here[n:])
+	if err != nil {
+		return nil, err
+	}
+	return here, nil
+}
+
+// SerializeSCTHere serializes the passed in sct into the format specified
+// by RFC6962 section 3.2.
+// If a bytes slice here is provided then it will attempt to serialize into the
+// provided byte slice, ErrNotEnoughBuffer will be returned if the buffer is
+// too small.
+// If a nil byte slice is provided, a buffer for will be allocated for you
+// The returned slice will be sliced to the correct length.
+func SerializeSCTHere(sct SignedCertificateTimestamp, here []byte) ([]byte, error) {
+	switch sct.SCTVersion {
+	case V1:
+		return serializeV1SCTHere(sct, here)
+	default:
+		return nil, fmt.Errorf("unknown SCT version %d", sct.SCTVersion)
+	}
 }
 
 // SerializeSCT serializes the passed in sct into the format specified
 // by RFC6962 section 3.2
+// Equivalent to SerializeSCTHere(sct, nil)
 func SerializeSCT(sct SignedCertificateTimestamp) ([]byte, error) {
-	switch sct.SCTVersion {
-	case V1:
-		return serializeV1SCT(sct)
-	default:
-		return nil, fmt.Errorf("unknown SCT version %d", sct.SCTVersion)
-	}
+	return SerializeSCTHere(sct, nil)
 }
 
 func deserializeSCTV1(r io.Reader, sct *SignedCertificateTimestamp) error {
