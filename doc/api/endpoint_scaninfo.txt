@@ -12,9 +12,7 @@ Result:
 
 Example:
 
-    $ curl -d '{"label": "primary"}' \
-          ${CFSSL_HOST}/api/v1/cfssl/sign  \
-          | python -m json.tool
+    $ curl ${CFSSL_HOST}/api/v1/cfssl/scaninfo | python -m json.tool
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100  1412  100  1412    0     0   391k      0 --:--:-- --:--:-- --:--:--  459k
