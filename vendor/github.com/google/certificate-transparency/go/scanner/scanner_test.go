@@ -171,7 +171,7 @@ func TestScannerEndToEnd(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	logClient := client.New(ts.URL)
+	logClient := client.New(ts.URL, &http.Client{})
 	opts := ScannerOptions{
 		Matcher:       &MatchSubjectRegex{regexp.MustCompile(".*\\.google\\.com"), nil},
 		BatchSize:     10,

@@ -160,7 +160,7 @@
 			"importpath": "github.com/google/certificate-transparency/go",
 			"repository": "https://github.com/google/certificate-transparency",
 			"vcs": "git",
-			"revision": "ceb124408274d5270de73c6cfcce6d4d03539c8e",
+			"revision": "0f6e3d1d1ba4d03fdaab7cd716f36255c2e48341",
 			"branch": "master",
 			"path": "/go"
 		},

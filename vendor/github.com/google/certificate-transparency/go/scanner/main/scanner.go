@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"net/http"
 	"regexp"
+	"time"
 
 	"encoding/base64"
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
 	"github.com/google/certificate-transparency/go/scanner"
+	"github.com/mreiferson/go-httpclient"
 )
 
 const (
@@ -96,7 +99,15 @@ func createMatcherFromFlags() (scanner.Matcher, error) {
 
 func main() {
 	flag.Parse()
-	logClient := client.New(*logUri)
+	logClient := client.New(*logUri, &http.Client{
+		Transport: &httpclient.Transport{
+			ConnectTimeout:        10 * time.Second,
+			RequestTimeout:        30 * time.Second,
+			ResponseHeaderTimeout: 30 * time.Second,
+			MaxIdleConnsPerHost:   10,
+			DisableKeepAlives:     false,
+			},
+		})
 	matcher, err := createMatcherFromFlags()
 	if err != nil {
 		log.Fatal(err)
