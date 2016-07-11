@@ -7,14 +7,17 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"sync"
+	"time"
 
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
 	"github.com/google/certificate-transparency/go/preload"
 	"github.com/google/certificate-transparency/go/scanner"
+	"github.com/mreiferson/go-httpclient"
 )
 
 const (
@@ -147,7 +150,18 @@ func main() {
 		}
 	}()
 
-	fetchLogClient := client.New(*sourceLogUri)
+	transport := &httpclient.Transport{
+		ConnectTimeout:        10 * time.Second,
+		RequestTimeout:        30 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		MaxIdleConnsPerHost:   10,
+		DisableKeepAlives:     false,
+	}
+
+	fetchLogClient := client.New(*sourceLogUri, &http.Client{
+		Transport: transport,
+	})
+
 	matcher, err := createMatcher()
 	if err != nil {
 		log.Fatal(err)
@@ -171,7 +185,9 @@ func main() {
 	sctWriterWG.Add(1)
 	go sctWriterJob(addedCerts, sctWriter, &sctWriterWG)
 
-	submitLogClient := client.New(*targetLogUri)
+	submitLogClient := client.New(*targetLogUri, &http.Client{
+		Transport: transport,
+	})
 
 	var submitterWG sync.WaitGroup
 	for w := 0; w < *parallelSubmit; w++ {

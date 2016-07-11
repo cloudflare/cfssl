@@ -234,6 +234,8 @@ const (
 		"0009" +
 		// signature, 9 bytes
 		"7369676e6174757265"
+
+	defaultSCTListHexString string = "0476007400380069616d617075626c69636b657973686174776f6669766573697864696765737400000000000004d20000040300097369676e617475726500380069616d617075626c69636b657973686174776f6669766573697864696765737400000000000004d20000040300097369676e6174757265"
 )
 
 func defaultSCTLogID() SHA256Hash {
@@ -433,6 +435,38 @@ func TestSerializeSCT(t *testing.T) {
 	}
 	if bytes.Compare(mustDehex(t, defaultSCTHexString), b) != 0 {
 		t.Fatalf("Serialized SCT differs from expected KA. Expected:\n%v\nGot:\n%v", mustDehex(t, defaultSCTHexString), b)
+	}
+}
+
+func TestSerializeSCTList(t *testing.T) {
+	b, err := SerializeSCTList([]SignedCertificateTimestamp{defaultSCT(), defaultSCT()})
+	if err != nil {
+		t.Fatalf("Failed to serialize SCT List: %v", err)
+	}
+	if bytes.Compare(mustDehex(t, defaultSCTListHexString), b) != 0 {
+		t.Fatalf("Serialized SCT differs from expected KA. Expected:\n%v\nGot:\n%v", mustDehex(t, defaultSCTListHexString), b)
+	}
+
+	// Test list too large
+	d := defaultSCT()
+	len, err := d.SerializedLength()
+	if err != nil {
+		t.Fatalf("SerializedLength failed: %s", err)
+	}
+	list := []SignedCertificateTimestamp{}
+	for l := 2; l < MaxSCTListLength; {
+		list = append(list, d)
+		l += len + 2
+	}
+	_, err = SerializeSCTList(list)
+	if err == nil {
+		t.Fatal("SerializeSCTList didn't fail with too large of a serialized SCT list")
+	}
+	// Test SCT too large
+	d.Extensions = make(CTExtensions, MaxSCTInListLength-len)
+	_, err = SerializeSCTList(list)
+	if err == nil {
+		t.Fatal("SerializeSCTList didn't fail with too large of a individual SCT")
 	}
 }
 

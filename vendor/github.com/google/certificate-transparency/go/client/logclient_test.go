@@ -57,7 +57,7 @@ func TestGetEntriesWorks(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := New(ts.URL)
+	client := New(ts.URL, &http.Client{})
 	leaves, err := client.GetEntries(0, 1)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func TestGetSTHWorks(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := New(ts.URL)
+	client := New(ts.URL, &http.Client{})
 	sth, err := client.GetSTH()
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestAddChainWithContext(t *testing.T) {
 	}
 	chain := []ct.ASN1Cert{certBytes}
 
-	c := New(hs.URL)
+	c := New(hs.URL, &http.Client{})
 	leeway := time.Millisecond * 100
 	instant := time.Millisecond
 	fiveSeconds := time.Second * 5
@@ -193,7 +193,7 @@ func TestAddJSON(t *testing.T) {
 	}))
 	defer hs.Close()
 
-	c := New(hs.URL)
+	c := New(hs.URL, &http.Client{})
 
 	tests := []struct {
 		success bool

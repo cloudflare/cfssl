@@ -352,7 +352,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 		for _, server := range profile.CTLogServers {
 			log.Infof("submitting poisoned precertificate to %s", server)
-			var ctclient = client.New(server)
+			var ctclient = client.New(server, nil)
 			var resp *ct.SignedCertificateTimestamp
 			resp, err = ctclient.AddPreChain(prechain)
 			if err != nil {
