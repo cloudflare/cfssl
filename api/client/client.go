@@ -103,6 +103,7 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 		resp, err = http.Post(url, "application/json", buf)
 	}
 	if err != nil {
+		err = fmt.Errorf("failed POST to %s: %v", url, err)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
