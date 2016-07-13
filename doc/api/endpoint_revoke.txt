@@ -21,6 +21,6 @@ Result:
 Example:
 
     $ curl -d '{"serial": "7961067322630364137",        \
-            "aki": "00:01:02:03:04:05:07",              \
+            "authority_key_id": "00:01:02:03:04:05:07",              \
             "reason": "superseded"}'                    \
           ${CFSSL_HOST}/api/v1/cfssl/revoke
