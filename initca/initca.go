@@ -48,6 +48,9 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		if req.CA.Expiry != "" {
 			policy.Default.ExpiryString = req.CA.Expiry
 			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			if err != nil {
+				return
+			}
 		}
 
 		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
