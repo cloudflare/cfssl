@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	// "github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 )
@@ -33,7 +32,7 @@ var (
 	}
 	CAConfig = csr.CAConfig{
 		PathLength: 1,
-		Expiry:     "1/1/2016",
+		Expiry:     "1h", // issue a CA certificate only valid for 1 hour
 	}
 	baseRequest = csr.CertificateRequest{
 		CN: "example.com",
@@ -73,12 +72,16 @@ func TestStartCFSSLServer(t *testing.T) {
 	portToTest := 9775
 
 	CACert, CAKey, err := CreateSelfSignedCert(CARequest)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Set up a test server using our CA certificate and key.
 	serverData := CFSSLServerData{CA: CACert, CAKey: CAKey}
 	server, err := StartCFSSLServer(addressToTest, portToTest, serverData)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Try to start up a second server at the same address and port number. We
 	// should get an 'address in use' error.
@@ -92,7 +95,9 @@ func TestStartCFSSLServer(t *testing.T) {
 	// First we need a request to send to our server. We marshall the request
 	// into JSON format and write it to a temporary file.
 	jsonBytes, err := json.Marshal(baseRequest)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	tempFile, err := createTempFile(jsonBytes)
 	if err != nil {
 		os.Remove(tempFile)
@@ -105,20 +110,32 @@ func TestStartCFSSLServer(t *testing.T) {
 		"cfssl", "gencert", remoteServerString, "-hostname="+baseRequest.CN, tempFile)
 	CLIOutput, err := command.CombinedOutput()
 	os.Remove(tempFile)
-	checkError(err, t)
+	if err != nil {
+		t.Fatalf("%v: %s", err.Error(), string(CLIOutput))
+	}
 	err = checkCLIOutput(CLIOutput)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	// The output should contain the certificate, request, and private key.
 	_, err = cleanCLIOutput(CLIOutput, "cert")
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	_, err = cleanCLIOutput(CLIOutput, "csr")
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	_, err = cleanCLIOutput(CLIOutput, "key")
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Finally, kill the server.
 	err = server.Kill()
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 }
 
 func TestCreateCertificateChain(t *testing.T) {
@@ -129,21 +146,31 @@ func TestCreateCertificateChain(t *testing.T) {
 	// --- TEST: Create a chain of one certificate. --- //
 
 	encodedChainFromCode, _, err := CreateCertificateChain([]csr.CertificateRequest{CARequest})
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Now compare to a pre-made certificate chain using a JSON file containing
 	// the same request data.
 
 	CLIOutputFile := preMadeOutput
 	CLIOutput, err := ioutil.ReadFile(CLIOutputFile)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	encodedChainFromCLI, err := cleanCLIOutput(CLIOutput, "cert")
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	chainFromCode, err := helpers.ParseCertificatesPEM(encodedChainFromCode)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	chainFromCLI, err := helpers.ParseCertificatesPEM(encodedChainFromCLI)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	if !chainsEqual(chainFromCode, chainFromCLI) {
 		unequalFieldSlices := checkFieldsOfChains(chainFromCode, chainFromCLI)
@@ -205,12 +232,16 @@ func TestCreateCertificateChain(t *testing.T) {
 
 	// Now we make a certificate chain out of these requests.
 	encodedCertChain, _, err := CreateCertificateChain(requests)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// To test this chain, we compare the data encoded in each certificate to
 	// each request we used to generate the chain.
 	chain, err := helpers.ParseCertificatesPEM(encodedCertChain)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	if len(chain) != len(requests) {
 		t.Log("Length of chain: " + strconv.Itoa(len(chain)))
@@ -251,7 +282,9 @@ func TestCreateSelfSignedCert(t *testing.T) {
 
 	// Generate a self-signed certificate from the request.
 	encodedCertFromCode, _, err := CreateSelfSignedCert(CARequest)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Now compare to a pre-made certificate made using a JSON file with the
 	// same request information. This JSON file is located in testdata/initCA
@@ -259,14 +292,22 @@ func TestCreateSelfSignedCert(t *testing.T) {
 
 	CLIOutputFile := preMadeOutput
 	CLIOutput, err := ioutil.ReadFile(CLIOutputFile)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	encodedCertFromCLI, err := cleanCLIOutput(CLIOutput, "cert")
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	certFromCode, err := helpers.ParseSelfSignedCertificatePEM(encodedCertFromCode)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	certFromCLI, err := helpers.ParseSelfSignedCertificatePEM(encodedCertFromCLI)
-	checkError(err, t)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
 	// Nullify any fields of the certificates which are dependent upon the time
 	// of the certificate's creation.
@@ -435,13 +476,4 @@ func certEqualsRequest(cert *x509.Certificate, request csr.CertificateRequest) (
 // Returns a random element of the input slice.
 func randomElement(set []string) string {
 	return set[rand.Intn(len(set))]
-}
-
-// Just to clean the code up a bit.
-func checkError(err error, t *testing.T) {
-	if err != nil {
-		// t.Fatal is more clean, but a panic gives more information for debugging
-		panic(err)
-		// t.Fatal(err.Error())
-	}
 }
