@@ -298,10 +298,10 @@ file. '-responder' and  '-responder-key' are Certificate for OCSP responder
 and private key for OCSP responder certificate, respectively.
 
 The amount of logging can be controlled with the `-loglevel` option. This
-comes *before* the serve command:
+comes *after* the serve command:
 
 ```
-cfssl -loglevel 2 serve
+cfssl serve -loglevel 2
 ```
 
 The levels are:
