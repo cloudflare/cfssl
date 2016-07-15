@@ -115,9 +115,6 @@ func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile
 		template.EmailAddresses = nil
 		s.ca = template
 		initRoot = true
-	} else if template.IsCA {
-		template.DNSNames = nil
-		template.EmailAddresses = nil
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
@@ -250,7 +247,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	if safeTemplate.IsCA {
-		if !profile.CA {
+		if !profile.CAConstraint.IsCA {
 			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
 		}
 

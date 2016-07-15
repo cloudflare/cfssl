@@ -28,10 +28,16 @@ var validCAConfigs = []csr.CAConfig{
 	{PathLength: 0, PathLenZero: true},
 	{PathLength: 0, PathLenZero: false},
 	{PathLength: 2},
+	{PathLength: 2, Expiry: "1h"},
 	// invalid PathLenZero value will be ignored
 	{PathLength: 2, PathLenZero: true},
 }
 
+var invalidCAConfig = csr.CAConfig{
+	PathLength: 2,
+	// Expiry must be a duration string
+	Expiry: "2116/12/31",
+}
 var csrFiles = []string{
 	"testdata/rsa2048.csr",
 	"testdata/rsa3072.csr",
@@ -126,7 +132,7 @@ func TestInitCA(t *testing.T) {
 						Usage:        []string{"cert sign", "crl sign"},
 						ExpiryString: "300s",
 						Expiry:       300 * time.Second,
-						CA:           true,
+						CAConstraint: config.CAConstraint{IsCA: true},
 					},
 				}
 			}
@@ -167,7 +173,29 @@ func TestInitCA(t *testing.T) {
 		}
 	}
 }
+func TestInvalidCAConfig(t *testing.T) {
+	hostname := "example.com"
+	req := &csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         hostname,
+		Hosts:      []string{hostname, "www." + hostname},
+		KeyRequest: &validKeyParams[0],
+		CA:         &invalidCAConfig,
+	}
 
+	_, _, _, err := New(req)
+	if err == nil {
+		t.Fatal("InitCA with bad CAConfig should fail:", err)
+	}
+}
 func TestInvalidCryptoParams(t *testing.T) {
 	var req *csr.CertificateRequest
 	hostname := "cloudflare.com"

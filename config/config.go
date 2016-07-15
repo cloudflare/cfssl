@@ -60,26 +60,35 @@ type AuthRemote struct {
 	AuthKeyName string `json:"auth_key"`
 }
 
+// CAConstraint specifies various CA constraints on the signed certificate.
+// CAConstraint would verify against (and override) the CA
+// extensions in the given CSR.
+type CAConstraint struct {
+	IsCA           bool `json:"is_ca"`
+	MaxPathLen     int  `json:"max_path_len"`
+	MaxPathLenZero bool `json:"max_path_len_zero"`
+}
+
 // A SigningProfile stores information that the CA needs to store
 // signature policy.
 type SigningProfile struct {
-	Usage               []string   `json:"usages"`
-	IssuerURL           []string   `json:"issuer_urls"`
-	OCSP                string     `json:"ocsp_url"`
-	CRL                 string     `json:"crl_url"`
-	CA                  bool       `json:"is_ca"`
-	OCSPNoCheck         bool       `json:"ocsp_no_check"`
-	ExpiryString        string     `json:"expiry"`
-	BackdateString      string     `json:"backdate"`
-	AuthKeyName         string     `json:"auth_key"`
-	RemoteName          string     `json:"remote"`
-	NotBefore           time.Time  `json:"not_before"`
-	NotAfter            time.Time  `json:"not_after"`
-	NameWhitelistString string     `json:"name_whitelist"`
-	AuthRemote          AuthRemote `json:"auth_remote"`
-	CTLogServers        []string   `json:"ct_log_servers"`
-	AllowedExtensions   []OID      `json:"allowed_extensions"`
-	CertStore           string     `json:"cert_store"`
+	Usage               []string     `json:"usages"`
+	IssuerURL           []string     `json:"issuer_urls"`
+	OCSP                string       `json:"ocsp_url"`
+	CRL                 string       `json:"crl_url"`
+	CAConstraint        CAConstraint `json:"ca_constraint"`
+	OCSPNoCheck         bool         `json:"ocsp_no_check"`
+	ExpiryString        string       `json:"expiry"`
+	BackdateString      string       `json:"backdate"`
+	AuthKeyName         string       `json:"auth_key"`
+	RemoteName          string       `json:"remote"`
+	NotBefore           time.Time    `json:"not_before"`
+	NotAfter            time.Time    `json:"not_after"`
+	NameWhitelistString string       `json:"name_whitelist"`
+	AuthRemote          AuthRemote   `json:"auth_remote"`
+	CTLogServers        []string     `json:"ct_log_servers"`
+	AllowedExtensions   []OID        `json:"allowed_extensions"`
+	CertStore           string       `json:"cert_store"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
