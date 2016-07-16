@@ -248,17 +248,20 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if safeTemplate.IsCA {
 		if !profile.CAConstraint.IsCA {
-			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+			log.Error("local signer policy disallows issuing CA certificate")
+			return nil, cferr.New(cferr.PolicyError, cferr.InvalidRequest)
 		}
 
 		if s.ca != nil && s.ca.MaxPathLen > 0 {
 			if safeTemplate.MaxPathLen >= s.ca.MaxPathLen {
+				log.Error("local signer certificate disallows CA MaxPathLen extending")
 				// do not sign a cert with pathlen > current
-				return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+				return nil, cferr.New(cferr.PolicyError, cferr.InvalidRequest)
 			}
 		} else if s.ca != nil && s.ca.MaxPathLen == 0 && s.ca.MaxPathLenZero {
+			log.Error("local signer certificate disallows issuing CA certificate")
 			// signer has pathlen of 0, do not sign more intermediate CAs
-			return nil, cferr.New(cferr.CertificateError, cferr.InvalidRequest)
+			return nil, cferr.New(cferr.PolicyError, cferr.InvalidRequest)
 		}
 	}
 

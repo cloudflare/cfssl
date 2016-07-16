@@ -751,7 +751,7 @@ func TestCASignPathlen(t *testing.T) {
 			caKeyFile:  testECDSACaKeyFile,
 			caProfile:  true,
 			csrFile:    "testdata/inter_pathlen_1.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 		{
 			name:       "pathlen 0 signing pathlen 0",
@@ -759,7 +759,7 @@ func TestCASignPathlen(t *testing.T) {
 			caKeyFile:  testCaKeyFile,
 			caProfile:  true,
 			csrFile:    "testdata/inter_pathlen_0.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 		{
 			name:       "pathlen 0 signing pathlen 1",
@@ -767,7 +767,7 @@ func TestCASignPathlen(t *testing.T) {
 			caKeyFile:  testCaKeyFile,
 			caProfile:  true,
 			csrFile:    "testdata/inter_pathlen_1.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 		{
 			name:       "pathlen 0 signing pathlen unspecified",
@@ -775,7 +775,7 @@ func TestCASignPathlen(t *testing.T) {
 			caKeyFile:  testCaKeyFile,
 			caProfile:  true,
 			csrFile:    "testdata/inter_pathlen_unspecified.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 		{
 			name:       "pathlen 1 signing unspecified pathlen",
@@ -791,28 +791,28 @@ func TestCASignPathlen(t *testing.T) {
 			isCA:    true,
 		},
 		{
-			name:       "non-ca singing profile sighing pathlen 0",
+			name:       "non-ca singing profile signing pathlen 0",
 			caCertFile: testECDSACaFile,
 			caKeyFile:  testECDSACaKeyFile,
 			caProfile:  false,
 			csrFile:    "testdata/inter_pathlen_0.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 		{
-			name:       "non-ca singing profile sighing pathlen 1",
+			name:       "non-ca singing profile signing pathlen 1",
 			caCertFile: testECDSACaFile,
 			caKeyFile:  testECDSACaKeyFile,
 			caProfile:  false,
 			csrFile:    "testdata/inter_pathlen_1.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 		{
-			name:       "non-ca singing profile sighing pathlen 0",
+			name:       "non-ca singing profile signing pathlen 0",
 			caCertFile: testECDSACaFile,
 			caKeyFile:  testECDSACaKeyFile,
 			caProfile:  false,
 			csrFile:    "testdata/inter_pathlen_unspecified.csr",
-			err:        cferr.New(cferr.CertificateError, cferr.InvalidRequest),
+			err:        cferr.New(cferr.PolicyError, cferr.InvalidRequest),
 		},
 	}
 
