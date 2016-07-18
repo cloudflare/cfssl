@@ -33,8 +33,8 @@ type Backoff struct {
 	// contention scenario.
 	Jitter bool
 
-	tries int
-	lock  *sync.Mutex // lock guards tries
+	tries      int
+	sync.Mutex // lock guards tries
 }
 
 func (b *Backoff) setup() {
@@ -44,10 +44,6 @@ func (b *Backoff) setup() {
 
 	if b.MaxDuration == 0 {
 		b.MaxDuration = DefaultMaxDuration
-	}
-
-	if b.lock == nil {
-		b.lock = new(sync.Mutex)
 	}
 }
 
@@ -83,8 +79,8 @@ func (b *Backoff) Duration() time.Duration {
 
 // Reset clears the backoff.
 func (b *Backoff) Reset() {
-	b.setup()
 	b.lock.Lock()
+	b.setup()
 	b.tries = 0
 	b.lock.Unlock()
 }
