@@ -215,14 +215,23 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 	return false, true
 }
 
+// verifyCertTime verifies whether certificate time frames are valid
+func verifyCertTime(cert *x509.Certificate) bool {
+	if !time.Now().Before(cert.NotAfter) {
+		log.Infof("Certificate expired %s\n", cert.NotAfter)
+		return false
+	} else if !time.Now().After(cert.NotBefore) {
+		log.Infof("Certificate isn't valid until %s\n", cert.NotBefore)
+		return false
+	}
+
+	return true
+}
+
 // VerifyCertificate ensures that the certificate passed in hasn't
 // expired and checks the CRL for the server.
 func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
-	if !time.Now().Before(cert.NotAfter) {
-		log.Infof("Certificate expired %s\n", cert.NotAfter)
-		return true, true
-	} else if !time.Now().After(cert.NotBefore) {
-		log.Infof("Certificate isn't valid until %s\n", cert.NotBefore)
+	if !verifyCertTime(cert) {
 		return true, true
 	}
 
@@ -232,11 +241,7 @@ func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 // VerifyCertificateByCRLPath ensures that the certificate passed in hasn't
 // expired and checks the local CRL path.
 func VerifyCertificateByCRLPath(cert *x509.Certificate, crlPath string) (revoked, ok bool) {
-	if !time.Now().Before(cert.NotAfter) {
-		log.Infof("Certificate expired %s\n", cert.NotAfter)
-		return true, true
-	} else if !time.Now().After(cert.NotBefore) {
-		log.Infof("Certificate isn't valid until %s\n", cert.NotBefore)
+	if !verifyCertTime(cert) {
 		return true, true
 	}
 
