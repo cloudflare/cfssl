@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
+	"os"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -111,6 +112,21 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	return x509.ParseCRL(body)
 }
 
+func revLocalCheck(cert *x509.Certificate, path string) (revoked, ok bool) {
+	if revoked, ok := certIsRevokedCRL(cert, path); !ok {
+		log.Warning("error checking revocation via CRL")
+		if HardFail {
+			return true, false
+		}
+		return false, false
+	} else if revoked {
+		log.Info("certificate is revoked via CRL")
+		return true, true
+	}
+
+	return false, true
+}
+
 func getIssuer(cert *x509.Certificate) *x509.Certificate {
 	var issuer *x509.Certificate
 	var err error
@@ -139,6 +155,31 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 	if ok {
 		if !crl.HasExpired(time.Now()) {
 			shouldFetchCRL = false
+		}
+	}
+
+	u, err := neturl.Parse(url)
+	if err != nil {
+		log.Warningf("failed to parse CRL url: %v", err)
+		return false, false
+	}
+	if u.Scheme == "" && shouldFetchCRL {
+		if _, err := os.Stat(url); err == nil {
+			tmp, err := ioutil.ReadFile(url)
+			if err != nil {
+				log.Warningf("failed to read local CRL path: %v", err)
+				return false, false
+			}
+			crl, err = x509.ParseCRL(tmp)
+			if err != nil {
+				log.Warningf("failed to parse local CRL file: %v", err)
+				return false, false
+			}
+			CRLSet[url] = crl
+			shouldFetchCRL = false
+		} else {
+			log.Warningf("failed to read local CRL path: %v", err)
+			return false, false
 		}
 	}
 
@@ -186,6 +227,20 @@ func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 	}
 
 	return revCheck(cert)
+}
+
+// VerifyCertificateByCRLPath ensures that the certificate passed in hasn't
+// expired and checks the local CRL path.
+func VerifyCertificateByCRLPath(cert *x509.Certificate, crlPath string) (revoked, ok bool) {
+	if !time.Now().Before(cert.NotAfter) {
+		log.Infof("Certificate expired %s\n", cert.NotAfter)
+		return true, true
+	} else if !time.Now().After(cert.NotBefore) {
+		log.Infof("Certificate isn't valid until %s\n", cert.NotBefore)
+		return true, true
+	}
+
+	return revLocalCheck(cert, crlPath)
 }
 
 func fetchRemote(url string) (*x509.Certificate, error) {
