@@ -272,17 +272,17 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	if profile.NameWhitelist != nil {
 		if safeTemplate.Subject.CommonName != "" {
 			if profile.NameWhitelist.Find([]byte(safeTemplate.Subject.CommonName)) == nil {
-				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+				return nil, cferr.New(cferr.PolicyError, cferr.UnmatchedWhitelist)
 			}
 		}
 		for _, name := range safeTemplate.DNSNames {
 			if profile.NameWhitelist.Find([]byte(name)) == nil {
-				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+				return nil, cferr.New(cferr.PolicyError, cferr.UnmatchedWhitelist)
 			}
 		}
 		for _, name := range safeTemplate.EmailAddresses {
 			if profile.NameWhitelist.Find([]byte(name)) == nil {
-				return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
+				return nil, cferr.New(cferr.PolicyError, cferr.UnmatchedWhitelist)
 			}
 		}
 	}
