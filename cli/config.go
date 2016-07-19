@@ -62,6 +62,7 @@ type Config struct {
 	CRL               string
 	Usage             string
 	PGPPrivate        string
+	PGPName           string
 	Serial            string
 	CNOverride        string
 	AKI               string
@@ -119,6 +120,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Password, "password", "0", "Password for accessing PKCS #12 data passed to bundler")
 	f.StringVar(&c.Usage, "usage", "", "usage of private key")
 	f.StringVar(&c.PGPPrivate, "pgp-private", "", "file to load a PGP Private key decryption")
+	f.StringVar(&c.PGPName, "pgp-name", "", "PGP public key name, can be a comma-sepearted  key name list")
 	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
 	f.StringVar(&c.CNOverride, "cn", "", "certificate common name (CN)")
 	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
