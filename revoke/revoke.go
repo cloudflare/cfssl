@@ -243,10 +243,10 @@ func certIsRevokedCRL(cert *x509.Certificate, url string, fetchLocal bool) (revo
 // verifyCertTime verifies whether certificate time frames are valid
 func verifyCertTime(cert *x509.Certificate) bool {
 	if !time.Now().Before(cert.NotAfter) {
-		log.Infof("Certificate expired %s\n", cert.NotAfter)
+		log.Infof("Certificate expired %s", cert.NotAfter)
 		return false
 	} else if !time.Now().After(cert.NotBefore) {
-		log.Infof("Certificate isn't valid until %s\n", cert.NotBefore)
+		log.Infof("Certificate isn't valid until %s", cert.NotBefore)
 		return false
 	}
 
