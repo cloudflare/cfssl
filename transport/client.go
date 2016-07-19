@@ -71,6 +71,9 @@ type Transport struct {
 	// as part of AutoUpdate.
 	Backoff *core.Backoff
 
+	// RevokeChecker is used to configure revoke package.
+	RevokeChecker *revoke.Revoke
+
 	// RevokeSoftFail, if true, will cause a failure to check
 	// revocation (such that the revocation status of a
 	// certificate cannot be checked) to not be treated as an
@@ -139,9 +142,10 @@ func (tr *Transport) TLSServerConfig() (*tls.Config, error) {
 // trigger a new certificate to be generated.
 func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
-		Before:   before,
-		Identity: identity,
-		Backoff:  &core.Backoff{},
+		Before:        before,
+		Identity:      identity,
+		Backoff:       &core.Backoff{},
+		RevokeChecker: revoke.NewRevokeChecker(),
 	}
 
 	store, err := roots.New(identity.Roots)
@@ -311,7 +315,7 @@ func Dial(address string, tr *Transport) (*tls.Conn, error) {
 
 	for _, chain := range state.VerifiedChains {
 		for _, cert := range chain {
-			revoked, ok := revoke.VerifyCertificate(cert)
+			revoked, ok := tr.RevokeChecker.VerifyCertificate(cert)
 			if (!tr.RevokeSoftFail && !ok) || revoked {
 				return nil, errors.New(errors.CertificateError, errors.VerifyFailed)
 			}

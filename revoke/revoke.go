@@ -24,14 +24,21 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// HardFail determines whether the failure to check the revocation
-// status of a certificate (i.e. due to network failure) causes
-// verification to fail (a hard failure).
-var HardFail = false
+// Revoke type contains configuration for each new revoke instance
+type Revoke struct {
+	// HardFail determines whether the failure to check the revocation
+	// status of a certificate (i.e. due to network failure) causes
+	// verification to fail (a hard failure).
+	HardFail bool
+	// CRLSet associates a PKIX certificate list with the URL the CRL is
+	// fetched from.
+	CRLSet map[string]*pkix.CertificateList
+}
 
-// CRLSet associates a PKIX certificate list with the URL the CRL is
-// fetched from.
-var CRLSet = map[string]*pkix.CertificateList{}
+// NewRevokeChecker creates Revoke config structure
+func NewRevokeChecker() *Revoke {
+	return &Revoke{false, map[string]*pkix.CertificateList{}}
+}
 
 // We can't handle LDAP certificates, so this checks to see if the
 // URL string points to an LDAP resource so that we can ignore it.
@@ -62,11 +69,11 @@ func ldapURL(url string) bool {
 //
 //  true, false:  failure to check revocation status causes
 //                  verification to fail
-func revCheck(cert *x509.Certificate, localCRLPath string) (revoked, ok bool) {
+func (r *Revoke) revCheck(cert *x509.Certificate, localCRLPath string) (revoked, ok bool) {
 	if localCRLPath != "" {
-		if revoked, ok := certIsRevokedCRL(cert, localCRLPath, true); !ok {
+		if revoked, ok := r.certIsRevokedCRL(cert, localCRLPath, true); !ok {
 			log.Warning("error checking revocation via CRL")
-			if HardFail {
+			if r.HardFail {
 				return true, false
 			}
 			return false, false
@@ -82,9 +89,9 @@ func revCheck(cert *x509.Certificate, localCRLPath string) (revoked, ok bool) {
 			continue
 		}
 
-		if revoked, ok := certIsRevokedCRL(cert, url, false); !ok {
+		if revoked, ok := r.certIsRevokedCRL(cert, url, false); !ok {
 			log.Warning("error checking revocation via CRL")
-			if HardFail {
+			if r.HardFail {
 				return true, false
 			}
 			return false, false
@@ -93,9 +100,9 @@ func revCheck(cert *x509.Certificate, localCRLPath string) (revoked, ok bool) {
 			return true, true
 		}
 
-		if revoked, ok := certIsRevokedOCSP(cert, HardFail); !ok {
+		if revoked, ok := certIsRevokedOCSP(cert, r.HardFail); !ok {
 			log.Warning("error checking revocation via OCSP")
-			if HardFail {
+			if r.HardFail {
 				return true, false
 			}
 			return false, false
@@ -141,26 +148,26 @@ func getIssuer(cert *x509.Certificate) *x509.Certificate {
 }
 
 // checks whether CRL in memory is valid
-func isInMemoryCRLValid(key string) bool {
-	crl, ok := CRLSet[key]
+func (r *Revoke) isInMemoryCRLValid(key string) bool {
+	crl, ok := r.CRLSet[key]
 	if ok && crl == nil {
 		ok = false
-		delete(CRLSet, key)
+		delete(r.CRLSet, key)
 	}
 
 	if ok {
 		if !crl.HasExpired(time.Now()) {
-			return false
+			return true
 		}
 	}
 
-	return ok
+	return false
 }
 
 // FetchLocalCRL reads CRL from the local filesystem
 // force flag allows you to update the CRL
-func FetchLocalCRL(path string, force bool) error {
-	shouldFetchCRL := !isInMemoryCRLValid(path)
+func (r *Revoke) FetchLocalCRL(path string, force bool) error {
+	shouldFetchCRL := !r.isInMemoryCRLValid(path)
 
 	u, err := neturl.Parse(path)
 	if err != nil {
@@ -178,7 +185,7 @@ func FetchLocalCRL(path string, force bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to parse local CRL file: %v", err)
 			}
-			CRLSet[path] = crl
+			r.CRLSet[path] = crl
 		} else {
 			return fmt.Errorf("failed to read local CRL path: %v", err)
 		}
@@ -189,8 +196,8 @@ func FetchLocalCRL(path string, force bool) error {
 
 // FetchRemoteCRL fetches remote CRL into internal map,
 // force overwrites previously read CRL
-func FetchRemoteCRL(url string, cert *x509.Certificate, force bool) error {
-	shouldFetchCRL := !isInMemoryCRLValid(url)
+func (r *Revoke) FetchRemoteCRL(url string, cert *x509.Certificate, force bool) error {
+	shouldFetchCRL := !r.isInMemoryCRLValid(url)
 
 	issuer := getIssuer(cert)
 
@@ -209,7 +216,7 @@ func FetchRemoteCRL(url string, cert *x509.Certificate, force bool) error {
 			}
 		}
 
-		CRLSet[url] = crl
+		r.CRLSet[url] = crl
 	}
 
 	return nil
@@ -217,12 +224,12 @@ func FetchRemoteCRL(url string, cert *x509.Certificate, force bool) error {
 
 // check a cert against a specific CRL. Returns the same bool pair
 // as revCheck.
-func certIsRevokedCRL(cert *x509.Certificate, url string, fetchLocal bool) (revoked, ok bool) {
+func (r *Revoke) certIsRevokedCRL(cert *x509.Certificate, url string, fetchLocal bool) (revoked, ok bool) {
 	var err error
 	if fetchLocal {
-		err = FetchLocalCRL(url, false)
+		err = r.FetchLocalCRL(url, false)
 	} else {
-		err = FetchRemoteCRL(url, cert, false)
+		err = r.FetchRemoteCRL(url, cert, false)
 	}
 
 	if err != nil {
@@ -230,7 +237,7 @@ func certIsRevokedCRL(cert *x509.Certificate, url string, fetchLocal bool) (revo
 		return false, false
 	}
 
-	for _, revoked := range CRLSet[url].TBSCertList.RevokedCertificates {
+	for _, revoked := range r.CRLSet[url].TBSCertList.RevokedCertificates {
 		if cert.SerialNumber.Cmp(revoked.SerialNumber) == 0 {
 			log.Info("Serial number match: intermediate is revoked.")
 			return true, true
@@ -255,22 +262,22 @@ func verifyCertTime(cert *x509.Certificate) bool {
 
 // VerifyCertificate ensures that the certificate passed in hasn't
 // expired and checks the CRL for the server.
-func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
+func (r *Revoke) VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 	if !verifyCertTime(cert) {
 		return true, true
 	}
 
-	return revCheck(cert, "")
+	return r.revCheck(cert, "")
 }
 
 // VerifyCertificateByCRLPath ensures that the certificate passed in hasn't
 // expired and checks the local CRL path.
-func VerifyCertificateByCRLPath(cert *x509.Certificate, crlPath string) (revoked, ok bool) {
+func (r *Revoke) VerifyCertificateByCRLPath(cert *x509.Certificate, crlPath string) (revoked, ok bool) {
 	if !verifyCertTime(cert) {
 		return true, true
 	}
 
-	return revCheck(cert, crlPath)
+	return r.revCheck(cert, crlPath)
 }
 
 func fetchRemote(url string) (*x509.Certificate, error) {

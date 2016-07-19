@@ -85,6 +85,8 @@ func chainValidation(addr, hostname string) (grade Grade, output Output, err err
 		return
 	}
 
+	revokeChecker := revoke.NewRevokeChecker()
+
 	var warnings []string
 
 	for i := 0; i < len(chain)-1; i++ {
@@ -95,7 +97,7 @@ func chainValidation(addr, hostname string) (grade Grade, output Output, err err
 			warnings = append(warnings, fmt.Sprintf("Certificate for %s is valid for too long", cert.Subject.CommonName))
 		}
 
-		revoked, ok := revoke.VerifyCertificate(cert)
+		revoked, ok := revokeChecker.VerifyCertificate(cert)
 		if !ok {
 			warnings = append(warnings, fmt.Sprintf("couldn't check if %s is revoked", cert.Subject.CommonName))
 		}
