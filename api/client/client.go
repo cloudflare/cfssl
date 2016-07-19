@@ -113,6 +113,7 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Errorf("http error with %s", url)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New(string(body)))
 	}
 
