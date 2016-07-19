@@ -194,7 +194,7 @@ func TestBadCRLSet(t *testing.T) {
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
 	CRLSet[""] = nil
-	certIsRevokedCRL(ldapCert, "")
+	certIsRevokedCRL(ldapCert, "", false)
 	if _, ok := CRLSet[""]; ok {
 		t.Fatalf("key emptystring should be deleted from CRLSet")
 	}
