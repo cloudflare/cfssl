@@ -29,6 +29,7 @@
     5200: InvalidPolicy
     5300: InvalidRequest
     5400: UnknownProfile
+    5500: UnmatchedWhitelist
 6XXX: DialError
 7XXX: APIClientError
     7100: AuthenticationFailure
