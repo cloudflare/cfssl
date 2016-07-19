@@ -114,7 +114,7 @@ lBlGGSW4gNfL1IYoakRwJiNiqZ+Gb7+6kHDSVneFeO/qJakXzlByjAA6quPbYzSf
 
 var (
 	goodCert      = mustParse(goodComodoCA)
-	revokeChecker = NewRevokeChecker()
+	revokeChecker = New()
 )
 
 func mustParse(pemData string) *x509.Certificate {

@@ -24,7 +24,7 @@ import (
 // certificates are then checked for revocation.
 func worker(paths chan string, bundler chan *x509.Certificate, pool *sync.WaitGroup) {
 	defer (*pool).Done()
-	revokeChecker := revoke.NewRevokeChecker()
+	revokeChecker := revoke.New()
 	for {
 		path, ok := <-paths
 		if !ok {

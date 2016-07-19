@@ -35,8 +35,8 @@ type Revoke struct {
 	CRLSet map[string]*pkix.CertificateList
 }
 
-// NewRevokeChecker creates Revoke config structure
-func NewRevokeChecker() *Revoke {
+// New creates Revoke config structure
+func New() *Revoke {
 	return &Revoke{false, map[string]*pkix.CertificateList{}}
 }
 

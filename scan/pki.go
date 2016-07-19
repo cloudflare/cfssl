@@ -85,7 +85,7 @@ func chainValidation(addr, hostname string) (grade Grade, output Output, err err
 		return
 	}
 
-	revokeChecker := revoke.NewRevokeChecker()
+	revokeChecker := revoke.New()
 
 	var warnings []string
 
