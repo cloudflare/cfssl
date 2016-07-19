@@ -410,6 +410,11 @@ func (p *SigningProfile) validProfile(isDefault bool) bool {
 		return false
 	}
 
+	if p.AuthRemote.RemoteName == "" && p.AuthRemote.AuthKeyName != "" {
+		log.Debugf("invalid auth remote profile: no remote signer specified")
+		return false
+	}
+
 	if p.RemoteName != "" {
 		log.Debugf("validate remote profile")
 
@@ -425,6 +430,7 @@ func (p *SigningProfile) validProfile(isDefault bool) bool {
 
 		if p.AuthRemote.RemoteName != "" {
 			log.Debugf("invalid remote profile: auth remote is also specified")
+			return false
 		}
 	} else if p.AuthRemote.RemoteName != "" {
 		log.Debugf("validate auth remote profile")
@@ -457,6 +463,25 @@ func (p *SigningProfile) validProfile(isDefault bool) bool {
 
 	log.Debugf("profile is valid")
 	return true
+}
+
+// warnSkippedSettings prints a log warning message about skipped settings
+// in a SigningProfile, usually due to remote signer.
+func (p *Signing) warnSkippedSettings() {
+	const warningMessage = `The configuration value by "usages", "issuer_urls", "ocsp_url", "crl_url", "ca_constraint", "expiry", "backdate", "not_before", "not_after", "cert_store" and "ct_log_servers" are skipped`
+	if p == nil {
+		return
+	}
+
+	if p.Default.RemoteName != "" || p.Default.AuthRemote.RemoteName != "" {
+		log.Warning("default profile points to a remote signer: ", warningMessage)
+	}
+
+	for name, profile := range p.Profiles {
+		if profile.RemoteName != "" || profile.AuthRemote.RemoteName != "" {
+			log.Warningf("Profiles[%s] points to a remote signer: %s", name, warningMessage)
+		}
+	}
 }
 
 // Signing codifies the signature configuration policy for a CA.
@@ -500,6 +525,9 @@ func (p *Signing) Valid() bool {
 			return false
 		}
 	}
+
+	p.warnSkippedSettings()
+
 	return true
 }
 
