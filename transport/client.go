@@ -145,7 +145,7 @@ func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 		Before:        before,
 		Identity:      identity,
 		Backoff:       &core.Backoff{},
-		RevokeChecker: revoke.New(),
+		RevokeChecker: revoke.New(false),
 	}
 
 	store, err := roots.New(identity.Roots)

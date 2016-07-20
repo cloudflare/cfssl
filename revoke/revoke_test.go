@@ -114,7 +114,7 @@ lBlGGSW4gNfL1IYoakRwJiNiqZ+Gb7+6kHDSVneFeO/qJakXzlByjAA6quPbYzSf
 
 var (
 	goodCert      = mustParse(goodComodoCA)
-	revokeChecker = New()
+	revokeChecker = New(false)
 )
 
 func mustParse(pemData string) *x509.Certificate {
@@ -186,11 +186,15 @@ func TestCRLFetchError(t *testing.T) {
 	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
+	revokeChecker.HardFailLck.Lock()
 	revokeChecker.HardFail = true
+	revokeChecker.HardFailLck.Unlock()
 	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
+	revokeChecker.HardFailLck.Lock()
 	revokeChecker.HardFail = false
+	revokeChecker.HardFailLck.Unlock()
 }
 
 func TestBadCRLSet(t *testing.T) {
