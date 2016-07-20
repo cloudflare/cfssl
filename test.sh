@@ -1,25 +1,49 @@
 #!/bin/bash
 set -o errexit
 
-cd $(dirname $0)
-ls $GOPATH/src/github.com/cloudflare/cfssl
+CDIR=$(cd `dirname "$0"` && pwd)
+cd "$CDIR"
 
-PACKAGES=$(go list ./... | grep -v /vendor/)
+ORG_PATH="github.com/cloudflare"
+REPO_PATH="${ORG_PATH}/cfssl"
+
+export GOPATH="${CDIR}/gopath"
+
+export PATH="${PATH}:${GOPATH}/bin"
+
+eval $(go env)
+
+if [ ! -h gopath/src/${REPO_PATH} ]; then
+    mkdir -p gopath/src/${ORG_PATH}
+    ln -s ../../../.. gopath/src/${REPO_PATH} || exit 255
+fi
+
+ls "${GOPATH}/src/${REPO_PATH}"
+
+PACKAGES=$(go list ./... | grep -v /vendor/ | grep ^_)
+
+# Escape current cirectory
+CDIR_ESC=$(printf "%q" "$CDIR/")
+# Remove current directory from the package path
+PACKAGES=${PACKAGES//$CDIR_ESC/}
+# Remove underscores
+PACKAGES=${PACKAGES//_/}
+# split PACKAGES into an array and prepend REPO_PATH to each local package
+split=(${PACKAGES// / })
+PACKAGES=${split[@]/#/${REPO_PATH}/}
 
 go vet $PACKAGES
 if ! which fgt > /dev/null ; then
-    echo "Please install fgt from https://github.com/GeertJohan/fgt."
-    exit 1
+    go get github.com/GeertJohan/fgt
 fi
 
 if ! which golint > /dev/null ; then
-    echo "Please install golint from github.com/golang/lint/golint."
-    exit 1
+    go get github.com/golang/lint/golint
 fi
 
 for package in $PACKAGES
 do
-    fgt golint ${package}
+    fgt golint "${package}"
 done
 
 # check go fmt
@@ -29,7 +53,7 @@ do
 done
 
 # Build and install cfssl executable in PATH
-go install -tags "$BUILD_TAGS" github.com/cloudflare/cfssl/cmd/cfssl
+go install -tags "$BUILD_TAGS" ${REPO_PATH}/cmd/cfssl
 
 COVPROFILES=""
 for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
