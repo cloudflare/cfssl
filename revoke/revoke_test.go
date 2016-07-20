@@ -172,9 +172,9 @@ func insertLocalCRL(revoke *Revoke) {
 	if err != nil {
 		panic(err.Error())
 	}
-	revoke.CRLSetLck.Lock()
+	revoke.Lck.Lock()
 	revoke.CRLSet[localCRLPath] = cert
-	revoke.CRLSetLck.Unlock()
+	revoke.Lck.Unlock()
 }
 
 func TestRevoked(t *testing.T) {
@@ -260,9 +260,9 @@ func TestCRLFetchError(t *testing.T) {
 	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(ldapCert, "InvalidPath"); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
-	revokeChecker.HardFailLck.Lock()
+	revokeChecker.Lck.Lock()
 	revokeChecker.HardFail = true
-	revokeChecker.HardFailLck.Unlock()
+	revokeChecker.Lck.Unlock()
 	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
@@ -270,17 +270,17 @@ func TestCRLFetchError(t *testing.T) {
 	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(ldapCert, "InvalidPath"); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
-	revokeChecker.HardFailLck.Lock()
+	revokeChecker.Lck.Lock()
 	revokeChecker.HardFail = false
-	revokeChecker.HardFailLck.Unlock()
+	revokeChecker.Lck.Unlock()
 }
 
 func TestBadCRLSet(t *testing.T) {
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
-	revokeChecker.CRLSetLck.Lock()
+	revokeChecker.Lck.Lock()
 	revokeChecker.CRLSet[""] = nil
-	revokeChecker.CRLSetLck.Unlock()
+	revokeChecker.Lck.Unlock()
 	revokeChecker.certIsRevokedCRL(ldapCert, "", false)
 	if _, ok := revokeChecker.CRLSet[""]; ok {
 		t.Fatalf("key emptystring should be deleted from CRLSet")
