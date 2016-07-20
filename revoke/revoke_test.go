@@ -47,6 +47,40 @@ TpBiBuFgiKtJksKdoxPZGSI8FitwcgeW+y8wotmm0CtDzWN27g2kfSqHb5eHfZY5
 sESPRwHkcMUNdAp37FLweUw=
 -----END CERTIFICATE-----`)
 
+// Cert list fetched from http://crl.globalsign.net/RootSignPartners.crl
+// Last Update: Jan  4 06:00:00 2016 GMT
+// Next Update: Jan 28 11:00:00 2028 GMT
+var localCRLList = `-----BEGIN X509 CRL-----
+MIIE3jCCA8YCAQEwDQYJKoZIhvcNAQEFBQAwcTEoMCYGA1UEAxMfR2xvYmFsU2ln
+biBSb290U2lnbiBQYXJ0bmVycyBDQTEdMBsGA1UECxMUUm9vdFNpZ24gUGFydG5l
+cnMgQ0ExGTAXBgNVBAoTEEdsb2JhbFNpZ24gbnYtc2ExCzAJBgNVBAYTAkJFFw0x
+NjAxMDQwNjAwMDBaFw0yODAxMjgxMTAwMDBaMIIC7jAcAgsEAAAAAAEA+m5WHRcN
+MTExMjA4MDYwMDAwWjAcAgsEAAAAAAEYwaN+1hcNMTMwNzA4MDYwMDAwWjAcAgsE
+AAAAAAEeRIeVKhcNMTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEn+59F2BcNMTQwNTE0
+MDYwMDAwWjAcAgsEAAAAAAEytLu3aBcNMTQwNTE0MDYwMDAwWjAcAgsEAAAAAAEE
+diggWxcNMTExMjA4MDYwMDAwWjAcAgsEAAAAAAEsz/uqORcNMTQwNTE0MDYwMDAw
+WjAcAgsEAAAAAAD5f8YjKRcNMTExMjA4MDYwMDAwWjAcAgsEAAAAAAEoH84aohcN
+MTUwMTA0MDYwMDAwWjAcAgsEAAAAAAEpRcOrHBcNMTMwNzA4MDYwMDAwWjAcAgsE
+AAAAAAEWqgBmghcNMTYwMTA0MDYwMDAwWjAcAgsEAAAAAAEeRIePPxcNMTQwNTE0
+MDYwMDAwWjAcAgsEAAAAAAEeRIeSLRcNMTUwNzA0MDYwMDAwWjAcAgsEAAAAAAEl
+B0COKRcNMTQwOTA0MDYwMDAwWjAcAgsEAAAAAAEzp3dnSxcNMTYwMTA0MDYwMDAw
+WjAcAgsEAAAAAAEzG8L1uRcNMTQwOTA0MDYwMDAwWjAcAgsEAAAAAAEYwbQabBcN
+MTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEllsRTghcNMTMwNzA4MDYwMDAwWjAcAgsE
+AAAAAAEn+59CDxcNMTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEJRVD02hcNMTMwMTAz
+MDYwMDAwWjAcAgsEAAAAAAED8DfkRRcNMTExMjA4MDYwMDAwWjAcAgsEAAAAAAEs
+Xn8ddhcNMTYwMTA0MDYwMDAwWjAcAgsEAAAAAAEclEoykBcNMTIwNzA1MTgwMDAw
+WjAcAgsEAAAAAAEclEo2aRcNMTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEAmY+N9BcN
+MTIwNzA1MTgwMDAwWqAvMC0wCgYDVR0UBAMCASowHwYDVR0jBBgwFoAUVoTstXGl
+52PY21EE1vrm8EhSSc4wDQYJKoZIhvcNAQEFBQADggEBALqwJX2kzG+0WYBzD2ng
+6I4J5re4/siz0hxh4z2CU3xBJ7FoXZ8XZ5ILFMp+wMwCNxf3SkRJIVuH333qZD9T
+ol8gCPoyBKwu5EWb6Sk4nUMqhV7c8XYacdEfVyzM4xzovQqFj3iO2WoVzYCy3iMj
+O0cw6FKgs6o2r9QeCCF80cB/LxgQLgy6k6fa1b/qtx5nTfzbKc7+X+5u09WLLNPS
+Qb14q9ufvOfFtlUA9O57hr+h6zdBysQt9OgK03zU1fOLbw0MBAPQcMHUzVIdjmlW
+qYzmvKGPqE5mUzrtPHaGBuwbwybDCI76ElHazJAT5tQapuxixhFyq+Oq1rcSVfN7
+JYA=
+-----END X509 CRL-----
+`
+
 // 2014/05/22 14:18:31 Serial number match: intermediate is revoked.
 //	2014/05/22 14:18:31 certificate is revoked via CRL
 // 2014/05/22 14:18:31 Revoked certificate: misc/intermediate_ca/MobileArmorEnterpriseCA.crt
@@ -115,6 +149,7 @@ lBlGGSW4gNfL1IYoakRwJiNiqZ+Gb7+6kHDSVneFeO/qJakXzlByjAA6quPbYzSf
 var (
 	goodCert      = mustParse(goodComodoCA)
 	revokeChecker = New(false)
+	localCRLPath  = "/RootSignPartners.crl"
 )
 
 func mustParse(pemData string) *x509.Certificate {
@@ -132,8 +167,25 @@ func mustParse(pemData string) *x509.Certificate {
 	return cert
 }
 
+func insertLocalCRL(revoke *Revoke) {
+	cert, err := x509.ParseCRL([]byte(localCRLList))
+	if err != nil {
+		panic(err.Error())
+	}
+	revoke.CRLSetLck.Lock()
+	revoke.CRLSet[localCRLPath] = cert
+	revoke.CRLSetLck.Unlock()
+}
+
 func TestRevoked(t *testing.T) {
 	if revoked, ok := revokeChecker.VerifyCertificate(revokedCert); !ok {
+		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
+	} else if !revoked {
+		t.Fatalf("revoked certificate should have been marked as revoked")
+	}
+
+	insertLocalCRL(revokeChecker)
+	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(revokedCert, localCRLPath); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if !revoked {
 		t.Fatalf("revoked certificate should have been marked as revoked")
@@ -142,6 +194,13 @@ func TestRevoked(t *testing.T) {
 
 func TestExpired(t *testing.T) {
 	if revoked, ok := revokeChecker.VerifyCertificate(expiredCert); !ok {
+		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
+	} else if !revoked {
+		t.Fatalf("expired certificate should have been marked as revoked")
+	}
+
+	insertLocalCRL(revokeChecker)
+	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(expiredCert, localCRLPath); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if !revoked {
 		t.Fatalf("expired certificate should have been marked as revoked")
@@ -155,6 +214,12 @@ func TestGood(t *testing.T) {
 		t.Fatalf("good certificate should not have been marked as revoked")
 	}
 
+	insertLocalCRL(revokeChecker)
+	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(goodCert, localCRLPath); !ok {
+		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
+	} else if revoked {
+		t.Fatalf("good certificate should not have been marked as revoked")
+	}
 }
 
 func TestLdap(t *testing.T) {
@@ -178,6 +243,11 @@ func TestCertNotYetValid(t *testing.T) {
 	if revoked, _ := revokeChecker.VerifyCertificate(expiredCert); !revoked {
 		t.Fatalf("not yet verified certificate should have been marked as revoked")
 	}
+
+	insertLocalCRL(revokeChecker)
+	if revoked, _ := revokeChecker.VerifyCertificateByCRLPath(expiredCert, localCRLPath); !revoked {
+		t.Fatalf("not yet verified certificate should have been marked as revoked")
+	}
 }
 
 func TestCRLFetchError(t *testing.T) {
@@ -186,10 +256,18 @@ func TestCRLFetchError(t *testing.T) {
 	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
+
+	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(ldapCert, "InvalidPath"); ok || revoked {
+		t.Fatalf("Fetching error not encountered")
+	}
 	revokeChecker.HardFailLck.Lock()
 	revokeChecker.HardFail = true
 	revokeChecker.HardFailLck.Unlock()
 	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || !revoked {
+		t.Fatalf("Fetching error not encountered, hardfail not registered")
+	}
+
+	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(ldapCert, "InvalidPath"); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
 	revokeChecker.HardFailLck.Lock()
@@ -200,7 +278,9 @@ func TestCRLFetchError(t *testing.T) {
 func TestBadCRLSet(t *testing.T) {
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
+	revokeChecker.CRLSetLck.Lock()
 	revokeChecker.CRLSet[""] = nil
+	revokeChecker.CRLSetLck.Unlock()
 	revokeChecker.certIsRevokedCRL(ldapCert, "", false)
 	if _, ok := revokeChecker.CRLSet[""]; ok {
 		t.Fatalf("key emptystring should be deleted from CRLSet")
