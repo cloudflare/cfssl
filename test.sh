@@ -20,17 +20,23 @@ fi
 
 ls "${GOPATH}/src/${REPO_PATH}"
 
-PACKAGES=$(go list ./... | grep -v /vendor/ | grep ^_)
-
-# Escape current cirectory
-CDIR_ESC=$(printf "%q" "$CDIR/")
-# Remove current directory from the package path
-PACKAGES=${PACKAGES//$CDIR_ESC/}
-# Remove underscores
-PACKAGES=${PACKAGES//_/}
-# split PACKAGES into an array and prepend REPO_PATH to each local package
-split=(${PACKAGES// / })
-PACKAGES=${split[@]/#/${REPO_PATH}/}
+PACKAGES=""
+if [ "$#" != 0 ]; then
+    for pkg in "$@"; do
+        PACKAGES="$PACKAGES $REPO_PATH/$pkg"
+    done
+else
+    PACKAGES=$(go list ./... | grep -v /vendor/ | grep ^_)
+    # Escape current cirectory
+    CDIR_ESC=$(printf "%q" "$CDIR/")
+    # Remove current directory from the package path
+    PACKAGES=${PACKAGES//$CDIR_ESC/}
+    # Remove underscores
+    PACKAGES=${PACKAGES//_/}
+    # split PACKAGES into an array and prepend REPO_PATH to each local package
+    split=(${PACKAGES// / })
+    PACKAGES=${split[@]/#/${REPO_PATH}/}
+fi
 
 go vet $PACKAGES
 if ! which fgt > /dev/null ; then
