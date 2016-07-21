@@ -126,7 +126,7 @@ func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
 			}
 			return false, false
 		} else if revoked {
-			log.Infof("certificate is revoked via local CRL file (CN=%s, Serial: %s)", cert.Subject.CommonName, cert.SerialNumber)
+			log.Infof("certificate is revoked by '%s' CRL file (CN=%s, Serial: %s)", r.localCRL, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 	}
@@ -144,7 +144,7 @@ func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
 			}
 			return false, false
 		} else if revoked {
-			log.Info("certificate is revoked via CRL (CN=%s, Serial: %s)", cert.Subject.CommonName, cert.SerialNumber)
+			log.Info("certificate is revoked by '%s' CRL (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 
@@ -155,7 +155,7 @@ func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
 			}
 			return false, false
 		} else if revoked {
-			log.Info("certificate is revoked via OCSP (CN=%s, Serial: %s)", cert.Subject.CommonName, cert.SerialNumber)
+			log.Info("certificate is revoked by '%s' OCSP (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 	}

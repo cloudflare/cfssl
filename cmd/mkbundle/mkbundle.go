@@ -24,7 +24,7 @@ import (
 // certificates are then checked for revocation.
 func worker(paths chan string, bundler chan *x509.Certificate, pool *sync.WaitGroup) {
 	defer (*pool).Done()
-	revokeChecker := revoke.New(false)
+	rvc := revoke.New(false)
 	for {
 		path, ok := <-paths
 		if !ok {
@@ -60,7 +60,7 @@ func worker(paths chan string, bundler chan *x509.Certificate, pool *sync.WaitGr
 			}
 
 			log.Infof("Validating %+v", cert.Subject)
-			revoked, ok := revokeChecker.VerifyCertificate(cert)
+			revoked, ok := rvc.VerifyCertificate(cert)
 			if !ok {
 				log.Warning("Failed to verify certificate.")
 			} else if !revoked {
