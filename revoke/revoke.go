@@ -26,6 +26,8 @@ import (
 
 // Revoke type contains configuration for each new revoke instance
 type Revoke struct {
+	// lock is a Mutex locker for the struct
+	lock sync.Mutex
 	// LocalCRL contains path to the local CRL file. When set, certificate
 	// will be checked only using local CRL script, remote methods will be
 	// skipped.
@@ -37,8 +39,6 @@ type Revoke struct {
 	// crlSet associates a PKIX certificate list with the URL the CRL is
 	// fetched from.
 	crlSet map[string]*pkix.CertificateList
-	// lock is a Mutex locker for the struct
-	lock sync.Mutex
 }
 
 // defaultChecker is a default config for regular apps which don't need to
