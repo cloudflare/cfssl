@@ -37,8 +37,8 @@ type Revoke struct {
 	// crlSet associates a PKIX certificate list with the URL the CRL is
 	// fetched from.
 	crlSet map[string]*pkix.CertificateList
-	// lck is a Mutex locker for the struct
-	lck sync.Mutex
+	// lock is a Mutex locker for the struct
+	lock sync.Mutex
 }
 
 // defaultChecker is a default config for regular apps which don't need to
@@ -58,12 +58,12 @@ func New(hardfail bool) *Revoke {
 // SetLocalCRL sets localCRL path into the Revoke struct
 func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 	if localCRLpath == "" {
-		r.lck.Lock()
+		r.lock.Lock()
 		if _, ok := r.crlSet[r.localCRL]; ok {
 			delete(r.crlSet, r.localCRL)
 		}
 		r.localCRL = ""
-		r.lck.Unlock()
+		r.lock.Unlock()
 		return nil
 	}
 	if u, err := neturl.Parse(r.localCRL); err != nil {
@@ -82,9 +82,9 @@ func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 // SetHardFail allows to dynamically set hardfail bool into the
 // default var struct
 func SetHardFail(hardfail bool) {
-	defaultChecker.lck.Lock()
+	defaultChecker.lock.Lock()
 	defaultChecker.hardFail = hardfail
-	defaultChecker.lck.Unlock()
+	defaultChecker.lock.Unlock()
 }
 
 // HardFail returns hardfail bool from the default var struct
@@ -95,9 +95,9 @@ func HardFail() bool {
 // SetHardFail allows to dynamically set hardfail bool into the
 // Revoke struct
 func (r *Revoke) SetHardFail(hardfail bool) {
-	r.lck.Lock()
+	r.lock.Lock()
 	r.hardFail = hardfail
-	r.lck.Unlock()
+	r.lock.Unlock()
 }
 
 // HardFail returns hardfail bool from the Revoke struct
@@ -217,9 +217,9 @@ func (r *Revoke) isInMemoryCRLValid(key string) bool {
 	crl, ok := r.crlSet[key]
 	if ok && crl == nil {
 		ok = false
-		r.lck.Lock()
+		r.lock.Lock()
 		delete(r.crlSet, key)
-		r.lck.Unlock()
+		r.lock.Unlock()
 	}
 
 	if ok {
@@ -248,7 +248,7 @@ func (r *Revoke) fetchLocalCRL(newLocalCRL string, force bool) error {
 			return fmt.Errorf("failed to parse local CRL file: %v", err)
 		}
 
-		r.lck.Lock()
+		r.lock.Lock()
 		r.crlSet[newLocalCRL] = crl
 		if r.localCRL != newLocalCRL {
 			if _, ok := r.crlSet[r.localCRL]; ok {
@@ -256,7 +256,7 @@ func (r *Revoke) fetchLocalCRL(newLocalCRL string, force bool) error {
 			}
 			r.localCRL = newLocalCRL
 		}
-		r.lck.Unlock()
+		r.lock.Unlock()
 	}
 
 	return nil
@@ -284,9 +284,9 @@ func (r *Revoke) FetchRemoteCRL(url string, cert *x509.Certificate, force bool) 
 			}
 		}
 
-		r.lck.Lock()
+		r.lock.Lock()
 		r.crlSet[url] = crl
-		r.lck.Unlock()
+		r.lock.Unlock()
 	}
 
 	return nil
