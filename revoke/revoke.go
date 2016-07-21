@@ -41,9 +41,9 @@ type Revoke struct {
 	lck sync.Mutex
 }
 
-// DefaultChecker is a default config for regular apps which don't need to
+// defaultChecker is a default config for regular apps which don't need to
 // use custom options.
-var DefaultChecker = New(false)
+var defaultChecker = New(false)
 
 // New creates Revoke config structure.
 // Accepts hardfail bool variable as an option
@@ -77,6 +77,19 @@ func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 	}
 
 	return nil
+}
+
+// SetHardFail allows to dynamically set hardfail bool into the
+// default var struct
+func SetHardFail(hardfail bool) {
+	defaultChecker.lck.Lock()
+	defaultChecker.hardFail = hardfail
+	defaultChecker.lck.Unlock()
+}
+
+// HardFail returns hardfail bool from the default var struct
+func HardFail() bool {
+	return defaultChecker.hardFail
 }
 
 // SetHardFail allows to dynamically set hardfail bool into the
@@ -319,13 +332,13 @@ func verifyCertTime(cert *x509.Certificate) bool {
 // VerifyCertificate ensures that the certificate passed in hasn't
 // expired and checks the CRL for the server.
 // Comparing to the next public method, this function uses
-// DefaultChecker variable.
+// defaultChecker variable.
 func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 	if !verifyCertTime(cert) {
 		return true, true
 	}
 
-	return DefaultChecker.revCheck(cert)
+	return defaultChecker.revCheck(cert)
 }
 
 // VerifyCertificate ensures that the certificate passed in hasn't
