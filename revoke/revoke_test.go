@@ -171,21 +171,22 @@ func insertLocalCRL(revoke *Revoke) {
 	if err != nil {
 		panic(err.Error())
 	}
-	revoke.Lck.Lock()
-	revoke.CRLSet[localCRLPath] = cert
-	revoke.Lck.Unlock()
+	revoke.lck.Lock()
+	revoke.localCRL = localCRLPath
+	revoke.crlSet[localCRLPath] = cert
+	revoke.lck.Unlock()
 }
 
 func TestRevoked(t *testing.T) {
-	revokeChecker := New(false)
-	if revoked, ok := revokeChecker.VerifyCertificate(revokedCert); !ok {
+	rc := New(false)
+	if revoked, ok := rc.VerifyCertificate(revokedCert); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if !revoked {
 		t.Fatalf("revoked certificate should have been marked as revoked")
 	}
 
-	insertLocalCRL(revokeChecker)
-	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(revokedCert, localCRLPath); !ok {
+	insertLocalCRL(rc)
+	if revoked, ok := rc.VerifyCertificate(revokedCert); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if !revoked {
 		t.Fatalf("revoked certificate should have been marked as revoked")
@@ -193,15 +194,15 @@ func TestRevoked(t *testing.T) {
 }
 
 func TestExpired(t *testing.T) {
-	revokeChecker := New(false)
-	if revoked, ok := revokeChecker.VerifyCertificate(expiredCert); !ok {
+	rc := New(false)
+	if revoked, ok := rc.VerifyCertificate(expiredCert); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if !revoked {
 		t.Fatalf("expired certificate should have been marked as revoked")
 	}
 
-	insertLocalCRL(revokeChecker)
-	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(expiredCert, localCRLPath); !ok {
+	insertLocalCRL(rc)
+	if revoked, ok := rc.VerifyCertificate(expiredCert); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if !revoked {
 		t.Fatalf("expired certificate should have been marked as revoked")
@@ -209,15 +210,15 @@ func TestExpired(t *testing.T) {
 }
 
 func TestGood(t *testing.T) {
-	revokeChecker := New(false)
-	if revoked, ok := revokeChecker.VerifyCertificate(goodCert); !ok {
+	rc := New(false)
+	if revoked, ok := rc.VerifyCertificate(goodCert); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if revoked {
 		t.Fatalf("good certificate should not have been marked as revoked")
 	}
 
-	insertLocalCRL(revokeChecker)
-	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(goodCert, localCRLPath); !ok {
+	insertLocalCRL(rc)
+	if revoked, ok := rc.VerifyCertificate(goodCert); !ok {
 		fmt.Fprintf(os.Stderr, "Warning: soft fail checking revocation")
 	} else if revoked {
 		t.Fatalf("good certificate should not have been marked as revoked")
@@ -225,10 +226,10 @@ func TestGood(t *testing.T) {
 }
 
 func TestLdap(t *testing.T) {
-	revokeChecker := New(false)
+	rc := New(false)
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints = append(ldapCert.CRLDistributionPoints, "ldap://myldap.example.com")
-	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); revoked || !ok {
+	if revoked, ok := rc.VerifyCertificate(ldapCert); revoked || !ok {
 		t.Fatalf("ldap certificate should have been recognized")
 	}
 }
@@ -240,64 +241,67 @@ func TestLdapURLErr(t *testing.T) {
 }
 
 func TestCertNotYetValid(t *testing.T) {
-	revokeChecker := New(false)
+	rc := New(false)
 	notReadyCert := expiredCert
 	notReadyCert.NotBefore = time.Date(3000, time.January, 1, 1, 1, 1, 1, time.Local)
 	notReadyCert.NotAfter = time.Date(3005, time.January, 1, 1, 1, 1, 1, time.Local)
-	if revoked, _ := revokeChecker.VerifyCertificate(expiredCert); !revoked {
+	if revoked, _ := rc.VerifyCertificate(expiredCert); !revoked {
 		t.Fatalf("not yet verified certificate should have been marked as revoked")
 	}
 
-	insertLocalCRL(revokeChecker)
-	if revoked, _ := revokeChecker.VerifyCertificateByCRLPath(expiredCert, localCRLPath); !revoked {
+	insertLocalCRL(rc)
+	if revoked, _ := rc.VerifyCertificate(expiredCert); !revoked {
 		t.Fatalf("not yet verified certificate should have been marked as revoked")
 	}
 }
 
 func TestCRLFetchError(t *testing.T) {
-	revokeChecker := New(false)
+	rc := New(false)
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
-	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || revoked {
+	if revoked, ok := rc.VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
 
-	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(ldapCert, "InvalidPath"); ok || revoked {
+	rc.lck.Lock()
+	rc.localCRL = "InvalidPath"
+	rc.lck.Unlock()
+	if revoked, ok := rc.VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
-	revokeChecker.Lck.Lock()
-	revokeChecker.HardFail = true
-	revokeChecker.Lck.Unlock()
-	if revoked, ok := revokeChecker.VerifyCertificate(ldapCert); ok || !revoked {
+
+	rc.SetHardFail(true)
+	rc.localCRL = ""
+	if revoked, ok := rc.VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
 
-	if revoked, ok := revokeChecker.VerifyCertificateByCRLPath(ldapCert, "InvalidPath"); ok || !revoked {
+	rc.localCRL = "InvalidPath"
+	if revoked, ok := rc.VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
-	revokeChecker.Lck.Lock()
-	revokeChecker.HardFail = false
-	revokeChecker.Lck.Unlock()
 }
 
 func TestBadCRLSet(t *testing.T) {
-	revokeChecker := New(false)
+	rc := New(false)
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
-	revokeChecker.Lck.Lock()
-	revokeChecker.CRLSet[""] = nil
-	revokeChecker.Lck.Unlock()
-	revokeChecker.certIsRevokedCRL(ldapCert, "", false)
-	if _, ok := revokeChecker.CRLSet[""]; ok {
-		t.Fatalf("key emptystring should be deleted from CRLSet")
+	rc.lck.Lock()
+	rc.crlSet[""] = nil
+	rc.lck.Unlock()
+	rc.certIsRevokedCRL(ldapCert, "")
+	if _, ok := rc.crlSet[""]; ok {
+		t.Fatalf("key emptystring should be deleted from crlSet")
 	}
-	delete(revokeChecker.CRLSet, "")
-
+	rc.lck.Lock()
+	delete(rc.crlSet, "")
+	rc.lck.Unlock()
 }
 
 func TestCachedCRLSet(t *testing.T) {
-	revokeChecker := New(false)
-	if revoked, ok := revokeChecker.VerifyCertificate(goodCert); !ok || revoked {
+	rc := New(false)
+	rc.VerifyCertificate(goodCert)
+	if revoked, ok := rc.VerifyCertificate(goodCert); !ok || revoked {
 		t.Fatalf("Previously fetched CRL's should be read smoothly and unrevoked")
 	}
 }
