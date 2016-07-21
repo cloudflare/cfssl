@@ -86,8 +86,8 @@ func SetHardFail(hardfail bool) {
 	defaultChecker.lock.Unlock()
 }
 
-// HardFail returns hardfail bool from the default var struct
-func HardFail() bool {
+// IsHardFail returns hardfail bool from the default var struct
+func IsHardFail() bool {
 	return defaultChecker.hardFail
 }
 
@@ -99,8 +99,8 @@ func (r *Revoke) SetHardFail(hardfail bool) {
 	r.lock.Unlock()
 }
 
-// HardFail returns hardfail bool from the Revoke struct
-func (r *Revoke) HardFail() bool {
+// IsHardFail returns hardfail bool from the Revoke struct
+func (r *Revoke) IsHardFail() bool {
 	return r.hardFail
 }
 

@@ -71,9 +71,6 @@ type Transport struct {
 	// as part of AutoUpdate.
 	Backoff *core.Backoff
 
-	// RevokeChecker is used to configure revoke package.
-	RevokeChecker *revoke.Revoke
-
 	// RevokeSoftFail, if true, will cause a failure to check
 	// revocation (such that the revocation status of a
 	// certificate cannot be checked) to not be treated as an

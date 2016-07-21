@@ -171,10 +171,10 @@ func insertLocalCRL(revoke *Revoke) {
 	if err != nil {
 		panic(err.Error())
 	}
-	revoke.lck.Lock()
+	revoke.lock.Lock()
 	revoke.localCRL = localCRLPath
 	revoke.crlSet[localCRLPath] = cert
-	revoke.lck.Unlock()
+	revoke.lock.Unlock()
 }
 
 func TestRevoked(t *testing.T) {
@@ -263,9 +263,9 @@ func TestCRLFetchError(t *testing.T) {
 		t.Fatalf("Fetching error not encountered")
 	}
 
-	rc.lck.Lock()
+	rc.lock.Lock()
 	rc.localCRL = "InvalidPath"
-	rc.lck.Unlock()
+	rc.lock.Unlock()
 	if revoked, ok := rc.VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
@@ -286,16 +286,16 @@ func TestBadCRLSet(t *testing.T) {
 	rc := New(false)
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
-	rc.lck.Lock()
+	rc.lock.Lock()
 	rc.crlSet[""] = nil
-	rc.lck.Unlock()
+	rc.lock.Unlock()
 	rc.certIsRevokedCRL(ldapCert, "")
 	if _, ok := rc.crlSet[""]; ok {
 		t.Fatalf("key emptystring should be deleted from crlSet")
 	}
-	rc.lck.Lock()
+	rc.lock.Lock()
 	delete(rc.crlSet, "")
-	rc.lck.Unlock()
+	rc.lock.Unlock()
 }
 
 func TestCachedCRLSet(t *testing.T) {
@@ -307,7 +307,6 @@ func TestCachedCRLSet(t *testing.T) {
 }
 
 func TestRemoteFetchError(t *testing.T) {
-
 	badurl := ":"
 
 	if _, err := fetchRemote(badurl); err == nil {
