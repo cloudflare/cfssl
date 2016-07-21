@@ -66,17 +66,16 @@ func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 		r.lock.Unlock()
 		return nil
 	}
+
 	if u, err := neturl.Parse(r.localCRL); err != nil {
 		return err
-	} else if u.Scheme != "" {
-		return fmt.Errorf("Path is not valid: %s", localCRLpath)
+	} else if u.Scheme == "" {
+		return r.fetchLocalCRL(localCRLpath, true)
+	} else if u.Scheme == "file" {
+		return r.fetchLocalCRL(u.Path, true)
 	}
 
-	if err := r.fetchLocalCRL(localCRLpath, true); err != nil {
-		return err
-	}
-
-	return nil
+	return fmt.Errorf("Path is not valid: %s", localCRLpath)
 }
 
 // SetHardFail allows to dynamically set hardfail bool into the
