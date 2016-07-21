@@ -41,6 +41,10 @@ type Revoke struct {
 	lck sync.Mutex
 }
 
+// DefaultChecker is a default config for regular apps which don't need to
+// use custom options.
+var DefaultChecker = New(false)
+
 // New creates Revoke config structure.
 // Accepts hardfail bool variable as an option
 func New(hardfail bool) *Revoke {
@@ -310,6 +314,18 @@ func verifyCertTime(cert *x509.Certificate) bool {
 	}
 
 	return true
+}
+
+// VerifyCertificate ensures that the certificate passed in hasn't
+// expired and checks the CRL for the server.
+// Comparing to the next public method, this function uses
+// DefaultChecker variable.
+func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
+	if !verifyCertTime(cert) {
+		return true, true
+	}
+
+	return DefaultChecker.revCheck(cert)
 }
 
 // VerifyCertificate ensures that the certificate passed in hasn't

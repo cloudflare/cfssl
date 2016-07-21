@@ -142,10 +142,9 @@ func (tr *Transport) TLSServerConfig() (*tls.Config, error) {
 // trigger a new certificate to be generated.
 func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
-		Before:        before,
-		Identity:      identity,
-		Backoff:       &core.Backoff{},
-		RevokeChecker: revoke.New(false),
+		Before:   before,
+		Identity: identity,
+		Backoff:  &core.Backoff{},
 	}
 
 	store, err := roots.New(identity.Roots)
@@ -315,7 +314,7 @@ func Dial(address string, tr *Transport) (*tls.Conn, error) {
 
 	for _, chain := range state.VerifiedChains {
 		for _, cert := range chain {
-			revoked, ok := tr.RevokeChecker.VerifyCertificate(cert)
+			revoked, ok := revoke.VerifyCertificate(cert)
 			if (!tr.RevokeSoftFail && !ok) || revoked {
 				return nil, errors.New(errors.CertificateError, errors.VerifyFailed)
 			}
