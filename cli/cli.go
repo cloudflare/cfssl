@@ -131,10 +131,12 @@ func Start(cmds map[string]*Command) error {
 	args = cfsslFlagSet.Args()
 
 	var err error
-	c.CFG, err = config.LoadFile(c.ConfigFile)
-	if c.ConfigFile != "" && err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config file: %v", err)
-		return errors.New("failed to load config file")
+	if c.ConfigFile != "" {
+		c.CFG, err = config.LoadFile(c.ConfigFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to load config file: %v", err)
+			return errors.New("failed to load config file")
+		}
 	}
 
 	if err := cmd.Main(args, c); err != nil {
