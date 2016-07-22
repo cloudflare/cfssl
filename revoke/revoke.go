@@ -81,9 +81,7 @@ func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 // SetHardFail allows to dynamically set hardfail bool into the
 // default var struct
 func SetHardFail(hardfail bool) {
-	defaultChecker.lock.Lock()
-	defaultChecker.hardFail = hardfail
-	defaultChecker.lock.Unlock()
+	defaultChecker.SetHardFail(hardfail)
 }
 
 // IsHardFail returns hardfail bool from the default var struct
@@ -333,11 +331,7 @@ func verifyCertTime(cert *x509.Certificate) bool {
 // Comparing to the next public method, this function uses
 // defaultChecker variable.
 func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
-	if !verifyCertTime(cert) {
-		return true, true
-	}
-
-	return defaultChecker.revCheck(cert)
+	return defaultChecker.VerifyCertificate(cert)
 }
 
 // VerifyCertificate ensures that the certificate passed in hasn't
