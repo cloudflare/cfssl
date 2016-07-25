@@ -59,9 +59,7 @@ func New(hardfail bool) *Revoke {
 func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 	if localCRLpath == "" {
 		r.lock.Lock()
-		if _, ok := r.crlSet[r.localCRL]; ok {
-			delete(r.crlSet, r.localCRL)
-		}
+		delete(r.crlSet, r.localCRL)
 		r.localCRL = ""
 		r.lock.Unlock()
 		return nil
@@ -141,7 +139,7 @@ func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
 	if localCRL != "" {
 		if revoked, ok := r.certIsRevokedCRL(cert, localCRL, false); !ok {
 			log.Warning("error checking revocation via local CRL file")
-			if r.hardFail {
+			if hardFail {
 				return true, false
 			}
 			return false, false
@@ -159,12 +157,12 @@ func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
 
 		if revoked, ok := r.certIsRevokedCRL(cert, url, true); !ok {
 			log.Warning("error checking revocation via CRL")
-			if r.hardFail {
+			if hardFail {
 				return true, false
 			}
 			return false, false
 		} else if revoked {
-			log.Info("certificate is revoked by '%s' CRL (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
+			log.Infof("certificate is revoked by '%s' CRL (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 
@@ -175,7 +173,7 @@ func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
 			}
 			return false, false
 		} else if revoked {
-			log.Info("certificate is revoked by '%s' OCSP (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
+			log.Infof("certificate is revoked by '%s' OCSP (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 	}
@@ -223,6 +221,9 @@ func (r *Revoke) isInMemoryCRLValid(key string) bool {
 	if ok && crl == nil {
 		ok = false
 		delete(r.crlSet, key)
+	} else if crl == nil {
+		delete(r.crlSet, key)
+		return false
 	}
 
 	if ok && !crl.HasExpired(time.Now()) {
@@ -249,12 +250,14 @@ func (r *Revoke) fetchLocalCRL(newLocalCRL string, force bool) error {
 			return fmt.Errorf("failed to parse local CRL file: %v", err)
 		}
 
+		if crl == nil {
+			return fmt.Errorf("CRL is nil")
+		}
+
 		r.lock.Lock()
 		r.crlSet[newLocalCRL] = crl
 		if r.localCRL != newLocalCRL {
-			if _, ok := r.crlSet[r.localCRL]; ok {
-				delete(r.crlSet, r.localCRL)
-			}
+			delete(r.crlSet, r.localCRL)
 			r.localCRL = newLocalCRL
 		}
 		r.lock.Unlock()
@@ -265,13 +268,10 @@ func (r *Revoke) fetchLocalCRL(newLocalCRL string, force bool) error {
 
 // FetchRemoteCRL fetches remote CRL into internal map,
 // force overwrites previously read CRL
-func (r *Revoke) FetchRemoteCRL(url string, cert *x509.Certificate, force bool) error {
+func (r *Revoke) FetchRemoteCRL(url string, issuer *x509.Certificate, force bool) error {
 	shouldFetchCRL := !r.isInMemoryCRLValid(url)
 
-	issuer := getIssuer(cert)
-
 	if force || shouldFetchCRL {
-		var err error
 		crl, err := fetchCRL(url)
 		if err != nil {
 			return fmt.Errorf("failed to fetch CRL: %v", err)
@@ -295,12 +295,12 @@ func (r *Revoke) FetchRemoteCRL(url string, cert *x509.Certificate, force bool) 
 
 // check a cert against a specific CRL. Returns the same bool pair
 // as revCheck. If remote is false - will assume that url is a file.
-func (r *Revoke) certIsRevokedCRL(cert *x509.Certificate, url string, remote bool) (revoked, ok bool) {
+func (r *Revoke) certIsRevokedCRL(cert *x509.Certificate, crlPath string, remote bool) (revoked, ok bool) {
 	var err error
 	if remote {
-		err = r.FetchRemoteCRL(url, cert, false)
+		err = r.FetchRemoteCRL(crlPath, getIssuer(cert), false)
 	} else {
-		err = r.fetchLocalCRL(url, false)
+		err = r.fetchLocalCRL(crlPath, false)
 	}
 
 	if err != nil {
@@ -310,8 +310,9 @@ func (r *Revoke) certIsRevokedCRL(cert *x509.Certificate, url string, remote boo
 
 	defer r.lock.Unlock()
 	r.lock.Lock()
-	for _, revoked := range r.crlSet[url].TBSCertList.RevokedCertificates {
+	for _, revoked := range r.crlSet[crlPath].TBSCertList.RevokedCertificates {
 		if cert.SerialNumber.Cmp(revoked.SerialNumber) == 0 {
+			log.Info("Serial number match: intermediate is revoked.")
 			return true, true
 		}
 	}
@@ -334,8 +335,6 @@ func verifyCertTime(cert *x509.Certificate) bool {
 
 // VerifyCertificate ensures that the certificate passed in hasn't
 // expired and checks the CRL for the server.
-// Comparing to the next public method, this function uses
-// defaultChecker variable.
 func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 	return defaultChecker.VerifyCertificate(cert)
 }

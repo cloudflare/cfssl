@@ -167,12 +167,12 @@ func mustParse(pemData string) *x509.Certificate {
 }
 
 func insertLocalCRL(revoke *Revoke) {
-	cert, err := x509.ParseCRL([]byte(localCRLList))
+	crl, err := x509.ParseCRL([]byte(localCRLList))
 	if err != nil {
 		panic(err.Error())
 	}
 	revoke.localCRL = localCRLPath
-	revoke.crlSet[localCRLPath] = cert
+	revoke.crlSet[localCRLPath] = crl
 }
 
 func TestRevoked(t *testing.T) {
