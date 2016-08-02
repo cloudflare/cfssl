@@ -465,6 +465,24 @@ func (p *SigningProfile) validProfile(isDefault bool) bool {
 	return true
 }
 
+// This checks if the SigningProfile object contains configurations that are only effective with a local signer
+// which has access to CA private key.
+func (p *SigningProfile) hasLocalConfig() bool {
+	if p.Usage != nil ||
+		p.IssuerURL != nil ||
+		p.OCSP != "" ||
+		p.ExpiryString != "" ||
+		p.BackdateString != "" ||
+		p.CAConstraint.IsCA != false ||
+		!p.NotBefore.IsZero() ||
+		!p.NotAfter.IsZero() ||
+		p.NameWhitelistString != "" ||
+		len(p.CTLogServers) != 0 {
+		return true
+	}
+	return false
+}
+
 // warnSkippedSettings prints a log warning message about skipped settings
 // in a SigningProfile, usually due to remote signer.
 func (p *Signing) warnSkippedSettings() {
@@ -473,12 +491,12 @@ func (p *Signing) warnSkippedSettings() {
 		return
 	}
 
-	if p.Default.RemoteName != "" || p.Default.AuthRemote.RemoteName != "" {
+	if (p.Default.RemoteName != "" || p.Default.AuthRemote.RemoteName != "") && p.Default.hasLocalConfig() {
 		log.Warning("default profile points to a remote signer: ", warningMessage)
 	}
 
 	for name, profile := range p.Profiles {
-		if profile.RemoteName != "" || profile.AuthRemote.RemoteName != "" {
+		if (profile.RemoteName != "" || profile.AuthRemote.RemoteName != "") && profile.hasLocalConfig() {
 			log.Warningf("Profiles[%s] points to a remote signer: %s", name, warningMessage)
 		}
 	}
