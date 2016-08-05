@@ -289,6 +289,7 @@ func (r *Revoke) fetchLocalCRL(newLocalCRL string) (*pkix.CertificateList, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to read local CRL path: %v", err)
 	}
+
 	crl, err := x509.ParseCRL(tmp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse local CRL file: %v", err)
@@ -424,12 +425,11 @@ func fetchRemote(url string) (*x509.Certificate, error) {
 	return x509.ParseCertificate(in)
 }
 
-var ocspOpts = ocsp.RequestOptions{
-	Hash: crypto.SHA1,
-}
-
 func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 	var err error
+	var ocspOpts = ocsp.RequestOptions{
+		Hash: crypto.SHA1,
+	}
 
 	ocspURLs := leaf.OCSPServer
 	if len(ocspURLs) == 0 {
