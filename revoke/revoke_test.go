@@ -278,11 +278,21 @@ func TestLocalCRL(t *testing.T) {
 	if revoked, ok := defaultChecker.certIsRevokedByLocalCRL(revokedCert); ok && !revoked {
 		t.Fatalf("Bad cert should be revoked")
 	}
+
+	if err := SetLocalCRL(""); err != nil {
+		t.Fatalf("setLocalCRL should not return error on empty path")
+	}
 }
 
-func TestSetInvalidLocalCRL(t *testing.T) {
-	if err := defaultChecker.setLocalCRL("https://example.com/crl.crl"); err == nil {
+func TestSetLocalCRL(t *testing.T) {
+	if err := SetLocalCRL("https://example.com/crl.crl"); err == nil {
 		t.Fatalf("setLocalCRL should return error on invalid path")
+	}
+	if err := SetLocalCRL("/invalid/path/"); err == nil {
+		t.Fatalf("setLocalCRL should return error on invalid path")
+	}
+	if err := SetLocalCRL(""); err != nil {
+		t.Fatalf("setLocalCRL should not return error on empty path")
 	}
 }
 

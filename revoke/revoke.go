@@ -88,6 +88,11 @@ func (r *Revoke) unsetLocalCRL() {
 }
 
 // SetLocalCRL sets localCRL path into the Revoke struct
+func SetLocalCRL(localCRLpath string) error {
+	return defaultChecker.SetLocalCRL(localCRLpath)
+}
+
+// SetLocalCRL sets localCRL path into the Revoke struct
 func (r *Revoke) SetLocalCRL(localCRLpath string) error {
 	r.localCRL.Lock()
 	defer r.localCRL.Unlock()
