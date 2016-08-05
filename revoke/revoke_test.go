@@ -183,34 +183,34 @@ func TestCRLFetchError(t *testing.T) {
 		t.Fatalf("Fetching error not encountered")
 	}
 
-	defaultChecker.localCRL = "InvalidPath"
+	defaultChecker.localCRL.path = "InvalidPath"
 	if revoked, ok := VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
 
 	SetHardFail(true)
-	defaultChecker.localCRL = ""
+	defaultChecker.localCRL.path = ""
 	if revoked, ok := VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
 
-	defaultChecker.localCRL = "InvalidPath"
+	defaultChecker.localCRL.path = "InvalidPath"
 	if revoked, ok := VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
-	defaultChecker.localCRL = ""
+	defaultChecker.localCRL.path = ""
 	SetHardFail(false)
 }
 
 func TestBadCRLSet(t *testing.T) {
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
-	defaultChecker.crlSet[""] = nil
-	defaultChecker.certIsRevokedCRL(ldapCert, "", true)
-	if _, ok := defaultChecker.crlSet[""]; ok {
-		t.Fatalf("key emptystring should be deleted from crlSet")
+	defaultChecker.crl.set[""] = nil
+	defaultChecker.certIsRevokedCRL(ldapCert, "")
+	if _, ok := defaultChecker.crl.set[""]; ok {
+		t.Fatalf("key empty, string should be deleted from crlSet")
 	}
-	delete(defaultChecker.crlSet, "")
+	delete(defaultChecker.crl.set, "")
 }
 
 func TestCachedCRLSet(t *testing.T) {
