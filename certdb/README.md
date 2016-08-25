@@ -72,4 +72,4 @@ or
  
 or
 
-    {"driver":"mysql","data_source":"user:password@tcp(hostname:3306)/db"}
+    {"driver":"mysql","data_source":"user:password@tcp(hostname:3306)/db?parseTime=true"}
