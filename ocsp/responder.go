@@ -178,14 +178,16 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	// Look up OCSP response from source
 	ocspResponse, found := rs.Source.Response(ocspRequest)
 	if !found {
-		log.Infof("No response found for request: %s", b64Body)
+		log.Infof("No response found for request: serial %x, request body %s",
+			ocspRequest.SerialNumber, b64Body)
 		response.Write(unauthorizedErrorResponse)
 		return
 	}
 
 	parsedResponse, err := ocsp.ParseResponse(ocspResponse, nil)
 	if err != nil {
-		log.Errorf("Error parsing response: %s", err)
+		log.Errorf("Error parsing response for serial %x: %s",
+			ocspRequest.SerialNumber, err)
 		response.Write(unauthorizedErrorResponse)
 		return
 	}
