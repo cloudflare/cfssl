@@ -994,3 +994,15 @@ func TestBundlerWithEmptyRootInfo(t *testing.T) {
 	checkBundleFunc = ExpectBundleLength(2)
 	checkBundleFunc(t, bundle)
 }
+
+func TestBundlerClientAuth(t *testing.T) {
+	b, err := NewBundler("testdata/client-auth/root.pem", "testdata/client-auth/int.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, leafFile := range []string{"testdata/client-auth/leaf-server.pem", "testdata/client-auth/leaf-client.pem"} {
+		if _, err := b.BundleFromFile(leafFile, "", Optimal, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
