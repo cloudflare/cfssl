@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
@@ -150,6 +151,7 @@ func (g *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 // sending the CSR to the server.
 type CertGeneratorHandler struct {
 	generator *csr.Generator
+	bundler   *bundler.Bundler
 	signer    signer.Signer
 }
 
@@ -189,20 +191,30 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 
 // NewCertGeneratorHandlerFromSigner returns a handler directly from
 // the signer and validation function.
-func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer) http.Handler {
-	return api.HTTPHandler{
-		Handler: &CertGeneratorHandler{
-			generator: &csr.Generator{Validator: validator},
-			signer:    signer,
-		},
-		Methods: []string{"POST"},
+func NewCertGeneratorHandlerFromSigner(validator Validator, caBundleFile, intBundleFile string, signer signer.Signer) (http.Handler, error) {
+	handler := &CertGeneratorHandler{
+		generator: &csr.Generator{Validator: validator},
+		signer:    signer,
 	}
+
+	if caBundleFile != "" || intBundleFile != "" {
+		var err error
+		if handler.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile); err != nil {
+			return nil, err
+		}
+	}
+
+	return api.HTTPHandler{
+		Handler: handler,
+		Methods: []string{"POST"},
+	}, nil
 }
 
 type genSignRequest struct {
 	Request *csr.CertificateRequest `json:"request"`
 	Profile string                  `json:"profile"`
 	Label   string                  `json:"label"`
+	Bundle  bool                    `json:"bundle"`
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -273,6 +285,14 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 			"certificate_request": reqSum,
 			"certificate":         certSum,
 		},
+	}
+
+	if req.Bundle {
+		bundle, err := cg.bundler.BundleFromPEMorDER(certBytes, nil, bundler.Optimal, "")
+		if err != nil {
+			return err
+		}
+		result["bundle"] = bundle
 	}
 
 	if len(req.Request.Hosts) == 0 {

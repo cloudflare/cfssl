@@ -146,7 +146,7 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, s), nil
+		return generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, conf.CABundleFile, conf.IntBundleFile, s)
 	},
 
 	"bundle": func() (http.Handler, error) {
