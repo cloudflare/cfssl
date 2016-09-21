@@ -327,7 +327,7 @@ func (g *Generator) ProcessRequest(req *CertificateRequest) (csr, key []byte, er
 	err = g.Validator(req)
 	if err != nil {
 		log.Warningf("invalid request: %v", err)
-		return
+		return nil, nil, err
 	}
 
 	csr, key, err = ParseRequest(req)
