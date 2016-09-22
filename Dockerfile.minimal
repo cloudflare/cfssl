@@ -1,4 +1,4 @@
-FROM alpine:3.2
+FROM alpine:3.4
 
 ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
