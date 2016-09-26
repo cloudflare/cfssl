@@ -83,7 +83,7 @@ blank.
       understood by Go's time package[1]. This unfortunately means
       that the maximum unit of time that can be used here is the hour.
 
-    + usage: a string of key usages. The following are acceptable key
+    + usages: strings of key usages. The following are acceptable key
       usages:
 
       + signing
@@ -167,7 +167,7 @@ their profile. If the default profile isn't present, the following
 default profile is used:
 
    {
-	"usage": ["signing", "key encipherment", "server auth", "client auth"],
+	"usages": ["signing", "key encipherment", "server auth", "client auth"],
 	"expiry: "8760h"
    }
 
