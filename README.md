@@ -130,6 +130,9 @@ a JSON file with the type:
 }
 ```
 
+**N.B.** As of Go 1.7, self-signed certificates will not include
+[the AKI](https://go.googlesource.com/go/+/b623b71509b2d24df915d5bc68602e1c6edf38ca).
+
 #### Bundling
 
 ```
