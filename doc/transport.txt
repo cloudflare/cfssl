@@ -297,8 +297,8 @@ retrying. If the backoff isn't configured, a default backoff (using
 an interval of 5 minutes and a max delay of six hours) will be
 used. The values for the default interval and maximum duration are
 found in the `DefaultInterval` and `DefaultMaxDuration` variables in
-the `core` package; these can be changed to suit the program's needs.
-(c.f https://godoc.org/github.com/cloudflare/cfssl/transport/core#Backoff).
+the `backoff` package; these can be changed to suit the program's needs.
+(c.f https://godoc.org/github.com/cloudflare/backoff#Backoff).
 
 Clients will call `AutoUpdate` on the `Transport` itself; servers
 should call `AutoUpdate` on the listener (discussed below).
