@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	rice "github.com/GeertJohan/go.rice"
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/certinfo"
 	"github.com/cloudflare/cfssl/api/crl"
@@ -146,7 +147,14 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, conf.CABundleFile, conf.IntBundleFile, s)
+		h := generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, s)
+		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
+			cg := h.(api.HTTPHandler).Handler.(*generator.CertGeneratorHandler)
+			if err := cg.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
+				return nil, err
+			}
+		}
+		return h, nil
 	},
 
 	"bundle": func() (http.Handler, error) {

@@ -191,23 +191,20 @@ func NewCertGeneratorHandler(validator Validator, caFile, caKeyFile string, poli
 
 // NewCertGeneratorHandlerFromSigner returns a handler directly from
 // the signer and validation function.
-func NewCertGeneratorHandlerFromSigner(validator Validator, caBundleFile, intBundleFile string, signer signer.Signer) (http.Handler, error) {
-	handler := &CertGeneratorHandler{
-		generator: &csr.Generator{Validator: validator},
-		signer:    signer,
-	}
-
-	if caBundleFile != "" || intBundleFile != "" {
-		var err error
-		if handler.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile); err != nil {
-			return nil, err
-		}
-	}
-
+func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer) http.Handler {
 	return api.HTTPHandler{
-		Handler: handler,
+		Handler: &CertGeneratorHandler{
+			generator: &csr.Generator{Validator: validator},
+			signer:    signer,
+		},
 		Methods: []string{"POST"},
-	}, nil
+	}
+}
+
+// SetBundler allows injecting an optional Bundler into the CertGeneratorHandler.
+func (cg *CertGeneratorHandler) SetBundler(caBundleFile, intBundleFile string) (err error) {
+	cg.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile)
+	return err
 }
 
 type genSignRequest struct {
@@ -287,11 +284,12 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		},
 	}
 
-	if req.Bundle {
+	if req.Bundle && cg.bundler != nil {
 		bundle, err := cg.bundler.BundleFromPEMorDER(certBytes, nil, bundler.Optimal, "")
 		if err != nil {
 			return err
 		}
+
 		result["bundle"] = bundle
 	}
 
