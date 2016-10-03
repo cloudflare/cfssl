@@ -259,6 +259,12 @@ func (sp *StandardProvider) Certificate() *x509.Certificate {
 // and attempts to produce a certificate signing request suitable for
 // sending to a certificate authority.
 func (sp *StandardProvider) CertificateRequest(req *csr.CertificateRequest) ([]byte, error) {
+	if sp.internal.priv == nil {
+		if req.KeyRequest == nil {
+			return nil, errors.New("transport: invalid key request in csr.CertificateRequest")
+		}
+		sp.Generate(req.KeyRequest.Algo(), req.KeyRequest.Size())
+	}
 	return csr.Generate(sp.internal.priv, req)
 }
 
