@@ -32,6 +32,14 @@
 			"path": "/coff"
 		},
 		{
+			"importpath": "github.com/cloudflare/backoff",
+			"repository": "https://github.com/cloudflare/backoff",
+			"vcs": "git",
+			"revision": "f659644c644c7ac3564c8acba556d8d74a07c547",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/cloudflare/cfssl_trust",
 			"repository": "https://github.com/cloudflare/cfssl_trust",
 			"vcs": "",

@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudflare/backoff"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -69,7 +70,7 @@ type Transport struct {
 	// Backoff is used to control the behaviour of a Transport
 	// when it is attempting to automatically update a certificate
 	// as part of AutoUpdate.
-	Backoff *core.Backoff
+	Backoff *backoff.Backoff
 
 	// RevokeSoftFail, if true, will cause a failure to check
 	// revocation (such that the revocation status of a
@@ -141,7 +142,7 @@ func New(before time.Duration, identity *core.Identity) (*Transport, error) {
 	var tr = &Transport{
 		Before:   before,
 		Identity: identity,
-		Backoff:  &core.Backoff{},
+		Backoff:  &backoff.Backoff{},
 	}
 
 	store, err := roots.New(identity.Roots)
