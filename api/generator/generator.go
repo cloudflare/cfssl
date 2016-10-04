@@ -21,11 +21,15 @@ import (
 	"github.com/cloudflare/cfssl/signer/universal"
 )
 
-// CSRNoHostMessage is used to alert the user to a certificate lacking a hosts field.
-const CSRNoHostMessage = `This certificate lacks a "hosts" field. This makes it unsuitable for
+const (
+	// CSRNoHostMessage is used to alert the user to a certificate lacking a hosts field.
+	CSRNoHostMessage = `This certificate lacks a "hosts" field. This makes it unsuitable for
 websites. For more information see the Baseline Requirements for the Issuance and Management
 of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser Forum (https://cabforum.org);
 specifically, section 10.2.3 ("Information Requirements").`
+	// NoBundlerMessage is used to alert the user that the server does not have a bundler initialized.
+	NoBundlerMessage = `This request requires a bundler, but one is not initialized for the API server.`
+)
 
 // Sum contains digests for a certificate or certificate request.
 type Sum struct {
@@ -284,7 +288,12 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 		},
 	}
 
-	if req.Bundle && cg.bundler != nil {
+	if req.Bundle {
+		if cg.bundler == nil {
+			return api.SendResponseWithMessage(w, result, NoBundlerMessage,
+				errors.New(errors.PolicyError, errors.InvalidRequest).ErrorCode)
+		}
+
 		bundle, err := cg.bundler.BundleFromPEMorDER(certBytes, nil, bundler.Optimal, "")
 		if err != nil {
 			return err
