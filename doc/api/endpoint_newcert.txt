@@ -16,6 +16,8 @@ Optional parameters:
     the CSR, useful when interacting with cfssl server that stands
     in front of a remote multi-root CA signer
     * profile: a string specifying the signing profile for the signer
+    * bundle: a boolean specifying whether to include an "optimal"
+    certificate bundle along with the certificate
 
 Result:
 
@@ -26,6 +28,7 @@ Result:
     * certificate: a PEM-encoded certificate, signed by the server
     * sums: a JSON object holding both MD5 and SHA1 digests for the certificate
     request and the certificate
+    * bundle: See the result of endpoint_bundle.txt (only included if the bundle parameter was set)
 
 Example:
 

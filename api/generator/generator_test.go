@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/signer/local"
@@ -16,6 +17,8 @@ import (
 const (
 	testCaFile    = "testdata/ca.pem"
 	testCaKeyFile = "testdata/ca_key.pem"
+	testCABundle  = "../../bundler/testdata/ca-bundle.pem"
+	testIntBundle = "../../bundler/testdata/int-bundle.pem"
 )
 
 func csrData(t *testing.T) *bytes.Reader {
@@ -124,5 +127,19 @@ func TestNewCertGeneratorHandlerFromSigner(t *testing.T) {
 	_, ok := h.(http.Handler)
 	if !ok {
 		t.Fatal("A HTTP handler has not been returned")
+	}
+
+	apiH, ok := h.(api.HTTPHandler)
+	if !ok {
+		t.Fatal("An api.HTTPHandler has not been returned")
+	}
+
+	cg, ok := apiH.Handler.(*CertGeneratorHandler)
+	if !ok {
+		t.Fatal("A CertGeneratorHandler has not been set")
+	}
+
+	if err := cg.SetBundler(testCABundle, testIntBundle); err != nil {
+		t.Fatal(err)
 	}
 }

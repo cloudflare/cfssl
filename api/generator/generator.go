@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/errors"
@@ -20,11 +21,15 @@ import (
 	"github.com/cloudflare/cfssl/signer/universal"
 )
 
-// CSRNoHostMessage is used to alert the user to a certificate lacking a hosts field.
-const CSRNoHostMessage = `This certificate lacks a "hosts" field. This makes it unsuitable for
+const (
+	// CSRNoHostMessage is used to alert the user to a certificate lacking a hosts field.
+	CSRNoHostMessage = `This certificate lacks a "hosts" field. This makes it unsuitable for
 websites. For more information see the Baseline Requirements for the Issuance and Management
 of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser Forum (https://cabforum.org);
 specifically, section 10.2.3 ("Information Requirements").`
+	// NoBundlerMessage is used to alert the user that the server does not have a bundler initialized.
+	NoBundlerMessage = `This request requires a bundler, but one is not initialized for the API server.`
+)
 
 // Sum contains digests for a certificate or certificate request.
 type Sum struct {
@@ -150,6 +155,7 @@ func (g *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 // sending the CSR to the server.
 type CertGeneratorHandler struct {
 	generator *csr.Generator
+	bundler   *bundler.Bundler
 	signer    signer.Signer
 }
 
@@ -199,10 +205,17 @@ func NewCertGeneratorHandlerFromSigner(validator Validator, signer signer.Signer
 	}
 }
 
+// SetBundler allows injecting an optional Bundler into the CertGeneratorHandler.
+func (cg *CertGeneratorHandler) SetBundler(caBundleFile, intBundleFile string) (err error) {
+	cg.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile)
+	return err
+}
+
 type genSignRequest struct {
 	Request *csr.CertificateRequest `json:"request"`
 	Profile string                  `json:"profile"`
 	Label   string                  `json:"label"`
+	Bundle  bool                    `json:"bundle"`
 }
 
 // Handle responds to requests for the CA to generate a new private
@@ -273,6 +286,20 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 			"certificate_request": reqSum,
 			"certificate":         certSum,
 		},
+	}
+
+	if req.Bundle {
+		if cg.bundler == nil {
+			return api.SendResponseWithMessage(w, result, NoBundlerMessage,
+				errors.New(errors.PolicyError, errors.InvalidRequest).ErrorCode)
+		}
+
+		bundle, err := cg.bundler.BundleFromPEMorDER(certBytes, nil, bundler.Optimal, "")
+		if err != nil {
+			return err
+		}
+
+		result["bundle"] = bundle
 	}
 
 	if len(req.Request.Hosts) == 0 {
