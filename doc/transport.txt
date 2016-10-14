@@ -102,7 +102,7 @@ The only key-provider supported right now is the "path" provider,
 which would be configured something like
 
 	// id is a core.Identity value.
-	id["profiles"]["path"] = map[string]string{
+	id.Profiles["path"] = map[string]string{
 		"private_key": "/path/to/key.pem",
 		"certificate": "/path/to/cert.pem",
 	}
@@ -116,7 +116,7 @@ never be stored on disk; the "path" key must still be present though.
 
         // A path configuration for keys that are never stored on
         // disk.
-	id["profiles"["path"] = map[string]string{}
+	id["profiles"]["path"] = map[string]string{}
 
 When the key provider determines that its certificate is out of date
 (or, in the case of auto-updating, at some interval before the
@@ -265,8 +265,8 @@ Now that the service has a configuration, the transport package can be
 integrated into the code.
 
 
-Adding the transport packge to a project
-----------------------------------------
+Adding the transport package to a project
+-----------------------------------------
 
 Somehow, the program needs to load the `Identity` described in the
 previous section. For the sake of this discussion, it's assumed to

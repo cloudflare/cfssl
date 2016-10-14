@@ -206,7 +206,7 @@ func (cap *CFSSL) SignCSR(csrPEM []byte) (cert []byte, err error) {
 		return nil, err
 	}
 
-	hosts := make([]string, 0, len(csr.DNSNames)+len(csr.IPAddresses))
+	hosts := make([]string, len(csr.DNSNames), len(csr.DNSNames)+len(csr.IPAddresses))
 	copy(hosts, csr.DNSNames)
 
 	for i := range csr.IPAddresses {
