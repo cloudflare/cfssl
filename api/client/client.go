@@ -24,8 +24,8 @@ import (
 
 // A server points to a single remote CFSSL instance.
 type server struct {
-	URL       string
-	TLSConfig *tls.Config
+	URL    string
+	client *http.Client
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -76,41 +76,41 @@ func (srv *server) Hosts() []string {
 
 func newServer(u *url.URL, tlsConfig *tls.Config) (*server, error) {
 	URL := u.String()
-	return &server{URL, tlsConfig}, nil
+	if tlsConfig != nil {
+		tlsConfig.BuildNameToCertificate()
+	}
+
+	cli := &http.Client{
+		// A one-minute timeout allows for slower key generation
+		// times on some requests.
+		Timeout: 1 * time.Minute,
+
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	}
+
+	return &server{URL: URL, client: cli}, nil
 }
 
 func (srv *server) getURL(endpoint string) string {
 	return fmt.Sprintf("%s/api/v1/cfssl/%s", srv.URL, endpoint)
 }
 
-func (srv *server) createTransport() (transport *http.Transport) {
-	// Setup HTTPS client
-	tlsConfig := srv.TLSConfig
-	tlsConfig.BuildNameToCertificate()
-	return &http.Transport{TLSClientConfig: tlsConfig}
-}
-
-// post connects to the remote server and returns a Response struct
+// post connects to the remote server and returns a Response struct.
 func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	buf := bytes.NewBuffer(jsonData)
-	var resp *http.Response
-	var err error
-	if srv.TLSConfig != nil {
-		transport := srv.createTransport()
-		client := &http.Client{Transport: transport}
-		resp, err = client.Post(url, "application/json", buf)
-	} else {
-		resp, err = http.Post(url, "application/json", buf)
-	}
+	resp, err := srv.client.Post(url, "application/json", buf)
 	if err != nil {
 		err = fmt.Errorf("failed POST to %s: %v", url, err)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
+
 	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
 	}
-	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		log.Errorf("http error with %s", url)
