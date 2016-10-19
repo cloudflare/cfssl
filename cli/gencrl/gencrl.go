@@ -16,7 +16,7 @@ Arguments:
         INPUTFILE:               Text file with one serial number per line, use '-' for reading text from stdin
         CERT:                    The certificate that is signing this CRL, use '-' for reading text from stdin
         KEY:                     The private key of the certificate that is signing the CRL, use '-' for reading text from stdin
-        TIME (OPTIONAL):         The desired expiration from now, in seconds, use '-' for reading text from stdin
+        TIME (OPTIONAL):         The desired expiration from now, in seconds
 
 Flags:
 `
@@ -62,12 +62,7 @@ func gencrlMain(args []string, c cli.Config) (err error) {
 			return err
 		}
 
-		timeBytes, err := cli.ReadStdin(timeArg)
-		if err != nil {
-			return err
-		}
-
-		timeString = string(timeBytes)
+		timeString = string(timeArg)
 
 		// This is used to get rid of newlines
 		timeString = strings.TrimSpace(timeString)
