@@ -646,7 +646,6 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	var messages []string
 	// Check if bundle is expiring.
 	expiringCerts := checkExpiringCerts(bundle.Chain)
-	bundle.Expires = helpers.ExpiryTime(bundle.Chain)
 	if len(expiringCerts) > 0 {
 		statusCode |= errors.BundleExpiringBit
 		messages = append(messages, expirationWarning(expiringCerts))
@@ -703,6 +702,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	}
 
 	bundle.Status.IsRebundled = diff(bundle.Chain, certs)
+	bundle.Expires = helpers.ExpiryTime(bundle.Chain)
 
 	log.Debugf("bundle complete")
 	return bundle, nil
