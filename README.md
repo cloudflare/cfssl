@@ -283,7 +283,7 @@ OCSP server.
 ### Starting the API Server
 
 CFSSL comes with an HTTP-based API server; the endpoints are
-documented in `doc/api.txt`. The server is started with the "serve"
+documented in `doc/api/intro.txt`. The server is started with the "serve"
 command:
 
 ```
@@ -444,6 +444,6 @@ same time.
 
 Additional documentation can be found in the "doc/" directory:
 
-* `api.txt`: documents the API endpoints
+* `api/intro.txt`: documents the API endpoints
 * `bootstrap.txt`: a walkthrough from building the package to getting
   up and running
