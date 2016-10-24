@@ -19,15 +19,16 @@ import (
 // to store the most widely applicable chain, with shortness an
 // explicit goal.
 type Bundle struct {
-	Chain     []*x509.Certificate
-	Cert      *x509.Certificate
-	Root      *x509.Certificate
-	Key       interface{}
-	Issuer    *pkix.Name
-	Subject   *pkix.Name
-	Expires   time.Time
-	Hostnames []string
-	Status    *BundleStatus
+	Chain       []*x509.Certificate
+	Cert        *x509.Certificate
+	Root        *x509.Certificate
+	Key         interface{}
+	Issuer      *pkix.Name
+	Subject     *pkix.Name
+	Expires     time.Time
+	LeafExpires time.Time
+	Hostnames   []string
+	Status      *BundleStatus
 }
 
 // BundleStatus is designated for various status reporting.
@@ -147,6 +148,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		"issuer":       names(b.Issuer.Names),
 		"subject":      names(b.Subject.Names),
 		"expires":      b.Expires,
+		"leaf_expires": b.LeafExpires,
 		"hostnames":    b.Hostnames,
 		"ocsp_support": ocspSupport,
 		"crl_support":  crlSupport,
