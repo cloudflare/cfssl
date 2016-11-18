@@ -61,7 +61,7 @@ func (fix *toFix) constructChain() ([][]*x509.Certificate, []*FixError) {
 	chains, err := fix.cert.Verify(*fix.opts)
 	if err != nil {
 		return chains, []*FixError{
-			&FixError{
+			{
 				Type:  VerifyFailed,
 				Cert:  fix.cert,
 				Chain: fix.chain.certs,

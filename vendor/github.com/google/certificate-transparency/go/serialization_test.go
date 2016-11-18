@@ -3,11 +3,22 @@ package ct
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/pem"
+	"io/ioutil"
 	"strings"
 	"testing"
 
+	"github.com/google/certificate-transparency/go/tls"
 	"github.com/stretchr/testify/assert"
 )
+
+func dh(h string) []byte {
+	r, err := hex.DecodeString(h)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
 
 // Returns a "variable-length" byte buffer containing |dataSize| data bytes
 // along with an appropriate header.
@@ -336,9 +347,10 @@ func defaultSTH() SignedTreeHead {
 		Timestamp:      2345,
 		SHA256RootHash: root,
 		TreeHeadSignature: DigitallySigned{
-			HashAlgorithm:      SHA256,
-			SignatureAlgorithm: ECDSA,
-			Signature:          []byte("tree_signature"),
+			Algorithm: tls.SignatureAndHashAlgorithm{
+				Hash:      tls.SHA256,
+				Signature: tls.ECDSA},
+			Signature: []byte("tree_signature"),
 		},
 	}
 }
@@ -367,6 +379,34 @@ func TestSerializeV1SCTSignatureInputForPrecertKAT(t *testing.T) {
 	}
 }
 
+func TestSerializeV1SCTJSONSignature(t *testing.T) {
+	entry := LogEntry{Leaf: *CreateJSONMerkleTreeLeaf("data", defaultSCT().Timestamp)}
+	expected := dh(
+		// version, 1 byte
+		"00" +
+			// signature type, 1 byte
+			"00" +
+			// timestamp, 8 bytes
+			"00000000000004d2" +
+			// entry type, 2 bytes
+			"8000" +
+			// tbs certificate length, 18 bytes
+			"000012" +
+			// { "data": "data" }, 3 bytes
+			"7b202264617461223a20226461746122207d" +
+			// extensions length, 2 bytes
+			"0000" +
+			// extensions, 0 bytes
+			"")
+	serialized, err := SerializeSCTSignatureInput(defaultSCT(), entry)
+	if err != nil {
+		t.Fatalf("Failed to serialize SCT for signing: %v", err)
+	}
+	if !bytes.Equal(serialized, expected) {
+		t.Fatalf("Serialized JSON signature :\n%x, want\n%x", serialized, expected)
+	}
+}
+
 func TestSerializeV1STHSignatureKAT(t *testing.T) {
 	b, err := SerializeSTHSignatureInput(defaultSTH())
 	if err != nil {
@@ -380,17 +420,18 @@ func TestSerializeV1STHSignatureKAT(t *testing.T) {
 func TestMarshalDigitallySigned(t *testing.T) {
 	b, err := MarshalDigitallySigned(
 		DigitallySigned{
-			HashAlgorithm:      SHA512,
-			SignatureAlgorithm: ECDSA,
-			Signature:          []byte("signature")})
+			Algorithm: tls.SignatureAndHashAlgorithm{
+				Hash:      tls.SHA512,
+				Signature: tls.ECDSA},
+			Signature: []byte("signature")})
 	if err != nil {
 		t.Fatalf("Failed to marshal DigitallySigned struct: %v", err)
 	}
-	if b[0] != byte(SHA512) {
-		t.Fatalf("Expected b[0] == SHA512, but found %v", HashAlgorithm(b[0]))
+	if b[0] != byte(tls.SHA512) {
+		t.Fatalf("Expected b[0] == SHA512, but found %v", tls.HashAlgorithm(b[0]))
 	}
-	if b[1] != byte(ECDSA) {
-		t.Fatalf("Expected b[1] == ECDSA, but found %v", SignatureAlgorithm(b[1]))
+	if b[1] != byte(tls.ECDSA) {
+		t.Fatalf("Expected b[1] == ECDSA, but found %v", tls.SignatureAlgorithm(b[1]))
 	}
 	if b[2] != 0x00 || b[3] != 0x09 {
 		t.Fatalf("Found incorrect length bytes, expected (0x00, 0x09) found %v", b[2:3])
@@ -405,11 +446,11 @@ func TestUnmarshalDigitallySigned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to unmarshal DigitallySigned: %v", err)
 	}
-	if ds.HashAlgorithm != MD5 {
-		t.Fatalf("Expected HashAlgorithm %v, but got %v", MD5, ds.HashAlgorithm)
+	if ds.Algorithm.Hash != tls.MD5 {
+		t.Fatalf("Expected HashAlgorithm %v, but got %v", tls.MD5, ds.Algorithm.Hash)
 	}
-	if ds.SignatureAlgorithm != DSA {
-		t.Fatalf("Expected SignatureAlgorithm %v, but got %v", DSA, ds.SignatureAlgorithm)
+	if ds.Algorithm.Signature != tls.DSA {
+		t.Fatalf("Expected SignatureAlgorithm %v, but got %v", tls.DSA, ds.Algorithm.Signature)
 	}
 	if string(ds.Signature) != "SiGnAtUrE!" {
 		t.Fatalf("Expected Signature %v, but got %v", []byte("SiGnAtUrE!"), ds.Signature)
@@ -476,4 +517,50 @@ func TestDeserializeSCT(t *testing.T) {
 		t.Fatalf("Failed to deserialize SCT: %v", err)
 	}
 	assert.Equal(t, defaultSCT(), *sct)
+}
+
+func TestX509MerkleTreeLeafHash(t *testing.T) {
+	certFile := "../test/testdata/test-cert.pem"
+	sctFile := "../test/testdata/test-cert.proof"
+	certB, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		t.Fatalf("Failed to read file %s: %v", certFile, err)
+	}
+	certDER, _ := pem.Decode(certB)
+
+	sctB, err := ioutil.ReadFile(sctFile)
+	if err != nil {
+		t.Fatalf("Failed to read file %s: %v", sctFile, err)
+	}
+	sct, err := DeserializeSCT(bytes.NewBuffer(sctB))
+	if err != nil {
+		t.Fatalf("Failed to deserialize sct: %v", err)
+	}
+
+	b := new(bytes.Buffer)
+	leaf := CreateX509MerkleTreeLeaf(certDER.Bytes, sct.Timestamp)
+	if err := SerializeMerkleTreeLeaf(b, leaf); err != nil {
+		t.Fatalf("Failed to Serialize x509 leaf: %v", err)
+	}
+
+	leafBytes := dh("00000000013ddb27ded900000002ce308202ca30820233a003020102020106300d06092a864886f70d01010505003055310b300906035504061302474231243022060355040a131b4365727469666963617465205472616e73706172656e6379204341310e300c0603550408130557616c65733110300e060355040713074572772057656e301e170d3132303630313030303030305a170d3232303630313030303030305a3052310b30090603550406130247423121301f060355040a13184365727469666963617465205472616e73706172656e6379310e300c0603550408130557616c65733110300e060355040713074572772057656e30819f300d06092a864886f70d010101050003818d0030818902818100b1fa37936111f8792da2081c3fe41925008531dc7f2c657bd9e1de4704160b4c9f19d54ada4470404c1c51341b8f1f7538dddd28d9aca48369fc5646ddcc7617f8168aae5b41d43331fca2dadfc804d57208949061f9eef902ca47ce88c644e000f06eeeccabdc9dd2f68a22ccb09dc76e0dbc73527765b1a37a8c676253dcc10203010001a381ac3081a9301d0603551d0e041604146a0d982a3b62c44b6d2ef4e9bb7a01aa9cb798e2307d0603551d230476307480145f9d880dc873e654d4f80dd8e6b0c124b447c355a159a4573055310b300906035504061302474231243022060355040a131b4365727469666963617465205472616e73706172656e6379204341310e300c0603550408130557616c65733110300e060355040713074572772057656e82010030090603551d1304023000300d06092a864886f70d010105050003818100171cd84aac414a9a030f22aac8f688b081b2709b848b4e5511406cd707fed028597a9faefc2eee2978d633aaac14ed3235197da87e0f71b8875f1ac9e78b281749ddedd007e3ecf50645f8cbf667256cd6a1647b5e13203bb8582de7d6696f656d1c60b95f456b7fcf338571908f1c69727d24c4fccd249295795814d1dac0e60000")
+	if !bytes.Equal(b.Bytes(), leafBytes) {
+		t.Errorf("CreateX509MerkleTreeLeaf(): got\n %x, want\n%x", b.Bytes(), sctB)
+	}
+
+}
+
+func TestJSONMerkleTreeLeaf(t *testing.T) {
+	data := `CioaINV25GV8X4a6M6Q10avSLP9PYd5N8MwWxQvWU7E2CzZ8IgYI0KnavAUSWAoIZDc1NjMzMzMSTAgEEAMaRjBEAiBQlnp6Q3di86g8M3l5gz+9qls/Cz1+KJ+tK/jpaBtUCgIgXaJ94uLsnChA1NY7ocGwKrQwPU688hwaZ5L/DboV4mQ=2`
+	timestamp := uint64(1469664866615)
+	leaf := CreateJSONMerkleTreeLeaf(data, timestamp)
+	b := new(bytes.Buffer)
+	if err := SerializeMerkleTreeLeaf(b, leaf); err != nil {
+		t.Fatalf("Failed to Serialize x509 leaf: %v", err)
+	}
+	leafBytes := dh("0000000001562eda313780000000c67b202264617461223a202243696f61494e563235475638583461364d365131306176534c5039505964354e384d77577851765755374532437a5a3849675949304b6e617641555357416f495a4463314e6a4d7a4d7a4d535441674545414d61526a4245416942516c6e703651336469383667384d336c35677a2b39716c735c2f437a312b4b4a2b744b5c2f6a70614274554367496758614a3934754c736e436841314e59376f6347774b72517750553638386877615a354c5c2f44626f56346d513d3222207d0000")
+
+	if !bytes.Equal(b.Bytes(), leafBytes) {
+		t.Errorf("CreateJSONMerkleTreeLeaf(): got\n%x, want\n%x", b.Bytes(), leafBytes)
+	}
 }

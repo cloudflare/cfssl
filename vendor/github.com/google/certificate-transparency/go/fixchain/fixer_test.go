@@ -109,68 +109,68 @@ func TestRemoveSuperChains(t *testing.T) {
 	}{
 		{
 			chains: [][]string{
-				[]string{googleLeaf, thawteIntermediate},
-				[]string{googleLeaf},
+				{googleLeaf, thawteIntermediate},
+				{googleLeaf},
 			},
 			expectedChains: [][]string{
-				[]string{"Google"},
+				{"Google"},
 			},
 		},
 		{
 			chains: [][]string{
-				[]string{googleLeaf, verisignRoot},
-				[]string{googleLeaf, thawteIntermediate},
-				[]string{googleLeaf},
+				{googleLeaf, verisignRoot},
+				{googleLeaf, thawteIntermediate},
+				{googleLeaf},
 			},
 			expectedChains: [][]string{
-				[]string{"Google"},
+				{"Google"},
 			},
 		},
 		{
 			chains: [][]string{
-				[]string{googleLeaf, thawteIntermediate, verisignRoot},
-				[]string{googleLeaf, thawteIntermediate},
-				[]string{googleLeaf},
+				{googleLeaf, thawteIntermediate, verisignRoot},
+				{googleLeaf, thawteIntermediate},
+				{googleLeaf},
 			},
 			expectedChains: [][]string{
-				[]string{"Google"},
+				{"Google"},
 			},
 		},
 		{
 			chains: [][]string{
-				[]string{googleLeaf, thawteIntermediate, verisignRoot},
-				[]string{googleLeaf},
+				{googleLeaf, thawteIntermediate, verisignRoot},
+				{googleLeaf},
 			},
 			expectedChains: [][]string{
-				[]string{"Google"},
+				{"Google"},
 			},
 		},
 		{
 			chains: [][]string{
-				[]string{googleLeaf, thawteIntermediate, verisignRoot},
-				[]string{googleLeaf, verisignRoot},
-				[]string{googleLeaf, thawteIntermediate},
+				{googleLeaf, thawteIntermediate, verisignRoot},
+				{googleLeaf, verisignRoot},
+				{googleLeaf, thawteIntermediate},
 			},
 			expectedChains: [][]string{
-				[]string{"Google", "Thawte"},
-				[]string{"Google", "VeriSign"},
+				{"Google", "Thawte"},
+				{"Google", "VeriSign"},
 			},
 		},
 		{
 			chains: [][]string{
-				[]string{testLeaf, testIntermediate2},
-				[]string{googleLeaf, thawteIntermediate, verisignRoot},
-				[]string{testLeaf, testIntermediate2, testIntermediate1, testRoot},
-				[]string{googleLeaf, verisignRoot},
-				[]string{testLeaf, testIntermediate2, testIntermediate1},
-				[]string{googleLeaf, thawteIntermediate},
-				[]string{testLeaf, googleLeaf, thawteIntermediate, verisignRoot},
+				{testLeaf, testIntermediate2},
+				{googleLeaf, thawteIntermediate, verisignRoot},
+				{testLeaf, testIntermediate2, testIntermediate1, testRoot},
+				{googleLeaf, verisignRoot},
+				{testLeaf, testIntermediate2, testIntermediate1},
+				{googleLeaf, thawteIntermediate},
+				{testLeaf, googleLeaf, thawteIntermediate, verisignRoot},
 			},
 			expectedChains: [][]string{
-				[]string{"Google", "Thawte"},
-				[]string{"Google", "VeriSign"},
-				[]string{"Leaf", "Intermediate2"},
-				[]string{"Leaf", "Google", "Thawte", "VeriSign"},
+				{"Google", "Thawte"},
+				{"Google", "VeriSign"},
+				{"Leaf", "Intermediate2"},
+				{"Leaf", "Google", "Thawte", "VeriSign"},
 			},
 		},
 	}

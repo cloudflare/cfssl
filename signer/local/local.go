@@ -28,6 +28,8 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
+	"github.com/google/certificate-transparency/go/jsonclient"
+	"golang.org/x/net/context"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -352,9 +354,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 		for _, server := range profile.CTLogServers {
 			log.Infof("submitting poisoned precertificate to %s", server)
-			var ctclient = client.New(server, nil)
+			ctclient, err := client.New(server, nil, jsonclient.Options{})
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CTError, cferr.CTClientConstructionFailed, err)
+			}
 			var resp *ct.SignedCertificateTimestamp
-			resp, err = ctclient.AddPreChain(prechain)
+			resp, err = ctclient.AddPreChain(context.TODO(), prechain)
 			if err != nil {
 				return nil, cferr.Wrap(cferr.CTError, cferr.PrecertSubmissionFailed, err)
 			}

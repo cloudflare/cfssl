@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/certificate-transparency/go/tls"
 	"github.com/google/certificate-transparency/go/x509"
 )
 
@@ -28,6 +29,8 @@ func (e LogEntryType) String() string {
 		return "X509LogEntryType"
 	case PrecertLogEntryType:
 		return "PrecertLogEntryType"
+	case XJSONLogEntryType:
+		return "XJSONLogEntryType"
 	}
 	panic(fmt.Sprintf("No string defined for LogEntryType constant value %d", e))
 }
@@ -36,6 +39,7 @@ func (e LogEntryType) String() string {
 const (
 	X509LogEntryType    LogEntryType = 0
 	PrecertLogEntryType LogEntryType = 1
+	XJSONLogEntryType   LogEntryType = 0x8000 // Experimental.  Don't rely on this!
 )
 
 // MerkleLeafType represents the MerkleLeafType enum from section 3.4 of the
@@ -122,73 +126,9 @@ type AuditPath []MerkleTreeNode
 // LeafInput represents a serialized MerkleTreeLeaf structure
 type LeafInput []byte
 
-// HashAlgorithm from the DigitallySigned struct
-type HashAlgorithm byte
-
-// HashAlgorithm constants
-const (
-	None   HashAlgorithm = 0
-	MD5    HashAlgorithm = 1
-	SHA1   HashAlgorithm = 2
-	SHA224 HashAlgorithm = 3
-	SHA256 HashAlgorithm = 4
-	SHA384 HashAlgorithm = 5
-	SHA512 HashAlgorithm = 6
-)
-
-func (h HashAlgorithm) String() string {
-	switch h {
-	case None:
-		return "None"
-	case MD5:
-		return "MD5"
-	case SHA1:
-		return "SHA1"
-	case SHA224:
-		return "SHA224"
-	case SHA256:
-		return "SHA256"
-	case SHA384:
-		return "SHA384"
-	case SHA512:
-		return "SHA512"
-	default:
-		return fmt.Sprintf("UNKNOWN(%d)", h)
-	}
-}
-
-// SignatureAlgorithm from the the DigitallySigned struct
-type SignatureAlgorithm byte
-
-// SignatureAlgorithm constants
-const (
-	Anonymous SignatureAlgorithm = 0
-	RSA       SignatureAlgorithm = 1
-	DSA       SignatureAlgorithm = 2
-	ECDSA     SignatureAlgorithm = 3
-)
-
-func (s SignatureAlgorithm) String() string {
-	switch s {
-	case Anonymous:
-		return "Anonymous"
-	case RSA:
-		return "RSA"
-	case DSA:
-		return "DSA"
-	case ECDSA:
-		return "ECDSA"
-	default:
-		return fmt.Sprintf("UNKNOWN(%d)", s)
-	}
-}
-
-// DigitallySigned represents an RFC5246 DigitallySigned structure
-type DigitallySigned struct {
-	HashAlgorithm      HashAlgorithm
-	SignatureAlgorithm SignatureAlgorithm
-	Signature          []byte
-}
+// DigitallySigned is a local alias for tls.DigitallySigned so that we can
+// attach a MarshalJSON method.
+type DigitallySigned tls.DigitallySigned
 
 // FromBase64String populates the DigitallySigned structure from the base64 data passed in.
 // Returns an error if the base64 data is invalid.
@@ -238,6 +178,7 @@ type LogEntry struct {
 	Leaf     MerkleTreeLeaf
 	X509Cert *x509.Certificate
 	Precert  *Precertificate
+	JSONData []byte
 	Chain    []ASN1Cert
 }
 
@@ -313,6 +254,7 @@ type TimestampedEntry struct {
 	Timestamp    uint64
 	EntryType    LogEntryType
 	X509Entry    ASN1Cert
+	JSONData     []byte
 	PrecertEntry PreCert
 	Extensions   CTExtensions
 }
@@ -360,4 +302,10 @@ func (e sctError) Error() string {
 	default:
 		return "unknown error"
 	}
+}
+
+// AddJSONRequest represents the JSON request body sent ot the add-json CT
+// method.
+type AddJSONRequest struct {
+	Data interface{} `json:"data"`
 }

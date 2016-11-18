@@ -6,7 +6,6 @@
 #include <memory>
 #include <vector>
 
-#include "_cgo_export.h"
 #include "merkle_tree_go.h"
 
 extern "C" {
@@ -21,10 +20,6 @@ static inline MerkleTree* MT(TREE tree) {
 static inline Sha256Hasher* H(HASHER hasher) {
   assert(hasher);
   return static_cast<Sha256Hasher*>(hasher);
-}
-static inline GoSlice* BS(BYTE_SLICE slice) {
-  assert(slice);
-  return static_cast<GoSlice*>(slice);
 }
 
 HASHER NewSha256Hasher() {
@@ -47,18 +42,16 @@ size_t LeafCount(TREE tree) {
   return MT(tree)->LeafCount();
 }
 
-bool LeafHash(TREE tree, BYTE_SLICE out, size_t leaf) {
-  GoSlice* slice(BS(out));
+size_t LeafHash(TREE tree, size_t leaf, void* buf, size_t buf_len) {
   const MerkleTree* t(MT(tree));
   const size_t nodesize(t->NodeSize());
-  if (slice->data == NULL || slice->cap < nodesize) {
-    return false;
+  if (buf == NULL || buf_len < nodesize) {
+    return 0;
   }
   const std::string& hash = t->LeafHash(leaf);
   assert(nodesize == hash.size());
-  memcpy(slice->data, hash.data(), nodesize);
-  slice->len = nodesize;
-  return true;
+  memcpy(buf, hash.data(), nodesize);
+  return nodesize;
 }
 
 size_t LevelCount(TREE tree) {
@@ -66,90 +59,82 @@ size_t LevelCount(TREE tree) {
   return t->LevelCount();
 }
 
-size_t AddLeaf(TREE tree, BYTE_SLICE leaf) {
-  GoSlice* slice(BS(leaf));
+size_t AddLeaf(TREE tree, void* leaf, size_t leaf_len) {
   MerkleTree* t(MT(tree));
-  return t->AddLeaf(std::string(static_cast<char*>(slice->data), slice->len));
+  return t->AddLeaf(std::string(static_cast<char*>(leaf), leaf_len));
 }
 
-size_t AddLeafHash(TREE tree, BYTE_SLICE hash) {
-  GoSlice* slice(BS(hash));
+size_t AddLeafHash(TREE tree, void* hash, size_t hash_len) {
   MerkleTree* t(MT(tree));
   return t->AddLeafHash(
-      std::string(static_cast<char*>(slice->data), slice->len));
+      std::string(static_cast<char*>(hash), hash_len));
 }
 
-bool CurrentRoot(TREE tree, BYTE_SLICE out) {
-  GoSlice* slice(BS(out));
+size_t CurrentRoot(TREE tree, void* buf, size_t buf_len) {
   MerkleTree* t(MT(tree));
   const size_t nodesize(t->NodeSize());
-  if (slice->data == NULL || slice->len != nodesize) {
-    return false;
+  if (buf == NULL || buf_len < nodesize) {
+    return 0;
   }
   const std::string& hash = t->CurrentRoot();
   assert(nodesize == hash.size());
-  memcpy(slice->data, hash.data(), nodesize);
-  slice->len = nodesize;
-  return true;
+  memcpy(buf, hash.data(), nodesize);
+  return nodesize;
 }
 
-bool RootAtSnapshot(TREE tree, BYTE_SLICE out, size_t snapshot) {
-  GoSlice* slice(BS(out));
+size_t RootAtSnapshot(TREE tree, size_t snapshot, void* buf, size_t buf_len) {
   MerkleTree* t(MT(tree));
   const size_t nodesize(t->NodeSize());
-  if (slice->data == NULL || slice->len != nodesize) {
-    return false;
+  if (buf == nullptr || buf_len < nodesize) {
+    return 0;
   }
   const std::string& hash = t->RootAtSnapshot(snapshot);
   assert(nodesize == hash.size());
-  memcpy(slice->data, hash.data(), nodesize);
-  slice->len = nodesize;
-  return true;
+  memcpy(buf, hash.data(), nodesize);
+  return nodesize;
 }
 
 // Copies the fixed-length entries from |path| into the GoSlice
 // pointed to by |dst|, one after the other in the same order.
 // |num_copied| is set to the number of entries copied.
-bool CopyNodesToSlice(const std::vector<std::string>& path, GoSlice* dst,
-                      size_t nodesize, size_t* num_copied) {
+bool CopyNodesToSlice(const std::vector<std::string>& path, void* dst,
+                      size_t dst_len, size_t nodesize, size_t* num_copied) {
   assert(dst);
   assert(num_copied);
-  if (dst->cap < path.size() * nodesize) {
+  if (dst_len < path.size() * nodesize) {
     *num_copied = 0;
     return false;
   }
-  char* e = static_cast<char*>(dst->data);
+  char *e(static_cast<char*>(dst));
   for (int i = 0; i < path.size(); ++i) {
     assert(nodesize == path[i].size());
     memcpy(e, path[i].data(), nodesize);
     e += nodesize;
   }
-  dst->len = path.size() * nodesize;
   *num_copied = path.size();
   return true;
 }
 
-bool PathToCurrentRoot(TREE tree, BYTE_SLICE out, size_t* num_entries,
-                       size_t leaf) {
+bool PathToCurrentRoot(TREE tree, size_t leaf, void* out, size_t out_len, size_t* num_entries) {
   MerkleTree* t(MT(tree));
   const std::vector<std::string> path = t->PathToCurrentRoot(leaf);
-  return CopyNodesToSlice(path, BS(out), t->NodeSize(), num_entries);
+  return CopyNodesToSlice(path, out, out_len, t->NodeSize(), num_entries);
 }
 
-bool PathToRootAtSnapshot(TREE tree, BYTE_SLICE out, size_t* num_entries,
-                          size_t leaf, size_t snapshot) {
+bool PathToRootAtSnapshot(TREE tree, size_t leaf, size_t snapshot, void *out,
+                            size_t out_len, size_t *num_entries) {
   MerkleTree* t(MT(tree));
   const std::vector<std::string> path =
       t->PathToRootAtSnapshot(leaf, snapshot);
-  return CopyNodesToSlice(path, BS(out), t->NodeSize(), num_entries);
+  return CopyNodesToSlice(path, out, out_len, t->NodeSize(), num_entries);
 }
 
-bool SnapshotConsistency(TREE tree, BYTE_SLICE out, size_t* num_entries,
-                         size_t snapshot1, size_t snapshot2) {
+bool SnapshotConsistency(TREE tree, size_t snapshot1, size_t snapshot2,
+                           void* out, size_t out_len, size_t* num_entries) {
   MerkleTree* t(MT(tree));
   const std::vector<std::string> path =
       t->SnapshotConsistency(snapshot1, snapshot2);
-  return CopyNodesToSlice(path, BS(out), t->NodeSize(), num_entries);
+  return CopyNodesToSlice(path, out, out_len, t->NodeSize(), num_entries);
 }
 
 }  // extern "C"

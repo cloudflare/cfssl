@@ -191,6 +191,9 @@ const (
 	// PrecertSubmissionFailed occurs when submitting a precertificate to
 	// a log server fails
 	PrecertSubmissionFailed = 100 * (iota + 1)
+	// CTClientConstructionFailed occurs when the construction of a new
+	// github.com/google/certificate-transparency client fails.
+	CTClientConstructionFailed
 )
 
 // Certificate persistence related errors specified with CertStoreError

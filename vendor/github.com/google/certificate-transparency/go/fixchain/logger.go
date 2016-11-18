@@ -244,7 +244,7 @@ func (l *Logger) postServer() {
 func (l *Logger) logStats() {
 	t := time.NewTicker(time.Second)
 	go func() {
-		for _ = range t.C {
+		for range t.C {
 			log.Printf("posters: %d active, %d posted, %d queued, %d certs requeued, %d chains requeued",
 				l.active, l.posted, l.queued, l.reposted, l.chainReposted)
 		}
