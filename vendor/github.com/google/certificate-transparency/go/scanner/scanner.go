@@ -10,9 +10,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/certificate-transparency/go"
+	ct "github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
 	"github.com/google/certificate-transparency/go/x509"
+	"golang.org/x/net/context"
 )
 
 // Clients wishing to implement their own Matchers should implement this interface:
@@ -163,6 +164,8 @@ type Scanner struct {
 
 	unparsableEntries         int64
 	entriesWithNonFatalErrors int64
+
+	Log func(msg string)
 }
 
 // matcherJob represents the context for an individual matcher job.
@@ -194,11 +197,11 @@ func (s *Scanner) handleParseEntryError(err error, entryType ct.LogEntryType, in
 	}
 	switch err.(type) {
 	case x509.NonFatalErrors:
-		s.entriesWithNonFatalErrors++
+		atomic.AddInt64(&s.entriesWithNonFatalErrors, 1)
 		// We'll make a note, but continue.
 		s.Log(fmt.Sprintf("Non-fatal error in %+v at index %d: %s", entryType, index, err.Error()))
 	default:
-		s.unparsableEntries++
+		atomic.AddInt64(&s.unparsableEntries, 1)
 		s.Log(fmt.Sprintf("Failed to parse in %+v at index %d : %s", entryType, index, err.Error()))
 		return err
 	}
@@ -237,7 +240,7 @@ func (s *Scanner) processEntry(entry ct.LogEntry, foundCert func(*ct.LogEntry), 
 			entry.Precert = precert
 			foundPrecert(&entry)
 		}
-		s.precertsSeen++
+		atomic.AddInt64(&s.precertsSeen, 1)
 	}
 }
 
@@ -325,12 +328,6 @@ func humanTime(seconds int) string {
 	return s
 }
 
-func (s Scanner) Log(msg string) {
-	if !s.opts.Quiet {
-		log.Print(msg)
-	}
-}
-
 // Performs a scan against the Log.
 // For each x509 certificate found, |foundCert| will be called with the
 // index of the entry and certificate itself as arguments.  For each precert
@@ -346,7 +343,7 @@ func (s *Scanner) Scan(foundCert func(*ct.LogEntry),
 	s.unparsableEntries = 0
 	s.entriesWithNonFatalErrors = 0
 
-	latestSth, err := s.logClient.GetSTH()
+	latestSth, err := s.logClient.GetSTH(context.Background())
 	if err != nil {
 		return err
 	}
@@ -358,12 +355,13 @@ func (s *Scanner) Scan(foundCert func(*ct.LogEntry),
 	jobs := make(chan matcherJob, 100000)
 	go func() {
 		for range ticker.C {
-			throughput := float64(s.certsProcessed) / time.Since(startTime).Seconds()
-			remainingCerts := int64(latestSth.TreeSize) - int64(s.opts.StartIndex) - s.certsProcessed
+			certsProcessed := atomic.LoadInt64(&s.certsProcessed)
+			throughput := float64(certsProcessed) / time.Since(startTime).Seconds()
+			remainingCerts := int64(latestSth.TreeSize) - int64(s.opts.StartIndex) - certsProcessed
 			remainingSeconds := int(float64(remainingCerts) / throughput)
 			remainingString := humanTime(remainingSeconds)
-			s.Log(fmt.Sprintf("Processed: %d certs (to index %d). Throughput: %3.2f ETA: %s\n", s.certsProcessed,
-				s.opts.StartIndex+int64(s.certsProcessed), throughput, remainingString))
+			s.Log(fmt.Sprintf("Processed: %d certs (to index %d). Throughput: %3.2f ETA: %s\n", certsProcessed,
+				s.opts.StartIndex+int64(certsProcessed), throughput, remainingString))
 		}
 	}()
 
@@ -393,9 +391,9 @@ func (s *Scanner) Scan(foundCert func(*ct.LogEntry),
 	close(jobs)
 	matcherWG.Wait()
 
-	s.Log(fmt.Sprintf("Completed %d certs in %s", s.certsProcessed, humanTime(int(time.Since(startTime).Seconds()))))
-	s.Log(fmt.Sprintf("Saw %d precerts", s.precertsSeen))
-	s.Log(fmt.Sprintf("%d unparsable entries, %d non-fatal errors", s.unparsableEntries, s.entriesWithNonFatalErrors))
+	s.Log(fmt.Sprintf("Completed %d certs in %s", atomic.LoadInt64(&s.certsProcessed), humanTime(int(time.Since(startTime).Seconds()))))
+	s.Log(fmt.Sprintf("Saw %d precerts", atomic.LoadInt64(&s.precertsSeen)))
+	s.Log(fmt.Sprintf("%d unparsable entries, %d non-fatal errors", atomic.LoadInt64(&s.unparsableEntries), atomic.LoadInt64(&s.entriesWithNonFatalErrors)))
 	return nil
 }
 
@@ -407,6 +405,11 @@ func NewScanner(client *client.LogClient, opts ScannerOptions) *Scanner {
 	// Set a default match-everything regex if none was provided:
 	if opts.Matcher == nil {
 		opts.Matcher = &MatchAll{}
+	}
+	if opts.Quiet {
+		scanner.Log = func(msg string) {}
+	} else {
+		scanner.Log = func(msg string) { log.Print(msg) }
 	}
 	scanner.opts = opts
 	return &scanner

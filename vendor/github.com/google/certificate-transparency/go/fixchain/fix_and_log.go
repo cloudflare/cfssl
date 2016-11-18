@@ -106,7 +106,7 @@ func NewFixAndLog(fixerWorkerCount int, loggerWorkerCount int, errors chan<- *Fi
 	if logStats {
 		t := time.NewTicker(time.Second)
 		go func() {
-			for _ = range t.C {
+			for range t.C {
 				log.Printf("fix-then-log: %d whole chains queued, %d whole chains already done, %d total chains queued, %d chains don't need posting (cache hits), %d chains sent to fixer", fl.queued, fl.alreadyDone, fl.chainsQueued, fl.alreadyPosted, fl.chainsSent)
 			}
 		}()

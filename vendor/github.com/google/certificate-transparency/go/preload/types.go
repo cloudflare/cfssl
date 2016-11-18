@@ -1,7 +1,7 @@
 package preload
 
 import (
-	"github.com/google/certificate-transparency/go"
+	ct "github.com/google/certificate-transparency/go"
 )
 
 type AddedCert struct {

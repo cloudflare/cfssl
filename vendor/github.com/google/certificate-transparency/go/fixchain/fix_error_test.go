@@ -328,8 +328,8 @@ func TestString(t *testing.T) {
 
 func TestMarshalJSON(t *testing.T) {
 	marshalJSONTests := []*FixError{
-		&FixError{},
-		&FixError{
+		{},
+		{
 			Type: LogPostFailed,
 			Cert: GetTestCertificateFromPEM(t, googleLeaf),
 			Chain: []*x509.Certificate{

@@ -23,7 +23,6 @@ extern "C" {
 // Grumble grumble.
 typedef void* HASHER;
 typedef void* TREE;
-typedef void* BYTE_SLICE;
 
 // Allocators & deallocators:
 
@@ -42,30 +41,30 @@ void DeleteMerkleTree(TREE tree);
 
 size_t NodeSize(TREE tree);
 size_t LeafCount(TREE tree);
-bool LeafHash(TREE tree, BYTE_SLICE out, size_t leaf);
+size_t LeafHash(TREE tree, size_t leaf, void* buf, size_t buf_len);
 size_t LevelCount(TREE tree);
-size_t AddLeaf(TREE tree, BYTE_SLICE leaf);
-size_t AddLeafHash(TREE tree, BYTE_SLICE hash);
-bool CurrentRoot(TREE tree, BYTE_SLICE out);
-bool RootAtSnapshot(TREE tree, BYTE_SLICE out, size_t snapshot);
+size_t AddLeaf(TREE tree, void* leaf, size_t leaf_len);
+size_t AddLeafHash(TREE tree, void* hash, size_t hash_len);
+size_t CurrentRoot(TREE tree, void *buf, size_t buf_len);
+size_t RootAtSnapshot(TREE tree, size_t snapshot, void* buf, size_t buf_len);
 
 // |out| must contain sufficent space to hold all of the path elements
 // sequentially.
 // |num_entries| is set to the number of actual elements stored in |out|.
-bool PathToCurrentRoot(TREE tree, BYTE_SLICE out, size_t* num_entries,
-                       size_t leaf);
+bool PathToCurrentRoot(TREE tree, size_t leaf, void* out, size_t out_len,
+                       size_t* num_entries);
 
 // |out| must contain sufficent space to hold all of the path elements
 // sequentially.
 // |num_entries| is set to the number of actual elements stored in |out|.
-bool PathToRootAtSnapshot(TREE tree, BYTE_SLICE out, size_t* num_entries,
-                          size_t leaf, size_t snapshot);
+bool PathToRootAtSnapshot(TREE tree, size_t leaf, size_t snapshot, void* out,
+                            size_t out_len, size_t* num_entries);
 
 // |out| must contain sufficent space to hold all of the path elements
 // sequentially.
 // |num_entries| is set to the number of actual elements stored in |out|.
-bool SnapshotConsistency(TREE tree, BYTE_SLICE out, size_t* num_entries,
-                         size_t snapshot1, size_t snapshot2);
+bool SnapshotConsistency(TREE tree, size_t snapshot1, size_t snapshot2,
+                           void* out, size_t out_len, size_t* num_entries);
 
 #ifdef __cplusplus
 }

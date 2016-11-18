@@ -9,7 +9,7 @@ import (
 	"time"
 
 	ct "github.com/google/certificate-transparency/go"
-	"github.com/mattn/go-sqlite3"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 const schema = `

@@ -3,9 +3,13 @@ package merkletree
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"testing"
+
+	ct "github.com/google/certificate-transparency/go"
 )
 
 const (
@@ -19,7 +23,7 @@ func verifierCheck(v *MerkleVerifier, leafIndex, treeSize int64, proof [][]byte,
 		return err
 	}
 	if want := root; !bytes.Equal(got, want) {
-		return fmt.Errorf("got root:\n%v\nexpected:\n%v", got, want)
+		return fmt.Errorf("got root:\n%x\nexpected:\n%x", got, want)
 	}
 	if err := v.VerifyInclusionProof(leafIndex, treeSize, proof, root, leaf); err != nil {
 		return err
@@ -299,9 +303,39 @@ func getConsistencyProofs() []consistencyTestVector {
 	}
 }
 
+func TestVerifyInclusionProofTreeSizeOne(t *testing.T) {
+	v := getVerifier()
+	// Serialized MerkleTreeLeaf from test-cert.pem and test-cert.proof
+	certFile := "../../test/testdata/test-cert.pem"
+	sctFile := "../../test/testdata/test-cert.proof"
+	certB, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		t.Fatalf("Failed to read file %s: %v", certFile, err)
+	}
+	certDER, _ := pem.Decode(certB)
+
+	sctB, err := ioutil.ReadFile(sctFile)
+	if err != nil {
+		t.Fatalf("Failed to read file %s: %v", sctFile, err)
+	}
+	sct, err := ct.DeserializeSCT(bytes.NewBuffer(sctB))
+	if err != nil {
+		t.Fatalf("Failed to deserialize sct: %v", err)
+	}
+
+	b := new(bytes.Buffer)
+	leaf := ct.CreateX509MerkleTreeLeaf(certDER.Bytes, sct.Timestamp)
+	if err := ct.SerializeMerkleTreeLeaf(b, leaf); err != nil {
+		t.Fatalf("Failed to Serialize x509 leaf: %v", err)
+	}
+	// Test output from a real CT instance.
+	if err := verifierCheck(&v, 0, 1, [][]byte{}, dh("04a64b64631b0270d6d204168cd24d0b24b6220c1e5a7efa616ded165bb702e6"), b.Bytes()); err != nil {
+		t.Fatalf("i=%s: %s", "test-cert", err)
+	}
+}
+
 func TestVerifyInclusionProof(t *testing.T) {
 	v := getVerifier()
-
 	path := [][]byte{}
 	// Various invalid paths
 	if err := v.VerifyInclusionProof(0, 0, path, []byte{}, []byte{}); err == nil {
@@ -342,7 +376,7 @@ func TestVerifyInclusionProof(t *testing.T) {
 		for j := int64(0); j < inclusionProofs[i].proofLength; j++ {
 			proof = append(proof, inclusionProofs[i].proof[j].h)
 		}
-		err := verifierCheck(&v, inclusionProofs[i].leaf, inclusionProofs[i].snapshot, proof,
+		err := verifierCheck(&v, inclusionProofs[i].leaf-1, inclusionProofs[i].snapshot, proof,
 			roots[inclusionProofs[i].snapshot-1].h,
 			inputs[inclusionProofs[i].leaf-1].h)
 		if err != nil {

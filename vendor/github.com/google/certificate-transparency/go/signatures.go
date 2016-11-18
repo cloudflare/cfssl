@@ -7,13 +7,12 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"math/big"
+
+	"github.com/google/certificate-transparency/go/tls"
 )
 
 var allowVerificationWithNonCompliantKeys = flag.Bool("allow_verification_with_non_compliant_keys", false,
@@ -64,61 +63,18 @@ func NewSignatureVerifier(pk crypto.PublicKey) (*SignatureVerifier, error) {
 	}, nil
 }
 
-// verifySignature verifies that the passed in signature over data was created by our PublicKey.
-// Currently, only SHA256 is supported as a HashAlgorithm, and only ECDSA and RSA signatures are supported.
-func (s SignatureVerifier) verifySignature(data []byte, sig DigitallySigned) error {
-	if sig.HashAlgorithm != SHA256 {
-		return fmt.Errorf("unsupported HashAlgorithm in signature: %v", sig.HashAlgorithm)
-	}
-
-	hasherType := crypto.SHA256
-	hasher := hasherType.New()
-	if _, err := hasher.Write(data); err != nil {
-		return fmt.Errorf("failed to write to hasher: %v", err)
-	}
-	hash := hasher.Sum([]byte{})
-
-	switch sig.SignatureAlgorithm {
-	case RSA:
-		rsaKey, ok := s.pubKey.(*rsa.PublicKey)
-		if !ok {
-			return fmt.Errorf("cannot verify RSA signature with %T key", s.pubKey)
-		}
-		if err := rsa.VerifyPKCS1v15(rsaKey, hasherType, hash, sig.Signature); err != nil {
-			return fmt.Errorf("failed to verify rsa signature: %v", err)
-		}
-	case ECDSA:
-		ecdsaKey, ok := s.pubKey.(*ecdsa.PublicKey)
-		if !ok {
-			return fmt.Errorf("cannot verify ECDSA signature with %T key", s.pubKey)
-		}
-		var ecdsaSig struct {
-			R, S *big.Int
-		}
-		rest, err := asn1.Unmarshal(sig.Signature, &ecdsaSig)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal ECDSA signature: %v", err)
-		}
-		if len(rest) != 0 {
-			log.Printf("Garbage following signature %v", rest)
-		}
-
-		if !ecdsa.Verify(ecdsaKey, hash, ecdsaSig.R, ecdsaSig.S) {
-			return errors.New("failed to verify ecdsa signature")
-		}
-	default:
-		return fmt.Errorf("unsupported signature type %v", sig.SignatureAlgorithm)
-	}
-	return nil
+// VerifySignature verifies the given signature sig matches the data.
+func (s SignatureVerifier) VerifySignature(data []byte, sig tls.DigitallySigned) error {
+	return tls.VerifySignature(s.pubKey, data, sig)
 }
 
-// VerifySCTSignature verifies that the SCT's signature is valid for the given LogEntry
+// VerifySCTSignature verifies that the SCT's signature is valid for the given LogEntry.
 func (s SignatureVerifier) VerifySCTSignature(sct SignedCertificateTimestamp, entry LogEntry) error {
 	sctData, err := SerializeSCTSignatureInput(sct, entry)
 	if err != nil {
 		return err
 	}
-	return s.verifySignature(sctData, sct.Signature)
+	return s.VerifySignature(sctData, tls.DigitallySigned(sct.Signature))
 }
 
 // VerifySTHSignature verifies that the STH's signature is valid.
@@ -127,5 +83,5 @@ func (s SignatureVerifier) VerifySTHSignature(sth SignedTreeHead) error {
 	if err != nil {
 		return err
 	}
-	return s.verifySignature(sthData, sth.TreeHeadSignature)
+	return s.VerifySignature(sthData, tls.DigitallySigned(sth.TreeHeadSignature))
 }

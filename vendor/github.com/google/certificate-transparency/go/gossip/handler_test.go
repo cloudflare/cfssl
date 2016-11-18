@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/certificate-transparency/go"
+	ct "github.com/google/certificate-transparency/go"
 	"github.com/stretchr/testify/assert"
 )
 

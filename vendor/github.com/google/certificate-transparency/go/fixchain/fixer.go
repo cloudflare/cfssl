@@ -225,7 +225,7 @@ func (f *Fixer) newFixServerPool(workerCount int) {
 func (f *Fixer) logStats() {
 	t := time.NewTicker(time.Second)
 	go func() {
-		for _ = range t.C {
+		for range t.C {
 			log.Printf("fixers: %d active, %d reconstructed, "+
 				"%d not reconstructed, %d fixed, %d not fixed, "+
 				"%d valid chains produced, %d valid chains sent",

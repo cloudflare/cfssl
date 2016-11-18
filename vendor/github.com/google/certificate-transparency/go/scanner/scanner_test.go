@@ -8,8 +8,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/certificate-transparency/go"
+	ct "github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
+	"github.com/google/certificate-transparency/go/jsonclient"
 	"github.com/google/certificate-transparency/go/x509"
 )
 
@@ -171,7 +172,10 @@ func TestScannerEndToEnd(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	logClient := client.New(ts.URL, &http.Client{})
+	logClient, err := client.New(ts.URL, &http.Client{}, jsonclient.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	opts := ScannerOptions{
 		Matcher:       &MatchSubjectRegex{regexp.MustCompile(".*\\.google\\.com"), nil},
 		BatchSize:     10,
@@ -184,7 +188,7 @@ func TestScannerEndToEnd(t *testing.T) {
 	var matchedCerts list.List
 	var matchedPrecerts list.List
 
-	err := scanner.Scan(func(e *ct.LogEntry) {
+	err = scanner.Scan(func(e *ct.LogEntry) {
 		// Annoyingly we can't t.Fatal() in here, as this is run in another go
 		// routine
 		matchedCerts.PushBack(*e.X509Cert)
