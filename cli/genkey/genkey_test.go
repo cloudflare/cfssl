@@ -40,11 +40,11 @@ func checkResponse(out []byte) error {
 	}
 
 	if response["key"] == nil {
-		return errors.New("No key is outputted.")
+		return errors.New("no key is outputted")
 	}
 
 	if response["csr"] == nil {
-		return errors.New("No csr is outputted.")
+		return errors.New("no csr is outputted")
 	}
 
 	return nil
