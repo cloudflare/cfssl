@@ -12,6 +12,7 @@ import (
 	"encoding/asn1"
 	"errors"
 	"math/big"
+	"net/http"
 	"strings"
 	"time"
 
@@ -99,6 +100,7 @@ type Signer interface {
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)
+	SetReqModifier(func(*http.Request, []byte))
 }
 
 // Profile gets the specific profile from the signer
