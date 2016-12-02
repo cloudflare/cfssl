@@ -207,15 +207,18 @@ var endpoints = map[string]func() (http.Handler, error){
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
 	for path, getHandler := range endpoints {
-		path = v1APIPath(path)
-		log.Infof("Setting up '%s' endpoint", path)
+		log.Debugf("getHandler for %s",path)
 		if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)
 		} else {
-			http.Handle(path, handler)
+			if path, handler, err = wrapHandler(path, handler, err); err != nil {
+				log.Warningf("endpoint '%s' is disabled by wrapper: %v", path, err)
+			} else {
+				log.Infof("endpoint '%s' is enabled", path)
+				http.Handle(path, handler)
+			}
 		}
 	}
-
 	log.Info("Handler set up complete.")
 }
 
@@ -302,3 +305,22 @@ func serverMain(args []string, c cli.Config) error {
 
 // Command assembles the definition of Command 'serve'
 var Command = &cli.Command{UsageText: serverUsageText, Flags: serverFlags, Main: serverMain}
+
+var wrapHandler = defaultWrapHandler
+
+// The default wrapper simply returns the normal handler and prefixes the path appropriately
+func defaultWrapHandler(path string, handler http.Handler, err error) (string, http.Handler, error) {
+	return v1APIPath(path), handler, err
+}
+
+// SetWrapHandler sets the wrap handler which is called for all endpoints
+// A custom wrap handler may be provided in order to add arbitrary server-side pre or post processing
+// of server-side HTTP handling of requests.
+func SetWrapHandler(wh func(path string, handler http.Handler, err error) (string, http.Handler, error) ) {
+	wrapHandler = wh
+}
+
+// SetEndpoint can be used to add additional routes/endpoints to the HTTP server, or to override an existing route/endpoint
+func SetEndpoint(path string, getHandler func() (http.Handler, error)) {
+	endpoints[path] = getHandler
+}

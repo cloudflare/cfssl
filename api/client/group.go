@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/cloudflare/cfssl/auth"
@@ -109,4 +110,9 @@ func (g *orderedListGroup) Info(jsonData []byte) (resp *info.Resp, err error) {
 	}
 
 	return nil, err
+}
+
+// SetReqModifier does nothing because there is no request modifier for group
+func (g *orderedListGroup) SetReqModifier(mod func(*http.Request, []byte)) {
+	// noop
 }

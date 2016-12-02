@@ -3,6 +3,7 @@ package universal
 
 import (
 	"crypto/x509"
+	"net/http"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
@@ -185,6 +186,12 @@ func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
 func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
 	s.local.SetDBAccessor(dba)
 	s.remote.SetDBAccessor(dba)
+}
+
+// SetReqModifier sets the function to call to modify the HTTP request prior to sending it
+func (s *Signer) SetReqModifier(mod func(*http.Request, []byte)) {
+	s.local.SetReqModifier(mod)
+	s.remote.SetReqModifier(mod)
 }
 
 // SigAlgo returns the RSA signer's signature algorithm.

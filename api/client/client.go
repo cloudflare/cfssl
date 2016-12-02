@@ -24,8 +24,9 @@ import (
 
 // A server points to a single remote CFSSL instance.
 type server struct {
-	URL    string
-	client *http.Client
+	URL         string
+	TLSConfig   *tls.Config
+	reqModifier func(*http.Request, []byte)
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -38,6 +39,7 @@ type Remote interface {
 	Sign(jsonData []byte) ([]byte, error)
 	Info(jsonData []byte) (*info.Resp, error)
 	Hosts() []string
+	SetReqModifier(func(*http.Request, []byte))
 }
 
 // NewServer sets up a new server target. The address should be of
@@ -74,43 +76,53 @@ func (srv *server) Hosts() []string {
 	return []string{srv.URL}
 }
 
+func (srv *server) SetReqModifier(mod func(*http.Request, []byte)) {
+	srv.reqModifier = mod
+}
+
 func newServer(u *url.URL, tlsConfig *tls.Config) (*server, error) {
 	URL := u.String()
-	if tlsConfig != nil {
-		tlsConfig.BuildNameToCertificate()
-	}
-
-	cli := &http.Client{
-		// A one-minute timeout allows for slower key generation
-		// times on some requests.
-		Timeout: 1 * time.Minute,
-
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-	}
-
-	return &server{URL: URL, client: cli}, nil
+	return &server{URL, tlsConfig, nil}, nil
 }
 
 func (srv *server) getURL(endpoint string) string {
 	return fmt.Sprintf("%s/api/v1/cfssl/%s", srv.URL, endpoint)
 }
 
-// post connects to the remote server and returns a Response struct.
+func (srv *server) createTLSTransport() (transport *http.Transport) {
+	// Setup HTTPS client
+	tlsConfig := srv.TLSConfig
+	tlsConfig.BuildNameToCertificate()
+	return &http.Transport{TLSClientConfig: tlsConfig}
+}
+
+// post connects to the remote server and returns a Response struct
 func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
-	buf := bytes.NewBuffer(jsonData)
-	resp, err := srv.client.Post(url, "application/json", buf)
+	var resp *http.Response
+	var err error
+	client := &http.Client{}
+	if srv.TLSConfig != nil {
+		client.Transport = srv.createTLSTransport()
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	if err != nil {
 		err = fmt.Errorf("failed POST to %s: %v", url, err)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
-
+	req.Header.Set("content-type", "application/json")
+	if srv.reqModifier != nil {
+		srv.reqModifier(req, jsonData)
+	}
+	resp, err = client.Do(req)
+	if err != nil {
+		err = fmt.Errorf("failed POST to %s: %v", url, err)
+		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
+	}
 	body, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
 	}
+	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		log.Errorf("http error with %s", url)

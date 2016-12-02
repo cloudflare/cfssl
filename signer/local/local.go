@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net"
+	"net/http"
 	"net/mail"
 	"os"
 
@@ -28,8 +29,6 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/google/certificate-transparency/go"
 	"github.com/google/certificate-transparency/go/client"
-	"github.com/google/certificate-transparency/go/jsonclient"
-	"golang.org/x/net/context"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -354,12 +353,9 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 		for _, server := range profile.CTLogServers {
 			log.Infof("submitting poisoned precertificate to %s", server)
-			ctclient, err := client.New(server, nil, jsonclient.Options{})
-			if err != nil {
-				return nil, cferr.Wrap(cferr.CTError, cferr.CTClientConstructionFailed, err)
-			}
+			var ctclient = client.New(server, nil)
 			var resp *ct.SignedCertificateTimestamp
-			resp, err = ctclient.AddPreChain(context.TODO(), prechain)
+			resp, err = ctclient.AddPreChain(prechain)
 			if err != nil {
 				return nil, cferr.Wrap(cferr.CTError, cferr.PrecertSubmissionFailed, err)
 			}
@@ -466,6 +462,11 @@ func (s *Signer) SetPolicy(policy *config.Signing) {
 // SetDBAccessor sets the signers' cert db accessor
 func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
 	s.dbAccessor = dba
+}
+
+// SetReqModifier does nothing for local
+func (s *Signer) SetReqModifier(func(*http.Request, []byte)) {
+	// noop
 }
 
 // Policy returns the signer's policy.
