@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net"
+	"net/http"
 	"net/mail"
 	"os"
 
@@ -356,10 +357,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			log.Infof("submitting poisoned precertificate to %s", server)
 			ctclient, err := client.New(server, nil, jsonclient.Options{})
 			if err != nil {
-				return nil, cferr.Wrap(cferr.CTError, cferr.CTClientConstructionFailed, err)
+				return nil, cferr.Wrap(cferr.CTError, cferr.PrecertSubmissionFailed, err)
 			}
 			var resp *ct.SignedCertificateTimestamp
-			resp, err = ctclient.AddPreChain(context.TODO(), prechain)
+			ctx := context.Background()
+			resp, err = ctclient.AddPreChain(ctx, prechain)
 			if err != nil {
 				return nil, cferr.Wrap(cferr.CTError, cferr.PrecertSubmissionFailed, err)
 			}
@@ -466,6 +468,11 @@ func (s *Signer) SetPolicy(policy *config.Signing) {
 // SetDBAccessor sets the signers' cert db accessor
 func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
 	s.dbAccessor = dba
+}
+
+// SetReqModifier does nothing for local
+func (s *Signer) SetReqModifier(func(*http.Request, []byte)) {
+	// noop
 }
 
 // Policy returns the signer's policy.
