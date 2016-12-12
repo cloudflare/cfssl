@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -30,6 +31,7 @@ var HardFail = false
 // CRLSet associates a PKIX certificate list with the URL the CRL is
 // fetched from.
 var CRLSet = map[string]*pkix.CertificateList{}
+var crlLock = new(sync.Mutex)
 
 // We can't handle LDAP certificates, so this checks to see if the
 // URL string points to an LDAP resource so that we can ignore it.
@@ -132,7 +134,9 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 	crl, ok := CRLSet[url]
 	if ok && crl == nil {
 		ok = false
+		crlLock.Lock()
 		delete(CRLSet, url)
+		crlLock.Unlock()
 	}
 
 	var shouldFetchCRL = true
@@ -161,7 +165,9 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 			}
 		}
 
+		crlLock.Lock()
 		CRLSet[url] = crl
+		crlLock.Unlock()
 	}
 
 	for _, revoked := range crl.TBSCertList.RevokedCertificates {
