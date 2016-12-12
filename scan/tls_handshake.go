@@ -109,6 +109,7 @@ func sayHello(addr, hostname string, ciphers []uint16, curves []tls.CurveID, ver
 		}
 		if serverCurveType != 3 {
 			err = fmt.Errorf("server negotiated non-named ECDH parameters; we didn't analyze them. Server curve type: %d", serverCurveType)
+			return
 		}
 		curveIndex, err = getCurveIndex(curves, serverCurve)
 	}
