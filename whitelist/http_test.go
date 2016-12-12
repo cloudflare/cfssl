@@ -2,6 +2,7 @@ package whitelist
 
 import (
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +43,7 @@ func testWorker(url string, t *testing.T, wg *sync.WaitGroup) {
 	for i := 0; i < 100; i++ {
 		response := testHTTPResponse(url, t)
 		if response != "NO" {
-			t.Fatalf("Expected NO, but got %s", response)
+			log.Fatalf("Expected NO, but got %s", response)
 		}
 	}
 	wg.Done()
@@ -360,7 +361,7 @@ func TestSetupNetHandlerFunc(t *testing.T) {
 	wl := NewBasicNet()
 	h, err := NewHandlerFunc(testAllowHandlerFunc, testDenyHandlerFunc, wl)
 	if err != nil {
-		t.Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 
 	srv := httptest.NewServer(h)

@@ -210,7 +210,7 @@ func testListen(t *testing.T) {
 	log.Debug("listener waiting for connection")
 	conn, err := l.Accept()
 	if err != nil {
-		t.Fatalf("%v", err)
+		panic(err.Error())
 	}
 
 	log.Debugf("client has connected")
@@ -243,7 +243,7 @@ func TestListener(t *testing.T) {
 	go func() {
 		err := <-errChan
 		if err != nil {
-			t.Fatalf("listener auto update failed: %v", err)
+			panic("listener auto update failed: " + err.Error())
 		}
 	}()
 
