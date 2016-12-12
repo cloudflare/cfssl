@@ -51,8 +51,6 @@ func TestTries(t *testing.T) {
 	for i := uint64(0); i < 3; i++ {
 		if b.n != i {
 			t.Fatalf("want tries=%d, have tries=%d", i, b.n)
-		} else if b.n != i {
-			t.Fatalf("want tries=%d, have tries=%d", i, b.n)
 		}
 
 		pow := 1 << i
