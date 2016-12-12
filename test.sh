@@ -39,17 +39,26 @@ else
 fi
 
 go vet $PACKAGES
-if ! which fgt > /dev/null ; then
+if ! command -v fgt > /dev/null ; then
     go get github.com/GeertJohan/fgt
 fi
 
-if ! which golint > /dev/null ; then
+if ! command -v golint > /dev/null ; then
     go get github.com/golang/lint/golint
 fi
 
 for package in $PACKAGES
 do
     fgt golint "${package}"
+done
+
+if ! command -v staticcheck  > /dev/null ; then
+    go get github.com/dominikh/go-staticcheck/cmd/staticcheck
+fi
+
+for package in $PACKAGES
+do
+    fgt staticcheck "${package}"
 done
 
 # check go fmt
