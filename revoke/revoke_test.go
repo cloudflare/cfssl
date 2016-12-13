@@ -18,6 +18,40 @@ import (
 // behaviour used in this software. However, it will print a warning
 // to indicate that this is the case.
 
+// Cert list fetched from http://crl.globalsign.net/RootSignPartners.crl
+// Last Update: Jan  4 06:00:00 2016 GMT
+// Next Update: Jan 28 11:00:00 2028 GMT
+var testCRL = `-----BEGIN X509 CRL-----
+MIIE3jCCA8YCAQEwDQYJKoZIhvcNAQEFBQAwcTEoMCYGA1UEAxMfR2xvYmFsU2ln
+biBSb290U2lnbiBQYXJ0bmVycyBDQTEdMBsGA1UECxMUUm9vdFNpZ24gUGFydG5l
+cnMgQ0ExGTAXBgNVBAoTEEdsb2JhbFNpZ24gbnYtc2ExCzAJBgNVBAYTAkJFFw0x
+NjAxMDQwNjAwMDBaFw0yODAxMjgxMTAwMDBaMIIC7jAcAgsEAAAAAAEA+m5WHRcN
+MTExMjA4MDYwMDAwWjAcAgsEAAAAAAEYwaN+1hcNMTMwNzA4MDYwMDAwWjAcAgsE
+AAAAAAEeRIeVKhcNMTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEn+59F2BcNMTQwNTE0
+MDYwMDAwWjAcAgsEAAAAAAEytLu3aBcNMTQwNTE0MDYwMDAwWjAcAgsEAAAAAAEE
+diggWxcNMTExMjA4MDYwMDAwWjAcAgsEAAAAAAEsz/uqORcNMTQwNTE0MDYwMDAw
+WjAcAgsEAAAAAAD5f8YjKRcNMTExMjA4MDYwMDAwWjAcAgsEAAAAAAEoH84aohcN
+MTUwMTA0MDYwMDAwWjAcAgsEAAAAAAEpRcOrHBcNMTMwNzA4MDYwMDAwWjAcAgsE
+AAAAAAEWqgBmghcNMTYwMTA0MDYwMDAwWjAcAgsEAAAAAAEeRIePPxcNMTQwNTE0
+MDYwMDAwWjAcAgsEAAAAAAEeRIeSLRcNMTUwNzA0MDYwMDAwWjAcAgsEAAAAAAEl
+B0COKRcNMTQwOTA0MDYwMDAwWjAcAgsEAAAAAAEzp3dnSxcNMTYwMTA0MDYwMDAw
+WjAcAgsEAAAAAAEzG8L1uRcNMTQwOTA0MDYwMDAwWjAcAgsEAAAAAAEYwbQabBcN
+MTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEllsRTghcNMTMwNzA4MDYwMDAwWjAcAgsE
+AAAAAAEn+59CDxcNMTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEJRVD02hcNMTMwMTAz
+MDYwMDAwWjAcAgsEAAAAAAED8DfkRRcNMTExMjA4MDYwMDAwWjAcAgsEAAAAAAEs
+Xn8ddhcNMTYwMTA0MDYwMDAwWjAcAgsEAAAAAAEclEoykBcNMTIwNzA1MTgwMDAw
+WjAcAgsEAAAAAAEclEo2aRcNMTMwNzA4MDYwMDAwWjAcAgsEAAAAAAEAmY+N9BcN
+MTIwNzA1MTgwMDAwWqAvMC0wCgYDVR0UBAMCASowHwYDVR0jBBgwFoAUVoTstXGl
+52PY21EE1vrm8EhSSc4wDQYJKoZIhvcNAQEFBQADggEBALqwJX2kzG+0WYBzD2ng
+6I4J5re4/siz0hxh4z2CU3xBJ7FoXZ8XZ5ILFMp+wMwCNxf3SkRJIVuH333qZD9T
+ol8gCPoyBKwu5EWb6Sk4nUMqhV7c8XYacdEfVyzM4xzovQqFj3iO2WoVzYCy3iMj
+O0cw6FKgs6o2r9QeCCF80cB/LxgQLgy6k6fa1b/qtx5nTfzbKc7+X+5u09WLLNPS
+Qb14q9ufvOfFtlUA9O57hr+h6zdBysQt9OgK03zU1fOLbw0MBAPQcMHUzVIdjmlW
+qYzmvKGPqE5mUzrtPHaGBuwbwybDCI76ElHazJAT5tQapuxixhFyq+Oq1rcSVfN7
+JYA=
+-----END X509 CRL-----
+`
+
 // 2014/05/22 14:18:17 Certificate expired 2014-04-04 14:14:20 +0000 UTC
 // 2014/05/22 14:18:17 Revoked certificate: misc/intermediate_ca/ActalisServerAuthenticationCA.crt
 var expiredCert = mustParse(`-----BEGIN CERTIFICATE-----
@@ -151,7 +185,6 @@ func TestGood(t *testing.T) {
 	} else if revoked {
 		t.Fatalf("good certificate should not have been marked as revoked")
 	}
-
 }
 
 func TestLdap(t *testing.T) {
@@ -183,23 +216,35 @@ func TestCRLFetchError(t *testing.T) {
 	if revoked, ok := VerifyCertificate(ldapCert); ok || revoked {
 		t.Fatalf("Fetching error not encountered")
 	}
-	HardFail = true
+
+	defaultChecker.localCRL.path = "InvalidPath"
+	if revoked, ok := VerifyCertificate(ldapCert); ok || revoked {
+		t.Fatalf("Fetching error not encountered")
+	}
+
+	SetHardFail(true)
+	defaultChecker.localCRL.path = ""
 	if revoked, ok := VerifyCertificate(ldapCert); ok || !revoked {
 		t.Fatalf("Fetching error not encountered, hardfail not registered")
 	}
-	HardFail = false
+
+	defaultChecker.localCRL.path = "InvalidPath"
+	if revoked, ok := VerifyCertificate(ldapCert); ok || !revoked {
+		t.Fatalf("Fetching error not encountered, hardfail not registered")
+	}
+	defaultChecker.localCRL.path = ""
+	SetHardFail(false)
 }
 
 func TestBadCRLSet(t *testing.T) {
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
-	CRLSet[""] = nil
-	certIsRevokedCRL(ldapCert, "")
-	if _, ok := CRLSet[""]; ok {
-		t.Fatalf("key emptystring should be deleted from CRLSet")
+	defaultChecker.crl.set[""] = nil
+	defaultChecker.certIsRevokedCRL(ldapCert, "")
+	if _, ok := defaultChecker.crl.set[""]; ok {
+		t.Fatalf("key empty, string should be deleted from crlSet")
 	}
-	delete(CRLSet, "")
-
+	delete(defaultChecker.crl.set, "")
 }
 
 func TestCachedCRLSet(t *testing.T) {
@@ -210,13 +255,45 @@ func TestCachedCRLSet(t *testing.T) {
 }
 
 func TestRemoteFetchError(t *testing.T) {
-
 	badurl := ":"
 
 	if _, err := fetchRemote(badurl); err == nil {
 		t.Fatalf("fetching bad url should result in non-nil error")
 	}
 
+}
+
+func TestLocalCRL(t *testing.T) {
+	crl, err := x509.ParseCRL([]byte(testCRL))
+	if err != nil {
+		panic(err.Error())
+	}
+	defaultChecker.localCRL.path = "/RootSignPartners.crl"
+	defaultChecker.localCRL.crl = crl
+
+	if revoked, ok := defaultChecker.certIsRevokedByLocalCRL(goodCert); ok && revoked {
+		t.Fatalf("Good cert should not be revoked")
+	}
+
+	if revoked, ok := defaultChecker.certIsRevokedByLocalCRL(revokedCert); ok && !revoked {
+		t.Fatalf("Bad cert should be revoked")
+	}
+
+	if err := SetLocalCRL(""); err != nil {
+		t.Fatalf("setLocalCRL should not return error on empty path")
+	}
+}
+
+func TestSetLocalCRL(t *testing.T) {
+	if err := SetLocalCRL("https://example.com/crl.crl"); err == nil {
+		t.Fatalf("setLocalCRL should return error on invalid path")
+	}
+	if err := SetLocalCRL("/invalid/path/"); err == nil {
+		t.Fatalf("setLocalCRL should return error on invalid path")
+	}
+	if err := SetLocalCRL(""); err != nil {
+		t.Fatalf("setLocalCRL should not return error on empty path")
+	}
 }
 
 func TestNoOCSPServers(t *testing.T) {

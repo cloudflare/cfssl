@@ -10,10 +10,12 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
+	"os"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ocsp"
@@ -22,14 +24,139 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// HardFail determines whether the failure to check the revocation
-// status of a certificate (i.e. due to network failure) causes
-// verification to fail (a hard failure).
-var HardFail = false
+type localCRL struct {
+	// embedded Mutex locker for the localCRL
+	sync.RWMutex
+	path string
+	crl  *pkix.CertificateList
+}
 
-// CRLSet associates a PKIX certificate list with the URL the CRL is
-// fetched from.
-var CRLSet = map[string]*pkix.CertificateList{}
+type crlSet struct {
+	// embedded Mutex locker for the crlSet
+	sync.RWMutex
+	// crlSet associates a PKIX certificate list with the URL the CRL is
+	// fetched from.
+	set map[string]*pkix.CertificateList
+}
+
+type hardFail struct {
+	// embedded Mutex locker for the hardFail
+	sync.RWMutex
+	// hardFail value
+	val bool
+}
+
+// Revoke type contains configuration for each new revoke instance
+type Revoke struct {
+	// LocalCRL contains path to the local CRL file. When set, certificate
+	// will be checked only using local CRL script, remote methods will be
+	// skipped.
+	localCRL localCRL
+	// HardFail determines whether the failure to check the revocation
+	// status of a certificate (i.e. due to network failure) causes
+	// verification to fail (a hard failure).
+	hardFail hardFail
+	// crlSet associates a PKIX certificate list with the URL the CRL is
+	// fetched from.
+	crl crlSet
+}
+
+// defaultChecker is a default config for regular apps which don't need to
+// use custom options.
+var defaultChecker = New(false)
+
+// New creates Revoke config structure.
+// Accepts hardfail bool variable as an option
+func New(hardfail bool) *Revoke {
+	return &Revoke{
+		localCRL: localCRL{
+			path: "",
+			crl:  nil,
+		},
+		hardFail: hardFail{
+			val: hardfail,
+		},
+		crl: crlSet{
+			set: map[string]*pkix.CertificateList{},
+		},
+	}
+}
+
+func (r *Revoke) unsetLocalCRL() {
+	r.localCRL.path = ""
+	r.localCRL.crl = nil
+}
+
+// SetLocalCRL sets localCRL path into the Revoke struct
+func SetLocalCRL(localCRLpath string) error {
+	return defaultChecker.SetLocalCRL(localCRLpath)
+}
+
+// SetLocalCRL sets localCRL path into the Revoke struct
+func (r *Revoke) SetLocalCRL(localCRLpath string) error {
+	r.localCRL.Lock()
+	defer r.localCRL.Unlock()
+
+	return r.setLocalCRL(localCRLpath)
+}
+
+func (r *Revoke) setLocalCRL(localCRLpath string) error {
+	if localCRLpath == "" {
+		r.unsetLocalCRL()
+		return nil
+	}
+
+	if u, err := neturl.Parse(localCRLpath); err != nil {
+		r.unsetLocalCRL()
+		return err
+	} else if u.Scheme == "" {
+		crl, err := r.fetchLocalCRL(localCRLpath)
+		if err != nil {
+			r.unsetLocalCRL()
+			return err
+		}
+		r.localCRL.crl = crl
+		r.localCRL.path = localCRLpath
+		return nil
+	} else if u.Scheme == "file" {
+		crl, err := r.fetchLocalCRL(u.Path)
+		if err != nil {
+			r.unsetLocalCRL()
+			return err
+		}
+		r.localCRL.crl = crl
+		r.localCRL.path = u.Path
+		return nil
+	}
+
+	return fmt.Errorf("Path is not valid: %s", localCRLpath)
+}
+
+// SetHardFail allows to dynamically set hardfail bool into the
+// default var struct
+func SetHardFail(hardfail bool) {
+	defaultChecker.SetHardFail(hardfail)
+}
+
+// IsHardFail returns hardfail bool from the default var struct
+func IsHardFail() bool {
+	return defaultChecker.IsHardFail()
+}
+
+// SetHardFail allows to dynamically set hardfail bool into the
+// Revoke struct
+func (r *Revoke) SetHardFail(hardfail bool) {
+	defer r.hardFail.Unlock()
+	r.hardFail.Lock()
+	r.hardFail.val = hardfail
+}
+
+// IsHardFail returns hardfail bool from the Revoke struct
+func (r *Revoke) IsHardFail() bool {
+	defer r.hardFail.RUnlock()
+	r.hardFail.RLock()
+	return r.hardFail.val
+}
 
 // We can't handle LDAP certificates, so this checks to see if the
 // URL string points to an LDAP resource so that we can ignore it.
@@ -60,32 +187,45 @@ func ldapURL(url string) bool {
 //
 //  true, false:  failure to check revocation status causes
 //                  verification to fail
-func revCheck(cert *x509.Certificate) (revoked, ok bool) {
+func (r *Revoke) revCheck(cert *x509.Certificate) (revoked, ok bool) {
+	if r.localCRL.path != "" && r.localCRL.crl != nil {
+		if revoked, ok := r.certIsRevokedByLocalCRL(cert); !ok {
+			log.Warning("error checking revocation via local CRL file")
+			if r.hardFail.val {
+				return true, false
+			}
+			return false, false
+		} else if revoked {
+			log.Infof("certificate is revoked by '%s' CRL file (CN=%s, Serial: %s)", r.localCRL.path, cert.Subject.CommonName, cert.SerialNumber)
+			return true, true
+		}
+	}
+
 	for _, url := range cert.CRLDistributionPoints {
 		if ldapURL(url) {
 			log.Infof("skipping LDAP CRL: %s", url)
 			continue
 		}
 
-		if revoked, ok := certIsRevokedCRL(cert, url); !ok {
+		if revoked, ok := r.certIsRevokedCRL(cert, url); !ok {
 			log.Warning("error checking revocation via CRL")
-			if HardFail {
+			if r.hardFail.val {
 				return true, false
 			}
 			return false, false
 		} else if revoked {
-			log.Info("certificate is revoked via CRL")
+			log.Infof("certificate is revoked by '%s' CRL (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 
-		if revoked, ok := certIsRevokedOCSP(cert, HardFail); !ok {
+		if revoked, ok := certIsRevokedOCSP(cert, r.hardFail.val); !ok {
 			log.Warning("error checking revocation via OCSP")
-			if HardFail {
+			if r.hardFail.val {
 				return true, false
 			}
 			return false, false
 		} else if revoked {
-			log.Info("certificate is revoked via OCSP")
+			log.Infof("certificate is revoked by '%s' OCSP (CN=%s, Serial: %s)", url, cert.Subject.CommonName, cert.SerialNumber)
 			return true, true
 		}
 	}
@@ -99,7 +239,7 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode >= 300 {
-		return nil, errors.New("failed to retrieve CRL")
+		return nil, fmt.Errorf("failed to retrieve CRL")
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -123,48 +263,90 @@ func getIssuer(cert *x509.Certificate) *x509.Certificate {
 	}
 
 	return issuer
-
 }
 
-// check a cert against a specific CRL. Returns the same bool pair
-// as revCheck.
-func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
-	crl, ok := CRLSet[url]
+// checks whether CRL in memory is valid
+func (r *Revoke) isInMemoryCRLValid(key string) bool {
+	crl, ok := r.crl.set[key]
 	if ok && crl == nil {
 		ok = false
-		delete(CRLSet, url)
+		delete(r.crl.set, key)
+	} else if crl == nil {
+		delete(r.crl.set, key)
+		return false
 	}
 
-	var shouldFetchCRL = true
-	if ok {
-		if !crl.HasExpired(time.Now()) {
-			shouldFetchCRL = false
-		}
+	if ok && !crl.HasExpired(time.Now()) {
+		return true
 	}
 
-	issuer := getIssuer(cert)
+	return false
+}
+
+// fetchLocalCRL reads CRL from the local filesystem
+// force flag allows you to update the CRL
+func (r *Revoke) fetchLocalCRL(newLocalCRL string) (*pkix.CertificateList, error) {
+	if _, err := os.Stat(newLocalCRL); err != nil {
+		return nil, fmt.Errorf("failed to read local CRL path: %v", err)
+	}
+
+	tmp, err := ioutil.ReadFile(newLocalCRL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read local CRL path: %v", err)
+	}
+
+	crl, err := x509.ParseCRL(tmp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse local CRL file: %v", err)
+	}
+
+	if crl == nil {
+		return nil, fmt.Errorf("Local CRL is nil")
+	}
+
+	if crl.HasExpired(time.Now()) {
+		return nil, fmt.Errorf("Local CRL (%s) has expired", newLocalCRL)
+	}
+
+	return crl, nil
+}
+
+// FetchRemoteCRL fetches remote CRL into internal map,
+// force overwrites previously read CRL
+func (r *Revoke) fetchRemoteCRL(url string, issuer *x509.Certificate) error {
+	shouldFetchCRL := !r.isInMemoryCRLValid(url)
 
 	if shouldFetchCRL {
-		var err error
-		crl, err = fetchCRL(url)
+		crl, err := fetchCRL(url)
 		if err != nil {
-			log.Warningf("failed to fetch CRL: %v", err)
-			return false, false
+			return fmt.Errorf("failed to fetch CRL: %v", err)
 		}
 
 		// check CRL signature
 		if issuer != nil {
 			err = issuer.CheckCRLSignature(crl)
 			if err != nil {
-				log.Warningf("failed to verify CRL: %v", err)
-				return false, false
+				return fmt.Errorf("failed to verify CRL: %v", err)
 			}
 		}
 
-		CRLSet[url] = crl
+		r.crl.set[url] = crl
 	}
 
-	for _, revoked := range crl.TBSCertList.RevokedCertificates {
+	return nil
+}
+
+// check a cert against a specific CRL. Returns the same bool pair
+// as revCheck. If remote is false - will assume that url is a file.
+func (r *Revoke) certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
+	err := r.fetchRemoteCRL(url, getIssuer(cert))
+
+	if err != nil {
+		log.Warningf("%v", err)
+		return false, false
+	}
+
+	for _, revoked := range r.crl.set[url].TBSCertList.RevokedCertificates {
 		if cert.SerialNumber.Cmp(revoked.SerialNumber) == 0 {
 			log.Info("Serial number match: intermediate is revoked.")
 			return true, true
@@ -174,18 +356,58 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool) {
 	return false, true
 }
 
+// check a cert against a specific localCRL. Returns the same bool pair
+// as revCheck.
+func (r *Revoke) certIsRevokedByLocalCRL(cert *x509.Certificate) (revoked, ok bool) {
+	if r.localCRL.crl.HasExpired(time.Now()) {
+		log.Info("Local CRL (%s) has expired", r.localCRL.path)
+		return false, false
+	}
+
+	for _, revoked := range r.localCRL.crl.TBSCertList.RevokedCertificates {
+		if cert.SerialNumber.Cmp(revoked.SerialNumber) == 0 {
+			log.Info("Serial number match: intermediate is revoked.")
+			return true, true
+		}
+	}
+
+	return false, true
+}
+
+// verifyCertTime verifies whether certificate time frames are valid
+func verifyCertTime(cert *x509.Certificate) bool {
+	if !time.Now().Before(cert.NotAfter) {
+		log.Infof("Certificate expired %s", cert.NotAfter)
+		return false
+	} else if !time.Now().After(cert.NotBefore) {
+		log.Infof("Certificate isn't valid until %s", cert.NotBefore)
+		return false
+	}
+
+	return true
+}
+
 // VerifyCertificate ensures that the certificate passed in hasn't
 // expired and checks the CRL for the server.
 func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
-	if !time.Now().Before(cert.NotAfter) {
-		log.Infof("Certificate expired %s\n", cert.NotAfter)
-		return true, true
-	} else if !time.Now().After(cert.NotBefore) {
-		log.Infof("Certificate isn't valid until %s\n", cert.NotBefore)
+	return defaultChecker.VerifyCertificate(cert)
+}
+
+// VerifyCertificate ensures that the certificate passed in hasn't
+// expired and checks the CRL for the server.
+func (r *Revoke) VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
+	if !verifyCertTime(cert) {
 		return true, true
 	}
 
-	return revCheck(cert)
+	defer r.hardFail.RUnlock()
+	defer r.localCRL.RUnlock()
+	defer r.crl.Unlock()
+	r.hardFail.RLock()
+	r.localCRL.RLock()
+	r.crl.Lock()
+
+	return r.revCheck(cert)
 }
 
 func fetchRemote(url string) (*x509.Certificate, error) {
@@ -208,12 +430,11 @@ func fetchRemote(url string) (*x509.Certificate, error) {
 	return x509.ParseCertificate(in)
 }
 
-var ocspOpts = ocsp.RequestOptions{
-	Hash: crypto.SHA1,
-}
-
 func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 	var err error
+	var ocspOpts = ocsp.RequestOptions{
+		Hash: crypto.SHA1,
+	}
 
 	ocspURLs := leaf.OCSPServer
 	if len(ocspURLs) == 0 {
@@ -276,7 +497,7 @@ func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (*ocsp
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to retrieve OSCP")
+		return nil, fmt.Errorf("failed to retrieve OSCP")
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -287,15 +508,15 @@ func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (*ocsp
 
 	switch {
 	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse):
-		return nil, errors.New("OSCP unauthorized")
+		return nil, fmt.Errorf("OSCP unauthorized")
 	case bytes.Equal(body, ocsp.MalformedRequestErrorResponse):
-		return nil, errors.New("OSCP malformed")
+		return nil, fmt.Errorf("OSCP malformed")
 	case bytes.Equal(body, ocsp.InternalErrorErrorResponse):
-		return nil, errors.New("OSCP internal error")
+		return nil, fmt.Errorf("OSCP internal error")
 	case bytes.Equal(body, ocsp.TryLaterErrorResponse):
-		return nil, errors.New("OSCP try later")
+		return nil, fmt.Errorf("OSCP try later")
 	case bytes.Equal(body, ocsp.SigRequredErrorResponse):
-		return nil, errors.New("OSCP signature required")
+		return nil, fmt.Errorf("OSCP signature required")
 	}
 
 	return ocsp.ParseResponse(body, issuer)
