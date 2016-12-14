@@ -290,8 +290,8 @@
 		{
 			"importpath": "golang.org/x/crypto/ocsp",
 			"repository": "https://go.googlesource.com/crypto",
-			"vcs": "",
-			"revision": "1f22c0103821b9390939b6776727195525381532",
+			"vcs": "git",
+			"revision": "9a6f0a01987842989747adff311d80750ba25530",
 			"branch": "master",
 			"path": "/ocsp"
 		},

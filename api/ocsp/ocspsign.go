@@ -2,17 +2,19 @@
 package ocsp
 
 import (
+	"crypto"
 	"net/http"
 
 	"encoding/base64"
 	"encoding/json"
+	"io/ioutil"
+	"time"
+
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
-	"io/ioutil"
-	"time"
 )
 
 // A Handler accepts requests with a certficate parameter
@@ -34,10 +36,11 @@ func NewHandler(s ocsp.Signer) http.Handler {
 
 // This type is meant to be unmarshalled from JSON
 type jsonSignRequest struct {
-	Certificate string `json:"certificate"`
-	Status      string `json:"status"`
-	Reason      int    `json:"reason,omitempty"`
-	RevokedAt   string `json:"revoked_at,omitempty"`
+	Certificate string      `json:"certificate"`
+	Status      string      `json:"status"`
+	Reason      int         `json:"reason,omitempty"`
+	RevokedAt   string      `json:"revoked_at,omitempty"`
+	IssuerHash  crypto.Hash `json:"issuer_hash,omitempty"`
 }
 
 // Handle responds to requests for a ocsp signature. It creates and signs
@@ -69,6 +72,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	signReq := ocsp.SignRequest{
 		Certificate: cert,
 		Status:      req.Status,
+		IssuerHash:  req.IssuerHash,
 	}
 	// We need to convert the time from being a string to a time.Time
 	if req.Status == "revoked" {
