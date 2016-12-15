@@ -31,6 +31,7 @@ func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)
 	}
+	r.Body.Close()
 
 	req := new(csr.CertificateRequest)
 	req.KeyRequest = csr.NewBasicKeyRequest()
