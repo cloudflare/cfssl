@@ -126,7 +126,6 @@ var endpoints = map[string]func() (http.Handler, error){
 		}
 
 		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
-
 			sh := h.Handler.(*signhandler.Handler)
 			if err := sh.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
 				return nil, err
@@ -140,7 +139,20 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return signhandler.NewAuthHandlerFromSigner(s)
+
+		h, err := signhandler.NewAuthHandlerFromSigner(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
+			sh := h.(api.HTTPHandler).Handler.(*signhandler.AuthHandler)
+			if err := sh.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
+				return nil, err
+			}
+		}
+
+		return h, nil
 	},
 
 	"info": func() (http.Handler, error) {

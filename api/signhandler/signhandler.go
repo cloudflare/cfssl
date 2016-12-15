@@ -170,7 +170,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 // An AuthHandler verifies and signs incoming signature requests.
 type AuthHandler struct {
-	signer signer.Signer
+	signer  signer.Signer
+	bundler *bundler.Bundler
 }
 
 // NewAuthHandlerFromSigner creates a new AuthHandler from the signer
@@ -206,6 +207,12 @@ func NewAuthHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
 		},
 		Methods: []string{"POST"},
 	}, nil
+}
+
+// SetBundler allows injecting an optional Bundler into the Handler.
+func (h *AuthHandler) SetBundler(caBundleFile, intBundleFile string) (err error) {
+	h.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile)
+	return err
 }
 
 // Handle receives the incoming request, validates it, and processes it.
@@ -268,7 +275,20 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	result := map[string]string{"certificate": string(cert)}
+	result := map[string]interface{}{"certificate": string(cert)}
+	if req.Bundle {
+		if h.bundler == nil {
+			return api.SendResponseWithMessage(w, result, NoBundlerMessage,
+				errors.New(errors.PolicyError, errors.InvalidRequest).ErrorCode)
+		}
+
+		bundle, err := h.bundler.BundleFromPEMorDER(cert, nil, bundler.Optimal, "")
+		if err != nil {
+			return err
+		}
+
+		result["bundle"] = bundle
+	}
 	log.Info("wrote response")
 	return api.SendResponse(w, result)
 }
