@@ -43,7 +43,7 @@ func newSignServer(t *testing.T) *httptest.Server {
 	return ts
 }
 
-func testSignFile(t *testing.T, certFile, status string, reason int, revokedAt string) (resp *http.Response, body []byte) {
+func testSignFile(t *testing.T, certFile, status string, reason int, revokedAt string, hash string) (resp *http.Response, body []byte) {
 	ts := newSignServer(t)
 	defer ts.Close()
 
@@ -62,6 +62,7 @@ func testSignFile(t *testing.T, certFile, status string, reason int, revokedAt s
 	if revokedAt != "" {
 		obj["revoked_at"] = revokedAt
 	}
+	obj["issuer_hash"] = hash
 
 	blob, err := json.Marshal(obj)
 	if err != nil {
@@ -87,6 +88,7 @@ type signTest struct {
 	ExpectedHTTPStatus int
 	ExpectedSuccess    bool
 	ExpectedErrorCode  int
+	IssuerHash         string
 }
 
 var signTests = []signTest{
@@ -142,11 +144,25 @@ var signTests = []signTest{
 		ExpectedSuccess:    false,
 		ExpectedErrorCode:  8200,
 	},
+	{
+		CertificateFile:    testCertFile,
+		IssuerHash:         "SHA256",
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
+	},
+	{
+		CertificateFile:    testCertFile,
+		IssuerHash:         "MD4",
+		ExpectedHTTPStatus: http.StatusBadRequest,
+		ExpectedSuccess:    false,
+		ExpectedErrorCode:  http.StatusBadRequest,
+	},
 }
 
 func TestSign(t *testing.T) {
 	for i, test := range signTests {
-		resp, body := testSignFile(t, test.CertificateFile, test.Status, test.Reason, test.RevokedAt)
+		resp, body := testSignFile(t, test.CertificateFile, test.Status, test.Reason, test.RevokedAt, test.IssuerHash)
 		if resp.StatusCode != test.ExpectedHTTPStatus {
 			t.Logf("Test %d: expected: %d, have %d", i, test.ExpectedHTTPStatus, resp.StatusCode)
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))

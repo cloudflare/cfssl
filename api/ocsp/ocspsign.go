@@ -36,11 +36,19 @@ func NewHandler(s ocsp.Signer) http.Handler {
 
 // This type is meant to be unmarshalled from JSON
 type jsonSignRequest struct {
-	Certificate string      `json:"certificate"`
-	Status      string      `json:"status"`
-	Reason      int         `json:"reason,omitempty"`
-	RevokedAt   string      `json:"revoked_at,omitempty"`
-	IssuerHash  crypto.Hash `json:"issuer_hash,omitempty"`
+	Certificate string `json:"certificate"`
+	Status      string `json:"status"`
+	Reason      int    `json:"reason,omitempty"`
+	RevokedAt   string `json:"revoked_at,omitempty"`
+	IssuerHash  string `json:"issuer_hash,omitempty"`
+}
+
+var nameToHash = map[string]crypto.Hash{
+	"MD5":    crypto.MD5,
+	"SHA1":   crypto.SHA1,
+	"SHA256": crypto.SHA256,
+	"SHA384": crypto.SHA384,
+	"SHA512": crypto.SHA512,
 }
 
 // Handle responds to requests for a ocsp signature. It creates and signs
@@ -72,7 +80,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	signReq := ocsp.SignRequest{
 		Certificate: cert,
 		Status:      req.Status,
-		IssuerHash:  req.IssuerHash,
 	}
 	// We need to convert the time from being a string to a time.Time
 	if req.Status == "revoked" {
@@ -86,6 +93,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 				return errors.NewBadRequestString("Malformed revocation time")
 			}
 		}
+	}
+	if req.IssuerHash != "" {
+		issuerHash, ok := nameToHash[req.IssuerHash]
+		if !ok {
+			return errors.NewBadRequestString("Unsupported hash algorithm in request")
+		}
+		signReq.IssuerHash = issuerHash
 	}
 
 	resp, err := h.signer.Sign(signReq)
