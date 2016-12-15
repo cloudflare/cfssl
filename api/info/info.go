@@ -39,6 +39,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)
 	}
+	r.Body.Close()
+
 	err = json.Unmarshal(body, req)
 	if err != nil {
 		log.Warningf("failed to unmarshal request: %v", err)
@@ -87,6 +89,8 @@ func (h *MultiHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)
 	}
+	r.Body.Close()
+
 	err = json.Unmarshal(body, req)
 	if err != nil {
 		log.Warningf("failed to unmarshal request: %v", err)
