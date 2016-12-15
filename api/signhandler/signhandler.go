@@ -9,17 +9,22 @@ import (
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
+
+// NoBundlerMessage is used to alert the user that the server does not have a bundler initialized.
+const NoBundlerMessage = `This request requires a bundler, but one is not initialized for the API server.`
 
 // A Handler accepts requests with a hostname and certficate
 // parameter (which should be PEM-encoded) and returns a new signed
 // certificate. It includes upstream servers indexed by their
 // profile name.
 type Handler struct {
-	signer signer.Signer
+	signer  signer.Signer
+	bundler *bundler.Bundler
 }
 
 // NewHandlerFromSigner generates a new Handler directly from
@@ -51,6 +56,12 @@ func NewHandlerFromSigner(signer signer.Signer) (h *api.HTTPHandler, err error) 
 	}, nil
 }
 
+// SetBundler allows injecting an optional Bundler into the Handler.
+func (h *Handler) SetBundler(caBundleFile, intBundleFile string) (err error) {
+	h.bundler, err = bundler.NewBundler(caBundleFile, intBundleFile)
+	return err
+}
+
 // This type is meant to be unmarshalled from JSON so that there can be a
 // hostname field in the API
 // TODO: Change the API such that the normal struct can be used.
@@ -62,6 +73,7 @@ type jsonSignRequest struct {
 	Profile  string          `json:"profile"`
 	Label    string          `json:"label"`
 	Serial   *big.Int        `json:"serial,omitempty"`
+	Bundle   bool            `json:"bundle"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -138,7 +150,20 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	result := map[string]string{"certificate": string(cert)}
+	result := map[string]interface{}{"certificate": string(cert)}
+	if req.Bundle {
+		if h.bundler == nil {
+			return api.SendResponseWithMessage(w, result, NoBundlerMessage,
+				errors.New(errors.PolicyError, errors.InvalidRequest).ErrorCode)
+		}
+
+		bundle, err := h.bundler.BundleFromPEMorDER(cert, nil, bundler.Optimal, "")
+		if err != nil {
+			return err
+		}
+
+		result["bundle"] = bundle
+	}
 	log.Info("wrote response")
 	return api.SendResponse(w, result)
 }

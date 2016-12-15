@@ -19,6 +19,8 @@ Optional parameters:
     the CSR, useful when interacting with a remote multi-root CA signer
     * profile: a string specifying the signing profile for the signer,
     useful when interacting with a remote multi-root CA signer
+    * bundle: a boolean specifying whether to include an "optimal"
+    certificate bundle along with the certificate
 
 Result:
 
@@ -26,6 +28,7 @@ Result:
 
     * certificate: a PEM-encoded certificate that has been signed
     by the server.
+    * bundle: See the result of endpoint_bundle.txt (only included if the bundle parameter was set)
 
 Example:
 

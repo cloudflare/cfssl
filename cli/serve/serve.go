@@ -119,7 +119,21 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return signhandler.NewHandlerFromSigner(s)
+
+		h, err := signhandler.NewHandlerFromSigner(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
+
+			sh := h.Handler.(*signhandler.Handler)
+			if err := sh.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
+				return nil, err
+			}
+		}
+
+		return h, nil
 	},
 
 	"authsign": func() (http.Handler, error) {
