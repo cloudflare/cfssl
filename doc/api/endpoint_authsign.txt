@@ -16,6 +16,8 @@ Optional parameters:
 
     * timestamp: a Unix timestamp
     * remote_address: an address used in making the request.
+    * bundle: a boolean specifying whether to include an "optimal"
+    certificate bundle along with the certificate
 
 Result:
 
@@ -23,6 +25,7 @@ Result:
 
     * certificate: a PEM-encoded certificate that has been signed
     by the server.
+    * bundle: See the result of endpoint_bundle.txt (only included if the bundle parameter was set)
 
 The authentication documentation contains more information about how
 authentication with CFSSL works.
