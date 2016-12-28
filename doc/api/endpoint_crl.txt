@@ -1,0 +1,18 @@
+THE CRL ENDPOINT
+
+Endpoint: /api/v1/cfssl/crl
+Method:   GET
+
+Optional URL Query parameters:
+
+    * expiry: a value, in seconds, after which the CRL should expire
+      from the moment of the request.
+
+Result:
+
+    The returned result is an empty JSON object
+
+Example:
+
+    $ curl ${CFSSL_HOST}/api/v1/cfssl/crl
+    $ curl ${CFSSL_HOST}/api/v1/cfssl/crl?expiry=7200h

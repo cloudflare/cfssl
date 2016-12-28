@@ -12,6 +12,7 @@ under the name `endpoint_<endpoint>`. These nine endpoints are:
 
       - authsign: authenticated signing endpoint
       - bundle: build certificate bundles
+      - crl: generates a CRL out of the certificate DB
       - info: obtain information about the CA, including the CA
         certificate
       - init_ca: initialise a new certificate authority
