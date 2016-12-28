@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
@@ -68,6 +69,27 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 	if err != nil {
 		log.Debug("Malformed private key %v", err)
 		return nil, err
+	}
+
+	return CreateGenericCRL(revokedCerts, key, issuerCert, newExpiryTime)
+}
+
+// NewCRLFromDB takes in a list of CertificateRecords, as well as the issuing certificate
+// of the CRL, and the private key. This function is then used to parse the records and generate a CRL
+func NewCRLFromDB(certs []certdb.CertificateRecord, issuerCert *x509.Certificate, key crypto.Signer, expiryTime time.Duration) ([]byte, error) {
+	var revokedCerts []pkix.RevokedCertificate
+
+	newExpiryTime := time.Now().Add(expiryTime)
+
+	// For every record, create a new revokedCertificate and add it to slice
+	for _, certRecord := range certs {
+		serialInt := new(big.Int)
+		serialInt.SetString(certRecord.Serial, 10)
+		tempCert := pkix.RevokedCertificate{
+			SerialNumber:   serialInt,
+			RevocationTime: certRecord.RevokedAt,
+		}
+		revokedCerts = append(revokedCerts, tempCert)
 	}
 
 	return CreateGenericCRL(revokedCerts, key, issuerCert, newExpiryTime)
