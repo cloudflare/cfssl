@@ -1,4 +1,4 @@
-package crl
+package gencrl
 
 import (
 	"bytes"
@@ -49,7 +49,6 @@ func newCRLServer(t *testing.T) *httptest.Server {
 }
 
 func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, serialList []string) (resp *http.Response, body []byte) {
-
 	ts := newCRLServer(t)
 	defer ts.Close()
 

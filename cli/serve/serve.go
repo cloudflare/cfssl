@@ -17,7 +17,7 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/certinfo"
-	"github.com/cloudflare/cfssl/api/crl"
+	"github.com/cloudflare/cfssl/api/gencrl"
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
@@ -140,7 +140,7 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return crl.NewHandler(), nil
+		return gencrl.NewHandler(), nil
 	},
 
 	"newcert": func() (http.Handler, error) {

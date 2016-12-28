@@ -1,5 +1,5 @@
-// Package crl implements the HTTP handler for the crl commands.
-package crl
+// Package gencrl implements the HTTP handler for the gencrl commands.
+package gencrl
 
 import (
 	"crypto/rand"
@@ -27,8 +27,7 @@ type jsonCRLRequest struct {
 
 // Handle responds to requests for crl generation. It creates this crl
 // based off of the given certificate, serial numbers, and private key
-func crlHandler(w http.ResponseWriter, r *http.Request) error {
-
+func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 	var revokedCerts []pkix.RevokedCertificate
 	var oneWeek = time.Duration(604800) * time.Second
 	var newExpiryTime = time.Now()
@@ -40,7 +39,6 @@ func crlHandler(w http.ResponseWriter, r *http.Request) error {
 	r.Body.Close()
 
 	req := &jsonCRLRequest{}
-
 	err = json.Unmarshal(body, req)
 	if err != nil {
 		log.Error(err)
@@ -66,8 +64,8 @@ func crlHandler(w http.ResponseWriter, r *http.Request) error {
 
 	cert, err := helpers.ParseCertificatePEM([]byte(req.Certificate))
 	if err != nil {
-		log.Error("Error from ParseCertificatePEM", err)
-		return errors.NewBadRequestString("Malformed certificate")
+		log.Error("error from ParseCertificatePEM", err)
+		return errors.NewBadRequestString("malformed certificate")
 	}
 
 	for _, value := range req.SerialNumber {
@@ -82,13 +80,13 @@ func crlHandler(w http.ResponseWriter, r *http.Request) error {
 
 	key, err := helpers.ParsePrivateKeyPEM([]byte(req.PrivateKey))
 	if err != nil {
-		log.Debug("Malformed private key %v", err)
-		return errors.NewBadRequestString("Malformed Private Key")
+		log.Debug("malformed private key %v", err)
+		return errors.NewBadRequestString("malformed Private Key")
 	}
 
 	result, err := cert.CreateCRL(rand.Reader, key, revokedCerts, time.Now(), newExpiryTime)
 	if err != nil {
-		log.Debug("Unable to create CRL: %v", err)
+		log.Debug("unable to create CRL: %v", err)
 		return err
 	}
 
@@ -98,7 +96,7 @@ func crlHandler(w http.ResponseWriter, r *http.Request) error {
 // NewHandler returns a new http.Handler that handles a crl generation request.
 func NewHandler() http.Handler {
 	return api.HTTPHandler{
-		Handler: api.HandlerFunc(crlHandler),
+		Handler: api.HandlerFunc(gencrlHandler),
 		Methods: []string{"POST"},
 	}
 }
