@@ -25,7 +25,7 @@ Flags:
 `
 var crlFlags = []string{"db-config", "ca", "ca-key", "expiry"}
 
-func crlMain(args []string, c cli.Config) (err error) {
+func generateCRL(c cli.Config) (crlBytes []byte, err error) {
 	if c.CAFile == "" {
 		log.Error("need CA certificate (provide one with -ca)")
 		return
@@ -40,11 +40,11 @@ func crlMain(args []string, c cli.Config) (err error) {
 	if c.DBConfigFile != "" {
 		db, err = dbconf.DBFromConfig(c.DBConfigFile)
 		if err != nil {
-			return
+			return nil, err
 		}
 	} else {
 		log.Error("no Database specified!")
-		return
+		return nil, err
 	}
 
 	dbAccessor := certsql.NewAccessor(db)
@@ -52,12 +52,12 @@ func crlMain(args []string, c cli.Config) (err error) {
 	log.Debug("loading CA: ", c.CAFile)
 	ca, err := ioutil.ReadFile(c.CAFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Debug("loading CA key: ", c.CAKeyFile)
 	cakey, err := ioutil.ReadFile(c.CAKeyFile)
 	if err != nil {
-		return cferr.Wrap(cferr.CertificateError, cferr.ReadFailed, err)
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ReadFailed, err)
 	}
 
 	// Parse the PEM encoded certificate
@@ -81,16 +81,25 @@ func crlMain(args []string, c cli.Config) (err error) {
 
 	certs, err := dbAccessor.GetRevokedAndUnexpiredCertificates()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := crl.NewCRLFromDB(certs, issuerCert, key, c.CRLExpiration)
 	if err != nil {
-		return
+		return nil, err
+	}
+
+	return req, nil
+}
+
+func crlMain(args []string, c cli.Config) (err error) {
+	req, err := generateCRL(c)
+	if err != nil {
+		return err
 	}
 
 	cli.PrintCRL(req)
-	return nil
+	return
 }
 
 // Command assembles the definition of Command 'crl'
