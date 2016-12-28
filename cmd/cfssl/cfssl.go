@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/bundle"
 	"github.com/cloudflare/cfssl/cli/certinfo"
+	"github.com/cloudflare/cfssl/cli/crl"
 	"github.com/cloudflare/cfssl/cli/gencert"
 	"github.com/cloudflare/cfssl/cli/gencrl"
 	"github.com/cloudflare/cfssl/cli/genkey"
@@ -56,6 +57,7 @@ func main() {
 	cmds := map[string]*cli.Command{
 		"bundle":         bundle.Command,
 		"certinfo":       certinfo.Command,
+		"crl":            crl.Command,
 		"sign":           sign.Command,
 		"serve":          serve.Command,
 		"version":        version.Command,

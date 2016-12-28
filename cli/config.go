@@ -67,6 +67,7 @@ type Config struct {
 	CNOverride        string
 	AKI               string
 	DBConfigFile      string
+	CRLExpiration     time.Duration
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -125,6 +126,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.CNOverride, "cn", "", "certificate common name (CN)")
 	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
 	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
+	f.DurationVar(&c.CRLExpiration, "expiry", 7*helpers.OneDay, "time from now after which the CRL will expire (default: one week)")
 	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 }
 
