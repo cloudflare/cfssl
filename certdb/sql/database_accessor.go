@@ -30,6 +30,10 @@ SELECT %s FROM certificates
 SELECT %s FROM certificates
 	WHERE CURRENT_TIMESTAMP < expiry;`
 
+	selectAllRevokedAndUnexpiredSQL = `
+SELECT %s FROM certificates
+	WHERE CURRENT_TIMESTAMP < expiry AND status='revoked';`
+
 	updateRevokeSQL = `
 UPDATE certificates
 	SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason=:reason
@@ -141,6 +145,21 @@ func (d *Accessor) GetUnexpiredCertificates() (crs []certdb.CertificateRecord, e
 	}
 
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredSQL), sqlstruct.Columns(certdb.CertificateRecord{})))
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetRevokedAndUnexpiredCertificates gets all revoked and unexpired certificate from db (for CRLs).
+func (d *Accessor) GetRevokedAndUnexpiredCertificates() (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllRevokedAndUnexpiredSQL), sqlstruct.Columns(certdb.CertificateRecord{})))
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
