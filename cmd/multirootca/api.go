@@ -102,12 +102,12 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	defer req.Body.Close()
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		fail(w, req, http.StatusInternalServerError, 1, err.Error(), "while reading request body")
 		return
 	}
-	defer req.Body.Close()
 
 	var authReq auth.AuthenticatedRequest
 	err = json.Unmarshal(body, &authReq)

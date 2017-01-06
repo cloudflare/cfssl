@@ -119,11 +119,11 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 		err = fmt.Errorf("failed POST to %s: %v", url, err)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
+	defer req.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(errors.APIClientError, errors.IOError, err)
 	}
-	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		log.Errorf("http error with %s", url)
