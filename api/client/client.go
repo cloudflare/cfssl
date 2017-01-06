@@ -109,6 +109,7 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 		err = fmt.Errorf("failed POST to %s: %v", url, err)
 		return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, err)
 	}
+	req.Close = true
 	req.Header.Set("content-type", "application/json")
 	if srv.reqModifier != nil {
 		srv.reqModifier(req, jsonData)
