@@ -447,6 +447,10 @@ func TestNeedLocalSigner(t *testing.T) {
 	if localConfig.Signing.NeedsRemoteSigner() != false {
 		t.Fatal("incorrect NeedsRemoteSigner().")
 	}
+
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestOverrideRemotes(t *testing.T) {

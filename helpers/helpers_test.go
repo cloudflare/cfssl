@@ -428,12 +428,12 @@ const clientCertFile = "testdata/ca.pem"
 const clientKeyFile = "testdata/ca_key.pem"
 
 func TestClientCertParams(t *testing.T) {
-	cert, err := LoadClientCertificate(testCertFile, testPrivateRSAKey)
+	_, err := LoadClientCertificate(testCertFile, testPrivateRSAKey)
 	if err == nil {
 		t.Fatal("Unmatched cert/key should generate error")
 	}
 
-	cert, err = LoadClientCertificate("", "")
+	cert, err := LoadClientCertificate("", "")
 	if err != nil || cert != nil {
 		t.Fatal("Certificate atempted to loaded with missing key and cert")
 	}

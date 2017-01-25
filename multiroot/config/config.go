@@ -242,6 +242,19 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 			return nil, err
 		}
 
+		log.Debug("attempting to load PEM-encoded private key")
+		priv, err = helpers.ParsePrivateKeyPEM(in)
+		if err != nil {
+			log.Debug("file is not a PEM-encoded private key")
+			log.Debug("attempting to load DER-encoded private key")
+			priv, err = derhelpers.ParsePrivateKeyDER(in)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		log.Debug("loaded private key")
+
 		return priv, nil
 	default:
 		return nil, ErrUnsupportedScheme

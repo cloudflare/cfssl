@@ -97,7 +97,7 @@ func TestReadStdin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fn, err = ReadStdin("-")
+	_, err = ReadStdin("-")
 	if err != nil {
 		t.Fatal(err)
 	}

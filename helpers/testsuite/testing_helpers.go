@@ -284,10 +284,15 @@ func SignCertificate(request csr.CertificateRequest, signerCert, signerKey []byt
 		tempCSRFile,
 	)
 	CLIOutput, err = command.CombinedOutput()
+	if err != nil {
+		return nil, nil, fmt.Errorf("%v - CLI output: %s", err, string(CLIOutput))
+	}
+
 	err = checkCLIOutput(CLIOutput)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%v - CLI output: %s", err, string(CLIOutput))
 	}
+
 	encodedCert, err = cleanCLIOutput(CLIOutput, "cert")
 	if err != nil {
 		return nil, nil, err

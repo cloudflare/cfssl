@@ -3,6 +3,7 @@ package selfsign
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -47,6 +48,10 @@ func selfSignMain(args []string, c cli.Config) (err error) {
 	csrFile, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return
+	}
+
+	if len(args) > 0 {
+		return errors.New("too many arguments are provided, please check with usage")
 	}
 
 	csrFileBytes, err := cli.ReadStdin(csrFile)

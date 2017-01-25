@@ -22,7 +22,7 @@ func printAvailable() {
 }
 
 func printDefaults(args []string, c cli.Config) (err error) {
-	arg, args, err := cli.PopFirstArgument(args)
+	arg, _, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return
 	}

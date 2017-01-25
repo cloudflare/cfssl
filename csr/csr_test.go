@@ -634,7 +634,7 @@ func TestReGenerate(t *testing.T) {
 		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
 	}
 
-	csr, key, err := ParseRequest(req)
+	_, key, err := ParseRequest(req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -644,7 +644,7 @@ func TestReGenerate(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	csr, err = Generate(priv, req)
+	csr, err := Generate(priv, req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -677,7 +677,7 @@ func TestBadReGenerate(t *testing.T) {
 		KeyRequest: &BasicKeyRequest{"ecdsa", 256},
 	}
 
-	csr, key, err := ParseRequest(req)
+	_, key, err := ParseRequest(req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -687,7 +687,7 @@ func TestBadReGenerate(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	csr, err = Generate(priv, req)
+	csr, err := Generate(priv, req)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

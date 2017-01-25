@@ -87,6 +87,10 @@ func crlHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	result, err := cert.CreateCRL(rand.Reader, key, revokedCerts, time.Now(), newExpiryTime)
+	if err != nil {
+		log.Debug("Unable to create CRL: %v", err)
+		return err
+	}
 
 	return api.SendResponse(w, result)
 }
