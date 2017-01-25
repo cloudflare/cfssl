@@ -233,6 +233,9 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 // and SKI.
 func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile) error {
 	ski, err := ComputeSKI(template)
+	if err != nil {
+		return err
+	}
 
 	var (
 		eku             []x509.ExtKeyUsage

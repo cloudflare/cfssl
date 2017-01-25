@@ -121,6 +121,10 @@ func TestSign(t *testing.T) {
 	}
 
 	sMismatch, err := NewSignerFromFile(wrongServerCertFile, otherCertFile, wrongServerKeyFile, dur)
+	if err != nil {
+		t.Fatal("NewSigner failed:", err)
+	}
+
 	_, err = sMismatch.Sign(req)
 	if err == nil {
 		t.Fatal("Signed a certificate from the wrong issuer")

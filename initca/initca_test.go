@@ -16,12 +16,12 @@ import (
 )
 
 var validKeyParams = []csr.BasicKeyRequest{
-	{"rsa", 2048},
-	{"rsa", 3072},
-	{"rsa", 4096},
-	{"ecdsa", 256},
-	{"ecdsa", 384},
-	{"ecdsa", 521},
+	{A: "rsa", S: 2048},
+	{A: "rsa", S: 3072},
+	{A: "rsa", S: 4096},
+	{A: "ecdsa", S: 256},
+	{A: "ecdsa", S: 384},
+	{A: "ecdsa", S: 521},
 }
 
 var validCAConfigs = []csr.CAConfig{
@@ -54,10 +54,10 @@ var testECDSACAKeyFile = "testdata/5min-ecdsa-key.pem"
 
 var invalidCryptoParams = []csr.BasicKeyRequest{
 	// Weak Key
-	{"rsa", 1024},
+	{A: "rsa", S: 1024},
 	// Bad param
-	{"rsaCrypto", 2048},
-	{"ecdsa", 2000},
+	{A: "rsaCrypto", S: 2048},
+	{A: "ecdsa", S: 2000},
 }
 
 func TestInitCA(t *testing.T) {
