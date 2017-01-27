@@ -612,9 +612,9 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 			}
 
 			log.Debugf("searching for intermediates via AIA issuer")
-			err = b.fetchIntermediates(certs)
-			if err != nil {
-				log.Debugf("search failed: %v", err)
+			searchErr := b.fetchIntermediates(certs)
+			if searchErr != nil {
+				log.Debugf("search failed: %v", searchErr)
 				return nil, errors.Wrap(errors.CertificateError, errors.VerifyFailed, err)
 			}
 
