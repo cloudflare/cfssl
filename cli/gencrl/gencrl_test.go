@@ -16,3 +16,10 @@ func TestGencrl(t *testing.T) {
 	}
 
 }
+
+func TestGencrlTime(t *testing.T) {
+	err := gencrlMain([]string{"testdata/serialList", "testdata/caTwo.pem", "testdata/ca-keyTwo.pem", "123"}, cli.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
