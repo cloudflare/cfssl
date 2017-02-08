@@ -9,7 +9,7 @@ The requirements to build `CFSSL` are:
 
 To build, run:
 
-    $ script/build    
+    $ script/build-docker    
 
 This is will build by default all the cfssl command line utilities
 for darwin (OSX), linux, and windows for i386 and amd64 and output the
@@ -17,7 +17,7 @@ binaries in the current path.
 
 To build a specific platform and OS, run:
 
-    $ script/build -os="darwin" -arch="amd64"
+    $ script/build-docker -os="darwin" -arch="amd64"
 
 Note: for cross-compilation compatibility, the Docker build process will
 build programs without PKCS #11.
