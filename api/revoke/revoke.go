@@ -2,9 +2,7 @@
 package revoke
 
 import (
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/ocsp"
 
 	stdocsp "golang.org/x/crypto/ocsp"
@@ -97,12 +96,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return errors.NewBadRequestString("No unique certificate found")
 		}
 
-		block, _ := pem.Decode([]byte(cr[0].PEM))
-		if block == nil {
-			return errors.NewBadRequestString("Unable to parse PEM encoded certificates")
-		}
-
-		cert, err := x509.ParseCertificate(block.Bytes)
+		cert, err := helpers.ParseCertificatePEM([]byte(cr[0].PEM))
 		if err != nil {
 			return errors.NewBadRequestString("Unable to parse certificates from PEM data")
 		}
