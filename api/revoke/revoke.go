@@ -21,7 +21,7 @@ import (
 // and revokes
 type Handler struct {
 	dbAccessor certdb.Accessor
-	signer     *ocsp.Signer
+	Signer     ocsp.Signer
 }
 
 // NewHandler returns a new http.Handler that handles a revoke request.
@@ -40,7 +40,7 @@ func NewOCSPHandler(dbAccessor certdb.Accessor, signer ocsp.Signer) http.Handler
 	return &api.HTTPHandler{
 		Handler: &Handler{
 			dbAccessor: dbAccessor,
-			signer:     &signer,
+			Signer:     signer,
 		},
 		Methods: []string{"POST"},
 	}
@@ -86,7 +86,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// If we were given a signer, try and generate an OCSP
 	// response indicating revocation
-	if h.signer != nil {
+	if h.Signer != nil {
 		// TODO: should these errors be errors?
 		// Grab the certificate from the database
 		cr, err := h.dbAccessor.GetCertificate(req.Serial, req.AKI)
@@ -114,7 +114,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			RevokedAt:   time.Now().UTC(),
 		}
 
-		ocspResponse, err := (*h.signer).Sign(sr)
+		ocspResponse, err := h.Signer.Sign(sr)
 		if err != nil {
 			return err
 		}
