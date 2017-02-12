@@ -120,12 +120,14 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
-		if err = h.dbAccessor.InsertOCSP(certdb.OCSPRecord{
+		ocspRecord := certdb.OCSPRecord{
 			Serial: req.Serial,
 			AKI:    req.AKI,
 			Body:   string(ocspResponse),
 			Expiry: ocspParsed.NextUpdate,
-		}); err != nil {
+		}
+
+		if err = h.dbAccessor.InsertOCSP(ocspRecord); err != nil {
 			return err
 		}
 	}
