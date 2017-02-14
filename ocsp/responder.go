@@ -10,6 +10,7 @@ package ocsp
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -55,15 +56,15 @@ type SqliteSource struct {
 	Accessor certdb.Accessor
 }
 
-func NewSqliteSource(dbAccessor certdb.Accessor) ocsp.Source {
+func NewSqliteSource(dbAccessor certdb.Accessor) Source {
 	return SqliteSource{
-		Accessor: dbAccessor
+		Accessor: dbAccessor,
 	}
 }
 
 // Response implements cfssl.ocsp.responder.Source, returning the OCSP response
 // with the expiration date furthest in the future
-func (src CertDbSource) Response(req *ocsp.Request) ([]byte, bool) {
+func (src SqliteSource) Response(req *ocsp.Request) ([]byte, bool) {
 	if req == nil {
 		return nil, false
 	}
