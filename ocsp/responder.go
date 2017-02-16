@@ -51,11 +51,12 @@ func (src InMemorySource) Response(request *ocsp.Request) (response []byte, pres
 	return
 }
 
-// OCSP response Source backed by certdb
+// SqliteSource represnts a source of OCSP responses backed by certdb
 type SqliteSource struct {
 	Accessor certdb.Accessor
 }
 
+// NewSqliteSource creates a new SqliteSource type and associated dbAccessor
 func NewSqliteSource(dbAccessor certdb.Accessor) Source {
 	return SqliteSource{
 		Accessor: dbAccessor,
