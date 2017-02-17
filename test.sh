@@ -64,7 +64,8 @@ done
 # check go fmt
 for package in $PACKAGES
 do
-    test -z "$(gofmt -s -l $GOPATH/src/$package/ | tee /dev/stderr)"
+    echo "gofmt $package"
+    test -z "$(gofmt -s -l -d $GOPATH/src/$package/ | tee /dev/stderr)"
 done
 
 # Build and install cfssl executable in PATH
