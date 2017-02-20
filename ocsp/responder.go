@@ -86,7 +86,6 @@ func (src SqliteSource) Response(req *ocsp.Request) ([]byte, bool) {
 		log.Errorf("Error obtaining OCSP response: %s", err)
 	}
 
-	// No record(s) to return 
 	if len(records) == 0 {
 		return nil, false
 	}
