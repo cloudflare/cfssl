@@ -18,9 +18,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jmhodges/clock"
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/jmhodges/clock"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -80,9 +80,9 @@ func (src SqliteSource) Response(req *ocsp.Request) ([]byte, bool) {
 	strSN := sn.String()
 
 	records, err := src.Accessor.GetOCSP(strSN, aki)
-	
+
 	// Log on errors obtaining OCSP response
-	if err != nil{
+	if err != nil {
 		log.Errorf("Error obtaining OCSP response: %s", err)
 	}
 
