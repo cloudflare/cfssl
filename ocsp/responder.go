@@ -81,6 +81,7 @@ func (src SqliteSource) Response(req *ocsp.Request) ([]byte, bool) {
 
 	if src.Accessor == nil {
 		log.Errorf("No DB Accessor")
+		return nil, false
 	}
 
 	records, err := src.Accessor.GetOCSP(strSN, aki)
