@@ -120,6 +120,9 @@ func makeCertificate() (serialNumber *big.Int, cert *x509.Certificate, pemBytes 
 	}
 
 	signer, err = ocsp.NewSigner(issuer, responder, privKey, time.Hour)
+	if err != nil {
+		return
+	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, issuer, &privKey.PublicKey, privKey)
 
