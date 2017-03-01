@@ -91,12 +91,14 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("Invalid certificate status")
 	}
 
-	if ocsp.StatusCode[req.Status] == stdocsp.Revoked && req.RevokedAt == (time.Time{}) {
-		return errors.NewBadRequestString("Revoked certificate should specify when it was revoked")
-	}
+	if ocsp.StatusCode[req.Status] == stdocsp.Revoked {
+		if req.RevokedAt == (time.Time{}) {
+			return errors.NewBadRequestString("Revoked certificate should specify when it was revoked")
+		}
 
-	if _, present := validReasons[req.Reason]; !present {
-		return errors.NewBadRequestString("Invalid certificate status reason code")
+		if _, present := validReasons[req.Reason]; !present {
+			return errors.NewBadRequestString("Invalid certificate status reason code")
+		}
 	}
 
 	if len(req.PEM) == 0 {
