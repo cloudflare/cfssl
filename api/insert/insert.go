@@ -39,7 +39,7 @@ func NewHandler(dbAccessor certdb.Accessor, signer ocsp.Signer) http.Handler {
 	}
 }
 
-type jsonAddRequest struct {
+type AddRequest struct {
 	Serial    string    `json:"serial_number"`
 	AKI       string    `json:"authority_key_identifier"`
 	CALabel   string    `json:"ca_label"`
@@ -72,7 +72,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	r.Body.Close()
 
-	var req jsonAddRequest
+	var req AddRequest
 
 	err = json.Unmarshal(body, &req)
 	if err != nil {
