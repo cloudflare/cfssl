@@ -15,8 +15,9 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/ocsp"
 
-	stdocsp "golang.org/x/crypto/ocsp"
 	"encoding/base64"
+
+	stdocsp "golang.org/x/crypto/ocsp"
 )
 
 // This is patterned on
@@ -44,6 +45,8 @@ func NewHandler(dbAccessor certdb.Accessor, signer ocsp.Signer) http.Handler {
 	}
 }
 
+// AddRequest describes a request from a client to insert a
+// certificate into the database.
 type AddRequest struct {
 	Serial    string    `json:"serial_number"`
 	AKI       string    `json:"authority_key_identifier"`

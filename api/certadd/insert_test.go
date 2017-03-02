@@ -21,8 +21,9 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/ocsp"
 
-	stdocsp "golang.org/x/crypto/ocsp"
 	"encoding/base64"
+
+	stdocsp "golang.org/x/crypto/ocsp"
 )
 
 func prepDB() (certdb.Accessor, error) {
