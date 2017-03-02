@@ -22,6 +22,7 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 
 	stdocsp "golang.org/x/crypto/ocsp"
+	"encoding/base64"
 )
 
 func prepDB() (certdb.Accessor, error) {
@@ -161,6 +162,22 @@ func TestInsertValidCertificate(t *testing.T) {
 		t.Fatal("Expected HTTP OK, got", resp.StatusCode, string(body))
 	}
 
+	var response map[string]interface{}
+	if err = json.Unmarshal(body, &response); err != nil {
+		t.Fatal("Could not parse response: ", err)
+	}
+	responseResult := response["result"].(map[string]interface{})
+	encodedOcsp := responseResult["ocsp_response"].(string)
+
+	rawOcsp, err := base64.StdEncoding.DecodeString(encodedOcsp)
+	if err != nil {
+		t.Fatal("Could not base64 decode response: ", err)
+	}
+	returnedOcsp, err := stdocsp.ParseResponse(rawOcsp, nil)
+	if err != nil {
+		t.Fatal("Could not parse returned OCSP response", err)
+	}
+
 	ocsps, err := dbAccessor.GetOCSP(serialNumber.Text(16), hex.EncodeToString(cert.AuthorityKeyId))
 	if err != nil {
 		t.Fatal(err)
@@ -170,14 +187,22 @@ func TestInsertValidCertificate(t *testing.T) {
 		t.Fatal("Expected 1 OCSP record to be inserted, but found ", len(ocsps))
 	}
 
-	response, err := stdocsp.ParseResponse([]byte(ocsps[0].Body), nil)
+	parsedOcsp, err := stdocsp.ParseResponse([]byte(ocsps[0].Body), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if response.Status != stdocsp.Good {
+	if parsedOcsp.SerialNumber.Cmp(returnedOcsp.SerialNumber) != 0 {
+		t.Fatal("The returned and inserted OCSP response have different serial numbers: got ", returnedOcsp.SerialNumber, " but decoded ", parsedOcsp.SerialNumber)
+	}
+
+	if parsedOcsp.SerialNumber.Cmp(serialNumber) != 0 {
+		t.Fatal("Got the wrong serial number: expected", serialNumber, "but got", parsedOcsp.SerialNumber)
+	}
+
+	if parsedOcsp.Status != stdocsp.Good {
 		t.Fatal("Expected OCSP response status to be ", stdocsp.Good,
-			" but found ", response.Status)
+			" but found ", parsedOcsp.Status)
 	}
 }
 

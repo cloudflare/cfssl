@@ -16,10 +16,15 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 
 	stdocsp "golang.org/x/crypto/ocsp"
+	"encoding/base64"
 )
 
 // This is patterned on
-// https://github.com/cloudflare/cfssl/blob/master/api/revoke/revoke.go
+// https://github.com/cloudflare/cfssl/blob/master/api/revoke/revoke.go. This
+// file defines an HTTP endpoint handler that accepts certificates and
+// inserts them into a certdb, optionally also creating an OCSP
+// response for them. If so, it will also return the OCSP response as
+// a base64 encoded string.
 
 // A Handler accepts new SSL certificates and inserts them into the
 // certdb, creating an appropriate OCSP response for them.
@@ -145,6 +150,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	result := map[string]string{}
+
 	if h.signer != nil {
 		// Now create an appropriate OCSP response
 		sr := ocsp.SignRequest{
@@ -165,6 +172,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 
+		result["ocsp_response"] = base64.StdEncoding.EncodeToString(ocspResponse)
+
 		ocspRecord := certdb.OCSPRecord{
 			Serial: req.Serial,
 			AKI:    req.AKI,
@@ -177,6 +186,5 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	result := map[string]string{}
 	return api.SendResponse(w, result)
 }
