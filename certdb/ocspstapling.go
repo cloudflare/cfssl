@@ -13,45 +13,43 @@ import (
 // OID of the SCT extension
 var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 
+// TODO: (?) Write function to retrieve a []ct.SignedCertificateTimestamp. How
+// to decide which SCT to return in order to "dynamically select an appropriate
+// single SCT to conserve bandwidth"?
+// https://www.certificate-transparency.org/faq
+
 // StapleSCTList inserts a list of Signed Certificate Timestamps into all OCSP
 // responses in a database wrapped by a given certdb.Accessor.
 //
-// TODO: Should acc be passed by pointer or value (does it matter in this
-// context)?
-// TODO: Should this function take a ct.SignedCertificateTimestamp or just a
-// []byte containing that data?
-// InsertSCT takes an SCT and staples it to a given OCSP response
+// TODO: Add an error return value.
+//
 // NOTE: Returns a bool indicating whether the SCT was successfully inserted
 // into ALL corresponding OCSPRecords (i.e. one failure results in a return
 // value of false).
-// NOTE: This function is patterned after the exported Sign(...) method in
+// NOTE: This function is patterned after the exported Sign method in
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
 func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp) bool {
-	// TODO: Get the OCSP response body first, APPEND the provided SCT to
-	// the []ct.SignedCertificateTimstamp, encode it as an octet string,
-	// and call acc.UpdateOCSP(...) with the new body
+	// Grab all OCSP records that match serial and aki
 	ocspRecs, err := acc.GetOCSP(serial, aki)
 	if err != nil || len(ocspRecs) == 0 {
-		// { Ther was an error or the OCSPRecord does not exist }
+		// { There was an error or the OCSPRecord does not exist }
 		return false
 	}
 
-	// NOTE: Shoud I be grabbing just the 0th record, a particular record,
-	// or all of them?
+	// Add the SCTs to each ocsp response
 	for _, rec := range ocspRecs {
-		// TODO: extract the ocsp request from rec.Body
-		// NOTE: I am assuming that rec.Body is in base64-encoded DER
-		// form based on
+		// NOTE: Assuming that rec.Body is in base64-encoded DER form
+		// based on
 		// https://github.com/cloudflare/cfssl/blob/master/ocsp/responder.go#L54
 		der, err := base64.StdEncoding.DecodeString(rec.Body)
 		if err != nil {
-			// TODO: (?) return a decode error
+			// { decoding error }
 			return false
 		}
 
 		response, err := ocsp.ParseResponse(der, nil)
 		if err != nil {
-			// TODO: (?) return a parse error
+			// { parsing error }
 			return false
 		}
 
@@ -76,12 +74,13 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 			for len(rest) != 0 {
 				rest, err = asn1.Unmarshal(rest, &serializedSCTList)
 				if err != nil {
+					// { unmarshaling error }
 					return false
 				}
 			}
 			desList, err := deserializeSCTList(serializedSCTList)
 			if err != nil {
-				// TODO: (?) return an error?
+				// { deserializing error }
 				return false
 			}
 			sctList = desList
@@ -93,13 +92,13 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 		// Re-serialize the list of SCTs
 		serializedSCTList, err := serializeSCTList(sctList)
 		if err != nil {
-			// TODO: (?) return an error
+			// { serializing error }
 			return false
 		}
 
 		serializedSCTList, err = asn1.Marshal(serializedSCTList)
 		if err != nil {
-			// TODO: (?) return error
+			// { serializing error }
 			return false
 		}
 
@@ -114,7 +113,7 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 			Value:    serializedSCTList,
 		}
 
-		// replace the old extension in the OCSP response
+		// Replace the old extension in the OCSP response
 		response.Extensions[idxExt] = sctExtension
 		der, err = ocsp.CreateResponse(nil, response.Certificate, *response, nil)
 		body := base64.StdEncoding.EncodeToString(der)
@@ -123,11 +122,6 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 
 	return true
 }
-
-// TODO: (?) function to retrieve a []ct.SignedCertificateTimestamp. How to
-// decide which SCT to return in order to "dynamically select an appropriate
-// single SCT to conserve bandwidth"
-// (https://www.certificate-transparency.org/faq)?
 
 // Copied from
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
