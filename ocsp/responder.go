@@ -56,7 +56,7 @@ type SqliteSource struct {
 	Accessor certdb.Accessor
 }
 
-// NewSqliteSource creates a new SqliteSource type and associated dbAccessor
+// NewSqliteSource creates a new SqliteSource type with associated dbAccessor
 func NewSqliteSource(dbAccessor certdb.Accessor) Source {
 	return SqliteSource{
 		Accessor: dbAccessor,
@@ -82,7 +82,6 @@ func (src SqliteSource) Response(req *ocsp.Request) ([]byte, bool) {
 	if src.Accessor == nil {
 		log.Errorf("No DB Accessor")
 	}
-
 	records, err := src.Accessor.GetOCSP(strSN, aki)
 
 	// Log on errors obtaining OCSP response
