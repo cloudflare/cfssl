@@ -406,6 +406,10 @@ func TestParseCSRPEMMore(t *testing.T) {
 	if _, err := ParseCSRPEM(csrPEM); err == nil {
 		t.Fatal(err)
 	}
+
+	if _, err := ParseCSRPEM([]byte("not even pem")); err == nil {
+		t.Fatal("Expected an invalid CSR.")
+	}
 }
 
 // Imported from signers/local/testdata/

@@ -450,8 +450,10 @@ func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) 
 // locally.
 func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 	block, _ := pem.Decode([]byte(csrPEM))
-	der := block.Bytes
-	csrObject, err := x509.ParseCertificateRequest(der)
+	if block == nil {
+		return nil, cferr.New(cferr.CSRError, cferr.DecodeFailed)
+	}
+	csrObject, err := x509.ParseCertificateRequest(block.Bytes)
 
 	if err != nil {
 		return nil, err
