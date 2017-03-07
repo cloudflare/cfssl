@@ -1,11 +1,18 @@
 package ocsp
 
 import (
+	"encoding/hex"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/certdb/testdb"
+	"github.com/cloudflare/cfssl/helpers"
 
 	"github.com/jmhodges/clock"
 	goocsp "golang.org/x/crypto/ocsp"
@@ -157,4 +164,62 @@ func TestNewSourceFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSqliteResponse(t *testing.T) {
+
+	//first create hard-coded ocsp request
+	certFile := "testdata/sqlite_ca.pem"
+	issuerFile := "testdata/ca.pem"
+	certContent, _ := ioutil.ReadFile(certFile)
+	issuerContent, _ := ioutil.ReadFile(issuerFile)
+	cert, err := helpers.ParseCertificatePEM(certContent)
+	// parse cert file
+	if err != nil {
+		t.Errorf("Error parsing cert file: %s", err)
+	}
+	// parse issuer file
+	issuer, err := helpers.ParseCertificatePEM(issuerContent)
+	if err != nil {
+		t.Errorf("Error parsing cert file: %s", err)
+	}
+
+	// create request
+	reqByte, err := goocsp.CreateRequest(cert, issuer, nil)
+	if err != nil {
+		t.Errorf("Error creating OCSP request: %s", err)
+	}
+	req, err := goocsp.ParseRequest(reqByte)
+	if err != nil {
+		t.Errorf("Error parsing OCSP request: %s", err)
+	}
+
+	// create new Accessor
+	sqliteDBfile := "testdata/sqlite_test.db"
+	db := testdb.SQLiteDB(sqliteDBfile)
+	accessor := sql.NewAccessor(db)
+
+	// populate the db with record and check response handles request appropiately
+	ocsp := certdb.OCSPRecord{
+		AKI:    hex.EncodeToString(req.IssuerKeyHash),
+		Body:   "Test OCSP",
+		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		Serial: req.SerialNumber.String(),
+	}
+	accessor.InsertOCSP(ocsp)
+
+	//use Accessor to create new SqliteSource
+	src := NewSqliteSource(accessor)
+
+	// call response method on request and check output
+	response, present := src.Response(req)
+	if !present {
+		t.Error("No response present for given request")
+	}
+
+	// print Serial Number for returned response and verify it is the same
+	resp, err := goocsp.ParseResponse(response, nil)
+	// ??? why can't I access any of the attributes of resp
+	// even though its type is *ocsp.Response type ???
+
 }
