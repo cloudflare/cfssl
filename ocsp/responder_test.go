@@ -2,6 +2,7 @@ package ocsp
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -216,10 +217,9 @@ func TestSqliteResponse(t *testing.T) {
 	if !present {
 		t.Error("No response present for given request")
 	}
-
-	// print Serial Number for returned response and verify it is the same
-	resp, err := goocsp.ParseResponse(response, nil)
-	// ??? why can't I access any of the attributes of resp
-	// even though its type is *ocsp.Response type ???
-
+	response_string := string(response)
+	fmt.Printf("%v", response_string)
+	if response_string != "Test OCSP" {
+		t.Error("Incorrect response received from Sqlite DB")
+	}
 }
