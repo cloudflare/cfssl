@@ -2,7 +2,6 @@ package ocsp
 
 import (
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -217,9 +216,8 @@ func TestSqliteResponse(t *testing.T) {
 	if !present {
 		t.Error("No response present for given request")
 	}
-	response_string := string(response)
-	fmt.Printf("%v", response_string)
-	if response_string != "Test OCSP" {
+	responseString := string(response)
+	if responseString != "Test OCSP" {
 		t.Error("Incorrect response received from Sqlite DB")
 	}
 }
