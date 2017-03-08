@@ -166,7 +166,7 @@ func TestNewSourceFromFile(t *testing.T) {
 	}
 }
 
-func TestSqliteResponse(t *testing.T) {
+func TestSqliteTrivial(t *testing.T) {
 
 	//first create hard-coded ocsp request
 	certFile := "testdata/sqlite_ca.pem"
@@ -218,5 +218,66 @@ func TestSqliteResponse(t *testing.T) {
 	}
 	if string(response) != "Test OCSP" {
 		t.Error("Incorrect response received from Sqlite DB")
+	}
+}
+
+func TestSqliteRealResponse(t *testing.T) {
+	// create new Accessor
+	sqliteDBfile := "testdata/sqlite_test.db"
+	db := testdb.SQLiteDB(sqliteDBfile)
+	accessor := sql.NewAccessor(db)
+
+	certFile := "testdata/cert.pem"
+	issuerFile := "testdata/ca.pem"
+	certContent, _ := ioutil.ReadFile(certFile)
+	issuerContent, _ := ioutil.ReadFile(issuerFile)
+	cert, err := helpers.ParseCertificatePEM(certContent)
+	// parse cert file
+	if err != nil {
+		t.Errorf("Error parsing cert file: %s", err)
+	}
+	// parse issuer file
+	issuer, err := helpers.ParseCertificatePEM(issuerContent)
+	if err != nil {
+		t.Errorf("Error parsing cert file: %s", err)
+	}
+
+	// create request
+	reqByte, err := goocsp.CreateRequest(cert, issuer, nil)
+	if err != nil {
+		t.Errorf("Error creating OCSP request: %s", err)
+	}
+	req, err := goocsp.ParseRequest(reqByte)
+	if err != nil {
+		t.Errorf("Error parsing OCSP request: %s", err)
+	}
+
+	// read DER-encoded response file
+	respContent, _ := ioutil.ReadFile("testdata/response.der")
+
+	if err != nil {
+		t.Error("Error parsing response")
+	}
+	// add record for response in db
+	ocsp := certdb.OCSPRecord{
+		AKI:    hex.EncodeToString(req.IssuerKeyHash),
+		Body:   string(respContent),
+		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		Serial: req.SerialNumber.String(),
+	}
+	accessor.InsertOCSP(ocsp)
+
+	//use Accessor to create new SqliteSource
+	src := NewSqliteSource(accessor)
+
+	// call response method on request and check output
+	response, present := src.Response(req)
+	if !present {
+		t.Error("No response present for given request")
+	}
+	// try parsing response and make sure its well formed
+	_, err = goocsp.ParseResponse(response, issuer)
+	if err != nil {
+		t.Errorf("Error parsing response: %v", err)
 	}
 }
