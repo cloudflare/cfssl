@@ -216,8 +216,7 @@ func TestSqliteResponse(t *testing.T) {
 	if !present {
 		t.Error("No response present for given request")
 	}
-	responseString := string(response)
-	if responseString != "Test OCSP" {
+	if string(response) != "Test OCSP" {
 		t.Error("Incorrect response received from Sqlite DB")
 	}
 }
