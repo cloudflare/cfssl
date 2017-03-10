@@ -2,6 +2,7 @@ package certdb
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
@@ -28,7 +29,7 @@ var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 // value of false).
 // NOTE: This function is patterned after the exported Sign method in
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
-func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp) bool {
+func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp, priv crypto.Signer) bool {
 	// Grab all OCSP records that match serial and aki
 	ocspRecs, err := acc.GetOCSP(serial, aki)
 	if err != nil || len(ocspRecs) == 0 {
@@ -53,44 +54,8 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 			return false
 		}
 
-		// Find the SCTListExtension in the ocsp response
-		var SCTListExtension, ext pkix.Extension
-		var idxExt int
-		for idxExt, ext = range response.Extensions {
-			if ext.Id.Equal(sctExtOid) {
-				SCTListExtension = ext
-				break
-			}
-		}
-
-		// Extract the sctList from the extension
-		var sctList []ct.SignedCertificateTimestamp
-		if SCTListExtension.Value != nil {
-			// Extract the SCTList
-			var serializedSCTList []byte
-			rest := SCTListExtension.Value
-			// TODO: Is it correct to pass in the same slice to
-			// multiple calls of Unmarshal?
-			for len(rest) != 0 {
-				rest, err = asn1.Unmarshal(rest, &serializedSCTList)
-				if err != nil {
-					// { unmarshaling error }
-					return false
-				}
-			}
-			desList, err := deserializeSCTList(serializedSCTList)
-			if err != nil {
-				// { deserializing error }
-				return false
-			}
-			sctList = desList
-		}
-
-		// Append the new SCTs to the list
-		sctList = append(sctList, scts...)
-
-		// Re-serialize the list of SCTs
-		serializedSCTList, err := serializeSCTList(sctList)
+		// Serialize the list of SCTs
+		serializedSCTList, err := serializeSCTList(scts)
 		if err != nil {
 			// { serializing error }
 			return false
@@ -113,11 +78,41 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 			Value:    serializedSCTList,
 		}
 
-		// Replace the old extension in the OCSP response
-		response.Extensions[idxExt] = sctExtension
-		der, err = ocsp.CreateResponse(nil, response.Certificate, *response, nil)
+		// Find the SCTListExtension in the ocsp response
+		var idxExt int
+		for _, ext := range response.Extensions {
+			if ext.Id.Equal(sctExtOid) {
+				break
+			}
+			idxExt++
+		}
+
+		if idxExt < len(response.Extensions) {
+			// { there's an existing SCT extension in response.Extensions }
+			// Replace the old extension in the OCSP response
+			response.Extensions[idxExt] = sctExtension
+		} else {
+			// { there's no SCT extension in response.Extensions }
+			response.Extensions = append(response.Extensions, sctExtension)
+		}
+
+		// Write updated extensions to replace existing extensions in
+		// response when re-marshalling
+		response.ExtraExtensions = response.Extensions
+
+		// Re-sign response to generate the new DER-encoded response
+		der, err = ocsp.CreateResponse(nil, response.Certificate, *response, priv)
+
+		if err != nil {
+			return false
+		}
+
 		body := base64.StdEncoding.EncodeToString(der)
 		err = acc.UpdateOCSP(serial, aki, body, rec.Expiry)
+
+		if err != nil {
+			return false
+		}
 	}
 
 	return true
