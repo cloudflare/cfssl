@@ -231,8 +231,8 @@ func TestSqliteRealResponse(t *testing.T) {
 	issuerFile := "testdata/ca.pem"
 	certContent, _ := ioutil.ReadFile(certFile)
 	issuerContent, _ := ioutil.ReadFile(issuerFile)
-	cert, err := helpers.ParseCertificatePEM(certContent)
 	// parse cert file
+	cert, err := helpers.ParseCertificatePEM(certContent)
 	if err != nil {
 		t.Errorf("Error parsing cert file: %s", err)
 	}
@@ -252,16 +252,26 @@ func TestSqliteRealResponse(t *testing.T) {
 		t.Errorf("Error parsing OCSP request: %s", err)
 	}
 
-	// read DER-encoded response file
-	respContent, _ := ioutil.ReadFile("testdata/response.der")
-
-	if err != nil {
-		t.Error("Error parsing response")
+	// create response template
+	template := goocsp.Response{
+		Status:       goocsp.Good,
+		SerialNumber: req.SerialNumber,
+		ThisUpdate:   time.Now(),
+		NextUpdate:   time.Now().AddDate(0, 1, 0),
 	}
+	keyPEM, _ := ioutil.ReadFile("testdata/ca-key.pem")
+	priv, err := helpers.ParsePrivateKeyPEM(keyPEM)
+	if err != nil {
+		t.Errorf("Error parsing private key: %s", err)
+	}
+
+	// create response
+	response, err := goocsp.CreateResponse(issuer, cert, template, priv)
+
 	// add record for response in db
 	ocsp := certdb.OCSPRecord{
 		AKI:    hex.EncodeToString(req.IssuerKeyHash),
-		Body:   string(respContent),
+		Body:   string(response),
 		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		Serial: req.SerialNumber.String(),
 	}
