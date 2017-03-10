@@ -11,8 +11,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
+	"encoding/binary"
 	"encoding/pem"
 	"errors"
+	"github.com/google/certificate-transparency/go"
 	"io/ioutil"
 	"math/big"
 
@@ -515,4 +517,37 @@ func CreateTLSConfig(remoteCAs *x509.CertPool, cert *tls.Certificate) *tls.Confi
 		Certificates: certs,
 		RootCAs:      remoteCAs,
 	}
+}
+
+// SerializeSCTList serializes a list of SCTs
+func SerializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, sct := range sctList {
+		sct, err := ct.SerializeSCT(sct)
+		if err != nil {
+			return nil, err
+		}
+		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
+		buf.Write(sct)
+	}
+
+	var sctListLengthField = make([]byte, 2)
+	binary.BigEndian.PutUint16(sctListLengthField, uint16(buf.Len()))
+	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
+}
+
+// DeserializeSCTList deserializes a list of SCTs
+func DeserializeSCTList(serializedSCTList []byte) ([]ct.SignedCertificateTimestamp, error) {
+	var sctList []ct.SignedCertificateTimestamp
+	sctReader := bytes.NewReader(serializedSCTList)
+
+	for sctReader.Len() != 0 {
+		sct, err := ct.DeserializeSCT(sctReader)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+		}
+		sctList = append(sctList, *sct)
+	}
+
+	return sctList, nil
 }
