@@ -267,6 +267,9 @@ func TestSqliteRealResponse(t *testing.T) {
 
 	// create response
 	response, err := goocsp.CreateResponse(issuer, cert, template, priv)
+	if err != nil {
+		t.Errorf("Error creating OCSP response: %s", err)
+	}
 
 	// add record for response in db
 	ocsp := certdb.OCSPRecord{
