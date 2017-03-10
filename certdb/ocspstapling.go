@@ -1,12 +1,13 @@
 package certdb
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
-	"encoding/binary"
+	"errors"
+	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/google/certificate-transparency/go"
 	"golang.org/x/crypto/ocsp"
 )
@@ -29,12 +30,17 @@ var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 // value of false).
 // NOTE: This function is patterned after the exported Sign method in
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
-func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp, priv crypto.Signer) bool {
+func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp, priv crypto.Signer) error {
 	// Grab all OCSP records that match serial and aki
 	ocspRecs, err := acc.GetOCSP(serial, aki)
-	if err != nil || len(ocspRecs) == 0 {
-		// { There was an error or the OCSPRecord does not exist }
-		return false
+	if err != nil {
+		// { There was an error }
+		return err
+	}
+
+	if len(ocspRecs) == 0 {
+		// { OCSPRecord does not exist }
+		return cferr.Wrap(cferr.CertStoreError, cferr.RecordNotFound, errors.New("empty OCSPRecord"))
 	}
 
 	// Add the SCTs to each ocsp response
@@ -45,26 +51,30 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 		der, err := base64.StdEncoding.DecodeString(rec.Body)
 		if err != nil {
 			// { decoding error }
-			return false
+			return cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed,
+				errors.New("failed to decode Base64-encoded OCSP response"))
 		}
 
 		response, err := ocsp.ParseResponse(der, nil)
 		if err != nil {
 			// { parsing error }
-			return false
+			return cferr.Wrap(cferr.CertificateError, cferr.ParseFailed,
+				errors.New("failed to parse DER-encoded OCSP response"))
 		}
 
 		// Serialize the list of SCTs
-		serializedSCTList, err := serializeSCTList(scts)
+		serializedSCTList, err := helpers.SerializeSCTList(scts)
 		if err != nil {
 			// { serializing error }
-			return false
+			return cferr.Wrap(cferr.CTError, cferr.Unknown,
+				errors.New("failed to serialize SCT list"))
 		}
 
 		serializedSCTList, err = asn1.Marshal(serializedSCTList)
 		if err != nil {
 			// { serializing error }
-			return false
+			return cferr.Wrap(cferr.CTError, cferr.Unknown,
+				errors.New("failed to serialize SCT list"))
 		}
 
 		// Add the SCT list to a new extension
@@ -104,50 +114,17 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 		der, err = ocsp.CreateResponse(nil, response.Certificate, *response, priv)
 
 		if err != nil {
-			return false
+			return cferr.Wrap(cferr.CTError, cferr.Unknown,
+				errors.New("failed to sign new OCSP response"))
 		}
 
 		body := base64.StdEncoding.EncodeToString(der)
 		err = acc.UpdateOCSP(serial, aki, body, rec.Expiry)
 
 		if err != nil {
-			return false
+			return err
 		}
 	}
 
-	return true
-}
-
-// Copied from
-// https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
-// because of dependency cycle
-func serializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
-	var buf bytes.Buffer
-	for _, sct := range sctList {
-		sct, err := ct.SerializeSCT(sct)
-		if err != nil {
-			return nil, err
-		}
-		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
-		buf.Write(sct)
-	}
-
-	var sctListLengthField = make([]byte, 2)
-	binary.BigEndian.PutUint16(sctListLengthField, uint16(buf.Len()))
-	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
-}
-
-func deserializeSCTList(serializedSCTList []byte) ([]ct.SignedCertificateTimestamp, error) {
-	var sctList []ct.SignedCertificateTimestamp
-	sctReader := bytes.NewReader(serializedSCTList)
-
-	for sctReader.Len() != 0 {
-		sct, err := ct.DeserializeSCT(sctReader)
-		if err != nil {
-			return nil, err
-		}
-		sctList = append(sctList, *sct)
-	}
-
-	return sctList, nil
+	return nil
 }
