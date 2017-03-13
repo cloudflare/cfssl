@@ -43,7 +43,7 @@ before_script:
   - go get -u github.com/golang/lint/golint
   - go get github.com/modocache/gover
   - go get -v github.com/GeertJohan/fgt
-  - go get honnef.co/go/staticcheck/cmd/staticcheck
+  - go get -u honnef.co/go/tools/cmd/staticcheck
   # Setup DBs + run migrations
   - go get bitbucket.org/liamstask/goose/cmd/goose
   - if [[ $(uname -s) == 'Linux' ]]; then
