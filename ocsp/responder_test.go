@@ -208,8 +208,8 @@ func TestSqliteTrivial(t *testing.T) {
 	}
 	accessor.InsertOCSP(ocsp)
 
-	//use Accessor to create new SqliteSource
-	src := NewSqliteSource(accessor)
+	//use Accessor to create new DBSource
+	src := NewDBSource(accessor)
 
 	// call response method on request and check output
 	response, present := src.Response(req)
@@ -280,8 +280,8 @@ func TestSqliteRealResponse(t *testing.T) {
 	}
 	accessor.InsertOCSP(ocsp)
 
-	//use Accessor to create new SqliteSource
-	src := NewSqliteSource(accessor)
+	//use Accessor to create new DBSource
+	src := NewDBSource(accessor)
 
 	// call response method on request and check output
 	response, present := src.Response(req)
