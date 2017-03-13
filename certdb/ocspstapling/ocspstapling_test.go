@@ -90,7 +90,7 @@ func TestStapleSCTList(t *testing.T) {
 }
 
 // TODO: COMMENT
-var serialCounter int64 = 0
+var serialCounter int64
 
 // TODO: COMMENT
 func nextSN() *big.Int {
@@ -107,34 +107,12 @@ func makeCert(issuer *x509.Certificate) (*x509.Certificate, crypto.Signer, error
 		return nil, nil, err
 	}
 
-	rawSubjPubKeyInfo, err := asn1.Marshal(privKey.PublicKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rawSubj, err := asn1.Marshal(pkix.Name{})
-	if err != nil {
-		return nil, nil, err
-	}
-
 	template := x509.Certificate{
-		RawSubjectPublicKeyInfo: rawSubjPubKeyInfo,
-		RawSubject:              rawSubj,
-		SerialNumber:            nextSN(),
-		//Subject: , TODO: REMOVE
-		//NotBefore: ,
-		//NotAfter: ,
-		//KeyUsage: ,
-		//ExtKeyUsage: ,
-		//UnknownExtKeyUsage: ,
-		//BasicConstraintsValid: ,
-		//IsCA: ,
-		//MaxPathLen: ,
-		//SubjectKeyId: ,
-		//DNSNames: ,
-		//PermittedDNSDomainsCritical: ,
-		//PermittedDNSDomains: ,
-		SignatureAlgorithm: x509.SHA256WithRSA,
+		SerialNumber: nextSN(),
+		Subject: pkix.Name{
+			Organization: []string{"Cornell CS 5152"},
+		},
+		AuthorityKeyId: []byte{42, 42, 42, 42},
 	}
 
 	if issuer == nil { // the cert is self-signed
