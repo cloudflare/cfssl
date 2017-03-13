@@ -7,6 +7,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -77,21 +78,27 @@ func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCert
 			idxExt++
 		}
 
-		if idxExt < len(response.Extensions) {
-			// { there's an existing SCT extension in response.Extensions }
-			// Replace the old extension in the OCSP response
-			response.Extensions[idxExt] = sctExtension
-		} else {
+		newExtensions := response.Extensions
+		if idxExt >= len(response.Extensions) {
 			// { there's no SCT extension in response.Extensions }
-			response.Extensions = append(response.Extensions, sctExtension)
+			newExtensions = append(newExtensions, sctExtension)
 		}
 
 		// Write updated extensions to replace existing extensions in
 		// response when re-marshalling
-		response.ExtraExtensions = response.Extensions
+		fmt.Println(response.Certificate) // TODO: DELETE ME
+		template := ocsp.Response{
+			Status:          response.Status,
+			SerialNumber:    response.Certificate.SerialNumber,
+			ThisUpdate:      response.ThisUpdate,
+			NextUpdate:      response.NextUpdate,
+			Certificate:     response.Certificate,
+			ExtraExtensions: newExtensions,
+			IssuerHash:      response.IssuerHash,
+		}
 
 		// Re-sign response to generate the new DER-encoded response
-		der, err = ocsp.CreateResponse(issuer, response.Certificate, *response, priv)
+		der, err = ocsp.CreateResponse(issuer, response.Certificate, template, priv)
 
 		if err != nil {
 			return cferr.Wrap(cferr.CTError, cferr.Unknown,
