@@ -51,21 +51,21 @@ func (src InMemorySource) Response(request *ocsp.Request) (response []byte, pres
 	return
 }
 
-// SqliteSource represnts a source of OCSP responses backed by certdb
-type SqliteSource struct {
+// DBSource represnts a source of OCSP responses backed by certdb
+type DBSource struct {
 	Accessor certdb.Accessor
 }
 
-// NewSqliteSource creates a new SqliteSource type with associated dbAccessor
-func NewSqliteSource(dbAccessor certdb.Accessor) Source {
-	return SqliteSource{
+// NewDBSource creates a new DBSource type with associated dbAccessor
+func NewDBSource(dbAccessor certdb.Accessor) Source {
+	return DBSource{
 		Accessor: dbAccessor,
 	}
 }
 
 // Response implements cfssl.ocsp.responder.Source, returning the OCSP response
 // with the expiration date furthest in the future
-func (src SqliteSource) Response(req *ocsp.Request) ([]byte, bool) {
+func (src DBSource) Response(req *ocsp.Request) ([]byte, bool) {
 	if req == nil {
 		return nil, false
 	}
