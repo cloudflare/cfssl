@@ -53,7 +53,7 @@ do
 done
 
 if ! command -v staticcheck  > /dev/null ; then
-    go get honnef.co/go/tools/cmd/staticcheck
+    go get -u honnef.co/go/tools/cmd/staticcheck
 fi
 
 for package in $PACKAGES
