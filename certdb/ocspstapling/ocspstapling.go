@@ -1,11 +1,13 @@
-package certdb
+package ocspstapling
 
 import (
 	"crypto"
+	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
 	"errors"
+	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/google/certificate-transparency/go"
@@ -30,7 +32,7 @@ var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 // value of false).
 // NOTE: This function is patterned after the exported Sign method in
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
-func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp, priv crypto.Signer) error {
+func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp, issuer *x509.Certificate, priv crypto.Signer) error {
 	// Grab all OCSP records that match serial and aki
 	ocspRecs, err := acc.GetOCSP(serial, aki)
 	if err != nil {
@@ -111,7 +113,7 @@ func StapleSCTList(acc Accessor, serial, aki string, scts []ct.SignedCertificate
 		response.ExtraExtensions = response.Extensions
 
 		// Re-sign response to generate the new DER-encoded response
-		der, err = ocsp.CreateResponse(nil, response.Certificate, *response, priv)
+		der, err = ocsp.CreateResponse(issuer, response.Certificate, *response, priv)
 
 		if err != nil {
 			return cferr.Wrap(cferr.CTError, cferr.Unknown,
