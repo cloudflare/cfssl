@@ -291,7 +291,10 @@ func TestSqliteRealResponse(t *testing.T) {
 		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		Serial: req.SerialNumber.String(),
 	}
-	accessor.InsertOCSP(ocsp)
+	err = accessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into DB: %s", err)
+	}
 
 	// Use the created Accessor to create new DBSource.
 	src := NewDBSource(accessor)
