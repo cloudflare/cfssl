@@ -51,29 +51,32 @@ func (src InMemorySource) Response(request *ocsp.Request) (response []byte, pres
 	return
 }
 
-// DBSource represnts a source of OCSP responses backed by certdb
+// DBSource represnts a source of OCSP responses backed by the certdb package.
 type DBSource struct {
 	Accessor certdb.Accessor
 }
 
-// NewDBSource creates a new DBSource type with associated dbAccessor
+// NewDBSource creates a new DBSource type with an associated dbAccessor.
 func NewDBSource(dbAccessor certdb.Accessor) Source {
 	return DBSource{
 		Accessor: dbAccessor,
 	}
 }
 
-// Response implements cfssl.ocsp.responder.Source, returning the OCSP response
-// with the expiration date furthest in the future
+// Response implements cfssl.ocsp.responder.Source, which returns the
+// OCSP response in the Database for the given request with the expiration
+// date furthest in the future.  Response also returns a bool that is false
+// if there were any errors obtaining the OCSP response and/or no OCSP response
+// is present in the DB for the given request.  Response will return a true
+// bool if the byte array returned is a valid OCSP response.
 func (src DBSource) Response(req *ocsp.Request) ([]byte, bool) {
 	if req == nil {
 		return nil, false
 	}
 
-	// Extract the AKI string from req.IssuerKeyHash
 	aki := hex.EncodeToString(req.IssuerKeyHash)
-
 	sn := req.SerialNumber
+
 	if sn == nil {
 		return nil, false
 	}
@@ -85,16 +88,18 @@ func (src DBSource) Response(req *ocsp.Request) ([]byte, bool) {
 	}
 	records, err := src.Accessor.GetOCSP(strSN, aki)
 
-	// Log on errors obtaining OCSP response
+	// Response() logs when there are errors obtaining the OCSP response
+	// and returns nil, false.
 	if err != nil {
 		log.Errorf("Error obtaining OCSP response: %s", err)
+		return nil, false
 	}
 
 	if len(records) == 0 {
 		return nil, false
 	}
 
-	// Find the OCSPRecord with the expiration date furthest in the future
+	// Response() finds the OCSPRecord with the expiration date furthest in the future.
 	cur := records[0]
 	for _, rec := range records {
 		if rec.Expiry.After(cur.Expiry) {
