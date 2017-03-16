@@ -15,41 +15,41 @@ import (
 	"golang.org/x/crypto/ocsp"
 	"math/big"
 	"os"
+	"reflect"
 	"testing"
 )
 
 func TestStapleSCTList(t *testing.T) {
-	// Create a CA certificate
+	// issuer is a CA certificate.
 	issuer, issuerPrivKey, err := makeCert(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create a certificate for which to make an OCSP response
+	// responderCert is a certificate for which to make an OCSP response.
 	responderCert, _, err := makeCert(issuer)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create an OCSP response
 	template := ocsp.Response{ // TODO: populate
 		SerialNumber: responderCert.SerialNumber,
 		IssuerHash:   crypto.SHA256,
 		Status:       ocsp.Good,
 	}
 
+	// respDER is an OCSP response to be added to the database.
 	respDER, err := ocsp.CreateResponse(issuer, responderCert, template, issuerPrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create an empty DB of OCSP responses
-	// TODO: Test non-sqlite db's
+	// testDB is an empty DB of OCSP responses.
 	gopath := os.Getenv("GOPATH")
 	dbPath := gopath + "/src/github.com/cloudflare/cfssl/certdb/testdb/certstore_development.db"
 	testDB := sql.NewAccessor(testdb.SQLiteDB(dbPath))
 
-	// Store the OCSP response in the DB
+	// Next, we store the OCSP response in the DB.
 	respSN := responderCert.SerialNumber.Text(16)
 	testDB.InsertOCSP(certdb.OCSPRecord{
 		Serial: respSN,
@@ -57,14 +57,13 @@ func TestStapleSCTList(t *testing.T) {
 		//Expiry:, TODO
 	})
 
-	// Insert an SCT for the OCSP response we created
 	var zeroSCT ct.SignedCertificateTimestamp
 	err = StapleSCTList(testDB, respSN, "", []ct.SignedCertificateTimestamp{zeroSCT}, issuer, issuerPrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Verify that the SCT was inserted
+	// Lastly, we verify that the SCT was inserted.
 	recs, err := testDB.GetOCSP(respSN, "")
 	if len(recs) == 0 {
 		t.Fatal("SCT could not be retrieved from DB:", zeroSCT)
@@ -80,12 +79,19 @@ func TestStapleSCTList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scts := helpers.SCTListFromOCSPResponse(response)
+	scts, err := helpers.SCTListFromOCSPResponse(response)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(scts) == 0 {
 		t.Fatal("No SCTs in OCSP response:", response)
 	}
 
-	// TODO: Verify that scts[0] is equivalent to zeroSCT
+	// Here, we check the equivalence of the SCT we inserted with the SCT
+	// returned by SCTListFromOCSPResponse.
+	if !(reflect.DeepEqual(scts[0], zeroSCT)) {
+		t.Fatal("SCTs do not match:", "Got --", scts[0], "Expected --", zeroSCT)
+	}
 }
 
 // serialCounter stores the next serial number to be issued by nextSN.
