@@ -6,7 +6,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/base64"
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/sql"
@@ -55,7 +54,7 @@ func TestStapleSCTList(t *testing.T) {
 	testDB.InsertOCSP(certdb.OCSPRecord{
 		Serial: respSN,
 		Body:   base64.StdEncoding.EncodeToString(respDER),
-		//Expiry:,
+		//Expiry:, TODO
 	})
 
 	// Insert an SCT for the OCSP response we created
@@ -81,7 +80,7 @@ func TestStapleSCTList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scts := SCTListFromOCSPResponse(response)
+	scts := helpers.SCTListFromOCSPResponse(response)
 	if len(scts) == 0 {
 		t.Fatal("No SCTs in OCSP response:", response)
 	}
@@ -89,17 +88,18 @@ func TestStapleSCTList(t *testing.T) {
 	// TODO: Verify that scts[0] is equivalent to zeroSCT
 }
 
-// TODO: COMMENT
+// serialCounter stores the next serial number to be issued by nextSN.
 var serialCounter int64
 
-// TODO: COMMENT
+// nextSN returns a new big.Int for creating x509 certificates.
 func nextSN() *big.Int {
 	i := big.NewInt(serialCounter)
 	serialCounter++
 	return i
 }
 
-// TODO: COMMENT
+// makeCert returns a new x509 certificate with the given issuer certificate.
+// If issuer is nil, the certificate is self-signed.
 func makeCert(issuer *x509.Certificate) (*x509.Certificate, crypto.Signer, error) {
 	// Create a new private key
 	privKey, err := rsa.GenerateKey(rand.Reader, 1024)
@@ -130,44 +130,4 @@ func makeCert(issuer *x509.Certificate) (*x509.Certificate, crypto.Signer, error
 	}
 
 	return cert, privKey, nil
-}
-
-// SCTListFromOCSPResponse extracts the SCTList from an ocsp.Response
-// Returns an empty list if the SCT extension was not found or could not be
-// unmarshalled.
-// TODO: Move to helpers?
-func SCTListFromOCSPResponse(response *ocsp.Response) []ct.SignedCertificateTimestamp {
-	// Find the SCTListExtension in the ocsp response
-	var SCTListExtension, ext pkix.Extension
-	for _, ext = range response.Extensions {
-		if ext.Id.Equal(sctExtOid) {
-			SCTListExtension = ext
-			break
-		}
-	}
-
-	// Extract the sctList from the extension
-	var sctList []ct.SignedCertificateTimestamp
-	if SCTListExtension.Value != nil {
-		// Extract the SCTList
-		var serializedSCTList []byte
-		rest := SCTListExtension.Value
-		// TODO: Is it correct to pass in the same slice to
-		// multiple calls of Unmarshal?
-		for len(rest) != 0 {
-			var err error
-			rest, err = asn1.Unmarshal(rest, &serializedSCTList)
-			if err != nil {
-				// { unmarshaling error }
-				return nil
-			}
-		}
-		desList, err := helpers.DeserializeSCTList(serializedSCTList)
-		if err != nil {
-			// { deserializing error }
-			return nil
-		}
-		sctList = desList
-	}
-	return sctList
 }

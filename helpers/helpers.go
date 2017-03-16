@@ -10,11 +10,13 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/binary"
 	"encoding/pem"
 	"errors"
 	"github.com/google/certificate-transparency/go"
+	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
 	"math/big"
 
@@ -521,7 +523,7 @@ func CreateTLSConfig(remoteCAs *x509.CertPool, cert *tls.Certificate) *tls.Confi
 	}
 }
 
-// SerializeSCTList serializes a list of SCTs
+// SerializeSCTList serializes a list of SCTs.
 func SerializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
 	var buf bytes.Buffer
 	for _, sct := range sctList {
@@ -538,7 +540,7 @@ func SerializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
 	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
 }
 
-// DeserializeSCTList deserializes a list of SCTs
+// DeserializeSCTList deserializes a list of SCTs.
 func DeserializeSCTList(serializedSCTList []byte) ([]ct.SignedCertificateTimestamp, error) {
 	var sctList []ct.SignedCertificateTimestamp
 	sctReader := bytes.NewReader(serializedSCTList)
@@ -552,4 +554,36 @@ func DeserializeSCTList(serializedSCTList []byte) ([]ct.SignedCertificateTimesta
 	}
 
 	return sctList, nil
+}
+
+// SCTListFromOCSPResponse extracts the SCTList from an ocsp.Response
+// Returns an empty list if the SCT extension was not found or could not be
+// unmarshalled.
+func SCTListFromOCSPResponse(response *ocsp.Response) ([]ct.SignedCertificateTimestamp, error) {
+	// This loop finds the SCTListExtension in the OCSP response.
+	var SCTListExtension, ext pkix.Extension
+	for _, ext = range response.Extensions {
+		// sctExtOid is the ObjectIdentifier of a Signed Certificate Timestamp.
+		sctExtOid := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
+		if ext.Id.Equal(sctExtOid) {
+			SCTListExtension = ext
+			break
+		}
+	}
+
+	// This code block extracts the sctList from the SCT extension.
+	var sctList []ct.SignedCertificateTimestamp
+	var err error
+	if SCTListExtension.Value != nil {
+		var serializedSCTList []byte
+		rest := SCTListExtension.Value
+		for len(rest) != 0 {
+			rest, err = asn1.Unmarshal(rest, &serializedSCTList)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+			}
+		}
+		sctList, err = DeserializeSCTList(serializedSCTList)
+	}
+	return sctList, err
 }
