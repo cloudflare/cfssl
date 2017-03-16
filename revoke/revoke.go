@@ -239,15 +239,12 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 	}
 
 	for _, server := range ocspURLs {
-		resp, err := sendOCSPRequest(server, ocspRequest, issuer)
+		resp, err := sendOCSPRequest(server, ocspRequest, leaf, issuer)
 		if err != nil {
 			if strict {
 				return
 			}
 			continue
-		}
-		if err = resp.CheckSignatureFrom(issuer); err != nil {
-			return false, false
 		}
 
 		// There wasn't an error fetching the OCSP status.
@@ -266,7 +263,7 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool) {
 // sendOCSPRequest attempts to request an OCSP response from the
 // server. The error only indicates a failure to *fetch* the
 // certificate, and *does not* mean the certificate is valid.
-func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (*ocsp.Response, error) {
+func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) (*ocsp.Response, error) {
 	var resp *http.Response
 	var err error
 	if len(req) > 256 {
@@ -304,5 +301,5 @@ func sendOCSPRequest(server string, req []byte, issuer *x509.Certificate) (*ocsp
 		return nil, errors.New("OSCP signature required")
 	}
 
-	return ocsp.ParseResponse(body, issuer)
+	return ocsp.ParseResponseForCert(body, leaf, issuer)
 }
