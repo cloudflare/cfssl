@@ -1,3 +1,5 @@
+// Package ocspstapling implements OCSP stapling of Signed Certificate
+// Timestamps (SCTs) into OCSP responses in a database. See RFC 6962.
 package ocspstapling
 
 import (
