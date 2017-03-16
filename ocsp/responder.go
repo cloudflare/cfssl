@@ -17,6 +17,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb/dbconf"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/jmhodges/clock"
 	"golang.org/x/crypto/ocsp"
@@ -86,6 +88,81 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 	return src, nil
 }
 
+// nexUpdate and Interval dictated when the structure
+// should update the in memory reponses,
+// DBaccesor is used to query for new OCSP reponses with the given connection,
+// Responses is a map made from serialNumber -> der(response)
+type DBsource struct {
+	nextUpdate time.Time
+	Interval   time.Duration
+	DBaccessor *sql.Accessor
+	Responses  map[string][]byte
+}
+
+// Response looks up an OCSP response to provide for a given request.
+// BDsource looks up a response purely based on serial number,
+// without regard to what issuer the request is asking for.
+// Responses are updated based on the given time interval in BDsource.
+func (src *DBsource) Response(request *ocsp.Request) (response []byte, present bool) {
+	now := time.Now()
+
+	// Update responses.
+	// This allows responses to be updated only when the service receives requests
+	// and not when is inactive.
+	if src.nextUpdate.Before(now) {
+		updateSource(src)
+		src.nextUpdate = now.Add(src.Interval)
+	}
+
+	response, present = src.Responses[request.SerialNumber.String()]
+	return
+}
+
+// Helper function to update a given DBsource.
+// This function takes the data accessor inside the DBsource structure to query
+// all new OCSP responses and a dumps the data into a in memory structure.
+func updateSource(src *DBsource) {
+	start := time.Now()
+
+	log.Info("OCSP responses are being updated")
+
+	// Get unexprired records
+	records, err := src.DBaccessor.GetUnexpiredOCSPs()
+	if err != nil {
+		log.Errorf("Couldn't access OCSP responses table: %s", err)
+	}
+
+	for _, certRecord := range records {
+		src.Responses[certRecord.Serial] = []byte(certRecord.Body)
+	}
+
+	log.Infof("OCSP responses update finished: %s", time.Since(start))
+}
+
+// NewSourceFromDB reads the given database configuration file,
+// creates a new data accessor,
+// and dumps data accessor and time interval into a new DB Source structure.
+// The given configuration file must have all the needed information to connect
+// to the intended database, wich in turn has all relations required by CFSSL.
+func NewSourceFromDB(DBConfigFile string, interval time.Duration) (Source, error) {
+	// Load DB from cofiguration file
+	db, err := dbconf.DBFromConfig(DBConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create accesor
+	dbAccessor := sql.NewAccessor(db)
+
+	// Initialize source
+	src := DBsource{
+		Interval:   interval,
+		DBaccessor: dbAccessor,
+	}
+
+	return &src, nil
+}
+
 // A Responder object provides the HTTP logic to expose a
 // Source of OCSP responses.
 type Responder struct {
@@ -128,6 +205,13 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		// URL.Path returns a /[PATH] string when using responder for OCSP stapling.
+		// In order to process the request correctly, the "/" must be removed
+		if base64Request[0] == '/' {
+			base64Request = base64Request[1:]
+		}
+
 		// url.QueryUnescape not only unescapes %2B escaping, but it additionally
 		// turns the resulting '+' into a space, which makes base64 decoding fail.
 		// So we go back afterwards and turn ' ' back into '+'. This means we

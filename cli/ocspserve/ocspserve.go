@@ -2,50 +2,69 @@
 package ocspserve
 
 import (
-	"errors"
-	"fmt"
-	"net/http"
+    "errors"
+    "fmt"
+    "net/http"
 
-	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/ocsp"
+    "github.com/cloudflare/cfssl/cli"
+    "github.com/cloudflare/cfssl/log"
+    "github.com/cloudflare/cfssl/ocsp"
 )
 
 // Usage text of 'cfssl serve'
-var ocspServerUsageText = `cfssl ocspserve -- set up an HTTP server that handles OCSP requests from a file (see RFC 5019)
+var ocspServerUsageText = `cfssl ocspserve -- Setup an HTTP server that handles OCSP requests from either a file or directly from a database (see RFC 5019)
+        When a configuration to a database is given a time interval is also required
 
   Usage of ocspserve:
-          cfssl ocspserve [-address address] [-port port] [-responses file]
+          cfssl ocspserve   [-address address] [-port port] \
+                            [-responses file] \
+                            [-db-config db-config]
+                            [-interval 96h]
 
   Flags:
   `
 
 // Flags used by 'cfssl serve'
-var ocspServerFlags = []string{"address", "port", "responses"}
+var ocspServerFlags = []string{"address", "port", "responses", "db-config", "interval"}
 
 // ocspServerMain is the command line entry point to the OCSP responder.
 // It sets up a new HTTP server that responds to OCSP requests.
 func ocspServerMain(args []string, c cli.Config) error {
-	// serve doesn't support arguments.
-	if len(args) > 0 {
-		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
-	}
+    // serve doesn't support arguments.
+    if len(args) > 0 {
+        return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
+    }
 
-	if c.Responses == "" {
-		return errors.New("no response file provided, please set the -responses flag")
-	}
+    // if c.Responses == "" {
+    //  return errors.New("no response file provided, please set the -responses flag")
+    // }
 
-	src, err := ocsp.NewSourceFromFile(c.Responses)
-	if err != nil {
-		return errors.New("unable to read response file")
-	}
+    var src ocsp.Source
 
-	log.Info("Registering OCSP responder handler")
-	http.Handle(c.Path, ocsp.NewResponder(src))
+    if c.Responses != "" {
+        s, err := ocsp.NewSourceFromFile(c.Responses)
+        if err != nil {
+            return errors.New("unable to read response file")
+        }
+        src = s
+    } else if c.DBConfigFile != "" {
+        s, err := ocsp.NewSourceFromDB(c.DBConfigFile, c.Interval)
+        if err != nil {
+            return errors.New("unable to read configuration file")
+        }
+        src = s
+    } else {
+        return errors.New(
+            "no response file or db-config provided, please set the one of these using either -responses or -db-config flags",
+        )
+    }
 
-	addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
-	log.Info("Now listening on ", addr)
-	return http.ListenAndServe(addr, nil)
+    log.Info("Registering OCSP responder handler")
+    http.Handle(c.Path, ocsp.NewResponder(src))
+
+    addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
+    log.Info("Now listening on ", addr)
+    return http.ListenAndServe(addr, nil)
 }
 
 // Command assembles the definition of Command 'ocspserve'
