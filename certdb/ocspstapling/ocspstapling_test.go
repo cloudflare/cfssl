@@ -7,16 +7,17 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"math/big"
+	"os"
+	"reflect"
+	"testing"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/google/certificate-transparency/go"
 	"golang.org/x/crypto/ocsp"
-	"math/big"
-	"os"
-	"reflect"
-	"testing"
 )
 
 func TestStapleSCTList(t *testing.T) {
@@ -54,17 +55,19 @@ func TestStapleSCTList(t *testing.T) {
 	testDB.InsertOCSP(certdb.OCSPRecord{
 		Serial: respSN,
 		Body:   base64.StdEncoding.EncodeToString(respDER),
+		AKI:    "Cornell CS 5152",
 		//Expiry:, TODO
 	})
 
 	var zeroSCT ct.SignedCertificateTimestamp
-	err = StapleSCTList(testDB, respSN, "", []ct.SignedCertificateTimestamp{zeroSCT}, issuer, issuerPrivKey)
+	err = StapleSCTList(testDB, respSN, "Cornell CS 5152", []ct.SignedCertificateTimestamp{zeroSCT},
+		responderCert, issuer, issuerPrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Lastly, we verify that the SCT was inserted.
-	recs, err := testDB.GetOCSP(respSN, "")
+	recs, err := testDB.GetOCSP(respSN, "Cornell CS 5152")
 	if len(recs) == 0 {
 		t.Fatal("SCT could not be retrieved from DB:", zeroSCT)
 	}
