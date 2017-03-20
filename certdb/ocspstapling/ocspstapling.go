@@ -78,7 +78,7 @@ func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCert
 		}
 
 		// TODO: Do I need to copy this?
-		newExtensions := make([]pkix.Extension, len(response.Extensions)+1)
+		newExtensions := make([]pkix.Extension, len(response.Extensions))
 		copy(newExtensions, response.Extensions)
 		if idxExt >= len(response.Extensions) {
 			// No SCT extension was found.
