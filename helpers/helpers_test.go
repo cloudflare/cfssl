@@ -545,6 +545,50 @@ func TestDeserializeSCTList(t *testing.T) {
 	if !sctEquals(zeroSCT, (*deserializedSCTList)[0]) {
 		t.Fatal("SCTs don't match")
 	}
+
+	// Here we verify that an error is raised when the SCT list length
+	// field is greater than its actual length
+	serializedSCT, err = SerializeSCTList([]ct.SignedCertificateTimestamp{zeroSCT})
+	if err != nil {
+		t.Fatal(err)
+	}
+	serializedSCT[0] = 15
+	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	if err == nil {
+		t.Fatalf("DeserializeSCTList should raise an error when " +
+			"the SCT list length field and the list length don't match\n")
+	}
+
+	// Here we verify that an error is raised when the SCT list length
+	// field is less than its actual length
+	serializedSCT[0] = 0
+	serializedSCT[1] = 0
+	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	if err == nil {
+		t.Fatalf("DeserializeSCTList should raise an error when " +
+			"the SCT list length field and the list length don't match\n")
+	}
+
+	// Here we verify that an error is raised when the SCT length field is
+	// greater than its actual length
+	serializedSCT[0] = 0
+	serializedSCT[1] = 49
+	serializedSCT[2] = 1
+	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	if err == nil {
+		t.Fatalf("DeserializeSCTList should raise an error when " +
+			"the SCT length field and the SCT length don't match\n")
+	}
+
+	// Here we verify that an error is raised when the SCT length field is
+	// less than its actual length
+	serializedSCT[2] = 0
+	serializedSCT[3] = 0
+	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	if err == nil {
+		t.Fatalf("DeserializeSCTList should raise an error when " +
+			"the SCT length field and the SCT length don't match\n")
+	}
 }
 
 func TestSCTListFromOCSPResponse(t *testing.T) {

@@ -556,6 +556,9 @@ func DeserializeSCTList(serializedSCTList []byte) (*[]ct.SignedCertificateTimest
 		}
 		return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 	}
+	if sctReader.Len() != int(sctListLen) {
+		return sctList, errors.New("SCT length field and SCT length don't match")
+	}
 
 	for err != io.EOF {
 		var sctLen uint16
