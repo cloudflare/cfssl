@@ -1,6 +1,7 @@
 package ocspstapling
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -9,7 +10,6 @@ import (
 	"encoding/base64"
 	"math/big"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/cloudflare/cfssl/certdb"
@@ -33,7 +33,7 @@ func TestStapleSCTList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	template := ocsp.Response{ // TODO: populate
+	template := ocsp.Response{
 		SerialNumber: responderCert.SerialNumber,
 		IssuerHash:   crypto.SHA256,
 		Status:       ocsp.Good,
@@ -56,7 +56,6 @@ func TestStapleSCTList(t *testing.T) {
 		Serial: respSN,
 		Body:   base64.StdEncoding.EncodeToString(respDER),
 		AKI:    "Cornell CS 5152",
-		//Expiry:, TODO
 	})
 
 	var zeroSCT ct.SignedCertificateTimestamp
@@ -68,6 +67,9 @@ func TestStapleSCTList(t *testing.T) {
 
 	// Lastly, we verify that the SCT was inserted.
 	recs, err := testDB.GetOCSP(respSN, "Cornell CS 5152")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(recs) == 0 {
 		t.Fatal("SCT could not be retrieved from DB:", zeroSCT)
 	}
@@ -92,8 +94,22 @@ func TestStapleSCTList(t *testing.T) {
 
 	// Here, we check the equivalence of the SCT we inserted with the SCT
 	// returned by SCTListFromOCSPResponse.
-	if !(reflect.DeepEqual(scts[0], zeroSCT)) {
-		t.Fatal("SCTs do not match:", "Got --", scts[0], "Expected --", zeroSCT)
+
+	// sctEquals returns true if all fields of both SCTs are equivalent.
+	sctEquals := func(sctA, sctB ct.SignedCertificateTimestamp) bool {
+		if sctA.SCTVersion == sctB.SCTVersion &&
+			sctA.LogID == sctB.LogID &&
+			sctA.Timestamp == sctB.Timestamp &&
+			bytes.Equal(sctA.Extensions, sctB.Extensions) &&
+			sctA.Signature.Algorithm == sctB.Signature.Algorithm &&
+			bytes.Equal(sctA.Signature.Signature, sctA.Signature.Signature) {
+			return true
+		}
+		return false
+	}
+
+	if !sctEquals(scts[0], zeroSCT) {
+		t.Fatal("SCTs do not match:", "\nGot --", scts[0], "\nExpected --", zeroSCT)
 	}
 }
 

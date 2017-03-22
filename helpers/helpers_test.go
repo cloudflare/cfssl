@@ -1,16 +1,23 @@
 package helpers
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"io/ioutil"
 	"math"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/ocsp"
+
+	"github.com/google/certificate-transparency/go"
 )
 
 const (
@@ -496,5 +503,81 @@ func TestLoadPEMCertPool(t *testing.T) {
 		t.Fatalf("%v", err)
 	} else if certPool == nil {
 		t.Fatal("cert pool not created")
+	}
+}
+
+// sctEquals returns true if all fields of both SCTs are equivalent.
+func sctEquals(sctA, sctB ct.SignedCertificateTimestamp) bool {
+	if sctA.SCTVersion == sctB.SCTVersion &&
+		sctA.LogID == sctB.LogID &&
+		sctA.Timestamp == sctB.Timestamp &&
+		bytes.Equal(sctA.Extensions, sctB.Extensions) &&
+		sctA.Signature.Algorithm == sctB.Signature.Algorithm &&
+		bytes.Equal(sctA.Signature.Signature, sctA.Signature.Signature) {
+		return true
+	}
+	return false
+}
+
+// NOTE: TestDeserializeSCTList tests both DeserializeSCTList and
+// SerializeSCTList.
+func TestDeserializeSCTList(t *testing.T) {
+	// Here we make sure that empty SCT lists return an error
+	emptyLists := [][]byte{nil, {}}
+	for _, emptyList := range emptyLists {
+		_, err := DeserializeSCTList(emptyList)
+		if err == nil {
+			t.Fatalf("DeserializeSCTList(%v) should raise an error\n", emptyList)
+		}
+	}
+
+	// Here we make sure that an SCT list with a zero SCT is deserialized
+	// correctly
+	var zeroSCT ct.SignedCertificateTimestamp
+	serializedSCT, err := SerializeSCTList([]ct.SignedCertificateTimestamp{zeroSCT})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deserializedSCTList, err := DeserializeSCTList(serializedSCT)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sctEquals(zeroSCT, (*deserializedSCTList)[0]) {
+		t.Fatal("SCTs don't match")
+	}
+}
+
+func TestSCTListFromOCSPResponse(t *testing.T) {
+	var response ocsp.Response
+	lst, err := SCTListFromOCSPResponse(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lst) != 0 {
+		t.Fatal("SCTListFromOCSPResponse should return an empty SCT list for an empty extension")
+	}
+
+	var zeroSCT ct.SignedCertificateTimestamp
+	serializedSCTList, err := SerializeSCTList([]ct.SignedCertificateTimestamp{zeroSCT})
+	if err != nil {
+		t.Fatal("failed to serialize SCT list")
+	}
+	serializedSCTList, err = asn1.Marshal(serializedSCTList)
+	if err != nil {
+		t.Fatal("failed to serialize SCT list")
+	}
+	// The value of Id below is the object identifier of the OCSP Stapling
+	// SCT extension (see section 3.3. of RFC 6962).
+	response.Extensions = []pkix.Extension{pkix.Extension{
+		Id:       asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5},
+		Critical: false,
+		Value:    serializedSCTList,
+	}}
+	lst, err = SCTListFromOCSPResponse(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sctEquals(zeroSCT, lst[0]) {
+		t.Fatal("SCTs don't match")
 	}
 }
