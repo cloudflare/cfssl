@@ -553,7 +553,7 @@ func TestDeserializeSCTList(t *testing.T) {
 		t.Fatal(err)
 	}
 	serializedSCT[0] = 15
-	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	_, err = DeserializeSCTList(serializedSCT)
 	if err == nil {
 		t.Fatalf("DeserializeSCTList should raise an error when " +
 			"the SCT list length field and the list length don't match\n")
@@ -563,7 +563,7 @@ func TestDeserializeSCTList(t *testing.T) {
 	// field is less than its actual length
 	serializedSCT[0] = 0
 	serializedSCT[1] = 0
-	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	_, err = DeserializeSCTList(serializedSCT)
 	if err == nil {
 		t.Fatalf("DeserializeSCTList should raise an error when " +
 			"the SCT list length field and the list length don't match\n")
@@ -574,7 +574,7 @@ func TestDeserializeSCTList(t *testing.T) {
 	serializedSCT[0] = 0
 	serializedSCT[1] = 49
 	serializedSCT[2] = 1
-	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	_, err = DeserializeSCTList(serializedSCT)
 	if err == nil {
 		t.Fatalf("DeserializeSCTList should raise an error when " +
 			"the SCT length field and the SCT length don't match\n")
@@ -584,7 +584,7 @@ func TestDeserializeSCTList(t *testing.T) {
 	// less than its actual length
 	serializedSCT[2] = 0
 	serializedSCT[3] = 0
-	deserializedSCTList, err = DeserializeSCTList(serializedSCT)
+	_, err = DeserializeSCTList(serializedSCT)
 	if err == nil {
 		t.Fatalf("DeserializeSCTList should raise an error when " +
 			"the SCT length field and the SCT length don't match\n")
@@ -612,7 +612,7 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 	}
 	// The value of Id below is the object identifier of the OCSP Stapling
 	// SCT extension (see section 3.3. of RFC 6962).
-	response.Extensions = []pkix.Extension{pkix.Extension{
+	response.Extensions = []pkix.Extension{{
 		Id:       asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5},
 		Critical: false,
 		Value:    serializedSCTList,
