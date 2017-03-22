@@ -79,17 +79,17 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool) {
 			log.Info("certificate is revoked via CRL")
 			return true, true
 		}
+	}
 
-		if revoked, ok := certIsRevokedOCSP(cert, HardFail); !ok {
-			log.Warning("error checking revocation via OCSP")
-			if HardFail {
-				return true, false
-			}
-			return false, false
-		} else if revoked {
-			log.Info("certificate is revoked via OCSP")
-			return true, true
+	if revoked, ok := certIsRevokedOCSP(cert, HardFail); !ok {
+		log.Warning("error checking revocation via OCSP")
+		if HardFail {
+			return true, false
 		}
+		return false, false
+	} else if revoked {
+		log.Info("certificate is revoked via OCSP")
+		return true, true
 	}
 
 	return false, true
