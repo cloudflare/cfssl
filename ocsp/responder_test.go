@@ -310,3 +310,11 @@ func TestSqliteRealResponse(t *testing.T) {
 		t.Errorf("Error parsing response: %v", err)
 	}
 }
+
+func TestNewSqliteSource(t *testing.T) {
+	dbpath := "sqlite_test.db"
+	src, err := NewSqliteSource(dbpath)
+	if err != nil {
+		t.Errorf("Error connection to Sqlite DB:", err)
+	}
+}

@@ -15,6 +15,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
+	"net/url"
 
 	"strings"
 	"time"
@@ -516,5 +517,24 @@ func CreateTLSConfig(remoteCAs *x509.CertPool, cert *tls.Certificate) *tls.Confi
 	return &tls.Config{
 		Certificates: certs,
 		RootCAs:      remoteCAs,
+	}
+}
+
+// ParseConnectionStr parses a string representing the source of OCSP responses
+// which can either be a file or the path to a DB (Sqlite, MySQL or PostgreSQL).
+// It returns the type of the connection string (e.g. "File" or "MySQL" etc.) as
+// well as the path to the source.
+func ParseConnectionStr(conn string) (string, string, error) {
+	u, err := url.Parse(conn)
+	if err != nil {
+		return "", "", err
+	}
+	switch u.Scheme {
+	case "", "file":
+		return "file", u.Path, nil
+	case "sqlite3":
+		return "sqlite", u.Path, nil
+	default:
+		return "DB", u.Path, nil
 	}
 }
