@@ -19,8 +19,10 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/jmhodges/clock"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -61,6 +63,19 @@ func NewDBSource(dbAccessor certdb.Accessor) Source {
 	return DBSource{
 		Accessor: dbAccessor,
 	}
+}
+
+// NewSqliteSource creates a new DBSource object with a Sqlite3 dbAccessor from
+// a given Sqlite connection string.
+// ?? Not sure where this function should live...this may not be the right place ??
+func NewSqliteSource(dbpath string) (Source, error) {
+	db, err := sqlx.Open("sqlite3", dbpath)
+	if err != nil {
+		return nil, err
+	}
+	accessor := sql.NewAccessor(db)
+	src := NewDBSource(accessor)
+	return src, nil
 }
 
 // Response implements cfssl.ocsp.responder.Source, which returns the
