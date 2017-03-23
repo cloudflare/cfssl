@@ -623,5 +623,16 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 	}
 	if !sctEquals(zeroSCT, lst[0]) {
 		t.Fatal("SCTs don't match")
+
+func TestParseConnectionStr(t *testing.T) {
+	filePath := "/path/to/file.txt"
+	typ, path, err := ParseConnectionStr(filePath)
+	if typ != "file" || path != "/path/to/file.txt" || err != nil {
+		t.Fatal("Incorrect parsing of file path")
+	}
+	sqliteStr := "sqlite3:///path/to/db/file.db"
+	typ, path, err = ParseConnectionStr(sqliteStr)
+	if typ != "sqlite" || path != "/path/to/db/file.db" || err != nil {
+		t.Fatal("Incorrect parsing of sqlite connection string")
 	}
 }

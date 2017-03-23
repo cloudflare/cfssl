@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
 )
@@ -36,24 +37,23 @@ func ocspServerMain(args []string, c cli.Config) error {
 		return errors.New("no response file provided, please set the -responses flag")
 	}
 
-	// Parse connection string representing source of OCSP responses
-	u, err := url.Parse(c.Responses)
+	typ, path, err := helpers.ParseConnectionStr(c.Responses)
 	if err != nil {
-		return errors.New("unrecognized connection string format")
+		return errors.New("unable to parse responses connection string")
 	}
-	switch u.Scheme {
+	switch typ {
 	case "file":
-		src, err := ocsp.NewSourceFromFile(u.Path)
+		src, err := ocsp.NewSourceFromFile(path)
 		if err != nil {
 			return errors.New("unable to read response file")
 		}
-	case "sqlite3":
-		src, err := ocsp.NewSqliteSource(u.Path)
+	case "sqlite":
+		src, err := ocsp.NewSqliteSource(path)
 		if err != nil {
 			return errors.New("unable to read Sqlite connection string")
 		}
 	default:
-		return errors.New("TODO")
+		return errors.New("TODO not sure what to do in this case")
 	}
 
 	log.Info("Registering OCSP responder handler")
