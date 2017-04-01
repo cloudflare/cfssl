@@ -10,11 +10,17 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/binary"
 	"encoding/pem"
 	"errors"
+	"io"
 	"io/ioutil"
 	"math/big"
+
+	"github.com/google/certificate-transparency/go"
+	"golang.org/x/crypto/ocsp"
 
 	"strings"
 	"time"
@@ -517,4 +523,100 @@ func CreateTLSConfig(remoteCAs *x509.CertPool, cert *tls.Certificate) *tls.Confi
 		Certificates: certs,
 		RootCAs:      remoteCAs,
 	}
+}
+
+// SerializeSCTList serializes a list of SCTs.
+func SerializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, sct := range sctList {
+		sct, err := ct.SerializeSCT(sct)
+		if err != nil {
+			return nil, err
+		}
+		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
+		buf.Write(sct)
+	}
+
+	var sctListLengthField = make([]byte, 2)
+	binary.BigEndian.PutUint16(sctListLengthField, uint16(buf.Len()))
+	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
+}
+
+// DeserializeSCTList deserializes a list of SCTs.
+func DeserializeSCTList(serializedSCTList []byte) (*[]ct.SignedCertificateTimestamp, error) {
+	sctList := new([]ct.SignedCertificateTimestamp)
+	sctReader := bytes.NewBuffer(serializedSCTList)
+
+	var sctListLen uint16
+	err := binary.Read(sctReader, binary.BigEndian, &sctListLen)
+	if err != nil {
+		if err == io.EOF {
+			return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown,
+				errors.New("serialized SCT list could not be read"))
+		}
+		return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+	}
+	if sctReader.Len() != int(sctListLen) {
+		return sctList, errors.New("SCT length field and SCT length don't match")
+	}
+
+	for err != io.EOF {
+		var sctLen uint16
+		err = binary.Read(sctReader, binary.BigEndian, &sctLen)
+		if err != nil {
+			if err == io.EOF {
+				return sctList, nil
+			}
+			return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+		}
+
+		if sctReader.Len() < int(sctLen) {
+			return sctList, errors.New("SCT length field and SCT length don't match")
+		}
+
+		serializedSCT := sctReader.Next(int(sctLen))
+		sct, err := ct.DeserializeSCT(bytes.NewReader(serializedSCT))
+		if err != nil {
+			return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+		}
+
+		temp := append(*sctList, *sct)
+		sctList = &temp
+	}
+
+	return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+}
+
+// SCTListFromOCSPResponse extracts the SCTList from an ocsp.Response,
+// returning an empty list if the SCT extension was not found or could not be
+// unmarshalled.
+func SCTListFromOCSPResponse(response *ocsp.Response) ([]ct.SignedCertificateTimestamp, error) {
+	// This loop finds the SCTListExtension in the OCSP response.
+	var SCTListExtension, ext pkix.Extension
+	for _, ext = range response.Extensions {
+		// sctExtOid is the ObjectIdentifier of a Signed Certificate Timestamp.
+		sctExtOid := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5}
+		if ext.Id.Equal(sctExtOid) {
+			SCTListExtension = ext
+			break
+		}
+	}
+
+	// This code block extracts the sctList from the SCT extension.
+	var emptySCTList []ct.SignedCertificateTimestamp
+	sctList := &emptySCTList
+	var err error
+	if numBytes := len(SCTListExtension.Value); numBytes != 0 {
+		serializedSCTList := new([]byte)
+		rest := make([]byte, numBytes)
+		copy(rest, SCTListExtension.Value)
+		for len(rest) != 0 {
+			rest, err = asn1.Unmarshal(rest, serializedSCTList)
+			if err != nil {
+				return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+			}
+		}
+		sctList, err = DeserializeSCTList(*serializedSCTList)
+	}
+	return *sctList, err
 }
