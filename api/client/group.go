@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/info"
@@ -49,7 +50,7 @@ func NewGroup(remotes []string, tlsConfig *tls.Config, strategy Strategy) (Remot
 		if err != nil {
 			return nil, err
 		}
-		servers[i], _ = newServer(u, tlsConfig)
+		servers[i] = newServer(u, tlsConfig)
 	}
 
 	switch strategy {

@@ -64,9 +64,10 @@ func NewServerTLS(addr string, tlsConfig *tls.Config) Remote {
 	} else {
 		u, err := normalizeURL(addrs[0])
 		if err != nil {
+			log.Errorf("bad url: %v", err)
 			return nil
 		}
-		srv, _ := newServer(u, tlsConfig)
+		srv := newServer(u, tlsConfig)
 		if srv != nil {
 			remote = srv
 		}
@@ -86,9 +87,12 @@ func (srv *server) SetRequestTimeout(timeout time.Duration) {
 	srv.RequestTimeout = timeout
 }
 
-func newServer(u *url.URL, tlsConfig *tls.Config) (*server, error) {
+func newServer(u *url.URL, tlsConfig *tls.Config) *server {
 	URL := u.String()
-	return &server{URL, tlsConfig, nil}, nil
+	return &server{
+		URL:       URL,
+		TLSConfig: tlsConfig,
+	}
 }
 
 func (srv *server) getURL(endpoint string) string {
@@ -110,7 +114,7 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	if srv.TLSConfig != nil {
 		client.Transport = srv.createTLSTransport()
 	}
-	if !srv.RequestTimeout.IsZero() {
+	if srv.RequestTimeout != 0 {
 		client.Timeout = srv.RequestTimeout
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
