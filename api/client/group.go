@@ -73,6 +73,12 @@ func (g *orderedListGroup) Hosts() []string {
 	return hosts
 }
 
+func (g *orderedListGroup) SetRequestTimeout(timeout time.Duration) {
+	for _, srv := range g.remotes {
+		srv.SetRequestTimeout(timeout)
+	}
+}
+
 func newOrdererdListGroup(remotes []*server) (Remote, error) {
 	return &orderedListGroup{
 		remotes: remotes,
