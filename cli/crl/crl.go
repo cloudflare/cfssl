@@ -2,7 +2,6 @@
 package crl
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/cloudflare/cfssl/certdb/dbconf"
@@ -50,12 +49,12 @@ func generateCRL(c cli.Config) (crlBytes []byte, err error) {
 	dbAccessor := certsql.NewAccessor(db)
 
 	log.Debug("loading CA: ", c.CAFile)
-	ca, err := ioutil.ReadFile(c.CAFile)
+	ca, err := helpers.ReadBytes(c.CAFile)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("loading CA key: ", c.CAKeyFile)
-	cakey, err := ioutil.ReadFile(c.CAKeyFile)
+	cakey, err := helpers.ReadBytes(c.CAKeyFile)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.ReadFailed, err)
 	}

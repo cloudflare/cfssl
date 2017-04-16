@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"errors"
-	"io/ioutil"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -54,7 +53,7 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		}
 
 		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
-		if req.CA.PathLength != 0 && req.CA.PathLenZero == true {
+		if req.CA.PathLength != 0 && req.CA.PathLenZero {
 			log.Infof("ignore invalid 'pathlenzero' value")
 		} else {
 			policy.Default.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
@@ -90,7 +89,7 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 
 // NewFromPEM creates a new root certificate from the key file passed in.
 func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byte, err error) {
-	privData, err := ioutil.ReadFile(keyFile)
+	privData, err := helpers.ReadBytes(keyFile)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,7 +108,7 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 // is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
 // will be valid from now and expire in one year as well.
 func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
-	caBytes, err := ioutil.ReadFile(caFile)
+	caBytes, err := helpers.ReadBytes(caFile)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +118,7 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 		return nil, err
 	}
 
-	keyBytes, err := ioutil.ReadFile(keyFile)
+	keyBytes, err := helpers.ReadBytes(keyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +129,6 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 	}
 
 	return RenewFromSigner(ca, key)
-
 }
 
 // NewFromSigner creates a new root certificate from a crypto.Signer.
