@@ -584,7 +584,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	bundle.Issuer = &cert.Issuer
 	bundle.Subject = &cert.Subject
 
-	bundle.buildHostnames()
+	bundle.BuildHostnames()
 
 	if flavor == Force {
 		// force bundle checks the certificates
