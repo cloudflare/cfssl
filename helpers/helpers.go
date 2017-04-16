@@ -15,9 +15,11 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math/big"
+	"os"
 
 	"github.com/google/certificate-transparency/go"
 	"golang.org/x/crypto/ocsp"
@@ -619,4 +621,28 @@ func SCTListFromOCSPResponse(response *ocsp.Response) ([]ct.SignedCertificateTim
 		sctList, err = DeserializeSCTList(*serializedSCTList)
 	}
 	return *sctList, err
+}
+
+// ReadBytes reads a []byte either from a file or an environment variable.
+// If valFile has a prefix of 'env:', the []byte is read from the environment
+// using the subsequent name. If the prefix is 'file:' the []byte is read from
+// the subsequent file. If no prefix is provided, valFile is assumed to be a
+// file path.
+func ReadBytes(valFile string) ([]byte, error) {
+	switch splitVal := strings.SplitN(valFile, ":", 2); len(splitVal) {
+	case 1:
+		return ioutil.ReadFile(valFile)
+	case 2:
+		switch splitVal[0] {
+		case "env":
+			return []byte(os.Getenv(splitVal[1])), nil
+		case "file":
+			return ioutil.ReadFile(splitVal[1])
+		default:
+			return nil, fmt.Errorf("unknown prefix: %s", splitVal[0])
+		}
+	default:
+		return nil, fmt.Errorf("multiple prefixes: %s",
+			strings.Join(splitVal[:len(splitVal)-1], ", "))
+	}
 }

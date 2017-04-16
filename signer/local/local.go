@@ -12,7 +12,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"net/http"
@@ -67,12 +66,12 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 // and a caKey file, both PEM encoded.
 func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signer, error) {
 	log.Debug("Loading CA: ", caFile)
-	ca, err := ioutil.ReadFile(caFile)
+	ca, err := helpers.ReadBytes(caFile)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("Loading CA key: ", caKeyFile)
-	cakey, err := ioutil.ReadFile(caKeyFile)
+	cakey, err := helpers.ReadBytes(caKeyFile)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.ReadFailed, err)
 	}

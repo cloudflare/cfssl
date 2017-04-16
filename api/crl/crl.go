@@ -4,7 +4,6 @@ package crl
 import (
 	"crypto"
 	"crypto/x509"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -27,12 +26,12 @@ type Handler struct {
 
 // NewHandler returns a new http.Handler that handles a revoke request.
 func NewHandler(dbAccessor certdb.Accessor, caPath string, caKeyPath string) (http.Handler, error) {
-	ca, err := ioutil.ReadFile(caPath)
+	ca, err := helpers.ReadBytes(caPath)
 	if err != nil {
 		return nil, err
 	}
 
-	caKey, err := ioutil.ReadFile(caKeyPath)
+	caKey, err := helpers.ReadBytes(caKeyPath)
 	if err != nil {
 		return nil, errors.Wrap(errors.PrivateKeyError, errors.ReadFailed, err)
 	}
