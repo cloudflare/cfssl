@@ -312,7 +312,7 @@ func TestSqliteRealResponse(t *testing.T) {
 }
 
 func TestNewSqliteSource(t *testing.T) {
-	dbpath := "sqlite_test.db"
+	dbpath := "testdata/sqlite_test.db"
 	_, err := NewSqliteSource(dbpath)
 	if err != nil {
 		t.Errorf("Error connection to Sqlite DB:", err)
