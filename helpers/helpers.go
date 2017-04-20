@@ -534,6 +534,10 @@ func ParseConnectionStr(conn string) (string, string, error) {
 		return "file", u.Path, nil
 	case "sqlite3":
 		return "sqlite", u.Path, nil
+	case "mysql":
+		return "mysql", conn[8:], nil
+	case "postgresql":
+		return "postgres", "dbname=" + u.Path[1:] + " sslmode=disable", nil
 	default:
 		return "DB", u.Path, nil
 	}

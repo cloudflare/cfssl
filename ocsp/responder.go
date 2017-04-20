@@ -65,11 +65,13 @@ func NewDBSource(dbAccessor certdb.Accessor) Source {
 	}
 }
 
-// NewSqliteSource creates a new DBSource object with a Sqlite3 dbAccessor from
-// a given Sqlite connection string.
-// ?? Not sure where this function should live...this may not be the right place ??
-func NewSqliteSource(dbpath string) (Source, error) {
-	db, err := sqlx.Open("sqlite3", dbpath)
+// NewSourceFromConnStr creates a new DBSource object with an associated
+// dbAccessor. They type of the DB connection is specificied by the typ
+// argument, and this function currently supports Sqlite, MySQL and PostgreSQL.
+// The dbpath argument is a connection string aiding in connecting to the
+// associated DB type.
+func NewSourceFromConnStr(typ, dbpath string) (Source, error) {
+	db, err := sqlx.Open(typ, dbpath)
 	if err != nil {
 		return nil, err
 	}
