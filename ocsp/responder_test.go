@@ -311,10 +311,31 @@ func TestSqliteRealResponse(t *testing.T) {
 	}
 }
 
+// Manually run the query "SELECT max(version_id) FROM goose_db_version;"
+// on testdata/sqlite_test.db after running this test to verify that the
+// DB was properly connected to.
 func TestNewSqliteSource(t *testing.T) {
 	dbpath := "testdata/sqlite_test.db"
 	_, err := NewSourceFromConnStr("sqlite3", dbpath)
 	if err != nil {
 		t.Errorf("Error connecting to Sqlite DB:", err)
+	}
+}
+
+func TestNewMySQLSource(t *testing.T) {
+	dbpath := "root@tcp(localhost:3306)/certdb_development?parseTime=true"
+	// Error should be thrown here if DB cannot be connected to.
+	_, err := NewSourceFromConnStr("mysql", dbpath)
+	if err != nil {
+		t.Errorf("Error connecting to MySQL DB:", err)
+	}
+}
+
+func TestNewPostgresSource(t *testing.T) {
+	dbpath := "dbname=certdb_development sslmode=disable"
+	// Error should be thrown here if DB cannot be connected to.
+	_, err := NewSourceFromConnStr("postgres", dbpath)
+	if err != nil {
+		t.Errorf("Error connecting to PostgreSQL DB:", err)
 	}
 }
