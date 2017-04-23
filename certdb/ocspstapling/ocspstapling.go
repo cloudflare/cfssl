@@ -20,12 +20,12 @@ import (
 // sctExtOid is the OID of the OCSP Stapling SCT extension (see section 3.3. of RFC 6962).
 var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5}
 
-// StapleSCTList inserts a list of Signed Certificate Timestamps into all OCSP
-// responses in a database wrapped by a given certdb.Accessor.
+// StapleSCTListDB inserts a list of Signed Certificate Timestamps into all
+// OCSP responses in a database wrapped by a given certdb.Accessor.
 //
 // NOTE: This function is patterned after the exported Sign method in
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
-func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp,
+func StapleSCTListDB(acc certdb.Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp,
 	responderCert, issuer *x509.Certificate, priv crypto.Signer) error {
 	ocspRecs, err := acc.GetOCSP(serial, aki)
 	if err != nil {
@@ -34,6 +34,18 @@ func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCert
 
 	if len(ocspRecs) == 0 {
 		return cferr.Wrap(cferr.CertStoreError, cferr.RecordNotFound, errors.New("empty OCSPRecord"))
+	}
+
+	serializedSCTList, err := helpers.SerializeSCTList(scts)
+	if err != nil {
+		return cferr.Wrap(cferr.CTError, cferr.Unknown,
+			errors.New("failed to serialize SCT list"))
+	}
+
+	serializedSCTList, err = asn1.Marshal(serializedSCTList)
+	if err != nil {
+		return cferr.Wrap(cferr.CTError, cferr.Unknown,
+			errors.New("failed to serialize SCT list"))
 	}
 
 	// This loop adds the SCTs to each OCSP response in ocspRecs.
@@ -48,18 +60,6 @@ func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCert
 		if err != nil {
 			return cferr.Wrap(cferr.CertificateError, cferr.ParseFailed,
 				errors.New("failed to parse DER-encoded OCSP response"))
-		}
-
-		serializedSCTList, err := helpers.SerializeSCTList(scts)
-		if err != nil {
-			return cferr.Wrap(cferr.CTError, cferr.Unknown,
-				errors.New("failed to serialize SCT list"))
-		}
-
-		serializedSCTList, err = asn1.Marshal(serializedSCTList)
-		if err != nil {
-			return cferr.Wrap(cferr.CTError, cferr.Unknown,
-				errors.New("failed to serialize SCT list"))
 		}
 
 		sctExtension := pkix.Extension{
