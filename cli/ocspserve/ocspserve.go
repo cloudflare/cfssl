@@ -48,23 +48,23 @@ func ocspServerMain(args []string, c cli.Config) error {
 			return errors.New("unable to read response file")
 		}
 	case "sqlite":
-		src, err := ocsp.NewSqliteSource(path)
+		src, err := ocsp.NewSourceFromConnStr("sqlite", path)
 		if err != nil {
 			return errors.New("unable to read Sqlite connection string")
 		}
 	case "mysql":
-		src, err := ocsp.NewMySQLSource(path)
+		src, err := ocsp.NewSourceFromConnStr("mysql", path)
 		if err != nil {
 			return errors.New("unable to read MySQL connection string")
 		}
 	case "postgres":
-		src, err := ocsp.NewPostgresSource(path)
+		src, err := ocsp.NewSourceFromConnStr("postgres", path)
 		if err != nil {
 			return errors.New("unable to read PostgreSQL connection string")
 		}
 	default:
-		// TODO: I can probably to something more intelligent here
-		return errors.New("not sure what to do in this case")
+		// TODO: not sure if I should do something more intelligent in this case
+		return errors.New("unrecognized connection string format")
 	}
 
 	log.Info("Registering OCSP responder handler")
