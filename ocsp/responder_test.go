@@ -337,9 +337,20 @@ func TestRealResponse(t *testing.T) {
 		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		Serial: req.SerialNumber.String(),
 	}
-	err = accessor.InsertOCSP(ocsp)
+
+	err = sqliteAccessor.InsertOCSP(ocsp)
 	if err != nil {
-		t.Errorf("Error inserting OCSP record into DB: %s", err)
+		t.Errorf("Error inserting OCSP record into SQLite DB: %s", err)
+	}
+
+	err = mysqlAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into MySQL DB: %s", err)
+	}
+
+	err = postgresAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into PostgreSQL DB: %s", err)
 	}
 
 	// Use the created Accessor to create new DBSource.
