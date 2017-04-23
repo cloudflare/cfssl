@@ -113,7 +113,7 @@ func testSCTStapling(t *testing.T, cert *x509.Certificate) {
 	}
 	serializedSCT, err := ct.SerializeSCT(sct)
 	if err != nil {
-		t.Fatal("Failed to serialize SCT: %s", err)
+		t.Fatal("Failed to serialize SCT:", err)
 	}
 	sctRecord := certdb.SCTRecord{
 		Serial:    cert.SerialNumber.String(),
@@ -157,7 +157,7 @@ func testSCTStapling(t *testing.T, cert *x509.Certificate) {
 
 	sctsFromResp, err := helpers.SCTListFromOCSPResponse(resp)
 	if err != nil {
-		t.Fatal("Failed to extract stapled SCT: %s", err)
+		t.Fatal("Failed to extract stapled SCT:", err)
 	}
 
 	if len(sctsFromResp) != 1 {
@@ -169,7 +169,7 @@ func testSCTStapling(t *testing.T, cert *x509.Certificate) {
 		!bytes.Equal(sct.Signature.Signature, respSCT.Signature.Signature) ||
 		sct.Signature.Algorithm != respSCT.Signature.Algorithm ||
 		!bytes.Equal(sct.Extensions, respSCT.Extensions) {
-		t.Fatal("SCTs don't match: %v, %v", sct, respSCT)
+		t.Fatal("SCTs don't match:", sct, "--", respSCT)
 	}
 }
 
