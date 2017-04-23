@@ -2,16 +2,23 @@
 package ocsprefresh
 
 import (
+	"bytes"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/dbconf"
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
+	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
+	"github.com/google/certificate-transparency/go"
 )
 
 // Usage text of 'cfssl ocsprefresh'
@@ -26,6 +33,9 @@ Flags:
 
 // Flags of 'cfssl ocsprefresh'
 var ocsprefreshFlags = []string{"ca", "responder", "responder-key", "db-config", "interval"}
+
+// sctExtOid is the OID of the OCSP Stapling SCT extension (see section 3.3. of RFC 6962).
+var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5}
 
 // ocsprefreshMain is the main CLI of OCSP refresh functionality.
 func ocsprefreshMain(args []string, c cli.Config) error {
@@ -71,9 +81,31 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 			return err
 		}
 
+		// Gather all SCTs for the certificate so they can be stapled
+		// to the OCSP response.
+		sctRecords, err := dbAccessor.GetSCT(certRecord.Serial, certRecord.AKI)
+		if err != nil {
+			return err
+		}
+
+		var sctExtension []pkix.Extension
+		if len(sctRecords) != 0 {
+			serializedSCTList, err := serializeSCTRecords(sctRecords)
+			if err != nil {
+				log.Critical(err)
+				return err
+			}
+			sctExtension = []pkix.Extension{{
+				Id:       sctExtOid,
+				Critical: false,
+				Value:    serializedSCTList,
+			}}
+		}
+
 		req := ocsp.SignRequest{
 			Certificate: cert,
 			Status:      certRecord.Status,
+			Extensions:  sctExtension,
 		}
 
 		if certRecord.Status == "revoked" {
@@ -106,6 +138,41 @@ func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
 		k = c.KeyFile
 	}
 	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval))
+}
+
+// serializeSCTRecords converts a slice of certdb.SCTRecords into an ASN.1
+// encoded SCT list.
+func serializeSCTRecords(sctRecords []certdb.SCTRecord) ([]byte, error) {
+	var scts []ct.SignedCertificateTimestamp
+
+	for _, sctRecord := range sctRecords {
+		serializedSCT, err := hex.DecodeString(sctRecord.Body)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
+				fmt.Errorf("failed to deserialize SCT: %s", err))
+		}
+		sct, err := ct.DeserializeSCT(bytes.NewReader(serializedSCT))
+		if err != nil {
+			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
+				fmt.Errorf("failed to deserialize SCT: %s", err))
+		}
+		sctCopy := *sct
+		scts = append(scts, sctCopy)
+	}
+
+	serializedSCTList, err := helpers.SerializeSCTList(scts)
+	if err != nil {
+		return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
+			fmt.Errorf("failed to serialize SCT list: %s", err))
+	}
+
+	serializedSCTList, err = asn1.Marshal(serializedSCTList)
+	if err != nil {
+		return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
+			fmt.Errorf("failed to serialize SCT list: %s", err))
+	}
+
+	return serializedSCTList, nil
 }
 
 // Command assembles the definition of Command 'ocsprefresh'

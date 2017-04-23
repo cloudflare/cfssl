@@ -30,8 +30,8 @@ type SCTRecord struct {
 	Serial    string `db:"serial_number"`
 	AKI       string `db:"authority_key_identifier"`
 	Timestamp string `db:"time_stamp"`
-	LogID     string `db:"log_id"`
-	Body      string `db:"body"`
+	LogID     string `db:"log_id"` // Base64-encoded SHA-256 hash
+	Body      string `db:"body"`   // hex-encoded serialized SCT
 }
 
 // Accessor abstracts the CRUD of certdb objects from a DB.
