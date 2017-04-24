@@ -28,7 +28,7 @@ CREATE TABLE scts (
   time_stamp               char(20) NOT NULL,
   log_id                   bytea NOT NULL,
   body                     bytea NOT NULL,
-  PRIMARY KEY(serial_number, authority_key_identifier)
+  PRIMARY KEY(serial_number, authority_key_identifier),
   FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
 );
 

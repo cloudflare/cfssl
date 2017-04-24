@@ -12,9 +12,9 @@ import (
 
 const (
 	mysqlTruncateTables = `
-TRUNCATE certificates;
-TRUNCATE ocsp_responses;
-TRUNCATE scts;
+DELETE FROM certificates;
+DELETE FROM ocsp_responses;
+DELETE FROM scts;
 `
 
 	pgTruncateTables = `

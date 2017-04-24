@@ -18,7 +18,7 @@ CREATE TABLE ocsp_responses (
   authority_key_identifier varbinary(128) NOT NULL,
   body                     varbinary(4096) NOT NULL,
   expiry                   timestamp DEFAULT '0000-00-00 00:00:00',
-  PRIMARY KEY(serial_number, authority_key_identifier)
+  PRIMARY KEY(serial_number, authority_key_identifier),
   FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
 );
 
@@ -28,7 +28,7 @@ CREATE TABLE scts (
   time_stamp               char(20) NOT NULL,
   log_id                   varbinary(128) NOT NULL,
   body                     varbinary(4096) NOT NULL,
-  PRIMARY KEY(serial_number, authority_key_identifier)
+  PRIMARY KEY(serial_number, authority_key_identifier),
   FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
 );
 
