@@ -400,7 +400,7 @@ func TestNewSqliteSource(t *testing.T) {
 	dbpath := "testdata/sqlite_test.db"
 	_, err := NewSourceFromConnStr("sqlite3", dbpath)
 	if err != nil {
-		t.Errorf("Error connecting to Sqlite DB:", err)
+		t.Errorf("Error connecting to Sqlite DB: %v", err)
 	}
 }
 
@@ -409,7 +409,7 @@ func TestNewMySQLSource(t *testing.T) {
 	// Error should be thrown here if DB cannot be connected to.
 	_, err := NewSourceFromConnStr("mysql", dbpath)
 	if err != nil {
-		t.Errorf("Error connecting to MySQL DB:", err)
+		t.Errorf("Error connecting to MySQL DB: %v", err)
 	}
 }
 
@@ -418,14 +418,6 @@ func TestNewPostgresSource(t *testing.T) {
 	// Error should be thrown here if DB cannot be connected to.
 	_, err := NewSourceFromConnStr("postgres", dbpath)
 	if err != nil {
-		t.Errorf("Error connecting to PostgreSQL DB:", err)
-	}
-}
-
-func TestNewSqliteSource(t *testing.T) {
-	dbpath := "sqlite_test.db"
-	src, err := NewSqliteSource(dbpath)
-	if err != nil {
-		t.Errorf("Error connection to Sqlite DB:", err)
+		t.Errorf("Error connecting to PostgreSQL DB: %v", err)
 	}
 }
