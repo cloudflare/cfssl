@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
@@ -28,6 +27,7 @@ var ocspServerFlags = []string{"address", "port", "responses"}
 // ocspServerMain is the command line entry point to the OCSP responder.
 // It sets up a new HTTP server that responds to OCSP requests.
 func ocspServerMain(args []string, c cli.Config) error {
+	var src ocsp.Source
 	// serve doesn't support arguments.
 	if len(args) > 0 {
 		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
@@ -43,22 +43,22 @@ func ocspServerMain(args []string, c cli.Config) error {
 	}
 	switch typ {
 	case "file":
-		src, err := ocsp.NewSourceFromFile(path)
+		src, err = ocsp.NewSourceFromFile(path)
 		if err != nil {
 			return errors.New("unable to read response file")
 		}
 	case "sqlite":
-		src, err := ocsp.NewSourceFromConnStr("sqlite", path)
+		src, err = ocsp.NewSourceFromConnStr("sqlite", path)
 		if err != nil {
 			return errors.New("unable to read Sqlite connection string")
 		}
 	case "mysql":
-		src, err := ocsp.NewSourceFromConnStr("mysql", path)
+		src, err = ocsp.NewSourceFromConnStr("mysql", path)
 		if err != nil {
 			return errors.New("unable to read MySQL connection string")
 		}
 	case "postgres":
-		src, err := ocsp.NewSourceFromConnStr("postgres", path)
+		src, err = ocsp.NewSourceFromConnStr("postgres", path)
 		if err != nil {
 			return errors.New("unable to read PostgreSQL connection string")
 		}
