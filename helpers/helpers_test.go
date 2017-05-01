@@ -623,6 +623,8 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 	}
 	if !sctEquals(zeroSCT, lst[0]) {
 		t.Fatal("SCTs don't match")
+	}
+}
 
 func TestParseConnectionStr(t *testing.T) {
 	filePath := "/path/to/file.txt"

@@ -643,6 +643,8 @@ func ReadBytes(valFile string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("multiple prefixes: %s",
 			strings.Join(splitVal[:len(splitVal)-1], ", "))
+	}
+}
 
 // ParseConnectionStr parses a string representing the source of OCSP responses
 // which can either be a file or the path to a DB (Sqlite, MySQL or PostgreSQL).
