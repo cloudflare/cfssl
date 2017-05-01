@@ -200,7 +200,7 @@ func TestResponseTrivial(t *testing.T) {
 		t.Errorf("Error parsing OCSP request: %s", err)
 	}
 	// Truncate the Serial Number so it can fit into the DB tables.
-	truncSN, err := strconv.Atoi(req.SerialNumber.String()[:20])
+	truncSN, _ := strconv.Atoi(req.SerialNumber.String()[:20])
 	req.SerialNumber = big.NewInt(int64(truncSN))
 
 	// Create SQLite DB and accossiated accessor.
