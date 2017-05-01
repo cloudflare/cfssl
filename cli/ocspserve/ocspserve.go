@@ -63,7 +63,6 @@ func ocspServerMain(args []string, c cli.Config) error {
 			return errors.New("unable to read PostgreSQL connection string")
 		}
 	default:
-		// TODO: not sure if I should do something more intelligent in this case
 		return errors.New("unrecognized connection string format")
 	}
 

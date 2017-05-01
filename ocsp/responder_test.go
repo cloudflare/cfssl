@@ -421,3 +421,11 @@ func TestNewPostgresSource(t *testing.T) {
 		t.Errorf("Error connecting to PostgreSQL DB:", err)
 	}
 }
+
+func TestNewSqliteSource(t *testing.T) {
+	dbpath := "sqlite_test.db"
+	src, err := NewSqliteSource(dbpath)
+	if err != nil {
+		t.Errorf("Error connection to Sqlite DB:", err)
+	}
+}
