@@ -234,6 +234,25 @@ func TestResponseTrivial(t *testing.T) {
 		t.Errorf("Error inserting OCSP record into MySQL DB: %s", err)
 	}
 
+	// Need to create and insert Certificate record into PostgreSQL
+	// before inserting OCSP record due to foreign key constraints
+	// of the Postgres tables.
+	cert_rec := certdb.CertificateRecord{
+		Serial:    req.SerialNumber.String(),
+		AKI:       hex.EncodeToString(req.IssuerKeyHash),
+		CALabel:   "Example Certificate",
+		Status:    "Good",
+		Reason:    1,
+		Expiry:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		RevokedAt: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		PEM:       "PEM",
+	}
+
+	err = postgresAccessor.InsertCertificate(cert_rec)
+	if err != nil {
+		t.Errorf("Error inserting Certificate record into PostgreSQL DB: %s", err)
+	}
+
 	err = postgresAccessor.InsertOCSP(ocsp)
 	if err != nil {
 		t.Errorf("Error inserting OCSP record into PostgreSQL DB: %s", err)
@@ -351,6 +370,25 @@ func TestRealResponse(t *testing.T) {
 	err = mysqlAccessor.InsertOCSP(ocsp)
 	if err != nil {
 		t.Errorf("Error inserting OCSP record into MySQL DB: %s", err)
+	}
+
+	// Need to create and insert Certificate record into PostgreSQL
+	// before inserting OCSP record due to foreign key constraints
+	// of the Postgres tables.
+	cert_rec := certdb.CertificateRecord{
+		Serial:    req.SerialNumber.String(),
+		AKI:       hex.EncodeToString(req.IssuerKeyHash),
+		CALabel:   "Example Certificate",
+		Status:    "Good",
+		Reason:    1,
+		Expiry:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		RevokedAt: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		PEM:       "PEM",
+	}
+
+	err = postgresAccessor.InsertCertificate(cert_rec)
+	if err != nil {
+		t.Errorf("Error inserting Certificate record into PostgreSQL DB: %s", err)
 	}
 
 	err = postgresAccessor.InsertOCSP(ocsp)
