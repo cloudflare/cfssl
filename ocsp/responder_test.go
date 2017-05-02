@@ -237,7 +237,7 @@ func TestResponseTrivial(t *testing.T) {
 	// Need to create and insert Certificate record into PostgreSQL
 	// before inserting OCSP record due to foreign key constraints
 	// of the Postgres tables.
-	cert_rec := certdb.CertificateRecord{
+	certRec := certdb.CertificateRecord{
 		Serial:    req.SerialNumber.String(),
 		AKI:       hex.EncodeToString(req.IssuerKeyHash),
 		CALabel:   "Example Certificate",
@@ -248,7 +248,7 @@ func TestResponseTrivial(t *testing.T) {
 		PEM:       "PEM",
 	}
 
-	err = postgresAccessor.InsertCertificate(cert_rec)
+	err = postgresAccessor.InsertCertificate(certRec)
 	if err != nil {
 		t.Errorf("Error inserting Certificate record into PostgreSQL DB: %s", err)
 	}
@@ -375,7 +375,7 @@ func TestRealResponse(t *testing.T) {
 	// Need to create and insert Certificate record into PostgreSQL
 	// before inserting OCSP record due to foreign key constraints
 	// of the Postgres tables.
-	cert_rec := certdb.CertificateRecord{
+	certRec := certdb.CertificateRecord{
 		Serial:    req.SerialNumber.String(),
 		AKI:       hex.EncodeToString(req.IssuerKeyHash),
 		CALabel:   "Example Certificate",
@@ -386,7 +386,7 @@ func TestRealResponse(t *testing.T) {
 		PEM:       "PEM",
 	}
 
-	err = postgresAccessor.InsertCertificate(cert_rec)
+	err = postgresAccessor.InsertCertificate(certRec)
 	if err != nil {
 		t.Errorf("Error inserting Certificate record into PostgreSQL DB: %s", err)
 	}
