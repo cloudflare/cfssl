@@ -436,7 +436,7 @@ func TestRealResponse(t *testing.T) {
 // DB was properly connected to.
 func TestNewSqliteSource(t *testing.T) {
 	dbpath := "testdata/sqlite_test.db"
-	_, err := NewSourceFromConnStr("sqlite3", dbpath)
+	_, err := NewSourceFromConnString("sqlite3", dbpath)
 	if err != nil {
 		t.Errorf("Error connecting to Sqlite DB: %v", err)
 	}
@@ -445,7 +445,7 @@ func TestNewSqliteSource(t *testing.T) {
 func TestNewMySQLSource(t *testing.T) {
 	dbpath := "root@tcp(localhost:3306)/certdb_development?parseTime=true"
 	// Error should be thrown here if DB cannot be connected to.
-	_, err := NewSourceFromConnStr("mysql", dbpath)
+	_, err := NewSourceFromConnString("mysql", dbpath)
 	if err != nil {
 		t.Errorf("Error connecting to MySQL DB: %v", err)
 	}
@@ -454,7 +454,7 @@ func TestNewMySQLSource(t *testing.T) {
 func TestNewPostgresSource(t *testing.T) {
 	dbpath := "dbname=certdb_development sslmode=disable"
 	// Error should be thrown here if DB cannot be connected to.
-	_, err := NewSourceFromConnStr("postgres", dbpath)
+	_, err := NewSourceFromConnString("postgres", dbpath)
 	if err != nil {
 		t.Errorf("Error connecting to PostgreSQL DB: %v", err)
 	}

@@ -70,7 +70,7 @@ func NewDBSource(dbAccessor certdb.Accessor) Source {
 // argument, and this function currently supports Sqlite, MySQL and PostgreSQL.
 // The dbpath argument is a connection string aiding in connecting to the
 // associated DB type.
-func NewSourceFromConnStr(typ, dbpath string) (Source, error) {
+func NewSourceFromConnString(typ, dbpath string) (Source, error) {
 	db, err := sqlx.Open(typ, dbpath)
 	if err != nil {
 		return nil, err

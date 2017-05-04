@@ -650,7 +650,7 @@ func ReadBytes(valFile string) ([]byte, error) {
 // which can either be a file or the path to a DB (Sqlite, MySQL or PostgreSQL).
 // It returns the type of the connection string (e.g. "File" or "MySQL" etc.) as
 // well as the path to the source.
-func ParseConnectionStr(conn string) (string, string, error) {
+func ParseConnString(conn string) (string, string, error) {
 	u, err := url.Parse(conn)
 	if err != nil {
 		return "", "", err

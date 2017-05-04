@@ -37,7 +37,7 @@ func ocspServerMain(args []string, c cli.Config) error {
 		return errors.New("no response file provided, please set the -responses flag")
 	}
 
-	typ, path, err := helpers.ParseConnectionStr(c.Responses)
+	typ, path, err := helpers.ParseConnString(c.Responses)
 	if err != nil {
 		return errors.New("unable to parse responses connection string")
 	}
@@ -48,17 +48,17 @@ func ocspServerMain(args []string, c cli.Config) error {
 			return errors.New("unable to read response file")
 		}
 	case "sqlite":
-		src, err = ocsp.NewSourceFromConnStr("sqlite", path)
+		src, err = ocsp.NewSourceFromConnString("sqlite", path)
 		if err != nil {
 			return errors.New("unable to read Sqlite connection string")
 		}
 	case "mysql":
-		src, err = ocsp.NewSourceFromConnStr("mysql", path)
+		src, err = ocsp.NewSourceFromConnString("mysql", path)
 		if err != nil {
 			return errors.New("unable to read MySQL connection string")
 		}
 	case "postgres":
-		src, err = ocsp.NewSourceFromConnStr("postgres", path)
+		src, err = ocsp.NewSourceFromConnString("postgres", path)
 		if err != nil {
 			return errors.New("unable to read PostgreSQL connection string")
 		}
