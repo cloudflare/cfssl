@@ -65,7 +65,7 @@ func NewDBSource(dbAccessor certdb.Accessor) Source {
 	}
 }
 
-// NewSourceFromConnStr creates a new DBSource object with an associated
+// NewSourceFromConnString creates a new DBSource object with an associated
 // dbAccessor. They type of the DB connection is specificied by the typ
 // argument, and this function currently supports Sqlite, MySQL and PostgreSQL.
 // The dbpath argument is a connection string aiding in connecting to the

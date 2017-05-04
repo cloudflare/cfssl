@@ -646,7 +646,7 @@ func ReadBytes(valFile string) ([]byte, error) {
 	}
 }
 
-// ParseConnectionStr parses a string representing the source of OCSP responses
+// ParseConnString parses a string representing the source of OCSP responses
 // which can either be a file or the path to a DB (Sqlite, MySQL or PostgreSQL).
 // It returns the type of the connection string (e.g. "File" or "MySQL" etc.) as
 // well as the path to the source.
