@@ -5,11 +5,10 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"io/ioutil"
 	"strconv"
 	"testing"
 	"time"
-
-	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/sql"
@@ -136,7 +135,8 @@ func testSCTStapling(t *testing.T, cert *x509.Certificate) {
 		t.Fatal(err)
 	}
 
-	// Check that the generated OCSP response has the stapled SCT
+	// The code below checks that the generated OCSP response has the
+	// stapled SCT.
 	records, err := dbAccessor.GetUnexpiredOCSPs()
 	if err != nil {
 		t.Fatal("Failed to get OCSP responses")

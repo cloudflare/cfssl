@@ -38,14 +38,7 @@ func StapleSCTListDB(acc certdb.Accessor, serial, aki string, scts []ct.SignedCe
 
 	serializedSCTList, err := helpers.SerializeSCTList(scts)
 	if err != nil {
-		return cferr.Wrap(cferr.CTError, cferr.Unknown,
-			errors.New("failed to serialize SCT list"))
-	}
-
-	serializedSCTList, err = asn1.Marshal(serializedSCTList)
-	if err != nil {
-		return cferr.Wrap(cferr.CTError, cferr.Unknown,
-			errors.New("failed to serialize SCT list"))
+		return err
 	}
 
 	// This loop adds the SCTs to each OCSP response in ocspRecs.
@@ -103,7 +96,7 @@ func StapleSCTListDB(acc certdb.Accessor, serial, aki string, scts []ct.SignedCe
 		// DER-encoded response.
 		der, err = ocsp.CreateResponse(issuer, responderCert, template, priv)
 		if err != nil {
-			return cferr.Wrap(cferr.CTError, cferr.Unknown,
+			return cferr.Wrap(cferr.OCSPError, cferr.Unknown,
 				errors.New("failed to sign new OCSP response"))
 		}
 

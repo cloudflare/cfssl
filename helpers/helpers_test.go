@@ -594,7 +594,7 @@ func TestDeserializeSCTList(t *testing.T) {
 func TestSCTListFromOCSPResponse(t *testing.T) {
 	var response ocsp.Response
 	lst, err := SCTListFromOCSPResponse(&response)
-	if err != nil {
+	if err == nil {
 		t.Fatal(err)
 	}
 	if len(lst) != 0 {
@@ -603,10 +603,6 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 
 	var zeroSCT ct.SignedCertificateTimestamp
 	serializedSCTList, err := SerializeSCTList([]ct.SignedCertificateTimestamp{zeroSCT})
-	if err != nil {
-		t.Fatal("failed to serialize SCT list")
-	}
-	serializedSCTList, err = asn1.Marshal(serializedSCTList)
 	if err != nil {
 		t.Fatal("failed to serialize SCT list")
 	}

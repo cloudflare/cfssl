@@ -190,10 +190,16 @@ const (
 const (
 	// PrecertSubmissionFailed occurs when submitting a precertificate to
 	// a log server fails
-	PrecertSubmissionFailed = 100 * (iota + 1)
+	PrecertSubmissionFailed = 100 * (iota + 1) // 101XX
 	// CTClientConstructionFailed occurs when the construction of a new
 	// github.com/google/certificate-transparency client fails.
-	CTClientConstructionFailed
+	CTClientConstructionFailed // 102XX
+	// SCTListEncodeFailed occurs when the encoding of a Signed Certificate
+	// Timestamp List (into the format specified by RFC6962 section 3.3) fails.
+	SCTListEncodeFailed // 103XX
+	// SCTListDecodeFailed occurs when the decoding of a Signed Certificate
+	// Timestamp List (from the format specified by RFC6962 section 3.3) fails.
+	SCTListDecodeFailed // 104XX
 )
 
 // Certificate persistence related errors specified with CertStoreError
@@ -369,6 +375,10 @@ func New(category Category, reason Reason) *Error {
 			msg = "Certificate transparency parsing failed due to unknown error"
 		case PrecertSubmissionFailed:
 			msg = "Certificate transparency precertificate submission failed"
+		case SCTListDecodeFailed:
+			msg = "Certificate transparency SCT list decoding failed"
+		case SCTListEncodeFailed:
+			msg = "Certificate transparency SCT list encoding failed"
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CTError.", reason))
 		}

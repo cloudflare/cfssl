@@ -152,7 +152,7 @@ func serializeSCTRecords(sctRecords []certdb.SCTRecord) ([]byte, error) {
 		}
 		sct, err := ct.DeserializeSCT(bytes.NewReader(serializedSCT))
 		if err != nil {
-			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
+			return nil, cferr.Wrap(cferr.CTError, cferr.SCTListDecodeFailed,
 				fmt.Errorf("failed to deserialize SCT: %s", err))
 		}
 		sctCopy := *sct
@@ -161,14 +161,7 @@ func serializeSCTRecords(sctRecords []certdb.SCTRecord) ([]byte, error) {
 
 	serializedSCTList, err := helpers.SerializeSCTList(scts)
 	if err != nil {
-		return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
-			fmt.Errorf("failed to serialize SCT list: %s", err))
-	}
-
-	serializedSCTList, err = asn1.Marshal(serializedSCTList)
-	if err != nil {
-		return nil, cferr.Wrap(cferr.CTError, cferr.Unknown,
-			fmt.Errorf("failed to serialize SCT list: %s", err))
+		return nil, err
 	}
 
 	return serializedSCTList, nil
