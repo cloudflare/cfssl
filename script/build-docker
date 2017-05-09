@@ -25,7 +25,7 @@ fi
 
 # Build Docker image unless we opt out of it
 if [[ -z "$SKIP_BUILD" ]]; then
-    docker build -t cfssl-build -f Dockerfile.build .
+    docker build --build-arg HTTP_PROXY=${HTTP_PROXY} --build-arg HTTPS_PROXY=${HTTPS_PROXY} -t cfssl-build -f Dockerfile.build .
 fi
 
 # Temporarily change SELinux context of build directory
