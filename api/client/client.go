@@ -24,9 +24,10 @@ import (
 
 // A server points to a single remote CFSSL instance.
 type server struct {
-	URL         string
-	TLSConfig   *tls.Config
-	reqModifier func(*http.Request, []byte)
+	URL            string
+	TLSConfig      *tls.Config
+	reqModifier    func(*http.Request, []byte)
+	RequestTimeout time.Duration
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -40,6 +41,7 @@ type Remote interface {
 	Info(jsonData []byte) (*info.Resp, error)
 	Hosts() []string
 	SetReqModifier(func(*http.Request, []byte))
+	SetRequestTimeout(d time.Duration)
 }
 
 // NewServer sets up a new server target. The address should be of
@@ -62,9 +64,10 @@ func NewServerTLS(addr string, tlsConfig *tls.Config) Remote {
 	} else {
 		u, err := normalizeURL(addrs[0])
 		if err != nil {
+			log.Errorf("bad url: %v", err)
 			return nil
 		}
-		srv, _ := newServer(u, tlsConfig)
+		srv := newServer(u, tlsConfig)
 		if srv != nil {
 			remote = srv
 		}
@@ -80,9 +83,16 @@ func (srv *server) SetReqModifier(mod func(*http.Request, []byte)) {
 	srv.reqModifier = mod
 }
 
-func newServer(u *url.URL, tlsConfig *tls.Config) (*server, error) {
+func (srv *server) SetRequestTimeout(timeout time.Duration) {
+	srv.RequestTimeout = timeout
+}
+
+func newServer(u *url.URL, tlsConfig *tls.Config) *server {
 	URL := u.String()
-	return &server{URL, tlsConfig, nil}, nil
+	return &server{
+		URL:       URL,
+		TLSConfig: tlsConfig,
+	}
 }
 
 func (srv *server) getURL(endpoint string) string {
@@ -103,6 +113,9 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	client := &http.Client{}
 	if srv.TLSConfig != nil {
 		client.Transport = srv.createTLSTransport()
+	}
+	if srv.RequestTimeout != 0 {
+		client.Timeout = srv.RequestTimeout
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	if err != nil {

@@ -19,8 +19,10 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/jmhodges/clock"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -61,6 +63,21 @@ func NewDBSource(dbAccessor certdb.Accessor) Source {
 	return DBSource{
 		Accessor: dbAccessor,
 	}
+}
+
+// NewSourceFromConnString creates a new DBSource object with an associated
+// dbAccessor. They type of the DB connection is specificied by the typ
+// argument, and this function currently supports Sqlite, MySQL and PostgreSQL.
+// The dbpath argument is a connection string aiding in connecting to the
+// associated DB type.
+func NewSourceFromConnString(typ, dbpath string) (Source, error) {
+	db, err := sqlx.Open(typ, dbpath)
+	if err != nil {
+		return nil, err
+	}
+	accessor := sql.NewAccessor(db)
+	src := NewDBSource(accessor)
+	return src, nil
 }
 
 // Response implements cfssl.ocsp.responder.Source, which returns the

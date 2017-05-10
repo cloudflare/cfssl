@@ -104,7 +104,7 @@ func ReasonStringToCode(reason string) (reasonCode int, err error) {
 // from PEM files, and takes an interval in seconds
 func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval time.Duration) (Signer, error) {
 	log.Debug("Loading issuer cert: ", issuerFile)
-	issuerBytes, err := ioutil.ReadFile(issuerFile)
+	issuerBytes, err := helpers.ReadBytes(issuerFile)
 	if err != nil {
 		return nil, err
 	}

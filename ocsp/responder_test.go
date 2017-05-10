@@ -3,9 +3,11 @@ package ocsp
 import (
 	"encoding/hex"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -166,7 +168,7 @@ func TestNewSourceFromFile(t *testing.T) {
 	}
 }
 
-func TestSqliteTrivial(t *testing.T) {
+func TestResponseTrivial(t *testing.T) {
 	// First, read and parse certificate and issuer files needed to make
 	// an OCSP request.
 	certFile := "testdata/sqlite_ca.pem"
@@ -197,10 +199,22 @@ func TestSqliteTrivial(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error parsing OCSP request: %s", err)
 	}
+	// Truncate the Serial Number so it can fit into the DB tables.
+	truncSN, _ := strconv.Atoi(req.SerialNumber.String()[:20])
+	req.SerialNumber = big.NewInt(int64(truncSN))
 
+	// Create SQLite DB and accossiated accessor.
 	sqliteDBfile := "testdata/sqlite_test.db"
-	db := testdb.SQLiteDB(sqliteDBfile)
-	accessor := sql.NewAccessor(db)
+	sqlitedb := testdb.SQLiteDB(sqliteDBfile)
+	sqliteAccessor := sql.NewAccessor(sqlitedb)
+
+	// Create MySQL DB and accossiated accessor.
+	mysqldb := testdb.MySQLDB()
+	mysqlAccessor := sql.NewAccessor(mysqldb)
+
+	// Create PostgreSQL DB and accossiated accessor.
+	postgresdb := testdb.PostgreSQLDB()
+	postgresAccessor := sql.NewAccessor(postgresdb)
 
 	// Populate the DB with the OCSPRecord, and check
 	// that Response() handles the request appropiately.
@@ -210,28 +224,84 @@ func TestSqliteTrivial(t *testing.T) {
 		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		Serial: req.SerialNumber.String(),
 	}
-	err = accessor.InsertOCSP(ocsp)
+	err = sqliteAccessor.InsertOCSP(ocsp)
 	if err != nil {
-		t.Errorf("Error inserting OCSP record into DB: %s", err)
+		t.Errorf("Error inserting OCSP record into SQLite DB: %s", err)
+	}
+
+	err = mysqlAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into MySQL DB: %s", err)
+	}
+
+	// Need to create and insert Certificate record into PostgreSQL
+	// before inserting OCSP record due to foreign key constraints
+	// of the Postgres tables.
+	certRec := certdb.CertificateRecord{
+		Serial:    req.SerialNumber.String(),
+		AKI:       hex.EncodeToString(req.IssuerKeyHash),
+		CALabel:   "Example Certificate",
+		Status:    "Good",
+		Reason:    1,
+		Expiry:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		RevokedAt: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		PEM:       "PEM",
+	}
+
+	err = postgresAccessor.InsertCertificate(certRec)
+	if err != nil {
+		t.Errorf("Error inserting Certificate record into PostgreSQL DB: %s", err)
+	}
+
+	err = postgresAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into PostgreSQL DB: %s", err)
 	}
 
 	// Use the created Accessor to create a new DBSource.
-	src := NewDBSource(accessor)
+	sqliteSrc := NewDBSource(sqliteAccessor)
+	mysqlSrc := NewDBSource(mysqlAccessor)
+	postgresSrc := NewDBSource(postgresAccessor)
 
 	// Call Response() method on constructed request and check the output.
-	response, present := src.Response(req)
+	response, present := sqliteSrc.Response(req)
 	if !present {
-		t.Error("No response present for given request")
+		t.Error("No response present in SQLite DB for given request")
 	}
 	if string(response) != "Test OCSP" {
 		t.Error("Incorrect response received from Sqlite DB")
 	}
+
+	response, present = mysqlSrc.Response(req)
+	if !present {
+		t.Error("No response present in MySQL DB for given request")
+	}
+	if string(response) != "Test OCSP" {
+		t.Error("Incorrect response received from MySQL DB")
+	}
+
+	response, present = postgresSrc.Response(req)
+	if !present {
+		t.Error("No response present in PostgreSQL DB for given request")
+	}
+	if string(response) != "Test OCSP" {
+		t.Error("Incorrect response received from PostgreSQL DB")
+	}
 }
 
-func TestSqliteRealResponse(t *testing.T) {
+func TestRealResponse(t *testing.T) {
+	// Create SQLite DB and accossiated accessor.
 	sqliteDBfile := "testdata/sqlite_test.db"
-	db := testdb.SQLiteDB(sqliteDBfile)
-	accessor := sql.NewAccessor(db)
+	sqlitedb := testdb.SQLiteDB(sqliteDBfile)
+	sqliteAccessor := sql.NewAccessor(sqlitedb)
+
+	// Create MySQL DB and accossiated accessor.
+	mysqldb := testdb.MySQLDB()
+	mysqlAccessor := sql.NewAccessor(mysqldb)
+
+	// Create PostgreSQL DB and accossiated accessor.
+	postgresdb := testdb.PostgreSQLDB()
+	postgresAccessor := sql.NewAccessor(postgresdb)
 
 	certFile := "testdata/cert.pem"
 	issuerFile := "testdata/ca.pem"
@@ -291,19 +361,101 @@ func TestSqliteRealResponse(t *testing.T) {
 		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		Serial: req.SerialNumber.String(),
 	}
-	accessor.InsertOCSP(ocsp)
+
+	err = sqliteAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into SQLite DB: %s", err)
+	}
+
+	err = mysqlAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into MySQL DB: %s", err)
+	}
+
+	// Need to create and insert Certificate record into PostgreSQL
+	// before inserting OCSP record due to foreign key constraints
+	// of the Postgres tables.
+	certRec := certdb.CertificateRecord{
+		Serial:    req.SerialNumber.String(),
+		AKI:       hex.EncodeToString(req.IssuerKeyHash),
+		CALabel:   "Example Certificate",
+		Status:    "Good",
+		Reason:    1,
+		Expiry:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		RevokedAt: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		PEM:       "PEM",
+	}
+
+	err = postgresAccessor.InsertCertificate(certRec)
+	if err != nil {
+		t.Errorf("Error inserting Certificate record into PostgreSQL DB: %s", err)
+	}
+
+	err = postgresAccessor.InsertOCSP(ocsp)
+	if err != nil {
+		t.Errorf("Error inserting OCSP record into PostgreSQL DB: %s", err)
+	}
 
 	// Use the created Accessor to create new DBSource.
-	src := NewDBSource(accessor)
+	sqliteSrc := NewDBSource(sqliteAccessor)
+	mysqlSrc := NewDBSource(mysqlAccessor)
+	postgresSrc := NewDBSource(postgresAccessor)
 
 	// Call Response() method on constructed request and check the output.
-	response, present := src.Response(req)
+	// Then, attempt to parse the returned response and make sure it is well formed.
+	response, present := sqliteSrc.Response(req)
 	if !present {
-		t.Error("No response present for given request")
+		t.Error("No response present in SQLite DB for given request")
 	}
-	// Attempt to parse the returned response and make sure it is well formed.
 	_, err = goocsp.ParseResponse(response, issuer)
 	if err != nil {
-		t.Errorf("Error parsing response: %v", err)
+		t.Errorf("Error parsing SQLite response: %v", err)
+	}
+
+	response, present = mysqlSrc.Response(req)
+	if !present {
+		t.Error("No response present in MySQL DB for given request")
+	}
+	_, err = goocsp.ParseResponse(response, issuer)
+	if err != nil {
+		t.Errorf("Error parsing MySQL response: %v", err)
+	}
+
+	response, present = postgresSrc.Response(req)
+	if !present {
+		t.Error("No response present in PostgreSQL for given request")
+	}
+	_, err = goocsp.ParseResponse(response, issuer)
+	if err != nil {
+		t.Errorf("Error parsing PostgreSQL response: %v", err)
+	}
+}
+
+// Manually run the query "SELECT max(version_id) FROM goose_db_version;"
+// on testdata/sqlite_test.db after running this test to verify that the
+// DB was properly connected to.
+func TestNewSqliteSource(t *testing.T) {
+	dbpath := "testdata/sqlite_test.db"
+	_, err := NewSourceFromConnString("sqlite3", dbpath)
+	if err != nil {
+		t.Errorf("Error connecting to Sqlite DB: %v", err)
+	}
+}
+
+func TestNewMySQLSource(t *testing.T) {
+	dbpath := "root@tcp(localhost:3306)/certdb_development?parseTime=true"
+	// Error should be thrown here if DB cannot be connected to.
+	_, err := NewSourceFromConnString("mysql", dbpath)
+	if err != nil {
+		t.Errorf("Error connecting to MySQL DB: %v", err)
+	}
+}
+
+func TestNewPostgresSource(t *testing.T) {
+	dbpath := "dbname=certdb_development sslmode=disable"
+	// Error should be thrown here if DB cannot be connected to.
+	_, err := NewSourceFromConnString("postgres", dbpath)
+	if err != nil {
+		t.Errorf("Error connecting to PostgreSQL DB: %v", err)
 	}
 }
