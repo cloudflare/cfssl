@@ -205,7 +205,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if block.Type != "NEW CERTIFICATE REQUEST" && block.Type != "CERTIFICATE REQUEST" {
 		return nil, cferr.Wrap(cferr.CSRError,
-			cferr.BadRequest, errors.New("not a certificate or csr"))
+			cferr.BadRequest, errors.New("not a csr"))
 	}
 
 	csrTemplate, err := signer.ParseCertificateRequest(s, block.Bytes)
