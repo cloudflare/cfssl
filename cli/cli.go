@@ -17,6 +17,7 @@ The commands are defined in the cli subpackages and include
 	version	 prints the current cfssl version
 	genkey   generates a key and an associated CSR
 	gencert  generates a key and a signed certificate
+	gencsr   generates a certificate request
 	selfsign generates a self-signed certificate
 	ocspsign signs an OCSP response
 
