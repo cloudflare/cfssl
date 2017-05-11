@@ -625,3 +625,26 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 		t.Fatal("SCTs don't match")
 	}
 }
+
+func TestParseConnString(t *testing.T) {
+	filePath := "/path/to/file.txt"
+	typ, path, err := ParseConnString(filePath)
+	if typ != "file" || path != "/path/to/file.txt" || err != nil {
+		t.Fatal("Incorrect parsing of file path")
+	}
+	sqliteStr := "sqlite3:///path/to/db/file.db"
+	typ, path, err = ParseConnString(sqliteStr)
+	if typ != "sqlite" || path != "/path/to/db/file.db" || err != nil {
+		t.Fatal("Incorrect parsing of sqlite connection string")
+	}
+	mysqlStr := "mysql://root@tcp(localhost:3306)/certdb_development?parseTime=true"
+	typ, path, err = ParseConnString(mysqlStr)
+	if typ != "mysql" || path != "root@tcp(localhost:3306)/certdb_development?parseTime=true" || err != nil {
+		t.Fatal("Incorrect parsing of MySQL connection string")
+	}
+	postgresStr := "postgresql://root@tcp(localhost:3306)/certdb_development?parseTime=true"
+	typ, path, err = ParseConnString(postgresStr)
+	if typ != "postgres" || path != "dbname=certdb_development sslmode=disable" || err != nil {
+		t.Fatal("Incorrect parsing of PostgreSQL connection string")
+	}
+}

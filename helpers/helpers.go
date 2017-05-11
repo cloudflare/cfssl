@@ -19,11 +19,8 @@ import (
 	"io"
 	"io/ioutil"
 	"math/big"
+	"net/url"
 	"os"
-
-	"github.com/google/certificate-transparency/go"
-	"golang.org/x/crypto/ocsp"
-
 	"strings"
 	"time"
 
@@ -31,6 +28,8 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/google/certificate-transparency/go"
+	"golang.org/x/crypto/ocsp"
 	"golang.org/x/crypto/pkcs12"
 )
 
@@ -644,5 +643,28 @@ func ReadBytes(valFile string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("multiple prefixes: %s",
 			strings.Join(splitVal[:len(splitVal)-1], ", "))
+	}
+}
+
+// ParseConnString parses a string representing the source of OCSP responses
+// which can either be a file or the path to a DB (Sqlite, MySQL or PostgreSQL).
+// It returns the type of the connection string (e.g. "File" or "MySQL" etc.) as
+// well as the path to the source.
+func ParseConnString(conn string) (string, string, error) {
+	u, err := url.Parse(conn)
+	if err != nil {
+		return "", "", err
+	}
+	switch u.Scheme {
+	case "", "file":
+		return "file", u.Path, nil
+	case "sqlite3":
+		return "sqlite", u.Path, nil
+	case "mysql":
+		return "mysql", conn[8:], nil
+	case "postgresql":
+		return "postgres", "dbname=" + u.Path[1:] + " sslmode=disable", nil
+	default:
+		return "DB", u.Path, nil
 	}
 }
