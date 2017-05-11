@@ -200,7 +200,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		}
 		requestBody, err = base64.StdEncoding.DecodeString(string(base64RequestBytes))
 		if err != nil {
-			log.Infof("Error decoding base64 from URL: %s", base64Request)
+			log.Infof("Error decoding base64 from URL: %s", string(base64RequestBytes))
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
