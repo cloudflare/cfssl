@@ -2,6 +2,7 @@ package sql
 
 import (
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -56,6 +57,7 @@ func testEverything(ta TestAccessor, t *testing.T) {
 	testInsertOCSPAndGetUnexpiredOCSP(ta, t)
 	testUpdateOCSPAndGetOCSP(ta, t)
 	testUpsertOCSPAndGetOCSP(ta, t)
+	testInsertSCTAndGetSCT(ta, t)
 }
 
 func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
@@ -387,5 +389,37 @@ func setupGoodCert(ta TestAccessor, t *testing.T, r certdb.OCSPRecord) {
 
 	if err := ta.Accessor.InsertCertificate(certWant); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func testInsertSCTAndGetSCT(ta TestAccessor, t *testing.T) {
+	ta.Truncate()
+
+	want := certdb.SCTRecord{
+		Serial:    "fake serial",
+		AKI:       fakeAKI,
+		Timestamp: strconv.FormatUint(^uint64(0), 10),
+		LogID:     "fake id",
+		Body:      "fake body",
+	}
+
+	if err := ta.Accessor.InsertSCT(want); err != nil {
+		t.Fatal(err)
+	}
+
+	rets, err := ta.Accessor.GetSCT(want.Serial, want.AKI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
+
+	if want.AKI != got.AKI || want.Serial != got.Serial ||
+		want.Timestamp != got.Timestamp || want.LogID != got.LogID ||
+		want.Body != got.Body {
+		t.Errorf("want SCT %+v, got %+v", want, got)
 	}
 }

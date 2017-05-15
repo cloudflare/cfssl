@@ -12,8 +12,9 @@ import (
 
 const (
 	mysqlTruncateTables = `
-TRUNCATE certificates;
-TRUNCATE ocsp_responses;
+DELETE FROM certificates;
+DELETE FROM ocsp_responses;
+DELETE FROM scts;
 `
 
 	pgTruncateTables = `
@@ -37,6 +38,7 @@ SELECT truncate_tables();
 	sqliteTruncateTables = `
 DELETE FROM certificates;
 DELETE FROM ocsp_responses;
+DELETE FROM scts;
 `
 )
 

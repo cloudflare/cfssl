@@ -55,6 +55,14 @@ SELECT %s FROM ocsp_responses
 	selectOCSPSQL = `
 SELECT %s FROM ocsp_responses
   WHERE (serial_number = ? AND authority_key_identifier = ?);`
+
+	insertSCTSQL = `
+INSERT INTO scts (serial_number, authority_key_identifier, time_stamp, log_id, body)
+  VALUES (:serial_number, :authority_key_identifier, :time_stamp, :log_id, :body);`
+
+	selectSCTSQL = `
+SELECT %s FROM scts
+  WHERE (serial_number = ? AND authority_key_identifier = ?);`
 )
 
 // Accessor implements certdb.Accessor interface.
@@ -330,4 +338,50 @@ func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error 
 	}
 
 	return err
+}
+
+// InsertSCT puts a new certdb.SCTRecord into the db.
+func (d *Accessor) InsertSCT(sr certdb.SCTRecord) error {
+	err := d.checkDB()
+	if err != nil {
+		return err
+	}
+
+	result, err := d.db.NamedExec(insertSCTSQL, &certdb.SCTRecord{
+		Serial:    sr.Serial,
+		AKI:       sr.AKI,
+		Timestamp: sr.Timestamp,
+		LogID:     sr.LogID,
+		Body:      sr.Body,
+	})
+	if err != nil {
+		return wrapSQLError(err)
+	}
+
+	numRowsAffected, err := result.RowsAffected()
+
+	if numRowsAffected == 0 {
+		return cferr.Wrap(cferr.CertStoreError, cferr.InsertionFailed, fmt.Errorf("failed to insert the SCT record"))
+	}
+
+	if numRowsAffected != 1 {
+		return wrapSQLError(fmt.Errorf("%d rows are affected, should be 1 row", numRowsAffected))
+	}
+
+	return err
+}
+
+// GetSCT retrieves a certdb.SCTRecord from db by serial.
+func (d *Accessor) GetSCT(serial, aki string) (ors []certdb.SCTRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&ors, fmt.Sprintf(d.db.Rebind(selectSCTSQL), sqlstruct.Columns(certdb.SCTRecord{})), serial, aki)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return ors, nil
 }
