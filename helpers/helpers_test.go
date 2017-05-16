@@ -17,7 +17,7 @@ import (
 
 	"golang.org/x/crypto/ocsp"
 
-	"github.com/google/certificate-transparency/go"
+	"github.com/google/certificate-transparency-go"
 )
 
 const (
