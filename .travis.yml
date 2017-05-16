@@ -1,9 +1,9 @@
 sudo: false
 language: go
 go:
-  - 1.6
-  - 1.7
-# Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency-go/merkletree
+  - 1.7.x
+  - 1.8.x
+# Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
 addons:
   apt:
     sources:
@@ -60,7 +60,6 @@ notifications:
     - nick@cloudflare.com
     - zi@cloudflare.com
     - kyle@cloudflare.com
-    - jacob@cloudflare.com
     on_success: never
     on_failure: change
 env:
@@ -72,7 +71,7 @@ env:
 matrix:
   include:
     - os: osx
-      go: 1.6
+      go: 1.8.1
       env: BUILD_TAGS=
 after_success:
   - bash <(curl -s https://codecov.io/bash) -f coverprofile.txt
