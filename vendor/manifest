@@ -165,12 +165,12 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/google/certificate-transparency/go",
-			"repository": "https://github.com/google/certificate-transparency",
+			"importpath": "github.com/google/certificate-transparency-go",
+			"repository": "https://github.com/google/certificate-transparency-go",
 			"vcs": "git",
-			"revision": "32acc4216ea1f20eca97a1cdbc72b73af9e27d20",
+			"revision": "0dac42a6ed448ba220ee315abfaa6d26fd5fc9bb",
 			"branch": "master",
-			"path": "/go"
+			"notests": true
 		},
 		{
 			"importpath": "github.com/jessevdk/go-flags",
@@ -192,6 +192,14 @@
 			"vcs": "",
 			"revision": "398dd5876282499cdfd4cb8ea0f31a672abe9495",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/juju/ratelimit",
+			"repository": "https://github.com/juju/ratelimit",
+			"vcs": "git",
+			"revision": "acf38b000a03e4ab89e40f20f1e548f4e6ac7f72",
+			"branch": "master",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/kardianos/osext",
