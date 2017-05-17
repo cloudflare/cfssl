@@ -21,8 +21,18 @@ CREATE TABLE ocsp_responses (
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
 
+CREATE TABLE scts (
+  serial_number            varbinary(128) NOT NULL,
+  authority_key_identifier varbinary(128) NOT NULL,
+  time_stamp               char(20) NOT NULL,
+  log_id                   varbinary(128) NOT NULL,
+  body                     varbinary(4096) NOT NULL,
+  PRIMARY KEY(serial_number, authority_key_identifier)
+);
+
 -- +goose Down
 -- SQL section 'Down' is executed when this migration is rolled back
 
 DROP TABLE certificates;
 DROP TABLE ocsp_responses;
+DROP TABLE scts;

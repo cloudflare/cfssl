@@ -20,7 +20,7 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-func TestStapleSCTList(t *testing.T) {
+func TestStapleSCTListDB(t *testing.T) {
 	// issuer is a CA certificate.
 	issuer, issuerPrivKey, err := makeCert(nil)
 	if err != nil {
@@ -59,7 +59,7 @@ func TestStapleSCTList(t *testing.T) {
 	})
 
 	var zeroSCT ct.SignedCertificateTimestamp
-	err = StapleSCTList(testDB, respSN, "Cornell CS 5152", []ct.SignedCertificateTimestamp{zeroSCT},
+	err = StapleSCTListDB(testDB, respSN, "Cornell CS 5152", []ct.SignedCertificateTimestamp{zeroSCT},
 		responderCert, issuer, issuerPrivKey)
 	if err != nil {
 		t.Fatal(err)

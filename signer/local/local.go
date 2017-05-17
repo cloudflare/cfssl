@@ -369,13 +369,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var serializedSCTList []byte
 		serializedSCTList, err = helpers.SerializeSCTList(sctList)
 		if err != nil {
-			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
-		}
-
-		// Serialize again as an octet string before embedding
-		serializedSCTList, err = asn1.Marshal(serializedSCTList)
-		if err != nil {
-			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+			return nil, err
 		}
 
 		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
