@@ -15,11 +15,14 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math/big"
+	"os"
 
-	"github.com/google/certificate-transparency/go"
+	"github.com/google/certificate-transparency-go"
+	cttls "github.com/google/certificate-transparency-go/tls"
 	"golang.org/x/crypto/ocsp"
 
 	"strings"
@@ -527,11 +530,19 @@ func CreateTLSConfig(remoteCAs *x509.CertPool, cert *tls.Certificate) *tls.Confi
 
 // SerializeSCTList serializes a list of SCTs into an ASN.1 Octet String.
 func SerializeSCTList(sctList []ct.SignedCertificateTimestamp) ([]byte, error) {
-	serializedSCTList, err := ct.SerializeSCTList(sctList)
-	if err != nil {
-		return serializedSCTList, cferr.Wrap(cferr.CTError, cferr.SCTListEncodeFailed, err)
+	var buf bytes.Buffer
+	for _, sct := range sctList {
+		sct, err := cttls.Marshal(sct)
+		if err != nil {
+			return nil, err
+		}
+		binary.Write(&buf, binary.BigEndian, uint16(len(sct)))
+		buf.Write(sct)
 	}
-	return serializedSCTList, nil
+
+	var sctListLengthField = make([]byte, 2)
+	binary.BigEndian.PutUint16(sctListLengthField, uint16(buf.Len()))
+	return bytes.Join([][]byte{sctListLengthField, buf.Bytes()}, nil), nil
 }
 
 // DeserializeSCTList deserializes a list of SCTs.
@@ -584,12 +595,12 @@ func DeserializeSCTList(serializedSCTList []byte) (*[]ct.SignedCertificateTimest
 		}
 
 		serializedSCT := sctReader.Next(int(sctLen))
-		sct, err := ct.DeserializeSCT(bytes.NewReader(serializedSCT))
-		if err != nil {
-			return sctList, cferr.Wrap(cferr.CTError, cferr.SCTListDecodeFailed, err)
+		var sct ct.SignedCertificateTimestamp
+		if _, err := cttls.Unmarshal(serializedSCT, &sct); err != nil {
+			return sctList, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 		}
 
-		temp := append(*sctList, *sct)
+		temp := append(*sctList, sct)
 		sctList = &temp
 	}
 
@@ -614,4 +625,28 @@ func SCTListFromOCSPResponse(response *ocsp.Response) ([]ct.SignedCertificateTim
 	// This code extracts the sctList from the SCT extension.
 	sctList, err := DeserializeSCTList(SCTListExtension.Value)
 	return *sctList, err
+}
+
+// ReadBytes reads a []byte either from a file or an environment variable.
+// If valFile has a prefix of 'env:', the []byte is read from the environment
+// using the subsequent name. If the prefix is 'file:' the []byte is read from
+// the subsequent file. If no prefix is provided, valFile is assumed to be a
+// file path.
+func ReadBytes(valFile string) ([]byte, error) {
+	switch splitVal := strings.SplitN(valFile, ":", 2); len(splitVal) {
+	case 1:
+		return ioutil.ReadFile(valFile)
+	case 2:
+		switch splitVal[0] {
+		case "env":
+			return []byte(os.Getenv(splitVal[1])), nil
+		case "file":
+			return ioutil.ReadFile(splitVal[1])
+		default:
+			return nil, fmt.Errorf("unknown prefix: %s", splitVal[0])
+		}
+	default:
+		return nil, fmt.Errorf("multiple prefixes: %s",
+			strings.Join(splitVal[:len(splitVal)-1], ", "))
+	}
 }

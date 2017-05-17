@@ -13,7 +13,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/google/certificate-transparency/go"
+	"github.com/google/certificate-transparency-go"
 	"golang.org/x/crypto/ocsp"
 )
 
