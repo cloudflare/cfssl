@@ -198,6 +198,13 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 				base64RequestBytes[i] = '+'
 			}
 		}
+		// In certain situations a UA may construct a request that has a double
+		// slash between the host name and the base64 request body due to naively
+		// constructing the request URL. In that case strip the leading slash
+		// so that we can still decode the request.
+		if len(base64RequestBytes) > 0 && base64RequestBytes[0] == '/' {
+			base64RequestBytes = base64RequestBytes[1:]
+		}
 		requestBody, err = base64.StdEncoding.DecodeString(string(base64RequestBytes))
 		if err != nil {
 			log.Infof("Error decoding base64 from URL: %s", string(base64RequestBytes))
