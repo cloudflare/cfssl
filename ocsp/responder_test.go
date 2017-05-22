@@ -27,8 +27,8 @@ const (
 
 type testSource struct{}
 
-func (ts testSource) Response(r *goocsp.Request) ([]byte, bool) {
-	return []byte("hi"), true
+func (ts testSource) Response(r *goocsp.Request) ([]byte, http.Header, error) {
+	return []byte("hi"), nil, nil
 }
 
 type testCase struct {
@@ -221,9 +221,9 @@ func TestSqliteTrivial(t *testing.T) {
 	src := NewDBSource(accessor)
 
 	// Call Response() method on constructed request and check the output.
-	response, present := src.Response(req)
-	if !present {
-		t.Error("No response present for given request")
+	response, _, err := src.Response(req)
+	if err != nil {
+		t.Error(err)
 	}
 	if string(response) != "Test OCSP" {
 		t.Error("Incorrect response received from Sqlite DB")
@@ -302,9 +302,9 @@ func TestSqliteRealResponse(t *testing.T) {
 	src := NewDBSource(accessor)
 
 	// Call Response() method on constructed request and check the output.
-	response, present := src.Response(req)
-	if !present {
-		t.Error("No response present for given request")
+	response, _, err = src.Response(req)
+	if err != nil {
+		t.Error(err)
 	}
 	// Attempt to parse the returned response and make sure it is well formed.
 	_, err = goocsp.ParseResponse(response, issuer)
