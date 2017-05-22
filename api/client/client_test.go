@@ -33,7 +33,7 @@ func TestNewServer(t *testing.T) {
 
 	}
 
-	s = NewServer("127.0.0.1:8888")
+	s = NewServer("http://127.0.0.1:8888")
 	hosts := s.Hosts()
 	if len(hosts) != 1 || hosts[0] != "http://127.0.0.1:8888" {
 		t.Fatalf("expected [http://127.0.0.1:8888], but have %v", hosts)
