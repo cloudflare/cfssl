@@ -36,7 +36,7 @@ const (
 	testEncryptedPrivateKey      = "testdata/enc_priv_key.pem"
 	testEmptyPem                 = "testdata/empty.pem"
 	testNoHeaderCert             = "testdata/noheadercert.pem"
-	testSinglePKCS7              = "testdata/cert_pkcs7.pem"
+	testSinglePKCS7              = "testdata/cert_pkcs7.pem"  // openssl crl2pkcs7 -nocrl -out cert_pkcs7.pem -in cert.pem
 	testEmptyPKCS7DER            = "testdata/empty_pkcs7.der" // openssl crl2pkcs7 -nocrl -out empty_pkcs7.der -outform der
 	testEmptyPKCS7PEM            = "testdata/empty_pkcs7.pem" // openssl crl2pkcs7 -nocrl -out empty_pkcs7.pem -outform pem
 	testMultiplePKCS7            = "testdata/bundle_pkcs7.pem"
@@ -273,6 +273,7 @@ func TestParseCertificatePEM(t *testing.T) {
 		}
 
 		if _, err := ParseCertificatePEM(certPEM); err != nil {
+			t.Log(testFile)
 			t.Fatal(err)
 		}
 	}
@@ -297,6 +298,7 @@ func TestParseCertificatesPEM(t *testing.T) {
 		}
 
 		if _, err := ParseCertificatesPEM(bundlePEM); err != nil {
+			t.Log(testFile)
 			t.Fatal(err)
 		}
 	}
