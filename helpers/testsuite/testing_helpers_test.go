@@ -105,7 +105,7 @@ func TestStartCFSSLServer(t *testing.T) {
 	}
 
 	// Now we make the request and check the output.
-	remoteServerString := "-remote=" + addressToTest + ":" + strconv.Itoa(portToTest)
+	remoteServerString := "-remote=" + "http://" + addressToTest + ":" + strconv.Itoa(portToTest)
 	command := exec.Command(
 		"cfssl", "gencert", remoteServerString, "-hostname="+baseRequest.CN, tempFile)
 	CLIOutput, err := command.CombinedOutput()
