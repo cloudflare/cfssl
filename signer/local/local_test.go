@@ -144,74 +144,7 @@ func TestNewSignerFromFileEdgeCases(t *testing.T) {
 	}
 }
 
-// test the private method
-func testSign(t *testing.T) {
-	signer, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
-	if signer == nil || err != nil {
-		t.Fatal("Failed to produce signer")
-	}
-
-	pem, _ := ioutil.ReadFile("../../helpers/testdata/cert.pem")
-	cert, _ := helpers.ParseCertificatePEM(pem)
-
-	badcert := *cert
-	badcert.PublicKey = nil
-	profl := config.SigningProfile{Usage: []string{"Certificates", "Rule"}}
-	_, err = signer.sign(&badcert, &profl)
-
-	if err == nil {
-		t.Fatal("Improper input failed to raise an error")
-	}
-
-	// nil profile
-	_, err = signer.sign(cert, &profl)
-	if err == nil {
-		t.Fatal("Nil profile failed to raise an error")
-	}
-
-	// empty profile
-	_, err = signer.sign(cert, &config.SigningProfile{})
-	if err == nil {
-		t.Fatal("Empty profile failed to raise an error")
-	}
-
-	// empty expiry
-	prof := signer.policy.Default
-	prof.Expiry = 0
-	_, err = signer.sign(cert, prof)
-	if err != nil {
-		t.Fatal("nil expiry raised an error")
-	}
-
-	// non empty urls
-	prof = signer.policy.Default
-	prof.CRL = "stuff"
-	prof.OCSP = "stuff"
-	prof.IssuerURL = []string{"stuff"}
-	_, err = signer.sign(cert, prof)
-	if err != nil {
-		t.Fatal("non nil urls raised an error")
-	}
-
-	// nil ca
-	nilca := *signer
-	prof = signer.policy.Default
-	prof.CAConstraint.IsCA = false
-	nilca.ca = nil
-	_, err = nilca.sign(cert, prof)
-	if err == nil {
-		t.Fatal("nil ca with isca false raised an error")
-	}
-
-	prof.CAConstraint.IsCA = true
-	_, err = nilca.sign(cert, prof)
-	if err != nil {
-		t.Fatal("nil ca with CA true raised an error")
-	}
-}
-
 func TestSign(t *testing.T) {
-	testSign(t)
 	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
 	if err != nil {
 		t.Fatal("Failed to produce signer")

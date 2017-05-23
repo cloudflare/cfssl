@@ -98,12 +98,12 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 
 func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile) (cert []byte, err error) {
 	var distPoints = template.CRLDistributionPoints
-	err = signer.FillTemplate(template, s.policy.Default, profile)
 	if distPoints != nil && len(distPoints) > 0 {
 		template.CRLDistributionPoints = distPoints
 	}
+	err = signer.FillTemplate(template, s.policy.Default, profile)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	var initRoot bool
