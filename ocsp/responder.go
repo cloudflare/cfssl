@@ -32,9 +32,9 @@ var (
 	sigRequredErrorResponse       = []byte{0x30, 0x03, 0x0A, 0x01, 0x05}
 	unauthorizedErrorResponse     = []byte{0x30, 0x03, 0x0A, 0x01, 0x06}
 
-	// NotFoundErr indicates the request OCSP response was not found. It is used to
+	// ErrNotFound indicates the request OCSP response was not found. It is used to
 	// indicate that the responder should reply with unauthorizedErrorResponse.
-	NotFoundErr = errors.New("Request OCSP Response not found")
+	ErrNotFound = errors.New("Request OCSP Response not found")
 )
 
 // Source represents the logical source of OCSP responses, i.e.,
@@ -54,7 +54,7 @@ type InMemorySource map[string][]byte
 func (src InMemorySource) Response(request *ocsp.Request) ([]byte, http.Header, error) {
 	response, present := src[request.SerialNumber.String()]
 	if !present {
-		return nil, nil, NotFoundErr
+		return nil, nil, ErrNotFound
 	}
 	return response, nil, nil
 }
@@ -101,7 +101,7 @@ func (src DBSource) Response(req *ocsp.Request) ([]byte, http.Header, error) {
 	}
 
 	if len(records) == 0 {
-		return nil, nil, NotFoundErr
+		return nil, nil, ErrNotFound
 	}
 
 	// Response() finds the OCSPRecord with the expiration date furthest in the future.
@@ -263,7 +263,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	// Look up OCSP response from source
 	ocspResponse, extraHeaders, err := rs.Source.Response(ocspRequest)
 	if err != nil {
-		if err == NotFoundErr {
+		if err == ErrNotFound {
 			if extraHeaders != nil {
 				writeExtraHeaders(response, extraHeaders)
 			}
