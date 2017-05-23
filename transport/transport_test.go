@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	testRemote   = envOrDefault("CFSSL_REMOTE", "127.0.0.1:8888")
+	testRemote   = envOrDefault("CFSSL_REMOTE", "http://127.0.0.1:8888")
 	testLabel    = envOrDefault("CFSSL_LABEL", "")
 	testProfile  = envOrDefault("CFSSL_PROFILE", "transport-test")
 	disableTests bool

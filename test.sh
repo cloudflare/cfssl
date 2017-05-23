@@ -38,6 +38,18 @@ else
     PACKAGES=${split[@]/#/${REPO_PATH}/}
 fi
 
+# Build and install cfssl executable in PATH
+go install -tags "$BUILD_TAGS" ${REPO_PATH}/cmd/cfssl
+
+COVPROFILES=""
+for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
+do
+    profile="$GOPATH/src/$package/.coverprofile"
+    go test -race -tags "$BUILD_TAGS" --coverprofile=$profile $package
+    [ -s $profile ] && COVPROFILES="$COVPROFILES $profile"
+done
+cat $COVPROFILES > coverprofile.txt
+
 go vet $PACKAGES
 if ! command -v fgt > /dev/null ; then
     go get github.com/GeertJohan/fgt
@@ -67,15 +79,3 @@ do
     echo "gofmt $package"
     test -z "$(gofmt -s -l -d $GOPATH/src/$package/ | tee /dev/stderr)"
 done
-
-# Build and install cfssl executable in PATH
-go install -tags "$BUILD_TAGS" ${REPO_PATH}/cmd/cfssl
-
-COVPROFILES=""
-for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
-do
-    profile="$GOPATH/src/$package/.coverprofile"
-    go test -race -tags "$BUILD_TAGS" --coverprofile=$profile $package
-    [ -s $profile ] && COVPROFILES="$COVPROFILES $profile"
-done
-cat $COVPROFILES > coverprofile.txt
