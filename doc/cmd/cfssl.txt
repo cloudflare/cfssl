@@ -86,29 +86,32 @@ blank.
     + usages: strings of key usages. The following are acceptable key
       usages:
 
-      + signing
-      + digital signature
-      + content committment
-      + key encipherment
-      + key agreement
-      + data encipherment
-      + cert sign
-      + crl sign
-      + encipher only
-      + decipher only
-      + any
-      + server auth
-      + client auth
-      + code signing
-      + email protection
-      + s/mime
-      + ipsec end system
-      + ipsec tunnel
-      + ipsec user
-      + timestamping
-      + ocsp signing
-      + microsoft sgc
-      + netscape sgc
+	+ Key Usages
+		+ signing
+		+ digital signature
+		+ content committment
+		+ key encipherment
+		+ key agreement
+		+ data encipherment
+		+ cert sign
+		+ crl sign
+		+ encipher only
+		+ decipher only
+		
+	+ Ext Key Usages
+		+ any
+		+ server auth
+		+ client auth
+		+ code signing
+		+ email protection
+		+ s/mime
+		+ ipsec end system
+		+ ipsec tunnel
+		+ ipsec user
+		+ timestamping
+		+ ocsp signing
+		+ microsoft sgc
+		+ netscape sgc
 
     + issuer_urls: a list of Authority Information Access (RFC 5280
       4.2.2.1) URLs pointing to the issuer certificate.
