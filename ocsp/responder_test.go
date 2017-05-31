@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
 	"time"
 
@@ -27,8 +28,8 @@ const (
 
 type testSource struct{}
 
-func (ts testSource) Response(r *goocsp.Request) ([]byte, bool) {
-	return []byte("hi"), true
+func (ts testSource) Response(r *goocsp.Request) ([]byte, http.Header, error) {
+	return []byte("hi"), nil, nil
 }
 
 type testCase struct {
@@ -71,6 +72,42 @@ func TestOCSP(t *testing.T) {
 		if rw.Code != tc.expected {
 			t.Errorf("Incorrect response code: got %d, wanted %d", rw.Code, tc.expected)
 		}
+	}
+}
+
+var testResp = `308204f90a0100a08204f2308204ee06092b0601050507300101048204df308204db3081a7a003020100a121301f311d301b06035504030c146861707079206861636b65722066616b65204341180f32303135303932333231303630305a306c306a3042300906052b0e03021a0500041439e45eb0e3a861c7fa3a3973876be61f7b7d98860414fb784f12f96015832c9f177f3419b32e36ea41890209009cf1912ea8d509088000180f32303135303932333030303030305aa011180f32303330303832363030303030305a300d06092a864886f70d01010b05000382010100c17ed5f12c408d214092c86cb2d6ba9881637a9d5cafb8ddc05aed85806a554c37abdd83c2e00a4bb25b2d0dda1e1c0be65144377471bca53f14616f379ee0c0b436c697b400b7eba9513c5be6d92fbc817586d568156293cfa0099d64585146def907dee36eb650c424a00207b01813aa7ae90e65045339482eeef12b6fa8656315da8f8bb1375caa29ac3858f891adb85066c35b5176e154726ae746016e42e0d6016668ff10a8aa9637417d29be387a1bdba9268b13558034ab5f3e498a47fb096f2e1b39236b22956545884fbbed1884f1bc9686b834d8def4802bac8f79924a36867af87412f808977abaf6457f3cda9e7eccbd0731bcd04865b899ee41a08203193082031530820311308201f9a0030201020209009cf1912ea8d50908300d06092a864886f70d01010b0500301f311d301b06035504030c146861707079206861636b65722066616b65204341301e170d3135303430373233353033385a170d3235303430343233353033385a301f311d301b06035504030c146861707079206861636b65722066616b6520434130820122300d06092a864886f70d01010105000382010f003082010a0282010100c20a47799a05c512b27717633413d770f936bf99de62f130c8774d476deac0029aa6c9d1bb519605df32d34b336394d48e9adc9bbeb48652767dafdb5241c2fc54ce9650e33cb672298888c403642407270cc2f46667f07696d3dd62cfd1f41a8dc0ed60d7c18366b1d2cd462d34a35e148e8695a9a3ec62b656bd129a211a9a534847992d005b0412bcdffdde23085eeca2c32c2693029b5a79f1090fe0b1cb4a154b5c36bc04c7d5a08fa2a58700d3c88d5059205bc5560dc9480f1732b1ad29b030ed3235f7fb868f904fdc79f98ffb5c4e7d4b831ce195f171729ec3f81294df54e66bd3f83d81843b640aea5d7ec64d0905a9dbb03e6ff0e6ac523d36ab0203010001a350304e301d0603551d0e04160414fb784f12f96015832c9f177f3419b32e36ea4189301f0603551d23041830168014fb784f12f96015832c9f177f3419b32e36ea4189300c0603551d13040530030101ff300d06092a864886f70d01010b050003820101001df436be66ff938ccbfb353026962aa758763a777531119377845109e7c2105476c165565d5bbce1464b41bd1d392b079a7341c978af754ca9b3bd7976d485cbbe1d2070d2d4feec1e0f79e8fec9df741e0ea05a26a658d3866825cc1aa2a96a0a04942b2c203cc39501f917a899161dfc461717fe9301fce6ea1afffd7b7998f8941cf76f62def994c028bd1c4b49b17c4d243a6fb058c484968cf80501234da89347108b56b2640cb408e3c336fd72cd355c7f690a15405a7f4ba1e30a6be4a51d262b586f77f8472b207fdd194efab8d3a2683cc148abda7a11b9de1db9307b8ed5a9cd20226f668bd6ac5a3852fd449e42899b7bc915ee747891a110a971`
+
+type testHeaderSource struct {
+	headers http.Header
+}
+
+func (ts testHeaderSource) Response(r *goocsp.Request) ([]byte, http.Header, error) {
+	resp, _ := hex.DecodeString(testResp)
+	return resp, ts.headers, nil
+}
+
+func TestOverrideHeaders(t *testing.T) {
+	headers := http.Header(map[string][]string{
+		"Content-Type":  {"yup"},
+		"Cache-Control": {"nope"},
+		"New":           {"header"},
+		"Expires":       {"0"},
+		"Last-Modified": {"now"},
+		"Etag":          {"mhm"},
+	})
+	responder := Responder{
+		Source: testHeaderSource{headers: headers},
+		clk:    clock.NewFake(),
+	}
+
+	rw := httptest.NewRecorder()
+	responder.ServeHTTP(rw, &http.Request{
+		Method: "GET",
+		URL:    &url.URL{Path: "MFQwUjBQME4wTDAJBgUrDgMCGgUABBQ55F6w46hhx%2Fo6OXOHa%2BYfe32YhgQU%2B3hPEvlgFYMsnxd%2FNBmzLjbqQYkCEwD6Wh0MaVKu9gJ3By9DI%2F%2Fxsd4%3D"},
+	})
+
+	if !reflect.DeepEqual(rw.Header(), headers) {
+		t.Fatalf("Unexpected Headers returned: wanted %s, got %s", headers, rw.Header())
 	}
 }
 
@@ -221,9 +258,9 @@ func TestSqliteTrivial(t *testing.T) {
 	src := NewDBSource(accessor)
 
 	// Call Response() method on constructed request and check the output.
-	response, present := src.Response(req)
-	if !present {
-		t.Error("No response present for given request")
+	response, _, err := src.Response(req)
+	if err != nil {
+		t.Error(err)
 	}
 	if string(response) != "Test OCSP" {
 		t.Error("Incorrect response received from Sqlite DB")
@@ -302,9 +339,9 @@ func TestSqliteRealResponse(t *testing.T) {
 	src := NewDBSource(accessor)
 
 	// Call Response() method on constructed request and check the output.
-	response, present := src.Response(req)
-	if !present {
-		t.Error("No response present for given request")
+	response, _, err = src.Response(req)
+	if err != nil {
+		t.Error(err)
 	}
 	// Attempt to parse the returned response and make sure it is well formed.
 	_, err = goocsp.ParseResponse(response, issuer)
