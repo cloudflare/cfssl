@@ -40,7 +40,14 @@ var (
 // Source represents the logical source of OCSP responses, i.e.,
 // the logic that actually chooses a response based on a request.  In
 // order to create an actual responder, wrap one of these in a Responder
-// object and pass it to http.Handle.
+// object and pass it to http.Handle. By default the Responder will set
+// the headers Cache-Control to "max-age=(response.NextUpdate-now), public, no-transform, must-revalidate",
+// Last-Modified to response.ThisUpdate, Expires to response.NextUpdate,
+// ETag to the SHA256 hash of the response, and Content-Type to
+// application/ocsp-response. If you want to override these headers,
+// or set extra headers, your source should return a http.Header
+// with the headers you wish to set. If you don't want to set any
+// extra headers you may return nil instead.
 type Source interface {
 	Response(*ocsp.Request) ([]byte, http.Header, error)
 }
@@ -166,7 +173,7 @@ func NewResponder(source Source) *Responder {
 	}
 }
 
-func writeExtraHeaders(response http.ResponseWriter, headers http.Header) {
+func overrideHeaders(response http.ResponseWriter, headers http.Header) {
 	for k, v := range headers {
 		if len(v) == 1 {
 			response.Header().Set(k, v[0])
@@ -261,12 +268,9 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	}
 
 	// Look up OCSP response from source
-	ocspResponse, extraHeaders, err := rs.Source.Response(ocspRequest)
+	ocspResponse, headers, err := rs.Source.Response(ocspRequest)
 	if err != nil {
 		if err == ErrNotFound {
-			if extraHeaders != nil {
-				writeExtraHeaders(response, extraHeaders)
-			}
 			log.Infof("No response found for request: serial %x, request body %s",
 				ocspRequest.SerialNumber, b64Body)
 			response.Write(unauthorizedErrorResponse)
@@ -308,8 +312,8 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	responseHash := sha256.Sum256(ocspResponse)
 	response.Header().Add("ETag", fmt.Sprintf("\"%X\"", responseHash))
 
-	if extraHeaders != nil {
-		writeExtraHeaders(response, extraHeaders)
+	if headers != nil {
+		overrideHeaders(response, headers)
 	}
 
 	// RFC 7232 says that a 304 response must contain the above
