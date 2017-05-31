@@ -88,12 +88,12 @@ func (ts testHeaderSource) Response(r *goocsp.Request) ([]byte, http.Header, err
 
 func TestOverrideHeaders(t *testing.T) {
 	headers := http.Header(map[string][]string{
-		"Content-Type":  []string{"yup"},
-		"Cache-Control": []string{"nope"},
-		"New":           []string{"header"},
-		"Expires":       []string{"0"},
-		"Last-Modified": []string{"now"},
-		"Etag":          []string{"mhm"},
+		"Content-Type":  {"yup"},
+		"Cache-Control": {"nope"},
+		"New":           {"header"},
+		"Expires":       {"0"},
+		"Last-Modified": {"now"},
+		"Etag":          {"mhm"},
 	})
 	responder := Responder{
 		Source: testHeaderSource{headers: headers},
