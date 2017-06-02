@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
@@ -104,7 +105,7 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 		return nil, errors.New("failed to retrieve CRL")
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := crlRead(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +201,7 @@ func fetchRemote(url string) (*x509.Certificate, error) {
 		return nil, err
 	}
 
-	in, err := ioutil.ReadAll(resp.Body)
+	in, err := remoteRead(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +283,7 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 		return nil, errors.New("failed to retrieve OSCP")
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ocspRead(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -302,4 +303,25 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	}
 
 	return ocsp.ParseResponseForCert(body, leaf, issuer)
+}
+
+var crlRead = ioutil.ReadAll
+
+// SetCRLFetcher sets the function to use to read from the http response body
+func SetCRLFetcher(fn func(io.Reader) ([]byte, error)) {
+	crlRead = fn
+}
+
+var remoteRead = ioutil.ReadAll
+
+// SetRemoteFetcher sets the function to use to read from the http response body
+func SetRemoteFetcher(fn func(io.Reader) ([]byte, error)) {
+	remoteRead = fn
+}
+
+var ocspRead = ioutil.ReadAll
+
+// SetOCSPFetcher sets the function to use to read from the http response body
+func SetOCSPFetcher(fn func(io.Reader) ([]byte, error)) {
+	ocspRead = fn
 }
