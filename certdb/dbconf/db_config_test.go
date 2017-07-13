@@ -28,4 +28,9 @@ func TestDBFromConfig(t *testing.T) {
 	if err == nil || db != nil {
 		t.Fatal("Expected failure opening invalid db")
 	}
+
+	db, err = DBFromConfig("testdata/unreachable-db-config.json")
+	if err == nil || db != nil {
+		t.Fatal("Expected failure opening unreachable db")
+	}
 }

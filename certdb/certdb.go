@@ -32,6 +32,7 @@ type Accessor interface {
 	GetCertificate(serial, aki string) ([]CertificateRecord, error)
 	GetUnexpiredCertificates() ([]CertificateRecord, error)
 	GetRevokedAndUnexpiredCertificates() ([]CertificateRecord, error)
+	GetRevokedAndUnexpiredCertificatesByLabel(label string) ([]CertificateRecord, error)
 	RevokeCertificate(serial, aki string, reasonCode int) error
 	InsertOCSP(rr OCSPRecord) error
 	GetOCSP(serial, aki string) ([]OCSPRecord, error)
