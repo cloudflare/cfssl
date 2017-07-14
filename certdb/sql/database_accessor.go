@@ -30,6 +30,10 @@ SELECT %s FROM certificates
 SELECT %s FROM certificates
 	WHERE CURRENT_TIMESTAMP < expiry;`
 
+	selectAllRevokedAndUnexpiredWithLabelSQL = `
+SELECT %s FROM certificates
+	WHERE CURRENT_TIMESTAMP < expiry AND status='revoked' AND ca_label= ?;`
+
 	selectAllRevokedAndUnexpiredSQL = `
 SELECT %s FROM certificates
 	WHERE CURRENT_TIMESTAMP < expiry AND status='revoked';`
@@ -160,6 +164,21 @@ func (d *Accessor) GetRevokedAndUnexpiredCertificates() (crs []certdb.Certificat
 	}
 
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllRevokedAndUnexpiredSQL), sqlstruct.Columns(certdb.CertificateRecord{})))
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetRevokedAndUnexpiredCertificatesByLabel gets all revoked and unexpired certificate from db (for CRLs) with specified ca_label.
+func (d *Accessor) GetRevokedAndUnexpiredCertificatesByLabel(label string) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllRevokedAndUnexpiredWithLabelSQL), sqlstruct.Columns(certdb.CertificateRecord{})), label)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}

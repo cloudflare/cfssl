@@ -153,7 +153,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
-	expiry := time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)
+	expiry := time.Now().Add(time.Hour)
 	want := certdb.CertificateRecord{
 		PEM:    "fake cert data",
 		Serial: "fake serial 3",
@@ -187,6 +187,34 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 	}
 
 	got := rets[0]
+
+	// relfection comparison with zero time objects are not stable as it seems
+	if want.Serial != got.Serial || got.Status != "revoked" ||
+		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
+		want.PEM != got.PEM {
+		t.Errorf("want Certificate %+v, got %+v", want, got)
+	}
+
+	rets, err = ta.Accessor.GetRevokedAndUnexpiredCertificates()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got = rets[0]
+
+	// relfection comparison with zero time objects are not stable as it seems
+	if want.Serial != got.Serial || got.Status != "revoked" ||
+		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
+		want.PEM != got.PEM {
+		t.Errorf("want Certificate %+v, got %+v", want, got)
+	}
+
+	rets, err = ta.Accessor.GetRevokedAndUnexpiredCertificatesByLabel("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got = rets[0]
 
 	// relfection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
