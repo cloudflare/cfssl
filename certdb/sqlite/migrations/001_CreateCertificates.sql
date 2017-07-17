@@ -2,21 +2,21 @@
 -- SQL in section 'Up' is executed when this migration is applied
 
 CREATE TABLE certificates (
-  serial_number            bytea NOT NULL,
-  authority_key_identifier bytea NOT NULL,
-  ca_label                 bytea,
-  status                   bytea NOT NULL,
+  serial_number            blob NOT NULL,
+  authority_key_identifier blob NOT NULL,
+  ca_label                 blob,
+  status                   blob NOT NULL,
   reason                   int,
   expiry                   timestamp,
   revoked_at               timestamp,
-  pem                      bytea NOT NULL,
+  pem                      blob NOT NULL,
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
 
 CREATE TABLE ocsp_responses (
-  serial_number            bytea NOT NULL,
-  authority_key_identifier bytea NOT NULL,
-  body                     bytea NOT NULL,
+  serial_number            blob NOT NULL,
+  authority_key_identifier blob NOT NULL,
+  body                     blob NOT NULL,
   expiry                   timestamp,
   PRIMARY KEY(serial_number, authority_key_identifier),
   FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
