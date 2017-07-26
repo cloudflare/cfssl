@@ -280,6 +280,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			ocspRequest.SerialNumber, b64Body, err)
 		response.WriteHeader(http.StatusInternalServerError)
 		response.Write(internalErrorErrorResponse)
+		return
 	}
 
 	parsedResponse, err := ocsp.ParseResponse(ocspResponse, nil)
