@@ -97,6 +97,7 @@ type Signer interface {
 	Info(info.Req) (*info.Resp, error)
 	Policy() *config.Signing
 	SetDBAccessor(certdb.Accessor)
+	GetDBAccessor() certdb.Accessor
 	SetPolicy(*config.Signing)
 	SigAlgo() x509.SignatureAlgorithm
 	Sign(req SignRequest) (cert []byte, err error)
