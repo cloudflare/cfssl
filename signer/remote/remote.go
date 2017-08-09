@@ -112,9 +112,14 @@ func (s *Signer) SetPolicy(policy *config.Signing) {
 	s.policy = policy
 }
 
-// SetDBAccessor sets the signers' cert db accessor
+// SetDBAccessor sets the signers' cert db accessor, currently noop.
 func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
 	// noop
+}
+
+// GetDBAccessor returns the signers' cert db accessor, currently noop.
+func (s *Signer) GetDBAccessor() certdb.Accessor {
+	return nil
 }
 
 // SetReqModifier sets the function to call to modify the HTTP request prior to sending it

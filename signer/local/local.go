@@ -452,6 +452,11 @@ func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
 	s.dbAccessor = dba
 }
 
+// GetDBAccessor returns the signers' cert db accessor
+func (s *Signer) GetDBAccessor() certdb.Accessor {
+	return s.dbAccessor
+}
+
 // SetReqModifier does nothing for local
 func (s *Signer) SetReqModifier(func(*http.Request, []byte)) {
 	// noop
