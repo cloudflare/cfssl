@@ -1,10 +1,11 @@
 package ocsp
 
 import (
-	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/ocsp"
 
 	"github.com/cloudflare/cfssl/helpers"
 )
@@ -142,5 +143,68 @@ func TestSign(t *testing.T) {
 	_, err = s.Sign(req)
 	if err != nil {
 		t.Fatal("Error on revoked certificate")
+	}
+}
+
+func TestSignCustomInterval(t *testing.T) {
+	req, _ := setup(t)
+	dur := time.Hour
+
+	s, err := NewSignerFromFile(serverCertFile, serverCertFile, serverKeyFile, dur)
+	if err != nil {
+		t.Fatalf("Signer creation failed: %v", err)
+	}
+
+	// default case
+	n := time.Now().UTC().Truncate(time.Hour)
+	respBytes, err := s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	resp, err := ocsp.ParseResponse(respBytes, nil)
+	if err != nil {
+		t.Fatalf("Error parsing response: %s", err)
+	}
+	if !resp.ThisUpdate.Equal(n) {
+		t.Fatalf("Unexpected ThisUpdate: wanted %s, got %s", n, resp.ThisUpdate)
+	}
+	if !resp.NextUpdate.Equal(n.Add(dur)) {
+		t.Fatalf("Unexpected NextUpdate: wanted %s, got %s", n.Add(dur), resp.NextUpdate)
+	}
+
+	// custom case, ThisUpdate only
+	this := time.Now().UTC().Add(-time.Hour * 5).Truncate(time.Hour)
+	req.ThisUpdate = &this
+	respBytes, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	resp, err = ocsp.ParseResponse(respBytes, nil)
+	if err != nil {
+		t.Fatalf("Error parsing response: %s", err)
+	}
+	if !resp.ThisUpdate.Equal(this) {
+		t.Fatalf("Unexpected ThisUpdate: wanted %s, got %s", this, resp.ThisUpdate)
+	}
+	if !resp.NextUpdate.Equal(this.Add(dur)) {
+		t.Fatalf("Unexpected NextUpdate: wanted %s, got %s", this.Add(dur), resp.NextUpdate)
+	}
+
+	// custom case, ThisUpdate and NextUpdate
+	next := this.Add(time.Hour * 2)
+	req.NextUpdate = &next
+	respBytes, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	resp, err = ocsp.ParseResponse(respBytes, nil)
+	if err != nil {
+		t.Fatalf("Error parsing response: %s", err)
+	}
+	if !resp.ThisUpdate.Equal(this) {
+		t.Fatalf("Unexpected ThisUpdate: wanted %s, got %s", this, resp.ThisUpdate)
+	}
+	if !resp.NextUpdate.Equal(next) {
+		t.Fatalf("Unexpected NextUpdate: wanted %s, got %s", next, resp.NextUpdate)
 	}
 }
