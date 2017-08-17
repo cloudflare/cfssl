@@ -1,0 +1,6 @@
+{
+	"hosts":["www.example.com"],
+    "names":[{"C":"US", "ST":"California", 
+              "L":"San Francisco", "O":"example.com"}],
+    "CN": "www.example.com"
+}

@@ -1,0 +1,8 @@
+{
+    "hosts": [
+        "127.0.0.1"
+    ],
+    "certificate_request": "-----BEGIN CERTIFICATE REQUEST-----\nMIHyMIGaAgEAMBYxFDASBgNVBAMTC3Rlc3Qgc2VydmVyMFkwEwYHKoZIzj0CAQYI\nKoZIzj0DAQcDQgAENosvCA8k6wJNm16fX2CJlh105I5kJrTCktsDfFKTtejqRQy5\nYpx7mfI7hR5dLxdj9H0WXO/1i/mmoBENYm/GJ6AiMCAGCSqGSIb3DQEJDjETMBEw\nDwYDVR0RBAgwBocEfwAAATAKBggqhkjOPQQDAgNHADBEAiBjTbRpcdnSXoj32HIM\nmG10OjtcpHPmejabVQBpI3hWxwIgQFqGwGYyf2HfYhTBZUs93GlQqqoeWkvNV4I2\n2iSfOek=\n-----END CERTIFICATE REQUEST-----\n",
+    "profile": "server",
+    "label": ""
+}

@@ -1,0 +1,20 @@
+{
+    "signing": {
+        "default": {
+            "usages": [
+                "cert sign"
+            ],
+            "expiry": "720h",
+            "auth_key": "garbage"
+        }
+    },
+    "auth_keys": {
+        "garbage": {
+            "type": "standard",
+            "key": "f66761a3098baaa7c893412d54557b8ff22e69eb4f26f958b769ff6ff7f7271b"
+        }
+    },
+    "remotes": {
+        "localhost": "127.0.0.1:8888"
+    }
+}
