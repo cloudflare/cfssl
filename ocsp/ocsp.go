@@ -58,6 +58,10 @@ type SignRequest struct {
 	// in the OCSP response. Valid values are crypto.SHA1, crypto.SHA256, crypto.SHA384,
 	// and crypto.SHA512. If zero, the default is crypto.SHA1.
 	IssuerHash crypto.Hash
+	// If provided ThisUpdate will override the default usage of time.Now().Truncate(time.Hour)
+	ThisUpdate *time.Time
+	// If provided NextUpdate will override the default usage of ThisUpdate.Add(signerInterval)
+	NextUpdate *time.Time
 }
 
 // Signer represents a general signer of OCSP responses.  It is
@@ -164,9 +168,18 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 		return nil, cferr.New(cferr.OCSPError, cferr.IssuerMismatch)
 	}
 
-	// Round thisUpdate times down to the nearest hour
-	thisUpdate := time.Now().Truncate(time.Hour)
-	nextUpdate := thisUpdate.Add(s.interval)
+	var thisUpdate, nextUpdate time.Time
+	if req.ThisUpdate != nil {
+		thisUpdate = *req.ThisUpdate
+	} else {
+		// Round thisUpdate times down to the nearest hour
+		thisUpdate = time.Now().Truncate(time.Hour)
+	}
+	if req.NextUpdate != nil {
+		nextUpdate = *req.NextUpdate
+	} else {
+		nextUpdate = thisUpdate.Add(s.interval)
+	}
 
 	status, ok := StatusCode[req.Status]
 	if !ok {
