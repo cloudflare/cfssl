@@ -639,6 +639,98 @@ func TestOverwriteHosts(t *testing.T) {
 
 }
 
+func TestOverrideValidity(t *testing.T) {
+	csrPEM, err := ioutil.ReadFile(fullSubjectCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+
+	req := signer.SignRequest{
+		Request: string(csrPEM),
+	}
+
+	// The default expiry value.
+	expiry := 8760 * time.Hour
+
+	// default case
+	now := time.Now().UTC()
+	certPEM, err := s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.After(now.Add(-10*time.Minute)) || !cert.NotBefore.Before(now.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotBefore: wanted %s +/-10 minutes, got %s", now, cert.NotBefore)
+	}
+	expectedNotAfter := now.Round(time.Minute).Add(expiry)
+	if !cert.NotAfter.After(expectedNotAfter.Add(-10*time.Minute)) || !cert.NotAfter.Before(expectedNotAfter.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotAfter: wanted %s +/-10 minutes, got %s", now, cert.NotAfter)
+	}
+
+	// custom case, NotBefore only
+	now = time.Now().UTC()
+	req.NotBefore = now.Add(-time.Hour * 5).Truncate(time.Hour)
+	req.NotAfter = time.Time{}
+	certPEM, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err = helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.Equal(req.NotBefore) {
+		t.Fatalf("Unexpected NotBefore: wanted %s, got %s", req.NotBefore, cert.NotBefore)
+	}
+	expectedNotAfter = req.NotBefore.Add(expiry)
+	if !cert.NotAfter.After(expectedNotAfter.Add(-10*time.Minute)) || !cert.NotAfter.Before(expectedNotAfter.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotAfter: wanted %s +/-10 minutes, got %s", expectedNotAfter, cert.NotAfter)
+	}
+
+	// custom case, NotAfter only
+	now = time.Now().UTC()
+	req.NotBefore = time.Time{}
+	req.NotAfter = now.Add(-time.Hour * 5).Truncate(time.Hour)
+	certPEM, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err = helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.After(now.Add(-10*time.Minute)) || !cert.NotBefore.Before(now.Add(10*time.Minute)) {
+		t.Fatalf("Unexpected NotBefore: wanted %s +/-10 minutes, got %s", now, cert.NotBefore)
+	}
+	if !cert.NotAfter.Equal(req.NotAfter) {
+		t.Fatalf("Unexpected NotAfter: wanted %s, got %s", req.NotAfter, cert.NotAfter)
+	}
+
+	// custom case, NotBefore and NotAfter
+	now = time.Now().UTC()
+	req.NotBefore = now.Add(-time.Hour * 5).Truncate(time.Hour)
+	req.NotAfter = now.Add(time.Hour * 5).Truncate(time.Hour)
+	certPEM, err = s.Sign(req)
+	if err != nil {
+		t.Fatalf("Error signing default request: %s", err)
+	}
+	cert, err = helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !cert.NotBefore.Equal(req.NotBefore) {
+		t.Fatalf("Unexpected NotBefore: wanted %s, got %s", req.NotBefore, cert.NotBefore)
+	}
+	if !cert.NotAfter.Equal(req.NotAfter) {
+		t.Fatalf("Unexpected NotAfter: wanted %s, got %s", req.NotAfter, cert.NotAfter)
+	}
+}
+
 func expectOneValueOf(t *testing.T, s []string, e, n string) {
 	if len(s) != 1 {
 		t.Fatalf("Expected %s to have a single value, but it has %d values", n, len(s))
