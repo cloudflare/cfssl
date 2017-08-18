@@ -55,6 +55,15 @@ type SignRequest struct {
 	Label       string      `json:"label"`
 	Serial      *big.Int    `json:"serial,omitempty"`
 	Extensions  []Extension `json:"extensions,omitempty"`
+	// If provided, NotBefore will be used without modification (except
+	// for canonicalization) as the value of the notBefore field of the
+	// certificate. In particular no backdating adjustment will be made
+	// when NotBefore is provided.
+	NotBefore time.Time
+	// If provided, NotAfter will be used without modification (except
+	// for canonicalization) as the value of the notAfter field of the
+	// certificate.
+	NotAfter time.Time
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -231,7 +240,7 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 // the certificate template as possible from the profiles and current
 // template. It fills in the key uses, expiration, revocation URLs
 // and SKI.
-func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile) error {
+func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.SigningProfile, notBefore time.Time, notAfter time.Time) error {
 	ski, err := ComputeSKI(template)
 	if err != nil {
 		return err
@@ -242,8 +251,6 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		ku              x509.KeyUsage
 		backdate        time.Duration
 		expiry          time.Duration
-		notBefore       time.Time
-		notAfter        time.Time
 		crlURL, ocspURL string
 		issuerURL       = profile.IssuerURL
 	)
@@ -270,23 +277,29 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	if ocspURL = profile.OCSP; ocspURL == "" {
 		ocspURL = defaultProfile.OCSP
 	}
-	if backdate = profile.Backdate; backdate == 0 {
-		backdate = -5 * time.Minute
-	} else {
-		backdate = -1 * profile.Backdate
-	}
 
-	if !profile.NotBefore.IsZero() {
-		notBefore = profile.NotBefore.UTC()
-	} else {
-		notBefore = time.Now().Round(time.Minute).Add(backdate).UTC()
+	if notBefore.IsZero() {
+		if !profile.NotBefore.IsZero() {
+			notBefore = profile.NotBefore
+		} else {
+			if backdate = profile.Backdate; backdate == 0 {
+				backdate = -5 * time.Minute
+			} else {
+				backdate = -1 * profile.Backdate
+			}
+			notBefore = time.Now().Round(time.Minute).Add(backdate)
+		}
 	}
+	notBefore = notBefore.UTC()
 
-	if !profile.NotAfter.IsZero() {
-		notAfter = profile.NotAfter.UTC()
-	} else {
-		notAfter = notBefore.Add(expiry).UTC()
+	if notAfter.IsZero() {
+		if !profile.NotAfter.IsZero() {
+			notAfter = profile.NotAfter
+		} else {
+			notAfter = notBefore.Add(expiry)
+		}
 	}
+	notAfter = notAfter.UTC()
 
 	template.NotBefore = notBefore
 	template.NotAfter = notAfter
