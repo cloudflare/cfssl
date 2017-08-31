@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/cloudflare/cfssl/cli/version"
 )
 
 func readFile(filespec string) ([]byte, error) {
@@ -51,7 +53,13 @@ func main() {
 	bare := flag.Bool("bare", false, "the response from CFSSL is not wrapped in the API standard response")
 	inFile := flag.String("f", "-", "JSON input")
 	output := flag.Bool("stdout", false, "output the response instead of saving to a file")
+	printVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *printVersion {
+		fmt.Printf("%s", version.FormatVersion())
+		return
+	}
 
 	var baseName string
 	if flag.NArg() == 0 {
