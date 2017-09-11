@@ -141,7 +141,7 @@ func TestName(t *testing.T) {
 		t.Errorf("Organization: want %s, got %s", []string{"Cool Org"}, name.Organization)
 	}
 	if !reflect.DeepEqual([]string{"Really Cool Sub Org"}, name.OrganizationalUnit) {
-		t.Errorf("Province: want %s, got %s", []string{"Really Cool Sub Org"}, name.OrganizationalUnit)
+		t.Errorf("Organizational Unit: want %s, got %s", []string{"Really Cool Sub Org"}, name.OrganizationalUnit)
 	}
 	if !reflect.DeepEqual([]string{"Cool Locality", "Another Cool Locality"}, name.Locality) {
 		t.Errorf("Locality: want %s, got %s", []string{"CA"}, name.Locality)
