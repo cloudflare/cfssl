@@ -387,12 +387,17 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return nil, err
 	}
 
+	// Get the AKI from signedCert.  This is required to support Go 1.9+.
+	// In prior versions of Go, x509.CreateCertificate updated the
+	// AuthorityKeyId of certTBS.
+	parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
+
 	if s.dbAccessor != nil {
 		var certRecord = certdb.CertificateRecord{
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
-			// which updates certTBS AuthorityKeyId from the signer's SubjectKeyId
-			AKI:     hex.EncodeToString(certTBS.AuthorityKeyId),
+			// which sets the AuthorityKeyId from the signer's SubjectKeyId
+			AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
 			CALabel: req.Label,
 			Status:  "good",
 			Expiry:  certTBS.NotAfter,
