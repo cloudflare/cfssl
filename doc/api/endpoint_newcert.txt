@@ -27,7 +27,8 @@ Result:
     * certificate_request: a PEM-encoded certificate request
     * certificate: a PEM-encoded certificate, signed by the server
     * sums: a JSON object holding both MD5 and SHA1 digests for the certificate
-    request and the certificate
+    request and the certificate; note that this is the digest of the DER
+    contents of the certificate, not the PEM contents
     * bundle: See the result of endpoint_bundle.txt (only included if the bundle parameter was set)
 
 Example:
