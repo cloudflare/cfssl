@@ -73,7 +73,6 @@ type CAConstraint struct {
 // signature policy.
 type SigningProfile struct {
 	Usage               []string     `json:"usages"`
-	CriticalUsage       bool         `json:"critical_usage"`
 	IssuerURL           []string     `json:"issuer_urls"`
 	OCSP                string       `json:"ocsp_url"`
 	CRL                 string       `json:"crl_url"`
