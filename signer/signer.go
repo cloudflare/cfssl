@@ -21,6 +21,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/info"
+	"crypto/rand"
 )
 
 // Subject contains the information that should be used to override the
@@ -236,6 +237,55 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 	return pubHash[:], nil
 }
 
+func extKeyUsage2Extension(template *x509.Certificate, critical bool) (ext pkix.Extension, err error) {
+	var oidExtensionExtendedKeyUsage = asn1.ObjectIdentifier{2, 5, 29, 37}
+
+	publicKey := func(priv interface{}) interface{} {
+		switch k := priv.(type) {
+		case *rsa.PrivateKey:
+			return &k.PublicKey
+		case *ecdsa.PrivateKey:
+			return &k.PublicKey
+		default:
+			return nil
+		}
+	}
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if (err != nil) {
+		return ext, err
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, publicKey(privateKey), privateKey)
+	if (err != nil) {
+		return ext, err
+	}
+	cert, err := x509.ParseCertificate(derBytes)
+	if (err != nil) {
+		return ext, err
+	}
+	for _, e := range cert.Extensions {
+		if (oidExtensionExtendedKeyUsage.Equal(e.Id)) {
+			ext.Id = oidExtensionExtendedKeyUsage
+			ext.Critical = critical
+			ext.Value = e.Value
+			return ext, nil
+		}
+	}
+	return ext, errors.New("can not encode extended key usage to an extension")
+}
+
+func flagExtendedKeyUsageAsCritical(template *x509.Certificate) error {
+	if (len(template.ExtKeyUsage) <= 0) {
+		return nil
+	}
+	ext, err := extKeyUsage2Extension(template, true)
+	if (err != nil) {
+		return err
+	}
+	template.ExtraExtensions = append(template.ExtraExtensions, ext)
+	return nil
+}
+
 // FillTemplate is a utility function that tries to load as much of
 // the certificate template as possible from the profiles and current
 // template. It fills in the key uses, expiration, revocation URLs
@@ -340,6 +390,13 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 			Value:    []byte{0x05, 0x00},
 		}
 		template.ExtraExtensions = append(template.ExtraExtensions, ocspNoCheckExtension)
+	}
+
+	if profile.CriticalUsage {
+		err = flagExtendedKeyUsageAsCritical(template)
+		if err != nil {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+		}
 	}
 
 	return nil
