@@ -76,7 +76,7 @@ func formatKeyID(id []byte) string {
 		if i > 0 {
 			s += ":"
 		}
-		s += fmt.Sprintf("%X", c)
+		s += fmt.Sprintf("%02X", c)
 	}
 
 	return s
