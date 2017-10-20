@@ -5,6 +5,7 @@ package initca
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"errors"
@@ -180,7 +181,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	// matching certificate public key vs private key
 	switch {
 	case ca.PublicKeyAlgorithm == x509.RSA:
-
 		var rsaPublicKey *rsa.PublicKey
 		var ok bool
 		if rsaPublicKey, ok = priv.Public().(*rsa.PublicKey); !ok {
@@ -203,7 +203,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	}
 
 	req := csr.ExtractCertificateRequest(ca)
-
 	cert, _, err := NewFromSigner(req, priv)
 	return cert, err
 
@@ -219,4 +218,18 @@ var CAPolicy = func() *config.Signing {
 			CAConstraint: config.CAConstraint{IsCA: true},
 		},
 	}
+}
+
+// Update copies the CA certificate, updates the NotBefore and
+// NotAfter fields, and then re-signs the certificate.
+func Update(ca *x509.Certificate, priv crypto.Signer) (cert []byte, err error) {
+	copy, err := x509.ParseCertificate(ca.Raw)
+	if err != nil {
+		return
+	}
+
+	validity := ca.NotAfter.Sub(ca.NotBefore)
+	copy.NotBefore = time.Now().Round(time.Minute).Add(-5 * time.Minute)
+	copy.NotAfter = copy.NotBefore.Add(validity)
+	return x509.CreateCertificate(rand.Reader, copy, copy, priv.Public(), priv)
 }
