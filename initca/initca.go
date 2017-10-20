@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"time"
 
@@ -231,5 +232,11 @@ func Update(ca *x509.Certificate, priv crypto.Signer) (cert []byte, err error) {
 	validity := ca.NotAfter.Sub(ca.NotBefore)
 	copy.NotBefore = time.Now().Round(time.Minute).Add(-5 * time.Minute)
 	copy.NotAfter = copy.NotBefore.Add(validity)
-	return x509.CreateCertificate(rand.Reader, copy, copy, priv.Public(), priv)
+	cert, err = x509.CreateCertificate(rand.Reader, copy, copy, priv.Public(), priv)
+	if err != nil {
+		return
+	}
+
+	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert})
+	return
 }
