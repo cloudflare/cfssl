@@ -1,6 +1,7 @@
 package initca
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"io/ioutil"
@@ -336,5 +337,49 @@ func TestRenewMismatch(t *testing.T) {
 	_, err := RenewFromPEM(testECDSACAFile, testRSACAKeyFile)
 	if err == nil {
 		t.Fatal("Fail to detect cert/key mismatch")
+	}
+}
+
+func TestRenew(t *testing.T) {
+	in, err := ioutil.ReadFile(testECDSACAFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	in, err = ioutil.ReadFile(testECDSACAKeyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	priv, err := helpers.ParsePrivateKeyPEM(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	renewed, err := Update(cert, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newCert, err := helpers.ParseCertificatePEM(renewed)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(newCert.RawSubjectPublicKeyInfo, cert.RawSubjectPublicKeyInfo) {
+		t.Fatal("Update returned a certificate with different subject public key info")
+	}
+
+	if !bytes.Equal(newCert.RawSubject, cert.RawSubject) {
+		t.Fatal("Update returned a certificate with different subject info")
+	}
+
+	if !bytes.Equal(newCert.RawIssuer, cert.RawIssuer) {
+		t.Fatal("Update returned a certificate with different issuer info")
 	}
 }
