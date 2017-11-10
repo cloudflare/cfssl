@@ -147,7 +147,7 @@ var endpoints = map[string]func() (http.Handler, error){
 		}
 
 		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
-			sh := h.(api.HTTPHandler).Handler.(*signhandler.AuthHandler)
+			sh := h.(*api.HTTPHandler).Handler.(*signhandler.AuthHandler)
 			if err := sh.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
 				return nil, err
 			}
