@@ -13,16 +13,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/certdb/dbconf"
+	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/log"
+	"github.com/jmhodges/clock"
+	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
-
-	"github.com/cloudflare/cfssl/certdb"
-	"github.com/cloudflare/cfssl/log"
-	"github.com/jmhodges/clock"
-	"golang.org/x/crypto/ocsp"
 )
 
 var (
@@ -155,6 +156,22 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 	}
 
 	log.Infof("Read %d OCSP responses", len(src))
+	return src, nil
+}
+
+// NewSourceFromDB reads the given database configuration file
+// and creates a database data source for use with the OCSP responder
+func NewSourceFromDB(DBConfigFile string) (Source, error) {
+	// Load DB from cofiguration file
+	db, err := dbconf.DBFromConfig(DBConfigFile)
+
+	if err != nil {
+		return nil, err
+	}
+	// Create accesor
+	accessor := sql.NewAccessor(db)
+	src := NewDBSource(accessor)
+
 	return src, nil
 }
 

@@ -348,4 +348,16 @@ func TestSqliteRealResponse(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error parsing response: %v", err)
 	}
+
+	// Manually run the query "SELECT max(version_id) FROM goose_db_version;"
+	// on testdata/sqlite_test.db after running this test to verify that the
+	// DB was properly connected to.
+
+}
+func TestNewSqliteSource(t *testing.T) {
+	dbpath := "testdata/db-config.json"
+	_, err := NewSourceFromDB(dbpath)
+	if err != nil {
+		t.Errorf("Error connecting to Sqlite DB: %v", err)
+	}
 }
