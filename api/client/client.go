@@ -28,6 +28,7 @@ type server struct {
 	TLSConfig      *tls.Config
 	reqModifier    func(*http.Request, []byte)
 	RequestTimeout time.Duration
+	proxy          func(*http.Request) (*url.URL, error)
 }
 
 // A Remote points to at least one (but possibly multiple) remote
@@ -42,6 +43,7 @@ type Remote interface {
 	Hosts() []string
 	SetReqModifier(func(*http.Request, []byte))
 	SetRequestTimeout(d time.Duration)
+	SetProxy(func(*http.Request) (*url.URL, error))
 }
 
 // NewServer sets up a new server target. The address should be of
@@ -87,6 +89,10 @@ func (srv *server) SetRequestTimeout(timeout time.Duration) {
 	srv.RequestTimeout = timeout
 }
 
+func (srv *server) SetProxy(proxy func(*http.Request) (*url.URL, error)) {
+	srv.proxy = proxy
+}
+
 func newServer(u *url.URL, tlsConfig *tls.Config) *server {
 	URL := u.String()
 	return &server{
@@ -99,11 +105,15 @@ func (srv *server) getURL(endpoint string) string {
 	return fmt.Sprintf("%s/api/v1/cfssl/%s", srv.URL, endpoint)
 }
 
-func (srv *server) createTLSTransport() (transport *http.Transport) {
+func (srv *server) createTransport() (transport *http.Transport) {
+	transport = new(http.Transport)
 	// Setup HTTPS client
 	tlsConfig := srv.TLSConfig
 	tlsConfig.BuildNameToCertificate()
-	return &http.Transport{TLSClientConfig: tlsConfig}
+	transport.TLSClientConfig = tlsConfig
+	// Setup Proxy
+	transport.Proxy = srv.proxy
+	return transport
 }
 
 // post connects to the remote server and returns a Response struct
@@ -112,7 +122,7 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 	var err error
 	client := &http.Client{}
 	if srv.TLSConfig != nil {
-		client.Transport = srv.createTLSTransport()
+		client.Transport = srv.createTransport()
 	}
 	if srv.RequestTimeout != 0 {
 		client.Timeout = srv.RequestTimeout
