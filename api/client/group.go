@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -77,6 +78,12 @@ func (g *orderedListGroup) Hosts() []string {
 func (g *orderedListGroup) SetRequestTimeout(timeout time.Duration) {
 	for _, srv := range g.remotes {
 		srv.SetRequestTimeout(timeout)
+	}
+}
+
+func (g *orderedListGroup) SetProxy(proxy func(*http.Request) (*url.URL, error)) {
+	for _, srv := range g.remotes {
+		srv.SetProxy(proxy)
 	}
 }
 
