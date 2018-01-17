@@ -54,6 +54,13 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 			}
 		}
 
+		if req.CA.Backdate != "" {
+			policy.Default.Backdate, err = time.ParseDuration(req.CA.Backdate)
+			if err != nil {
+				return
+			}
+		}
+
 		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
 		if req.CA.PathLength != 0 && req.CA.PathLenZero {
 			log.Infof("ignore invalid 'pathlenzero' value")

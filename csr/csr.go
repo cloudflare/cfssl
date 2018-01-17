@@ -133,6 +133,7 @@ type CAConfig struct {
 	PathLength  int    `json:"pathlen" yaml:"pathlen"`
 	PathLenZero bool   `json:"pathlenzero" yaml:"pathlenzero"`
 	Expiry      string `json:"expiry" yaml:"expiry"`
+	Backdate    string `json:"backdate" yaml:"backdate"`
 }
 
 // A CertificateRequest encapsulates the API interface to the
