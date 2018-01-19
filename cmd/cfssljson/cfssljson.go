@@ -156,26 +156,30 @@ func main() {
 
 	if result, ok := input["result"].(map[string]interface{}); ok {
 		if bundle, ok := result["bundle"].(map[string]interface{}); ok {
-			if certificateBundle, ok := bundle["bundle"].(string); ok {
-				if rootCertificate, ok := bundle["root"].(string); ok {
-					outs = append(outs, outputFile{
-						Filename: baseName + "-bundle.pem",
-						Contents: certificateBundle + "\n" + rootCertificate,
-						Perms:    0644,
-					})
-					outs = append(outs, outputFile{
-						Filename: baseName + "-root.pem",
-						Contents: rootCertificate,
-						Perms:    0644,
-					})
-				} else {
-					fmt.Printf("root parsing failed!")
-					os.Exit(200)
-				}
-			} else {
-				fmt.Printf("inner bundle parsing failed!")
-				os.Exit(200)
+
+			// if we've gotten this deep then we're trying to parse out
+			// a bundle, now we fail if we can't find the keys we need.
+
+			certificateBundle, ok := bundle["bundle"].(string)
+			if !ok {
+				fmt.Fprintf(os.Stderr, "inner bundle parsing failed!\n")
+				os.Exit(1)
 			}
+			rootCertificate, ok := bundle["root"].(string)
+			if !ok {
+				fmt.Fprintf(os.Stderr, "root parsing failed!\n")
+				os.Exit(1)
+			}
+			outs = append(outs, outputFile{
+				Filename: baseName + "-bundle.pem",
+				Contents: certificateBundle + "\n" + rootCertificate,
+				Perms:    0644,
+			})
+			outs = append(outs, outputFile{
+				Filename: baseName + "-root.pem",
+				Contents: rootCertificate,
+				Perms:    0644,
+			})
 		}
 	}
 
