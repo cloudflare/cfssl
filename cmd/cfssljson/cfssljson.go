@@ -154,26 +154,28 @@ func main() {
 		})
 	}
 
-	if contents, ok := input["bundle"].(map[string]interface{}); ok {
-		if certificateBundle, ok := contents["bundle"].(string); ok {
-			if rootCertificate, ok := contents["root"].(string); ok {
-				outs = append(outs, outputFile{
-					Filename: baseName + "-bundle.pem",
-					Contents: certificateBundle + "\n" + rootCertificate,
-					Perms:    0644,
-				})
-				outs = append(outs, outputFile{
-					Filename: baseName + "-root.pem",
-					Contents: rootCertificate,
-					Perms:    0644,
-				})
+	if result, ok := input["result"].(map[string]interface{}); ok {
+		if bundle, ok := result["bundle"].(map[string]interface{}); ok {
+			if certificateBundle, ok := bundle["bundle"].(string); ok {
+				if rootCertificate, ok := bundle["root"].(string); ok {
+					outs = append(outs, outputFile{
+						Filename: baseName + "-bundle.pem",
+						Contents: certificateBundle + "\n" + rootCertificate,
+						Perms:    0644,
+					})
+					outs = append(outs, outputFile{
+						Filename: baseName + "-root.pem",
+						Contents: rootCertificate,
+						Perms:    0644,
+					})
+				} else {
+					fmt.Printf("root parsing failed!")
+					os.Exit(200)
+				}
 			} else {
-				fmt.Printf("root parsing failed!")
+				fmt.Printf("inner bundle parsing failed!")
 				os.Exit(200)
 			}
-		} else {
-			fmt.Printf("inner bundle parsing failed!")
-			os.Exit(200)
 		}
 	}
 
