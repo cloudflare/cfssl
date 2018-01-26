@@ -40,13 +40,6 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/cloudflare/cfssl_trust",
-			"repository": "https://github.com/cloudflare/cfssl_trust",
-			"vcs": "",
-			"revision": "555f7ac5ef2bac5643fa0567bcdc174e0dfd72c1",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/cloudflare/go-metrics",
 			"repository": "https://github.com/cloudflare/go-metrics",
 			"vcs": "",
