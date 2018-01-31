@@ -35,7 +35,7 @@ Arguments:
 Flags:
 `
 
-var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "hostname", "profile", "label"}
+var gencertFlags = []string{"initca", "remote", "ca", "ca-key", "config", "cn", "hostname", "profile", "label"}
 
 func gencertMain(args []string, c cli.Config) error {
 	if c.RenewCA {
