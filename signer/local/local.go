@@ -29,7 +29,6 @@ import (
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 	"golang.org/x/net/context"
-	"time"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -97,16 +96,7 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	return NewSigner(priv, parsedCa, signer.DefaultSigAlgo(priv), policy)
 }
 
-func (s *Signer) sign(template *x509.Certificate, profile *config.SigningProfile, notBefore time.Time, notAfter time.Time) (cert []byte, err error) {
-	var distPoints = template.CRLDistributionPoints
-	if distPoints != nil && len(distPoints) > 0 {
-		template.CRLDistributionPoints = distPoints
-	}
-	err = signer.FillTemplate(template, s.policy.Default, profile, notBefore, notAfter)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Signer) sign(template *x509.Certificate) (cert []byte, err error) {
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {
@@ -336,6 +326,15 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 	}
 
+	var distPoints = safeTemplate.CRLDistributionPoints
+	if distPoints != nil && len(distPoints) > 0 {
+		safeTemplate.CRLDistributionPoints = distPoints
+	}
+	err = signer.FillTemplate(&safeTemplate, s.policy.Default, profile, req.NotBefore, req.NotAfter)
+	if err != nil {
+		return nil, err
+	}
+
 	var certTBS = safeTemplate
 
 	if len(profile.CTLogServers) > 0 {
@@ -343,7 +342,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
 		var poisonedPreCert = certTBS
 		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
-		cert, err = s.sign(&poisonedPreCert, profile, req.NotBefore, req.NotAfter)
+		cert, err = s.sign(&poisonedPreCert)
 		if err != nil {
 			return
 		}
@@ -383,7 +382,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
 	var signedCert []byte
-	signedCert, err = s.sign(&certTBS, profile, req.NotBefore, req.NotAfter)
+	signedCert, err = s.sign(&certTBS)
 	if err != nil {
 		return nil, err
 	}
