@@ -327,12 +327,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	var distPoints = safeTemplate.CRLDistributionPoints
-	if distPoints != nil && len(distPoints) > 0 {
-		safeTemplate.CRLDistributionPoints = distPoints
-	}
 	err = signer.FillTemplate(&safeTemplate, s.policy.Default, profile, req.NotBefore, req.NotAfter)
 	if err != nil {
 		return nil, err
+	}
+	if distPoints != nil && len(distPoints) > 0 {
+		safeTemplate.CRLDistributionPoints = distPoints
 	}
 
 	var certTBS = safeTemplate
