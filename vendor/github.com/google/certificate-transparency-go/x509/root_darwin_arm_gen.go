@@ -18,9 +18,6 @@ package main
 
 import (
 	"bytes"
-	// START CT CHANGES
-	"github.com/google/certificate-transparency-go/x509"
-	// END CT CHANGES
 	"encoding/pem"
 	"flag"
 	"fmt"
@@ -31,6 +28,8 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+
+	"github.com/google/certificate-transparency-go/x509"
 )
 
 var output = flag.String("output", "root_darwin_armx.go", "file name to write")

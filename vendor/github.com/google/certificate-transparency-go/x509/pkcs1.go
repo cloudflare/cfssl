@@ -6,11 +6,10 @@ package x509
 
 import (
 	"crypto/rsa"
-	// START CT CHANGES
-	"github.com/google/certificate-transparency-go/asn1"
-	// END CT CHANGES
 	"errors"
 	"math/big"
+
+	"github.com/google/certificate-transparency-go/asn1"
 )
 
 // pkcs1PrivateKey is a structure which mirrors the PKCS#1 ASN.1 for an RSA private key.
@@ -35,6 +34,12 @@ type pkcs1AdditionalRSAPrime struct {
 	// We ignore these values because rsa will calculate them.
 	Exp   *big.Int
 	Coeff *big.Int
+}
+
+// pkcs1PublicKey reflects the ASN.1 structure of a PKCS#1 public key.
+type pkcs1PublicKey struct {
+	N *big.Int
+	E int
 }
 
 // ParsePKCS1PrivateKey returns an RSA private key from its ASN.1 PKCS#1 DER encoded form.
@@ -114,10 +119,4 @@ func MarshalPKCS1PrivateKey(key *rsa.PrivateKey) []byte {
 
 	b, _ := asn1.Marshal(priv)
 	return b
-}
-
-// rsaPublicKey reflects the ASN.1 structure of a PKCS#1 public key.
-type rsaPublicKey struct {
-	N *big.Int
-	E int
 }

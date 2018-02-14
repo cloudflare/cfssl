@@ -4,11 +4,13 @@
 
 // Package x509 parses X.509-encoded keys and certificates.
 //
-// START CT CHANGES
+// On UNIX systems the environment variables SSL_CERT_FILE and SSL_CERT_DIR
+// can be used to override the system default locations for the SSL certificate
+// file and SSL certificate files directory, respectively.
+//
 // This is a fork of the go library crypto/x509 package, it's more relaxed
 // about certificates that it'll accept, and exports the TBSCertificate
 // structure.
-// END CT CHANGES
 package x509
 
 import (
@@ -19,10 +21,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	_ "crypto/sha1"
-	// START CT CHANGES
-	"github.com/google/certificate-transparency-go/asn1"
-	"github.com/google/certificate-transparency-go/x509/pkix"
-	// END CT CHANGES
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 	"encoding/pem"
@@ -33,6 +31,10 @@ import (
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/google/certificate-transparency-go/asn1"
+	"github.com/google/certificate-transparency-go/tls"
+	"github.com/google/certificate-transparency-go/x509/pkix"
 )
 
 // pkixPublicKey reflects a PKIX public key structure. See SubjectPublicKeyInfo
@@ -67,26 +69,24 @@ func ParsePKIXPublicKey(derBytes []byte) (pub interface{}, err error) {
 func marshalPublicKey(pub interface{}) (publicKeyBytes []byte, publicKeyAlgorithm pkix.AlgorithmIdentifier, err error) {
 	switch pub := pub.(type) {
 	case *rsa.PublicKey:
-		publicKeyBytes, err = asn1.Marshal(rsaPublicKey{
+		publicKeyBytes, err = asn1.Marshal(pkcs1PublicKey{
 			N: pub.N,
 			E: pub.E,
 		})
 		if err != nil {
 			return nil, pkix.AlgorithmIdentifier{}, err
 		}
-		publicKeyAlgorithm.Algorithm = oidPublicKeyRSA
+		publicKeyAlgorithm.Algorithm = OIDPublicKeyRSA
 		// This is a NULL parameters value which is required by
 		// https://tools.ietf.org/html/rfc3279#section-2.3.1.
-		publicKeyAlgorithm.Parameters = asn1.RawValue{
-			Tag: 5,
-		}
+		publicKeyAlgorithm.Parameters = asn1.NullRawValue
 	case *ecdsa.PublicKey:
 		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
-		oid, ok := oidFromNamedCurve(pub.Curve)
+		oid, ok := OIDFromNamedCurve(pub.Curve)
 		if !ok {
 			return nil, pkix.AlgorithmIdentifier{}, errors.New("x509: unsupported elliptic curve")
 		}
-		publicKeyAlgorithm.Algorithm = oidPublicKeyECDSA
+		publicKeyAlgorithm.Algorithm = OIDPublicKeyECDSA
 		var paramBytes []byte
 		paramBytes, err = asn1.Marshal(oid)
 		if err != nil {
@@ -170,8 +170,10 @@ type authKeyId struct {
 	Id []byte `asn1:"optional,tag:0"`
 }
 
+// SignatureAlgorithm indicates the algorithm used to sign a certificate.
 type SignatureAlgorithm int
 
+// SignatureAlgorithm values:
 const (
 	UnknownSignatureAlgorithm SignatureAlgorithm = iota
 	MD2WithRSA
@@ -225,8 +227,10 @@ func (algo SignatureAlgorithm) String() string {
 	return strconv.Itoa(int(algo))
 }
 
+// PublicKeyAlgorithm indicates the algorithm used for a certificate's public key.
 type PublicKeyAlgorithm int
 
+// PublicKeyAlgorithm values:
 const (
 	UnknownPublicKeyAlgorithm PublicKeyAlgorithm = iota
 	RSA
@@ -363,10 +367,8 @@ func rsaPSSParameters(hashFunc crypto.Hash) asn1.RawValue {
 
 	params := pssParameters{
 		Hash: pkix.AlgorithmIdentifier{
-			Algorithm: hashOID,
-			Parameters: asn1.RawValue{
-				Tag: 5, /* ASN.1 NULL */
-			},
+			Algorithm:  hashOID,
+			Parameters: asn1.NullRawValue,
 		},
 		MGF: pkix.AlgorithmIdentifier{
 			Algorithm: oidMGF1,
@@ -376,10 +378,8 @@ func rsaPSSParameters(hashFunc crypto.Hash) asn1.RawValue {
 	}
 
 	mgf1Params := pkix.AlgorithmIdentifier{
-		Algorithm: hashOID,
-		Parameters: asn1.RawValue{
-			Tag: 5, /* ASN.1 NULL */
-		},
+		Algorithm:  hashOID,
+		Parameters: asn1.NullRawValue,
 	}
 
 	var err error
@@ -396,7 +396,9 @@ func rsaPSSParameters(hashFunc crypto.Hash) asn1.RawValue {
 	return asn1.RawValue{FullBytes: serialized}
 }
 
-func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm {
+// SignatureAlgorithmFromAI converts an PKIX algorithm identifier to the
+// equivalent local constant.
+func SignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm {
 	if !ai.Algorithm.Equal(oidSignatureRSAPSS) {
 		for _, details := range signatureAlgorithmDetails {
 			if ai.Algorithm.Equal(details.oid) {
@@ -426,11 +428,10 @@ func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm
 	// https://tools.ietf.org/html/rfc3447#section-8.1), that the
 	// salt length matches the hash length, and that the trailer
 	// field has the default value.
-	asn1NULL := []byte{0x05, 0x00}
-	if !bytes.Equal(params.Hash.Parameters.FullBytes, asn1NULL) ||
+	if !bytes.Equal(params.Hash.Parameters.FullBytes, asn1.NullBytes) ||
 		!params.MGF.Algorithm.Equal(oidMGF1) ||
 		!mgf1HashFunc.Algorithm.Equal(params.Hash.Algorithm) ||
-		!bytes.Equal(mgf1HashFunc.Parameters.FullBytes, asn1NULL) ||
+		!bytes.Equal(mgf1HashFunc.Parameters.FullBytes, asn1.NullBytes) ||
 		params.TrailerField != 1 {
 		return UnknownSignatureAlgorithm
 	}
@@ -462,18 +463,19 @@ func getSignatureAlgorithmFromAI(ai pkix.AlgorithmIdentifier) SignatureAlgorithm
 // id-ecPublicKey OBJECT IDENTIFIER ::= {
 //       iso(1) member-body(2) us(840) ansi-X9-62(10045) keyType(2) 1 }
 var (
-	oidPublicKeyRSA   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
-	oidPublicKeyDSA   = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
-	oidPublicKeyECDSA = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
+	OIDPublicKeyRSA         = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
+	OIDPublicKeyDSA         = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
+	OIDPublicKeyECDSA       = asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
+	OIDPublicKeyRSAObsolete = asn1.ObjectIdentifier{2, 5, 8, 1, 1}
 )
 
 func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm {
 	switch {
-	case oid.Equal(oidPublicKeyRSA):
+	case oid.Equal(OIDPublicKeyRSA):
 		return RSA
-	case oid.Equal(oidPublicKeyDSA):
+	case oid.Equal(OIDPublicKeyDSA):
 		return DSA
-	case oid.Equal(oidPublicKeyECDSA):
+	case oid.Equal(OIDPublicKeyECDSA):
 		return ECDSA
 	}
 	return UnknownPublicKeyAlgorithm
@@ -496,36 +498,38 @@ func getPublicKeyAlgorithmFromOID(oid asn1.ObjectIdentifier) PublicKeyAlgorithm 
 //
 // NB: secp256r1 is equivalent to prime256v1
 var (
-	oidNamedCurveP224 = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
-	oidNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
-	oidNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
-	oidNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
+	OIDNamedCurveP224 = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
+	OIDNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
+	OIDNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
+	OIDNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
 )
 
 func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
 	switch {
-	case oid.Equal(oidNamedCurveP224):
+	case oid.Equal(OIDNamedCurveP224):
 		return elliptic.P224()
-	case oid.Equal(oidNamedCurveP256):
+	case oid.Equal(OIDNamedCurveP256):
 		return elliptic.P256()
-	case oid.Equal(oidNamedCurveP384):
+	case oid.Equal(OIDNamedCurveP384):
 		return elliptic.P384()
-	case oid.Equal(oidNamedCurveP521):
+	case oid.Equal(OIDNamedCurveP521):
 		return elliptic.P521()
 	}
 	return nil
 }
 
-func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
+// OIDFromNamedCurve returns the OID used to specify the use of the given
+// elliptic curve.
+func OIDFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 	switch curve {
 	case elliptic.P224():
-		return oidNamedCurveP224, true
+		return OIDNamedCurveP224, true
 	case elliptic.P256():
-		return oidNamedCurveP256, true
+		return OIDNamedCurveP256, true
 	case elliptic.P384():
-		return oidNamedCurveP384, true
+		return OIDNamedCurveP384, true
 	case elliptic.P521():
-		return oidNamedCurveP521, true
+		return OIDNamedCurveP521, true
 	}
 
 	return nil, false
@@ -535,6 +539,7 @@ func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 // a bitmap of the KeyUsage* constants.
 type KeyUsage int
 
+// KeyUsage values:
 const (
 	KeyUsageDigitalSignature KeyUsage = 1 << iota
 	KeyUsageContentCommitment
@@ -572,12 +577,15 @@ var (
 	oidExtKeyUsageOCSPSigning                = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 9}
 	oidExtKeyUsageMicrosoftServerGatedCrypto = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 10, 3, 3}
 	oidExtKeyUsageNetscapeServerGatedCrypto  = asn1.ObjectIdentifier{2, 16, 840, 1, 113730, 4, 1}
+	// RFC 6962 s3.1
+	oidExtKeyUsageCertificateTransparency = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 4}
 )
 
 // ExtKeyUsage represents an extended set of actions that are valid for a given key.
 // Each of the ExtKeyUsage* constants define a unique action.
 type ExtKeyUsage int
 
+// ExtKeyUsage values:
 const (
 	ExtKeyUsageAny ExtKeyUsage = iota
 	ExtKeyUsageServerAuth
@@ -591,6 +599,7 @@ const (
 	ExtKeyUsageOCSPSigning
 	ExtKeyUsageMicrosoftServerGatedCrypto
 	ExtKeyUsageNetscapeServerGatedCrypto
+	ExtKeyUsageCertificateTransparency
 )
 
 // extKeyUsageOIDs contains the mapping between an ExtKeyUsage and its OID.
@@ -610,6 +619,7 @@ var extKeyUsageOIDs = []struct {
 	{ExtKeyUsageOCSPSigning, oidExtKeyUsageOCSPSigning},
 	{ExtKeyUsageMicrosoftServerGatedCrypto, oidExtKeyUsageMicrosoftServerGatedCrypto},
 	{ExtKeyUsageNetscapeServerGatedCrypto, oidExtKeyUsageNetscapeServerGatedCrypto},
+	{ExtKeyUsageCertificateTransparency, oidExtKeyUsageCertificateTransparency},
 }
 
 func extKeyUsageFromOID(oid asn1.ObjectIdentifier) (eku ExtKeyUsage, ok bool) {
@@ -628,6 +638,16 @@ func oidFromExtKeyUsage(eku ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
 		}
 	}
 	return
+}
+
+// SerializedSCT represents a single TLS-encoded signed certificate timestamp, from RFC6962 s3.3.
+type SerializedSCT struct {
+	Val []byte `tls:"minlen:1,maxlen:65535"`
+}
+
+// SignedCertificateTimestampList is a list of signed certificate timestamps, from RFC6962 s3.3.
+type SignedCertificateTimestampList struct {
+	SCTList []SerializedSCT `tls:"minlen:1,maxlen:65335"`
 }
 
 // A Certificate represents an X.509 certificate.
@@ -676,13 +696,28 @@ type Certificate struct {
 	ExtKeyUsage        []ExtKeyUsage           // Sequence of extended key usages.
 	UnknownExtKeyUsage []asn1.ObjectIdentifier // Encountered extended key usages unknown to this package.
 
-	BasicConstraintsValid bool // if true then the next two fields are valid.
+	// BasicConstraintsValid indicates whether IsCA, MaxPathLen,
+	// and MaxPathLenZero are valid.
+	BasicConstraintsValid bool
 	IsCA                  bool
-	MaxPathLen            int
-	// MaxPathLenZero indicates that BasicConstraintsValid==true and
-	// MaxPathLen==0 should be interpreted as an actual maximum path length
-	// of zero. Otherwise, that combination is interpreted as MaxPathLen
-	// not being set.
+
+	// MaxPathLen and MaxPathLenZero indicate the presence and
+	// value of the BasicConstraints' "pathLenConstraint".
+	//
+	// When parsing a certificate, a positive non-zero MaxPathLen
+	// means that the field was specified, -1 means it was unset,
+	// and MaxPathLenZero being true mean that the field was
+	// explicitly set to zero. The case of MaxPathLen==0 with MaxPathLenZero==false
+	// should be treated equivalent to -1 (unset).
+	//
+	// When generating a certificate, an unset pathLenConstraint
+	// can be requested with either MaxPathLen == -1 or using the
+	// zero value for both MaxPathLen and MaxPathLenZero.
+	MaxPathLen int
+	// MaxPathLenZero indicates that BasicConstraintsValid==true
+	// and MaxPathLen==0 should be interpreted as an actual
+	// maximum path length of zero. Otherwise, that combination is
+	// interpreted as MaxPathLen not being set.
 	MaxPathLenZero bool
 
 	SubjectKeyId   []byte
@@ -700,18 +735,25 @@ type Certificate struct {
 	// Name constraints
 	PermittedDNSDomainsCritical bool // if true then the name constraints are marked critical.
 	PermittedDNSDomains         []string
+	ExcludedDNSDomains          []string
 
 	// CRL Distribution Points
 	CRLDistributionPoints []string
 
 	PolicyIdentifiers []asn1.ObjectIdentifier
+
+	// Certificate Transparency SCT extension contents; this is a TLS-encoded
+	// SignedCertificateTimestampList (RFC 6962 s3.3).
+	RawSCT  []byte
+	SCTList SignedCertificateTimestampList
 }
 
 // ErrUnsupportedAlgorithm results from attempting to perform an operation that
 // involves algorithms that are not currently implemented.
 var ErrUnsupportedAlgorithm = errors.New("x509: cannot verify signature: algorithm unimplemented")
 
-// An InsecureAlgorithmError
+// InsecureAlgorithmError results when the signature algorithm for a certificate
+// is known to be insecure.
 type InsecureAlgorithmError SignatureAlgorithm
 
 func (e InsecureAlgorithmError) Error() string {
@@ -727,8 +769,14 @@ func (ConstraintViolationError) Error() string {
 	return "x509: invalid signature: parent certificate cannot sign this kind of certificate"
 }
 
+// Equal indicates whether two Certificate objects are equal (by comparing their
+// DER-encoded values).
 func (c *Certificate) Equal(other *Certificate) bool {
 	return bytes.Equal(c.Raw, other.Raw)
+}
+
+func (c *Certificate) hasSANExtension() bool {
+	return oidInExtensions(OIDExtensionSubjectAltName, c.Extensions)
 }
 
 // Entrust have a broken root certificate (CN=Entrust.net Certification
@@ -883,11 +931,12 @@ func checkSignature(algo SignatureAlgorithm, signed, signature []byte, publicKey
 
 // CheckCRLSignature checks that the signature in crl is from c.
 func (c *Certificate) CheckCRLSignature(crl *pkix.CertificateList) error {
-	algo := getSignatureAlgorithmFromAI(crl.SignatureAlgorithm)
+	algo := SignatureAlgorithmFromAI(crl.SignatureAlgorithm)
 	return c.CheckSignature(algo, crl.TBSCertList.Raw, crl.SignatureValue.RightAlign())
 }
 
-// START CT CHANGES
+// UnhandledCriticalExtension results when the certificate contains an extension
+// that is marked as critical but which is not handled by this library.
 type UnhandledCriticalExtension struct {
 	ID asn1.ObjectIdentifier
 }
@@ -896,10 +945,30 @@ func (h UnhandledCriticalExtension) Error() string {
 	return fmt.Sprintf("x509: unhandled critical extension (%v)", h.ID)
 }
 
-// RemoveCTPoison takes a DER-encoded TBSCertificate and removes the CT poison extension,
-// and returns the result, still as a DER-encoded TBSCertificate.  This function will
-// fail if there is not exactly 1 CT poison extension present.
+// RemoveCTPoison takes a DER-encoded TBSCertificate and removes the CT poison
+// extension (preserving the order of other extensions), and returns the result
+// still as a DER-encoded TBSCertificate.  This function will fail if there is
+// not exactly 1 CT poison extension present.
 func RemoveCTPoison(tbsData []byte) ([]byte, error) {
+	return BuildPrecertTBS(tbsData, nil)
+}
+
+// BuildPrecertTBS builds a Certificate Transparency pre-certificate (RFC 6962
+// s3.1) from the given DER-encoded TBSCertificate, returning a DER-encoded
+// TBSCertificate.
+//
+// This function removes the CT poison extension (there must be exactly 1 of
+// these), preserving the order of other extensions.
+//
+// If preIssuer is provided, this should be a special intermediate certificate
+// that was used to sign the precert (indicated by having the special
+// CertificateTransparency extended key usage).  In this case, the issuance
+// information of the pre-cert is updated to reflect the next issuer in the
+// chain, i.e. the issuer of this special intermediate:
+//  - The precert's Issuer is changed to the Issuer of the intermediate
+//  - The precert's AuthorityKeyId is changed to the AuthorityKeyId of the
+//    intermediate.
+func BuildPrecertTBS(tbsData []byte, preIssuer *Certificate) ([]byte, error) {
 	var tbs tbsCertificate
 	rest, err := asn1.Unmarshal(tbsData, &tbs)
 	if err != nil {
@@ -921,6 +990,60 @@ func RemoveCTPoison(tbsData []byte) ([]byte, error) {
 	}
 	tbs.Extensions = append(tbs.Extensions[:poisonAt], tbs.Extensions[poisonAt+1:]...)
 	tbs.Raw = nil
+
+	if preIssuer != nil {
+		// Update the precert's Issuer field.  Use the RawIssuer rather than the
+		// parsed Issuer to avoid any chance of ASN.1 differences (e.g. switching
+		// from UTF8String to PrintableString).
+		tbs.Issuer.FullBytes = preIssuer.RawIssuer
+
+		// Also need to update the cert's AuthorityKeyID extension
+		// to that of the preIssuer.
+		var issuerKeyID []byte
+		for _, ext := range preIssuer.Extensions {
+			if ext.Id.Equal(OIDExtensionAuthorityKeyId) {
+				issuerKeyID = ext.Value
+				break
+			}
+		}
+
+		// Check the preIssuer has the CT EKU.
+		seenCTEKU := false
+		for _, eku := range preIssuer.ExtKeyUsage {
+			if eku == ExtKeyUsageCertificateTransparency {
+				seenCTEKU = true
+				break
+			}
+		}
+		if !seenCTEKU {
+			return nil, fmt.Errorf("issuer does not have CertificateTransparency extended key usage")
+		}
+
+		keyAt := -1
+		for i, ext := range tbs.Extensions {
+			if ext.Id.Equal(OIDExtensionAuthorityKeyId) {
+				keyAt = i
+				break
+			}
+		}
+		if keyAt >= 0 {
+			// PreCert has an auth-key-id; replace it with the value from the preIssuer
+			if issuerKeyID != nil {
+				tbs.Extensions[keyAt].Value = issuerKeyID
+			} else {
+				tbs.Extensions = append(tbs.Extensions[:keyAt], tbs.Extensions[keyAt+1:]...)
+			}
+		} else if issuerKeyID != nil {
+			// PreCert did not have an auth-key-id, but the preIssuer does, so add it at the end.
+			authKeyIDExt := pkix.Extension{
+				Id:       OIDExtensionAuthorityKeyId,
+				Critical: false,
+				Value:    issuerKeyID,
+			}
+			tbs.Extensions = append(tbs.Extensions, authKeyIDExt)
+		}
+	}
+
 	data, err := asn1.Marshal(tbs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to re-marshal TBSCertificate: %v", err)
@@ -928,14 +1051,12 @@ func RemoveCTPoison(tbsData []byte) ([]byte, error) {
 	return data, nil
 }
 
-// END CT CHANGES
-
 type basicConstraints struct {
 	IsCA       bool `asn1:"optional"`
 	MaxPathLen int  `asn1:"optional,default:-1"`
 }
 
-// RFC 5280 4.2.1.4
+// RFC 5280, 4.2.1.4
 type policyInformation struct {
 	Policy asn1.ObjectIdentifier
 	// policyQualifiers omitted
@@ -969,20 +1090,17 @@ type distributionPointName struct {
 	RelativeName pkix.RDNSequence `asn1:"optional,tag:1"`
 }
 
-// asn1Null is the ASN.1 encoding of a NULL value.
-var asn1Null = []byte{5, 0}
-
 func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{}, error) {
 	asn1Data := keyData.PublicKey.RightAlign()
 	switch algo {
 	case RSA:
 		// RSA public keys must have a NULL in the parameters
 		// (https://tools.ietf.org/html/rfc3279#section-2.3.1).
-		if !bytes.Equal(keyData.Algorithm.Parameters.FullBytes, asn1Null) {
+		if !bytes.Equal(keyData.Algorithm.Parameters.FullBytes, asn1.NullBytes) {
 			return nil, errors.New("x509: RSA key missing NULL parameters")
 		}
 
-		p := new(rsaPublicKey)
+		p := new(pkcs1PublicKey)
 		rest, err := asn1.Unmarshal(asn1Data, p)
 		if err != nil {
 			return nil, err
@@ -1062,8 +1180,6 @@ func parsePublicKey(algo PublicKeyAlgorithm, keyData *publicKeyInfo) (interface{
 	}
 }
 
-// START CT CHANGES
-
 // NonFatalErrors is an error type which can hold a number of other errors.
 // It's used to collect a range of non-fatal errors which occur while parsing
 // a certificate, that way we can still match on certs which technically are
@@ -1092,7 +1208,45 @@ func (e *NonFatalErrors) HasError() bool {
 	return len(e.Errors) > 0
 }
 
-// END CT CHANGES
+func parseDistributionPoints(data []byte, crldp *[]string) error {
+	// CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
+	//
+	// DistributionPoint ::= SEQUENCE {
+	//     distributionPoint       [0]     DistributionPointName OPTIONAL,
+	//     reasons                 [1]     ReasonFlags OPTIONAL,
+	//     cRLIssuer               [2]     GeneralNames OPTIONAL }
+	//
+	// DistributionPointName ::= CHOICE {
+	//     fullName                [0]     GeneralNames,
+	//     nameRelativeToCRLIssuer [1]     RelativeDistinguishedName }
+
+	var cdp []distributionPoint
+	if rest, err := asn1.Unmarshal(data, &cdp); err != nil {
+		return err
+	} else if len(rest) != 0 {
+		return errors.New("x509: trailing data after X.509 CRL distribution point")
+	}
+
+	for _, dp := range cdp {
+		// Per RFC 5280, 4.2.1.13, one of distributionPoint or cRLIssuer may be empty.
+		if len(dp.DistributionPoint.FullName.Bytes) == 0 {
+			continue
+		}
+
+		var n asn1.RawValue
+		if _, err := asn1.Unmarshal(dp.DistributionPoint.FullName.Bytes, &n); err != nil {
+			return err
+		}
+		// Trailing data after the fullName is
+		// allowed because other elements of
+		// the SEQUENCE can appear.
+
+		if n.Tag == 6 {
+			*crldp = append(*crldp, string(n.Bytes))
+		}
+	}
+	return nil
+}
 
 func parseSANExtension(value []byte, nfe *NonFatalErrors) (dnsNames, emailAddresses []string, ipAddresses []net.IP, err error) {
 	// RFC 5280, 4.2.1.6
@@ -1119,7 +1273,7 @@ func parseSANExtension(value []byte, nfe *NonFatalErrors) (dnsNames, emailAddres
 		err = errors.New("x509: trailing data after X.509 extension")
 		return
 	}
-	if !seq.IsCompound || seq.Tag != 16 || seq.Class != 0 {
+	if !seq.IsCompound || seq.Tag != asn1.TagSequence || seq.Class != asn1.ClassUniversal {
 		err = asn1.StructuralError{Msg: "bad SAN sequence"}
 		return
 	}
@@ -1141,9 +1295,7 @@ func parseSANExtension(value []byte, nfe *NonFatalErrors) (dnsNames, emailAddres
 			case net.IPv4len, net.IPv6len:
 				ipAddresses = append(ipAddresses, v.Bytes)
 			default:
-				// START CT CHANGES
 				nfe.AddError(fmt.Errorf("x509: certificate contained IP address of length %d : %v", len(v.Bytes), v.Bytes))
-				// END CT CHANGES
 			}
 		}
 	}
@@ -1152,9 +1304,7 @@ func parseSANExtension(value []byte, nfe *NonFatalErrors) (dnsNames, emailAddres
 }
 
 func parseCertificate(in *certificate) (*Certificate, error) {
-	// START CT CHANGES
 	var nfe NonFatalErrors
-	// END CT CHANGES
 
 	out := new(Certificate)
 	out.Raw = in.Raw
@@ -1164,8 +1314,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 	out.RawIssuer = in.TBSCertificate.Issuer.FullBytes
 
 	out.Signature = in.SignatureValue.RightAlign()
-	out.SignatureAlgorithm =
-		getSignatureAlgorithmFromAI(in.TBSCertificate.SignatureAlgorithm)
+	out.SignatureAlgorithm = SignatureAlgorithmFromAI(in.TBSCertificate.SignatureAlgorithm)
 
 	out.PublicKeyAlgorithm =
 		getPublicKeyAlgorithmFromOID(in.TBSCertificate.PublicKey.Algorithm.Algorithm)
@@ -1200,9 +1349,9 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 		out.Extensions = append(out.Extensions, e)
 		unhandled := false
 
-		if len(e.Id) == 4 && e.Id[0] == 2 && e.Id[1] == 5 && e.Id[2] == 29 {
+		if len(e.Id) == 4 && e.Id[0] == OIDExtensionArc[0] && e.Id[1] == OIDExtensionArc[1] && e.Id[2] == OIDExtensionArc[2] {
 			switch e.Id[3] {
-			case 15:
+			case OIDExtensionKeyUsage[3]:
 				// RFC 5280, 4.2.1.3
 				var usageBits asn1.BitString
 				if rest, err := asn1.Unmarshal(e.Value, &usageBits); err != nil {
@@ -1219,7 +1368,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				}
 				out.KeyUsage = KeyUsage(usage)
 
-			case 19:
+			case OIDExtensionBasicConstraints[3]:
 				// RFC 5280, 4.2.1.9
 				var constraints basicConstraints
 				if rest, err := asn1.Unmarshal(e.Value, &constraints); err != nil {
@@ -1232,8 +1381,9 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				out.IsCA = constraints.IsCA
 				out.MaxPathLen = constraints.MaxPathLen
 				out.MaxPathLenZero = out.MaxPathLen == 0
+				// TODO: map out.MaxPathLen to 0 if it has the -1 default value? (Issue 19285)
 
-			case 17:
+			case OIDExtensionSubjectAltName[3]:
 				out.DNSNames, out.EmailAddresses, out.IPAddresses, err = parseSANExtension(e.Value, &nfe)
 				if err != nil {
 					return nil, err
@@ -1244,7 +1394,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 					unhandled = true
 				}
 
-			case 30:
+			case OIDExtensionNameConstraints[3]:
 				// RFC 5280, 4.2.1.10
 
 				// NameConstraints ::= SEQUENCE {
@@ -1267,65 +1417,35 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 					return nil, errors.New("x509: trailing data after X.509 NameConstraints")
 				}
 
-				if len(constraints.Excluded) > 0 && e.Critical {
-					// START CT CHANGES
-					nfe.AddError(UnhandledCriticalExtension{e.Id})
-					// END CT CHANGES
-				}
-
-				for _, subtree := range constraints.Permitted {
-					if len(subtree.Name) == 0 {
-						if e.Critical {
-							// START CT CHANGES
-							nfe.AddError(UnhandledCriticalExtension{e.Id})
-							// END CT CHANGES
+				getDNSNames := func(subtrees []generalSubtree, isCritical bool) (dnsNames []string, err error) {
+					for _, subtree := range subtrees {
+						if len(subtree.Name) == 0 {
+							if isCritical {
+								nfe.AddError(UnhandledCriticalExtension{e.Id})
+							}
+							continue
 						}
-						continue
+						dnsNames = append(dnsNames, subtree.Name)
 					}
-					out.PermittedDNSDomains = append(out.PermittedDNSDomains, subtree.Name)
+
+					return dnsNames, nil
 				}
 
-			case 31:
+				if out.PermittedDNSDomains, err = getDNSNames(constraints.Permitted, e.Critical); err != nil {
+					return out, err
+				}
+				if out.ExcludedDNSDomains, err = getDNSNames(constraints.Excluded, e.Critical); err != nil {
+					return out, err
+				}
+				out.PermittedDNSDomainsCritical = e.Critical
+
+			case OIDExtensionCRLDistributionPoints[3]:
 				// RFC 5280, 4.2.1.13
-
-				// CRLDistributionPoints ::= SEQUENCE SIZE (1..MAX) OF DistributionPoint
-				//
-				// DistributionPoint ::= SEQUENCE {
-				//     distributionPoint       [0]     DistributionPointName OPTIONAL,
-				//     reasons                 [1]     ReasonFlags OPTIONAL,
-				//     cRLIssuer               [2]     GeneralNames OPTIONAL }
-				//
-				// DistributionPointName ::= CHOICE {
-				//     fullName                [0]     GeneralNames,
-				//     nameRelativeToCRLIssuer [1]     RelativeDistinguishedName }
-
-				var cdp []distributionPoint
-				if rest, err := asn1.Unmarshal(e.Value, &cdp); err != nil {
+				if err := parseDistributionPoints(e.Value, &out.CRLDistributionPoints); err != nil {
 					return nil, err
-				} else if len(rest) != 0 {
-					return nil, errors.New("x509: trailing data after X.509 CRL distribution point")
 				}
 
-				for _, dp := range cdp {
-					// Per RFC 5280, 4.2.1.13, one of distributionPoint or cRLIssuer may be empty.
-					if len(dp.DistributionPoint.FullName.Bytes) == 0 {
-						continue
-					}
-
-					var n asn1.RawValue
-					if _, err := asn1.Unmarshal(dp.DistributionPoint.FullName.Bytes, &n); err != nil {
-						return nil, err
-					}
-					// Trailing data after the fullName is
-					// allowed because other elements of
-					// the SEQUENCE can appear.
-
-					if n.Tag == 6 {
-						out.CRLDistributionPoints = append(out.CRLDistributionPoints, string(n.Bytes))
-					}
-				}
-
-			case 35:
+			case OIDExtensionAuthorityKeyId[3]:
 				// RFC 5280, 4.2.1.1
 				var a authKeyId
 				if rest, err := asn1.Unmarshal(e.Value, &a); err != nil {
@@ -1335,7 +1455,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				}
 				out.AuthorityKeyId = a.Id
 
-			case 37:
+			case OIDExtensionExtendedKeyUsage[3]:
 				// RFC 5280, 4.2.1.12.  Extended Key Usage
 
 				// id-ce-extKeyUsage OBJECT IDENTIFIER ::= { id-ce 37 }
@@ -1359,7 +1479,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 					}
 				}
 
-			case 14:
+			case OIDExtensionSubjectKeyId[3]:
 				// RFC 5280, 4.2.1.2
 				var keyid []byte
 				if rest, err := asn1.Unmarshal(e.Value, &keyid); err != nil {
@@ -1369,7 +1489,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				}
 				out.SubjectKeyId = keyid
 
-			case 32:
+			case OIDExtensionCertificatePolicies[3]:
 				// RFC 5280 4.2.1.4: Certificate Policies
 				var policies []policyInformation
 				if rest, err := asn1.Unmarshal(e.Value, &policies); err != nil {
@@ -1386,7 +1506,7 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				// Unknown extensions are recorded if critical.
 				unhandled = true
 			}
-		} else if e.Id.Equal(oidExtensionAuthorityInfoAccess) {
+		} else if e.Id.Equal(OIDExtensionAuthorityInfoAccess) {
 			// RFC 5280 4.2.2.1: Authority Information Access
 			var aia []authorityInfoAccess
 			if rest, err := asn1.Unmarshal(e.Value, &aia); err != nil {
@@ -1400,10 +1520,22 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				if v.Location.Tag != 6 {
 					continue
 				}
-				if v.Method.Equal(oidAuthorityInfoAccessOcsp) {
+				if v.Method.Equal(OIDAuthorityInfoAccessOCSP) {
 					out.OCSPServer = append(out.OCSPServer, string(v.Location.Bytes))
-				} else if v.Method.Equal(oidAuthorityInfoAccessIssuers) {
+				} else if v.Method.Equal(OIDAuthorityInfoAccessIssuers) {
 					out.IssuingCertificateURL = append(out.IssuingCertificateURL, string(v.Location.Bytes))
+				}
+			}
+		} else if e.Id.Equal(OIDExtensionCTSCT) {
+			if rest, err := asn1.Unmarshal(e.Value, &out.RawSCT); err != nil {
+				nfe.AddError(fmt.Errorf("failed to asn1.Unmarshal SCT list extension: %v", err))
+			} else if len(rest) != 0 {
+				nfe.AddError(errors.New("trailing data after ASN1-encoded SCT list"))
+			} else {
+				if rest, err := tls.Unmarshal(out.RawSCT, &out.SCTList); err != nil {
+					nfe.AddError(fmt.Errorf("failed to tls.Unmarshal SCT list: %v", err))
+				} else if len(rest) != 0 {
+					nfe.AddError(errors.New("trailing data after TLS-encoded SCT list"))
 				}
 			}
 		} else {
@@ -1415,15 +1547,11 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 			out.UnhandledCriticalExtensions = append(out.UnhandledCriticalExtensions, e.Id)
 		}
 	}
-	// START CT CHANGES
 	if nfe.HasError() {
 		return out, nfe
 	}
-	// END CT CHANGES
 	return out, nil
 }
-
-// START CT CHANGES
 
 // ParseTBSCertificate parses a single TBSCertificate from the given ASN.1 DER data.
 // The parsed data is returned in a Certificate struct for ease of access.
@@ -1440,8 +1568,6 @@ func ParseTBSCertificate(asn1Data []byte) (*Certificate, error) {
 		Raw:            tbsCert.Raw,
 		TBSCertificate: tbsCert})
 }
-
-// END CT CHANGES
 
 // ParseCertificate parses a single certificate from the given ASN.1 DER data.
 func ParseCertificate(asn1Data []byte) (*Certificate, error) {
@@ -1511,27 +1637,39 @@ func asn1BitLength(bitString []byte) int {
 	return 0
 }
 
+// OID values for standard extensions from RFC 5280.
 var (
-	oidExtensionSubjectKeyId          = []int{2, 5, 29, 14}
-	oidExtensionKeyUsage              = []int{2, 5, 29, 15}
-	oidExtensionExtendedKeyUsage      = []int{2, 5, 29, 37}
-	oidExtensionAuthorityKeyId        = []int{2, 5, 29, 35}
-	oidExtensionBasicConstraints      = []int{2, 5, 29, 19}
-	oidExtensionSubjectAltName        = []int{2, 5, 29, 17}
-	oidExtensionCertificatePolicies   = []int{2, 5, 29, 32}
-	oidExtensionNameConstraints       = []int{2, 5, 29, 30}
-	oidExtensionCRLDistributionPoints = []int{2, 5, 29, 31}
-	oidExtensionAuthorityInfoAccess   = []int{1, 3, 6, 1, 5, 5, 7, 1, 1}
+	OIDExtensionArc                        = asn1.ObjectIdentifier{2, 5, 29} // id-ce RFC5280 s4.2.1
+	OIDExtensionSubjectKeyId               = asn1.ObjectIdentifier{2, 5, 29, 14}
+	OIDExtensionKeyUsage                   = asn1.ObjectIdentifier{2, 5, 29, 15}
+	OIDExtensionExtendedKeyUsage           = asn1.ObjectIdentifier{2, 5, 29, 37}
+	OIDExtensionAuthorityKeyId             = asn1.ObjectIdentifier{2, 5, 29, 35}
+	OIDExtensionBasicConstraints           = asn1.ObjectIdentifier{2, 5, 29, 19}
+	OIDExtensionSubjectAltName             = asn1.ObjectIdentifier{2, 5, 29, 17}
+	OIDExtensionCertificatePolicies        = asn1.ObjectIdentifier{2, 5, 29, 32}
+	OIDExtensionNameConstraints            = asn1.ObjectIdentifier{2, 5, 29, 30}
+	OIDExtensionCRLDistributionPoints      = asn1.ObjectIdentifier{2, 5, 29, 31}
+	OIDExtensionIssuerAltName              = asn1.ObjectIdentifier{2, 5, 29, 18}
+	OIDExtensionSubjectDirectoryAttributes = asn1.ObjectIdentifier{2, 5, 29, 9}
+	OIDExtensionInhibitAnyPolicy           = asn1.ObjectIdentifier{2, 5, 29, 54}
+	OIDExtensionPolicyConstraints          = asn1.ObjectIdentifier{2, 5, 29, 36}
+	OIDExtensionPolicyMappings             = asn1.ObjectIdentifier{2, 5, 29, 33}
+	OIDExtensionFreshestCRL                = asn1.ObjectIdentifier{2, 5, 29, 46}
+
+	OIDExtensionAuthorityInfoAccess = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 1}
+	OIDExtensionSubjectInfoAccess   = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 11}
 	// OIDExtensionCTPoison is defined in RFC 6962 s3.1.
 	OIDExtensionCTPoison = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 3}
+	// OIDExtensionCTSCT is defined in RFC 6962 s3.3.
+	OIDExtensionCTSCT = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
 )
 
 var (
-	oidAuthorityInfoAccessOcsp    = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 1}
-	oidAuthorityInfoAccessIssuers = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 2}
+	OIDAuthorityInfoAccessOCSP    = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 1}
+	OIDAuthorityInfoAccessIssuers = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 2}
 )
 
-// oidNotInExtensions returns whether an extension with the given oid exists in
+// oidInExtensions returns whether an extension with the given oid exists in
 // extensions.
 func oidInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension) bool {
 	for _, e := range extensions {
@@ -1547,10 +1685,10 @@ func oidInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension) boo
 func marshalSANs(dnsNames, emailAddresses []string, ipAddresses []net.IP) (derBytes []byte, err error) {
 	var rawValues []asn1.RawValue
 	for _, name := range dnsNames {
-		rawValues = append(rawValues, asn1.RawValue{Tag: 2, Class: 2, Bytes: []byte(name)})
+		rawValues = append(rawValues, asn1.RawValue{Tag: 2, Class: asn1.ClassContextSpecific, Bytes: []byte(name)})
 	}
 	for _, email := range emailAddresses {
-		rawValues = append(rawValues, asn1.RawValue{Tag: 1, Class: 2, Bytes: []byte(email)})
+		rawValues = append(rawValues, asn1.RawValue{Tag: 1, Class: asn1.ClassContextSpecific, Bytes: []byte(email)})
 	}
 	for _, rawIP := range ipAddresses {
 		// If possible, we always want to encode IPv4 addresses in 4 bytes.
@@ -1558,18 +1696,18 @@ func marshalSANs(dnsNames, emailAddresses []string, ipAddresses []net.IP) (derBy
 		if ip == nil {
 			ip = rawIP
 		}
-		rawValues = append(rawValues, asn1.RawValue{Tag: 7, Class: 2, Bytes: ip})
+		rawValues = append(rawValues, asn1.RawValue{Tag: 7, Class: asn1.ClassContextSpecific, Bytes: ip})
 	}
 	return asn1.Marshal(rawValues)
 }
 
-func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
-	ret = make([]pkix.Extension, 10 /* maximum number of elements. */)
+func buildExtensions(template *Certificate, authorityKeyId []byte) (ret []pkix.Extension, err error) {
+	ret = make([]pkix.Extension, 11 /* maximum number of elements. */)
 	n := 0
 
 	if template.KeyUsage != 0 &&
-		!oidInExtensions(oidExtensionKeyUsage, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionKeyUsage
+		!oidInExtensions(OIDExtensionKeyUsage, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionKeyUsage
 		ret[n].Critical = true
 
 		var a [2]byte
@@ -1590,8 +1728,8 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	}
 
 	if (len(template.ExtKeyUsage) > 0 || len(template.UnknownExtKeyUsage) > 0) &&
-		!oidInExtensions(oidExtensionExtendedKeyUsage, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionExtendedKeyUsage
+		!oidInExtensions(OIDExtensionExtendedKeyUsage, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionExtendedKeyUsage
 
 		var oids []asn1.ObjectIdentifier
 		for _, u := range template.ExtKeyUsage {
@@ -1611,7 +1749,7 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 		n++
 	}
 
-	if template.BasicConstraintsValid && !oidInExtensions(oidExtensionBasicConstraints, template.ExtraExtensions) {
+	if template.BasicConstraintsValid && !oidInExtensions(OIDExtensionBasicConstraints, template.ExtraExtensions) {
 		// Leaving MaxPathLen as zero indicates that no maximum path
 		// length is desired, unless MaxPathLenZero is set. A value of
 		// -1 causes encoding/asn1 to omit the value as desired.
@@ -1619,7 +1757,7 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 		if maxPathLen == 0 && !template.MaxPathLenZero {
 			maxPathLen = -1
 		}
-		ret[n].Id = oidExtensionBasicConstraints
+		ret[n].Id = OIDExtensionBasicConstraints
 		ret[n].Value, err = asn1.Marshal(basicConstraints{template.IsCA, maxPathLen})
 		ret[n].Critical = true
 		if err != nil {
@@ -1628,8 +1766,8 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 		n++
 	}
 
-	if len(template.SubjectKeyId) > 0 && !oidInExtensions(oidExtensionSubjectKeyId, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionSubjectKeyId
+	if len(template.SubjectKeyId) > 0 && !oidInExtensions(OIDExtensionSubjectKeyId, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionSubjectKeyId
 		ret[n].Value, err = asn1.Marshal(template.SubjectKeyId)
 		if err != nil {
 			return
@@ -1637,9 +1775,9 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 		n++
 	}
 
-	if len(template.AuthorityKeyId) > 0 && !oidInExtensions(oidExtensionAuthorityKeyId, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionAuthorityKeyId
-		ret[n].Value, err = asn1.Marshal(authKeyId{template.AuthorityKeyId})
+	if len(authorityKeyId) > 0 && !oidInExtensions(OIDExtensionAuthorityKeyId, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionAuthorityKeyId
+		ret[n].Value, err = asn1.Marshal(authKeyId{authorityKeyId})
 		if err != nil {
 			return
 		}
@@ -1647,19 +1785,19 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	}
 
 	if (len(template.OCSPServer) > 0 || len(template.IssuingCertificateURL) > 0) &&
-		!oidInExtensions(oidExtensionAuthorityInfoAccess, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionAuthorityInfoAccess
+		!oidInExtensions(OIDExtensionAuthorityInfoAccess, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionAuthorityInfoAccess
 		var aiaValues []authorityInfoAccess
 		for _, name := range template.OCSPServer {
 			aiaValues = append(aiaValues, authorityInfoAccess{
-				Method:   oidAuthorityInfoAccessOcsp,
-				Location: asn1.RawValue{Tag: 6, Class: 2, Bytes: []byte(name)},
+				Method:   OIDAuthorityInfoAccessOCSP,
+				Location: asn1.RawValue{Tag: 6, Class: asn1.ClassContextSpecific, Bytes: []byte(name)},
 			})
 		}
 		for _, name := range template.IssuingCertificateURL {
 			aiaValues = append(aiaValues, authorityInfoAccess{
-				Method:   oidAuthorityInfoAccessIssuers,
-				Location: asn1.RawValue{Tag: 6, Class: 2, Bytes: []byte(name)},
+				Method:   OIDAuthorityInfoAccessIssuers,
+				Location: asn1.RawValue{Tag: 6, Class: asn1.ClassContextSpecific, Bytes: []byte(name)},
 			})
 		}
 		ret[n].Value, err = asn1.Marshal(aiaValues)
@@ -1670,8 +1808,8 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	}
 
 	if (len(template.DNSNames) > 0 || len(template.EmailAddresses) > 0 || len(template.IPAddresses) > 0) &&
-		!oidInExtensions(oidExtensionSubjectAltName, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionSubjectAltName
+		!oidInExtensions(OIDExtensionSubjectAltName, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionSubjectAltName
 		ret[n].Value, err = marshalSANs(template.DNSNames, template.EmailAddresses, template.IPAddresses)
 		if err != nil {
 			return
@@ -1680,8 +1818,8 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	}
 
 	if len(template.PolicyIdentifiers) > 0 &&
-		!oidInExtensions(oidExtensionCertificatePolicies, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionCertificatePolicies
+		!oidInExtensions(OIDExtensionCertificatePolicies, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionCertificatePolicies
 		policies := make([]policyInformation, len(template.PolicyIdentifiers))
 		for i, policy := range template.PolicyIdentifiers {
 			policies[i].Policy = policy
@@ -1693,16 +1831,22 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 		n++
 	}
 
-	if len(template.PermittedDNSDomains) > 0 &&
-		!oidInExtensions(oidExtensionNameConstraints, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionNameConstraints
+	if (len(template.PermittedDNSDomains) > 0 || len(template.ExcludedDNSDomains) > 0) &&
+		!oidInExtensions(OIDExtensionNameConstraints, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionNameConstraints
 		ret[n].Critical = template.PermittedDNSDomainsCritical
 
 		var out nameConstraints
+
 		out.Permitted = make([]generalSubtree, len(template.PermittedDNSDomains))
 		for i, permitted := range template.PermittedDNSDomains {
 			out.Permitted[i] = generalSubtree{Name: permitted}
 		}
+		out.Excluded = make([]generalSubtree, len(template.ExcludedDNSDomains))
+		for i, excluded := range template.ExcludedDNSDomains {
+			out.Excluded[i] = generalSubtree{Name: excluded}
+		}
+
 		ret[n].Value, err = asn1.Marshal(out)
 		if err != nil {
 			return
@@ -1711,22 +1855,38 @@ func buildExtensions(template *Certificate) (ret []pkix.Extension, err error) {
 	}
 
 	if len(template.CRLDistributionPoints) > 0 &&
-		!oidInExtensions(oidExtensionCRLDistributionPoints, template.ExtraExtensions) {
-		ret[n].Id = oidExtensionCRLDistributionPoints
+		!oidInExtensions(OIDExtensionCRLDistributionPoints, template.ExtraExtensions) {
+		ret[n].Id = OIDExtensionCRLDistributionPoints
 
 		var crlDp []distributionPoint
 		for _, name := range template.CRLDistributionPoints {
-			rawFullName, _ := asn1.Marshal(asn1.RawValue{Tag: 6, Class: 2, Bytes: []byte(name)})
+			rawFullName, _ := asn1.Marshal(asn1.RawValue{Tag: 6, Class: asn1.ClassContextSpecific, Bytes: []byte(name)})
 
 			dp := distributionPoint{
 				DistributionPoint: distributionPointName{
-					FullName: asn1.RawValue{Tag: 0, Class: 2, IsCompound: true, Bytes: rawFullName},
+					FullName: asn1.RawValue{Tag: 0, Class: asn1.ClassContextSpecific, IsCompound: true, Bytes: rawFullName},
 				},
 			}
 			crlDp = append(crlDp, dp)
 		}
 
 		ret[n].Value, err = asn1.Marshal(crlDp)
+		if err != nil {
+			return
+		}
+		n++
+	}
+
+	if (len(template.RawSCT) > 0 || len(template.SCTList.SCTList) > 0) && !oidInExtensions(OIDExtensionCTSCT, template.ExtraExtensions) {
+		rawSCT := template.RawSCT
+		if len(template.SCTList.SCTList) > 0 {
+			rawSCT, err = tls.Marshal(template.SCTList)
+			if err != nil {
+				return
+			}
+		}
+		ret[n].Id = OIDExtensionCTSCT
+		ret[n].Value, err = asn1.Marshal(rawSCT)
 		if err != nil {
 			return
 		}
@@ -1758,9 +1918,7 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 		pubType = RSA
 		hashFunc = crypto.SHA256
 		sigAlgo.Algorithm = oidSignatureSHA256WithRSA
-		sigAlgo.Parameters = asn1.RawValue{
-			Tag: 5,
-		}
+		sigAlgo.Parameters = asn1.NullRawValue
 
 	case *ecdsa.PublicKey:
 		pubType = ECDSA
@@ -1818,11 +1976,13 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 	return
 }
 
-// CreateCertificate creates a new certificate based on a template. The
-// following members of template are used: SerialNumber, Subject, NotBefore,
-// NotAfter, KeyUsage, ExtKeyUsage, UnknownExtKeyUsage, BasicConstraintsValid,
-// IsCA, MaxPathLen, SubjectKeyId, DNSNames, PermittedDNSDomainsCritical,
-// PermittedDNSDomains, SignatureAlgorithm.
+// CreateCertificate creates a new certificate based on a template.
+// The following members of template are used: AuthorityKeyId,
+// BasicConstraintsValid, DNSNames, ExcludedDNSDomains, ExtKeyUsage,
+// IsCA, KeyUsage, MaxPathLen, MaxPathLenZero, NotAfter, NotBefore,
+// PermittedDNSDomains, PermittedDNSDomainsCritical, SerialNumber,
+// SignatureAlgorithm, Subject, SubjectKeyId, UnknownExtKeyUsage,
+// and RawSCT.
 //
 // The certificate is signed by parent. If parent is equal to template then the
 // certificate is self-signed. The parameter pub is the public key of the
@@ -1832,6 +1992,10 @@ func signingParamsForPublicKey(pub interface{}, requestedSigAlgo SignatureAlgori
 //
 // All keys types that are implemented via crypto.Signer are supported (This
 // includes *rsa.PublicKey and *ecdsa.PublicKey.)
+//
+// The AuthorityKeyId will be taken from the SubjectKeyId of parent, if any,
+// unless the resulting certificate is self-signed. Otherwise the value from
+// template will be used.
 func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv interface{}) (cert []byte, err error) {
 	key, ok := priv.(crypto.Signer)
 	if !ok {
@@ -1862,11 +2026,12 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub, priv 
 		return
 	}
 
+	authorityKeyId := template.AuthorityKeyId
 	if !bytes.Equal(asn1Issuer, asn1Subject) && len(parent.SubjectKeyId) > 0 {
-		template.AuthorityKeyId = parent.SubjectKeyId
+		authorityKeyId = parent.SubjectKeyId
 	}
 
-	extensions, err := buildExtensions(template)
+	extensions, err := buildExtensions(template, authorityKeyId)
 	if err != nil {
 		return
 	}
@@ -1981,7 +2146,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts [
 	// Authority Key Id
 	if len(c.SubjectKeyId) > 0 {
 		var aki pkix.Extension
-		aki.Id = oidExtensionAuthorityKeyId
+		aki.Id = OIDExtensionAuthorityKeyId
 		aki.Value, err = asn1.Marshal(authKeyId{Id: c.SubjectKeyId})
 		if err != nil {
 			return
@@ -2137,10 +2302,10 @@ func parseCSRExtensions(rawAttributes []asn1.RawValue) ([]pkix.Extension, error)
 	return ret, nil
 }
 
-// CreateCertificateRequest creates a new certificate request based on a template.
-// The following members of template are used: Subject, Attributes,
-// SignatureAlgorithm, Extensions, DNSNames, EmailAddresses, and IPAddresses.
-// The private key is the private key of the signer.
+// CreateCertificateRequest creates a new certificate request based on a
+// template. The following members of template are used: Attributes, DNSNames,
+// EmailAddresses, ExtraExtensions, IPAddresses, SignatureAlgorithm, and
+// Subject. The private key is the private key of the signer.
 //
 // The returned slice is the certificate request in DER encoding.
 //
@@ -2169,14 +2334,14 @@ func CreateCertificateRequest(rand io.Reader, template *CertificateRequest, priv
 	var extensions []pkix.Extension
 
 	if (len(template.DNSNames) > 0 || len(template.EmailAddresses) > 0 || len(template.IPAddresses) > 0) &&
-		!oidInExtensions(oidExtensionSubjectAltName, template.ExtraExtensions) {
+		!oidInExtensions(OIDExtensionSubjectAltName, template.ExtraExtensions) {
 		sanBytes, err := marshalSANs(template.DNSNames, template.EmailAddresses, template.IPAddresses)
 		if err != nil {
 			return nil, err
 		}
 
 		extensions = append(extensions, pkix.Extension{
-			Id:    oidExtensionSubjectAltName,
+			Id:    OIDExtensionSubjectAltName,
 			Value: sanBytes,
 		})
 	}
@@ -2316,7 +2481,7 @@ func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error
 		RawSubject:               in.TBSCSR.Subject.FullBytes,
 
 		Signature:          in.SignatureValue.RightAlign(),
-		SignatureAlgorithm: getSignatureAlgorithmFromAI(in.SignatureAlgorithm),
+		SignatureAlgorithm: SignatureAlgorithmFromAI(in.SignatureAlgorithm),
 
 		PublicKeyAlgorithm: getPublicKeyAlgorithmFromOID(in.TBSCSR.PublicKey.Algorithm.Algorithm),
 
@@ -2343,11 +2508,9 @@ func parseCertificateRequest(in *certificateRequest) (*CertificateRequest, error
 		return nil, err
 	}
 
-	// START CT CHANGES
 	var nfe NonFatalErrors
-	// END CT CHANGES
 	for _, extension := range out.Extensions {
-		if extension.Id.Equal(oidExtensionSubjectAltName) {
+		if extension.Id.Equal(OIDExtensionSubjectAltName) {
 			out.DNSNames, out.EmailAddresses, out.IPAddresses, err = parseSANExtension(extension.Value, &nfe)
 			if err != nil {
 				return nil, err

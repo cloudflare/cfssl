@@ -24,6 +24,7 @@ const (
 	TagInteger         = 2
 	TagBitString       = 3
 	TagOctetString     = 4
+	TagNull            = 5
 	TagOID             = 6
 	TagEnum            = 10
 	TagUTF8String      = 12
@@ -79,6 +80,7 @@ type fieldParameters struct {
 	timeType     int    // the time tag to use when marshaling.
 	set          bool   // true iff this should be encoded as a SET
 	omitEmpty    bool   // true iff this should be omitted if empty when marshaling.
+	name         string // name of field for better diagnostics
 
 	// Invariants:
 	//   if explicit is set, tag is non-nil.

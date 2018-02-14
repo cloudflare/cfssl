@@ -1,4 +1,4 @@
-// Matrix operations for elements in GF(2^128).
+// Package msp implements matrix operations for elements in GF(2^128).
 package msp
 
 type Row []FieldElem
@@ -21,8 +21,8 @@ func (e Row) AddM(f Row) {
 		panic("Can't add rows that are different sizes!")
 	}
 
-	for i, f_i := range f {
-		e[i].AddM(f_i)
+	for i, fI := range f {
+		e[i].AddM(fI)
 	}
 
 	return
@@ -30,7 +30,7 @@ func (e Row) AddM(f Row) {
 
 // MulM multiplies the row by a scalar.
 func (e Row) MulM(f FieldElem) {
-	for i, _ := range e {
+	for i := range e {
 		e[i] = e[i].Mul(f)
 	}
 }
@@ -92,7 +92,7 @@ func (e Matrix) Recovery() (Row, bool) {
 
 	// Duplicate e away so we don't mutate it; transpose it at the same time.
 	f := make([]Row, b)
-	for i, _ := range f {
+	for i := range f {
 		f[i] = NewRow(a)
 	}
 
@@ -102,15 +102,15 @@ func (e Matrix) Recovery() (Row, bool) {
 		}
 	}
 
-	for row, _ := range f {
+	for row := range f {
 		if row >= b { // The matrix is tall and thin--we've finished before exhausting all the rows.
 			break
 		}
 
 		// Find a row with a non-zero entry in the (row)th position
 		candId := -1
-		for j, f_j := range f[row:] {
-			if !f_j[row].IsZero() {
+		for j, fJ := range f[row:] {
+			if !fJ[row].IsZero() {
 				candId = j + row
 				break
 			}
@@ -131,7 +131,7 @@ func (e Matrix) Recovery() (Row, bool) {
 		aug[row] = aug[row].Mul(fInv)
 
 		// Cancel out the (row)th position for every row above and below it.
-		for i, _ := range f {
+		for i := range f {
 			if i != row && !f[i][row].IsZero() {
 				c := f[i][row].Dup()
 

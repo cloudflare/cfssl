@@ -75,25 +75,25 @@ func (n *Name) FillFromRDNSequence(rdns *RDNSequence) {
 			}
 
 			t := atv.Type
-			if len(t) == 4 && t[0] == 2 && t[1] == 5 && t[2] == 4 {
+			if len(t) == 4 && t[0] == OIDAttribute[0] && t[1] == OIDAttribute[1] && t[2] == OIDAttribute[2] {
 				switch t[3] {
-				case 3:
+				case OIDCommonName[3]:
 					n.CommonName = value
-				case 5:
+				case OIDSerialNumber[3]:
 					n.SerialNumber = value
-				case 6:
+				case OIDCountry[3]:
 					n.Country = append(n.Country, value)
-				case 7:
+				case OIDLocality[3]:
 					n.Locality = append(n.Locality, value)
-				case 8:
+				case OIDProvince[3]:
 					n.Province = append(n.Province, value)
-				case 9:
+				case OIDStreetAddress[3]:
 					n.StreetAddress = append(n.StreetAddress, value)
-				case 10:
+				case OIDOrganization[3]:
 					n.Organization = append(n.Organization, value)
-				case 11:
+				case OIDOrganizationalUnit[3]:
 					n.OrganizationalUnit = append(n.OrganizationalUnit, value)
-				case 17:
+				case OIDPostalCode[3]:
 					n.PostalCode = append(n.PostalCode, value)
 				}
 			}
@@ -102,15 +102,25 @@ func (n *Name) FillFromRDNSequence(rdns *RDNSequence) {
 }
 
 var (
-	oidCountry            = []int{2, 5, 4, 6}
-	oidOrganization       = []int{2, 5, 4, 10}
-	oidOrganizationalUnit = []int{2, 5, 4, 11}
-	oidCommonName         = []int{2, 5, 4, 3}
-	oidSerialNumber       = []int{2, 5, 4, 5}
-	oidLocality           = []int{2, 5, 4, 7}
-	oidProvince           = []int{2, 5, 4, 8}
-	oidStreetAddress      = []int{2, 5, 4, 9}
-	oidPostalCode         = []int{2, 5, 4, 17}
+	OIDAttribute          = asn1.ObjectIdentifier{2, 5, 4}
+	OIDCountry            = asn1.ObjectIdentifier{2, 5, 4, 6}
+	OIDOrganization       = asn1.ObjectIdentifier{2, 5, 4, 10}
+	OIDOrganizationalUnit = asn1.ObjectIdentifier{2, 5, 4, 11}
+	OIDCommonName         = asn1.ObjectIdentifier{2, 5, 4, 3}
+	OIDSerialNumber       = asn1.ObjectIdentifier{2, 5, 4, 5}
+	OIDLocality           = asn1.ObjectIdentifier{2, 5, 4, 7}
+	OIDProvince           = asn1.ObjectIdentifier{2, 5, 4, 8}
+	OIDStreetAddress      = asn1.ObjectIdentifier{2, 5, 4, 9}
+	OIDPostalCode         = asn1.ObjectIdentifier{2, 5, 4, 17}
+
+	OIDPseudonym           = asn1.ObjectIdentifier{2, 5, 4, 65}
+	OIDTitle               = asn1.ObjectIdentifier{2, 5, 4, 12}
+	OIDDnQualifier         = asn1.ObjectIdentifier{2, 5, 4, 46}
+	OIDName                = asn1.ObjectIdentifier{2, 5, 4, 41}
+	OIDSurname             = asn1.ObjectIdentifier{2, 5, 4, 4}
+	OIDGivenName           = asn1.ObjectIdentifier{2, 5, 4, 42}
+	OIDInitials            = asn1.ObjectIdentifier{2, 5, 4, 43}
+	OIDGenerationQualifier = asn1.ObjectIdentifier{2, 5, 4, 44}
 )
 
 // appendRDNs appends a relativeDistinguishedNameSET to the given RDNSequence
@@ -132,18 +142,18 @@ func (n Name) appendRDNs(in RDNSequence, values []string, oid asn1.ObjectIdentif
 }
 
 func (n Name) ToRDNSequence() (ret RDNSequence) {
-	ret = n.appendRDNs(ret, n.Country, oidCountry)
-	ret = n.appendRDNs(ret, n.Province, oidProvince)
-	ret = n.appendRDNs(ret, n.Locality, oidLocality)
-	ret = n.appendRDNs(ret, n.StreetAddress, oidStreetAddress)
-	ret = n.appendRDNs(ret, n.PostalCode, oidPostalCode)
-	ret = n.appendRDNs(ret, n.Organization, oidOrganization)
-	ret = n.appendRDNs(ret, n.OrganizationalUnit, oidOrganizationalUnit)
+	ret = n.appendRDNs(ret, n.Country, OIDCountry)
+	ret = n.appendRDNs(ret, n.Province, OIDProvince)
+	ret = n.appendRDNs(ret, n.Locality, OIDLocality)
+	ret = n.appendRDNs(ret, n.StreetAddress, OIDStreetAddress)
+	ret = n.appendRDNs(ret, n.PostalCode, OIDPostalCode)
+	ret = n.appendRDNs(ret, n.Organization, OIDOrganization)
+	ret = n.appendRDNs(ret, n.OrganizationalUnit, OIDOrganizationalUnit)
 	if len(n.CommonName) > 0 {
-		ret = n.appendRDNs(ret, []string{n.CommonName}, oidCommonName)
+		ret = n.appendRDNs(ret, []string{n.CommonName}, OIDCommonName)
 	}
 	if len(n.SerialNumber) > 0 {
-		ret = n.appendRDNs(ret, []string{n.SerialNumber}, oidSerialNumber)
+		ret = n.appendRDNs(ret, []string{n.SerialNumber}, OIDSerialNumber)
 	}
 	for _, atv := range n.ExtraNames {
 		ret = append(ret, []AttributeTypeAndValue{atv})
@@ -177,7 +187,7 @@ func (certList *CertificateList) HasExpired(now time.Time) bool {
 	return now.After(certList.TBSCertList.NextUpdate)
 }
 
-// TBSCertificateList represents the ASN.1 structure of the same name. See RFC
+// TBSCertificateList represents the ASN.1 structure TBSCertList. See RFC
 // 5280, section 5.1.
 type TBSCertificateList struct {
 	Raw                 asn1.RawContent
@@ -190,7 +200,8 @@ type TBSCertificateList struct {
 	Extensions          []Extension          `asn1:"tag:0,optional,explicit"`
 }
 
-// RevokedCertificate represents the ASN.1 structure of the same name. See RFC
+// RevokedCertificate represents the unnamed ASN.1 structure that makes up the
+// revokedCertificates member of the TBSCertList structure. See RFC
 // 5280, section 5.1.
 type RevokedCertificate struct {
 	SerialNumber   *big.Int

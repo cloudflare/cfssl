@@ -1,6 +1,6 @@
 ## go.rice
 
-[![Wercker](https://img.shields.io/wercker/ci/54c7af4dcc09f9963725bb25.svg?style=flat-square)](https://app.wercker.com/#applications/54c7af4dcc09f9963725bb25)
+[![Build Status](https://travis-ci.org/GeertJohan/go.rice.png)](https://travis-ci.org/GeertJohan/go.rice)
 [![Godoc](https://img.shields.io/badge/godoc-go.rice-blue.svg?style=flat-square)](https://godoc.org/github.com/GeertJohan/go.rice)
 
 go.rice is a [Go](http://golang.org) package that makes working with resources such as html,js,css,images and templates very easy. During development `go.rice` will load required files directly from disk. Upon deployment it is easy to add all resource files to a executable using the `rice` tool, without changing the source code for your package. go.rice provides several methods to add resources to a binary.

@@ -150,9 +150,9 @@ func appendBase128Int(dst []byte, n int64) []byte {
 	return dst
 }
 
-func makeBigInt(n *big.Int) (encoder, error) {
+func makeBigInt(n *big.Int, fieldName string) (encoder, error) {
 	if n == nil {
-		return nil, StructuralError{"empty integer"}
+		return nil, StructuralError{"empty integer", fieldName}
 	}
 
 	if n.Sign() < 0 {
@@ -258,28 +258,28 @@ func (oid oidEncoder) Encode(dst []byte) {
 	}
 }
 
-func makeObjectIdentifier(oid []int) (e encoder, err error) {
+func makeObjectIdentifier(oid []int, fieldName string) (e encoder, err error) {
 	if len(oid) < 2 || oid[0] > 2 || (oid[0] < 2 && oid[1] >= 40) {
-		return nil, StructuralError{"invalid object identifier"}
+		return nil, StructuralError{"invalid object identifier", fieldName}
 	}
 
 	return oidEncoder(oid), nil
 }
 
-func makePrintableString(s string) (e encoder, err error) {
+func makePrintableString(s, fieldName string) (e encoder, err error) {
 	for i := 0; i < len(s); i++ {
 		if !isPrintable(s[i]) {
-			return nil, StructuralError{"PrintableString contains invalid character"}
+			return nil, StructuralError{"PrintableString contains invalid character", fieldName}
 		}
 	}
 
 	return stringEncoder(s), nil
 }
 
-func makeIA5String(s string) (e encoder, err error) {
+func makeIA5String(s, fieldName string) (e encoder, err error) {
 	for i := 0; i < len(s); i++ {
 		if s[i] > 127 {
-			return nil, StructuralError{"IA5String contains invalid character"}
+			return nil, StructuralError{"IA5String contains invalid character", fieldName}
 		}
 	}
 
@@ -308,10 +308,10 @@ func outsideUTCRange(t time.Time) bool {
 	return year < 1950 || year >= 2050
 }
 
-func makeUTCTime(t time.Time) (e encoder, err error) {
+func makeUTCTime(t time.Time, fieldName string) (e encoder, err error) {
 	dst := make([]byte, 0, 18)
 
-	dst, err = appendUTCTime(dst, t)
+	dst, err = appendUTCTime(dst, t, fieldName)
 	if err != nil {
 		return nil, err
 	}
@@ -319,10 +319,10 @@ func makeUTCTime(t time.Time) (e encoder, err error) {
 	return bytesEncoder(dst), nil
 }
 
-func makeGeneralizedTime(t time.Time) (e encoder, err error) {
+func makeGeneralizedTime(t time.Time, fieldName string) (e encoder, err error) {
 	dst := make([]byte, 0, 20)
 
-	dst, err = appendGeneralizedTime(dst, t)
+	dst, err = appendGeneralizedTime(dst, t, fieldName)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +330,7 @@ func makeGeneralizedTime(t time.Time) (e encoder, err error) {
 	return bytesEncoder(dst), nil
 }
 
-func appendUTCTime(dst []byte, t time.Time) (ret []byte, err error) {
+func appendUTCTime(dst []byte, t time.Time, fieldName string) (ret []byte, err error) {
 	year := t.Year()
 
 	switch {
@@ -339,16 +339,16 @@ func appendUTCTime(dst []byte, t time.Time) (ret []byte, err error) {
 	case 2000 <= year && year < 2050:
 		dst = appendTwoDigits(dst, year-2000)
 	default:
-		return nil, StructuralError{"cannot represent time as UTCTime"}
+		return nil, StructuralError{"cannot represent time as UTCTime", fieldName}
 	}
 
 	return appendTimeCommon(dst, t), nil
 }
 
-func appendGeneralizedTime(dst []byte, t time.Time) (ret []byte, err error) {
+func appendGeneralizedTime(dst []byte, t time.Time, fieldName string) (ret []byte, err error) {
 	year := t.Year()
 	if year < 0 || year > 9999 {
-		return nil, StructuralError{"cannot represent time as GeneralizedTime"}
+		return nil, StructuralError{"cannot represent time as GeneralizedTime", fieldName}
 	}
 
 	dst = appendFourDigits(dst, year)
@@ -391,7 +391,7 @@ func appendTimeCommon(dst []byte, t time.Time) []byte {
 }
 
 func stripTagAndLength(in []byte) []byte {
-	_, offset, err := parseTagAndLength(in, 0)
+	_, offset, err := parseTagAndLength(in, 0, "")
 	if err != nil {
 		return in
 	}
@@ -405,15 +405,15 @@ func makeBody(value reflect.Value, params fieldParameters) (e encoder, err error
 	case timeType:
 		t := value.Interface().(time.Time)
 		if params.timeType == TagGeneralizedTime || outsideUTCRange(t) {
-			return makeGeneralizedTime(t)
+			return makeGeneralizedTime(t, params.name)
 		}
-		return makeUTCTime(t)
+		return makeUTCTime(t, params.name)
 	case bitStringType:
 		return bitStringEncoder(value.Interface().(BitString)), nil
 	case objectIdentifierType:
-		return makeObjectIdentifier(value.Interface().(ObjectIdentifier))
+		return makeObjectIdentifier(value.Interface().(ObjectIdentifier), params.name)
 	case bigIntType:
-		return makeBigInt(value.Interface().(*big.Int))
+		return makeBigInt(value.Interface().(*big.Int), params.name)
 	}
 
 	switch v := value; v.Kind() {
@@ -429,7 +429,7 @@ func makeBody(value reflect.Value, params fieldParameters) (e encoder, err error
 
 		for i := 0; i < t.NumField(); i++ {
 			if t.Field(i).PkgPath != "" {
-				return nil, StructuralError{"struct contains unexported fields"}
+				return nil, StructuralError{"struct contains unexported fields", t.Field(i).Name}
 			}
 		}
 
@@ -500,15 +500,15 @@ func makeBody(value reflect.Value, params fieldParameters) (e encoder, err error
 	case reflect.String:
 		switch params.stringType {
 		case TagIA5String:
-			return makeIA5String(v.String())
+			return makeIA5String(v.String(), params.name)
 		case TagPrintableString:
-			return makePrintableString(v.String())
+			return makePrintableString(v.String(), params.name)
 		default:
 			return makeUTF8String(v.String()), nil
 		}
 	}
 
-	return nil, StructuralError{"unknown Go type"}
+	return nil, StructuralError{"unknown Go type", params.name}
 }
 
 func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
@@ -558,16 +558,16 @@ func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
 
 	tag, isCompound, ok := getUniversalType(v.Type())
 	if !ok {
-		return nil, StructuralError{fmt.Sprintf("unknown Go type: %v", v.Type())}
+		return nil, StructuralError{fmt.Sprintf("unknown Go type: %v", v.Type()), params.name}
 	}
 	class := ClassUniversal
 
 	if params.timeType != 0 && tag != TagUTCTime {
-		return nil, StructuralError{"explicit time type given to non-time member"}
+		return nil, StructuralError{"explicit time type given to non-time member", params.name}
 	}
 
 	if params.stringType != 0 && tag != TagPrintableString {
-		return nil, StructuralError{"explicit string type given to non-string member"}
+		return nil, StructuralError{"explicit string type given to non-string member", params.name}
 	}
 
 	switch tag {
@@ -596,7 +596,7 @@ func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
 
 	if params.set {
 		if tag != TagSequence {
-			return nil, StructuralError{"non sequence tagged as set"}
+			return nil, StructuralError{"non sequence tagged as set", params.name}
 		}
 		tag = TagSet
 	}
@@ -643,10 +643,12 @@ func makeField(v reflect.Value, params fieldParameters) (e encoder, err error) {
 // In addition to the struct tags recognised by Unmarshal, the following can be
 // used:
 //
-//	ia5:		causes strings to be marshaled as ASN.1, IA5 strings
-//	omitempty:	causes empty slices to be skipped
-//	printable:	causes strings to be marshaled as ASN.1, PrintableString strings.
-//	utf8:		causes strings to be marshaled as ASN.1, UTF8 strings
+//	ia5:         causes strings to be marshaled as ASN.1, IA5String values
+//	omitempty:   causes empty slices to be skipped
+//	printable:   causes strings to be marshaled as ASN.1, PrintableString values
+//	utf8:        causes strings to be marshaled as ASN.1, UTF8String values
+//	utc:         causes time.Time to be marshaled as ASN.1, UTCTime values
+//	generalized: causes time.Time to be marshaled as ASN.1, GeneralizedTime values
 func Marshal(val interface{}) ([]byte, error) {
 	e, err := makeField(reflect.ValueOf(val), fieldParameters{})
 	if err != nil {

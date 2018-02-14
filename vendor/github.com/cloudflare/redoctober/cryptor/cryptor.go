@@ -2,7 +2,6 @@
 // vault and key cache.
 //
 // Copyright (c) 2013 CloudFlare, Inc.
-
 package cryptor
 
 import (
@@ -12,13 +11,17 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"errors"
+	"log"
 	"sort"
 	"strconv"
+	"strings"
 
+	"github.com/cloudflare/redoctober/config"
 	"github.com/cloudflare/redoctober/keycache"
 	"github.com/cloudflare/redoctober/msp"
 	"github.com/cloudflare/redoctober/padding"
 	"github.com/cloudflare/redoctober/passvault"
+	"github.com/cloudflare/redoctober/persist"
 	"github.com/cloudflare/redoctober/symcrypt"
 )
 
@@ -29,10 +32,26 @@ const (
 type Cryptor struct {
 	records *passvault.Records
 	cache   *keycache.Cache
+	persist persist.Store
 }
 
-func New(records *passvault.Records, cache *keycache.Cache) Cryptor {
-	return Cryptor{records, cache}
+func New(records *passvault.Records, cache *keycache.Cache, config *config.Config) (*Cryptor, error) {
+	if cache == nil {
+		c := keycache.NewCache()
+		cache = &c
+	}
+
+	store, err := persist.New(config.Delegations)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Cryptor{
+		records: records,
+		cache:   cache,
+		persist: store,
+	}
+	return c, nil
 }
 
 // AccessStructure represents different possible access structures for
@@ -270,7 +289,7 @@ func (encrypted *EncryptedData) wrapKey(records *passvault.Records, clearKey []b
 		return
 	}
 
-	if len(access.Names) > 0 {
+	if len(access.Names) > 0 && access.Minimum > 0 {
 		// Generate a random AES key for each user and RSA/ECIES encrypt it
 		encrypted.KeySetRSA = make(map[string]SingleWrappedKey)
 
@@ -309,7 +328,7 @@ func (encrypted *EncryptedData) wrapKey(records *passvault.Records, clearKey []b
 					encrypted.KeySet = append(encrypted.KeySet, out)
 				}
 			}
-		} else if access.Minimum > 3 {
+		} else if access.Minimum > 2 {
 			err = errors.New("Encryption to a list of owners with minimum > 2 is not implemented")
 			return err
 		}
@@ -367,7 +386,7 @@ func (encrypted *EncryptedData) wrapKey(records *passvault.Records, clearKey []b
 			return err
 		}
 
-		for name, _ := range shareSet {
+		for name := range shareSet {
 			encrypted.KeySetRSA[name], err = generateRandomKey(name)
 			if err != nil {
 				return err
@@ -377,7 +396,7 @@ func (encrypted *EncryptedData) wrapKey(records *passvault.Records, clearKey []b
 				return err
 			}
 
-			for i, _ := range shareSet[name] {
+			for i := range shareSet[name] {
 				tmp := make([]byte, 16)
 				crypt.Encrypt(tmp, shareSet[name][i])
 				shareSet[name][i] = tmp
@@ -437,7 +456,7 @@ func (encrypted *EncryptedData) unwrapKey(cache *keycache.Cache, user string) (u
 		}
 
 		if !fullMatch {
-			err = errors.New("Need more delegated keys")
+			err = ErrNotEnoughDelegations
 			return
 		}
 
@@ -451,25 +470,24 @@ func (encrypted *EncryptedData) unwrapKey(cache *keycache.Cache, user string) (u
 			names = append(names, name)
 		}
 		return
-	} else {
-		var sss msp.MSP
-		sss, err = msp.StringToMSP(encrypted.Predicate)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		db := UserDatabase{
-			names:    &names,
-			cache:    cache,
-			user:     user,
-			labels:   encrypted.Labels,
-			keySet:   encrypted.KeySetRSA,
-			shareSet: encrypted.ShareSet,
-		}
-		unwrappedKey, err = sss.RecoverSecret(&db)
-
-		return
 	}
+	var sss msp.MSP
+	sss, err = msp.StringToMSP(encrypted.Predicate)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	db := UserDatabase{
+		names:    &names,
+		cache:    cache,
+		user:     user,
+		labels:   encrypted.Labels,
+		keySet:   encrypted.KeySetRSA,
+		shareSet: encrypted.ShareSet,
+	}
+	unwrappedKey, err = sss.RecoverSecret(&db)
+
+	return
 }
 
 // Encrypt encrypts data with the keys associated with names. This
@@ -525,6 +543,10 @@ func (c *Cryptor) Encrypt(in []byte, labels []string, access AccessStructure) (r
 
 // Decrypt decrypts a file using the keys in the key cache.
 func (c *Cryptor) Decrypt(in []byte, user string) (resp []byte, labels, names []string, secure bool, err error) {
+	return c.decrypt(c.cache, in, user)
+}
+
+func (c *Cryptor) decrypt(cache *keycache.Cache, in []byte, user string) (resp []byte, labels, names []string, secure bool, err error) {
 	// unwrap encrypted file
 	var encrypted EncryptedData
 	if err = json.Unmarshal(in, &encrypted); err != nil {
@@ -563,7 +585,7 @@ func (c *Cryptor) Decrypt(in []byte, user string) (resp []byte, labels, names []
 
 	// decrypt file key with delegate keys
 	var unwrappedKey = make([]byte, 16)
-	unwrappedKey, names, err = encrypted.unwrapKey(c.cache, user)
+	unwrappedKey, names, err = encrypted.unwrapKey(cache, user)
 	if err != nil {
 		return
 	}
@@ -585,7 +607,7 @@ func (c *Cryptor) Decrypt(in []byte, user string) (resp []byte, labels, names []
 
 // GetOwners returns the list of users that can delegate their passwords
 // to decrypt the given encrypted secret.
-func (c *Cryptor) GetOwners(in []byte) (names []string, predicate string, err error) {
+func (c *Cryptor) GetOwners(in []byte) (names, labels []string, predicate string, err error) {
 	// unwrap encrypted file
 	var encrypted EncryptedData
 	if err = json.Unmarshal(in, &encrypted); err != nil {
@@ -632,13 +654,152 @@ func (c *Cryptor) GetOwners(in []byte) (names []string, predicate string, err er
 		}
 	}
 
-	for name, _ := range encrypted.ShareSet { // names from the secret splitting method
+	for name := range encrypted.ShareSet { // names from the secret splitting method
 		if !addedNames[name] {
 			names = append(names, name)
 			addedNames[name] = true
 		}
 	}
 	predicate = encrypted.Predicate
+	labels = encrypted.Labels
 
 	return
+}
+
+// LiveSummary returns a list of the users currently delegated.
+func (c *Cryptor) LiveSummary() map[string]keycache.ActiveUser {
+	return c.cache.GetSummary()
+}
+
+// Refresh purges all expired or fully-used delegations in the
+// crypto's key cache. It returns an error if the delegations
+// should have been stored, but couldn't be.
+func (c *Cryptor) Refresh() error {
+	n := c.cache.Refresh()
+	if n != 0 {
+		return c.store()
+	}
+	return nil
+}
+
+// Flush removes all delegations.
+func (c *Cryptor) Flush() error {
+	if c.cache.Flush() {
+		return c.store()
+	}
+	return nil
+}
+
+// Delegate attempts to decrypt a key for the specified user and add
+// the key to the key cache.
+func (c *Cryptor) Delegate(record passvault.PasswordRecord, name, password string, users, labels []string, uses int, slot, durationString string) (err error) {
+	err = c.cache.AddKeyFromRecord(record, name, password, users, labels, uses, slot, durationString)
+	if err != nil {
+		return err
+	}
+
+	return c.store()
+}
+
+// DelegateStatus will return a list of admins who have delegated to a particular user, for a particular label.
+// This is useful information to have when determining the status of an order and conveying order progress.
+func (c *Cryptor) DelegateStatus(name string, labels, admins []string) (adminsDelegated []string, hasDelegated int) {
+	return c.cache.DelegateStatus(name, labels, admins)
+}
+
+// store serialises the key cache, encrypts it, and writes it to disk.
+func (c *Cryptor) store() error {
+	// If the store isn't currently active, we shouldn't attempt
+	// to persist the store.
+	st := c.persist.Status()
+	if st.State != persist.Active {
+		return nil
+	}
+
+	cache, err := json.Marshal(c.cache.GetSummary())
+	if err != nil {
+		return err
+	}
+
+	access := AccessStructure{
+		Names:     c.persist.Users(),
+		Predicate: c.persist.Policy(),
+	}
+
+	cache, err = c.Encrypt(cache, persist.Labels, access)
+	if err != nil {
+		return err
+	}
+
+	return c.persist.Store(cache)
+}
+
+// ErrRestoreDelegations is a sentinal value returned when more
+// delegations are needed for the restore to continue.
+var ErrRestoreDelegations = errors.New("cryptor: need more delegations")
+
+// ErrNotEnoughDelegations is a error returned by Decrypt.
+var ErrNotEnoughDelegations = errors.New("need more delegated keys")
+
+// Restore delegates the named user to the persistence key cache. If
+// enough delegations are present to restore the cache, the current
+// Red October key cache is replaced with the persisted one.
+func (c *Cryptor) Restore(name, password string, uses int, slot, durationString string) error {
+	// If the persistence store is already active, don't proceed.
+	if st := c.persist.Status(); st != nil && st.State == persist.Active {
+		return nil
+	}
+
+	record, ok := c.records.GetRecord(name)
+	if !ok {
+		return errors.New("Missing user on disk")
+	}
+
+	err := c.persist.Delegate(record, name, password, c.persist.Users(), persist.Labels, uses, slot, durationString)
+	if err != nil {
+		return err
+	}
+
+	// A failure to decrypt isn't a restore error, it (most often)
+	// just means there aren't enough delegations yet; the
+	// sentinal value ErrRestoreDelegations is returned to
+	// indicate this. However, the error
+	cache, _, names, _, err := c.decrypt(c.persist.Cache(), c.persist.Blob(), name)
+	if err != nil {
+		if err == msp.ErrNotEnoughShares {
+			return ErrRestoreDelegations
+		}
+		return err
+	}
+
+	log.Printf("cryptor.restore success: names=%s", strings.Join(names, ","))
+
+	var uk map[string]keycache.ActiveUser
+	err = json.Unmarshal(cache, &uk)
+	if err != nil {
+		return err
+	}
+
+	rcache := keycache.NewFrom(uk)
+	err = rcache.Restore()
+	if err != nil {
+		return err
+	}
+
+	c.cache = rcache
+	c.persist.Persist()
+	c.persist.Cache().Flush()
+	return nil
+}
+
+// Status returns the status of the underlying persistence store.
+func (c *Cryptor) Status() *persist.Status {
+	return c.persist.Status()
+}
+
+// ResetPersisted clears any persisted delegations and returns the
+// vault to an active delegation state if configured.
+func (c *Cryptor) ResetPersisted() (*persist.Status, error) {
+	err := c.persist.Purge()
+	return c.persist.Status(), err
 }

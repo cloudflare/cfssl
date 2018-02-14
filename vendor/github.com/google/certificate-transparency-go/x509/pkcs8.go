@@ -5,12 +5,11 @@
 package x509
 
 import (
-	// START CT CHANGES
-	"github.com/google/certificate-transparency-go/asn1"
-	"github.com/google/certificate-transparency-go/x509/pkix"
-	// END CT CHANGES
 	"errors"
 	"fmt"
+
+	"github.com/google/certificate-transparency-go/asn1"
+	"github.com/google/certificate-transparency-go/x509/pkix"
 )
 
 // pkcs8 reflects an ASN.1, PKCS#8 PrivateKey. See
@@ -31,14 +30,14 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 		return nil, err
 	}
 	switch {
-	case privKey.Algo.Algorithm.Equal(oidPublicKeyRSA):
+	case privKey.Algo.Algorithm.Equal(OIDPublicKeyRSA):
 		key, err = ParsePKCS1PrivateKey(privKey.PrivateKey)
 		if err != nil {
 			return nil, errors.New("x509: failed to parse RSA private key embedded in PKCS#8: " + err.Error())
 		}
 		return key, nil
 
-	case privKey.Algo.Algorithm.Equal(oidPublicKeyECDSA):
+	case privKey.Algo.Algorithm.Equal(OIDPublicKeyECDSA):
 		bytes := privKey.Algo.Parameters.FullBytes
 		namedCurveOID := new(asn1.ObjectIdentifier)
 		if _, err := asn1.Unmarshal(bytes, namedCurveOID); err != nil {

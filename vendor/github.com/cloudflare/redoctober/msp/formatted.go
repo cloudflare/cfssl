@@ -28,31 +28,6 @@ func StringToFormatted(f string) (out Formatted, err error) {
 		return out, errors.New("Invalid string: Needs to begin and end with parentheses.")
 	}
 
-	getNext := func(f string) (string, string) { // f -> (next, rest)
-		f = strings.TrimSpace(f)
-
-		if f[0] == '(' {
-			return f[0:1], f[1:]
-		}
-
-		nextComma := strings.Index(f, ",")
-		if f[0] == ')' {
-			if nextComma == -1 {
-				return f[0:1], ""
-			}
-			return f[0:1], f[nextComma+1:]
-		} else if nextComma == -1 {
-			return f[0 : len(f)-1], f[len(f)-1:]
-		}
-
-		nextUnParen := strings.Index(f, ")")
-		if nextComma < nextUnParen {
-			return strings.TrimSpace(f[0:nextComma]), f[nextComma+1:]
-		}
-
-		return strings.TrimSpace(f[0:nextUnParen]), f[nextUnParen:]
-	}
-
 	staging := [][]Condition{}
 	indices := make(map[string]int, 0)
 
@@ -115,6 +90,31 @@ func StringToFormatted(f string) (out Formatted, err error) {
 	}
 
 	return out, errors.New("Invalid string: Not finished parsing, but out of data. Too many opening parentheses or too few closing parentheses?")
+}
+
+func getNext(f string) (string, string) { // f -> (next, rest)
+	f = strings.TrimSpace(f)
+
+	if f[0] == '(' {
+		return f[0:1], f[1:]
+	}
+
+	nextComma := strings.Index(f, ",")
+	if f[0] == ')' {
+		if nextComma == -1 {
+			return f[0:1], ""
+		}
+		return f[0:1], f[nextComma+1:]
+	} else if nextComma == -1 {
+		return f[0 : len(f)-1], f[len(f)-1:]
+	}
+
+	nextUnParen := strings.Index(f, ")")
+	if nextComma < nextUnParen {
+		return strings.TrimSpace(f[0:nextComma]), f[nextComma+1:]
+	}
+
+	return strings.TrimSpace(f[0:nextUnParen]), f[nextUnParen:]
 }
 
 func (f Formatted) String() string {
