@@ -28,6 +28,7 @@ import (
 	"github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
+	cttls "github.com/google/certificate-transparency-go/tls"
 	"golang.org/x/net/context"
 )
 
@@ -337,7 +338,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	var certTBS = safeTemplate
 
-	if len(profile.CTLogServers) > 0 {
+	if len(profile.CTLogServers) > 0 || req.ReturnPrecert {
 		// Add a poison extension which prevents validation
 		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
 		var poisonedPreCert = certTBS
@@ -345,6 +346,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		cert, err = s.sign(&poisonedPreCert)
 		if err != nil {
 			return
+		}
+
+		if req.ReturnPrecert {
+			return cert, nil
 		}
 
 		derCert, _ := pem.Decode(cert)
@@ -412,6 +417,70 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	return signedCert, nil
+}
+
+func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]byte, error) {
+	// Verify certificate was signed by s.ca
+	if err := precert.CheckSignatureFrom(s.ca); err != nil {
+		return nil, err
+	}
+
+	// Verify certificate is a precert
+	isPrecert := false
+	poisonIndex := 0
+	for i, ext := range precert.Extensions {
+		if ext.Id.Equal(signer.CTPoisonOID) {
+			if !ext.Critical {
+				return nil, errors.New("precertificate contained non-critical poison extension")
+			}
+			isPrecert = true
+			poisonIndex = i
+			break
+		}
+	}
+	if !isPrecert {
+		return nil, errors.New("provided certificate does not contain CT poison extension")
+	}
+
+	// Serialize SCTs into list format and create extension
+	sctObjs := make([]ct.SignedCertificateTimestamp, len(scts))
+	for i, sctBytes := range scts {
+		// do something?
+		var sct ct.SignedCertificateTimestamp
+		rest, err := cttls.Unmarshal(sctBytes, sct)
+		if err != nil {
+			return nil, err
+		}
+		if len(rest) != 0 {
+			return nil, errors.New("SCT contained trailing garbage")
+		}
+		sctObjs[i] = sct
+	}
+	serializedList, err := helpers.SerializeSCTList(sctObjs)
+	if err != nil {
+		return nil, err
+	}
+	sctExt := pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedList}
+
+	// Create the new tbsCert from precert
+	tbsCert := *precert
+	// NOTE: nil'ing tbsCert.Raw should erase all of the subsequent fields as they should just
+	// be sub-slices of the main slice, but to be careful, just nuke them all.
+	tbsCert.Raw = nil
+	tbsCert.RawTBSCertificate = nil
+	tbsCert.RawSubjectPublicKeyInfo = nil
+	tbsCert.RawSubject = nil
+	tbsCert.RawIssuer = nil
+	tbsCert.Signature = nil
+	// Remove the poison extension from Extensions
+	tbsCert.Extensions = append(tbsCert.Extensions[:poisonIndex], tbsCert.Extensions[poisonIndex+1:]...)
+	// Move extensions into ExtraExtensions so that they get put in the certificate
+	tbsCert.ExtraExtensions = tbsCert.Extensions
+	// Insert the SCT list extension
+	tbsCert.ExtraExtensions = append(tbsCert.ExtraExtensions, sctExt)
+
+	// Sign the tbsCert
+	return s.sign(&tbsCert)
 }
 
 // Info return a populated info.Resp struct or an error.
