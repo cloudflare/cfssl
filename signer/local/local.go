@@ -433,6 +433,9 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 			if !ext.Critical {
 				return nil, errors.New("precertificate contained non-critical poison extension")
 			}
+			if bytes.Compare(ext.Value, []byte{0x05, 0x00}) != 0 {
+				return nil, errors.New("precertificate poison extension contained invalid value")
+			}
 			isPrecert = true
 			poisonIndex = i
 			break
@@ -463,15 +466,72 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 	sctExt := pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedList}
 
 	// Create the new tbsCert from precert
-	tbsCert := *precert
-	// NOTE: nil'ing tbsCert.Raw should erase all of the subsequent fields as they should just
-	// be sub-slices of the main slice, but to be careful, just nuke them all.
-	tbsCert.Raw = nil
-	tbsCert.RawTBSCertificate = nil
-	tbsCert.RawSubjectPublicKeyInfo = nil
-	tbsCert.RawSubject = nil
-	tbsCert.RawIssuer = nil
-	tbsCert.Signature = nil
+	tbsCert := x509.Certificate{
+		SignatureAlgorithm:    precert.SignatureAlgorithm,
+		PublicKeyAlgorithm:    precert.PublicKeyAlgorithm,
+		PublicKey:             precert.PublicKey,
+		Version:               precert.Version,
+		SerialNumber:          precert.SerialNumber,
+		Issuer:                precert.Issuer,
+		Subject:               precert.Subject,
+		NotBefore:             precert.NotBefore,
+		NotAfter:              precert.NotAfter,
+		KeyUsage:              precert.KeyUsage,
+		BasicConstraintsValid: precert.BasicConstraintsValid,
+		IsCA:                        precert.IsCA,
+		MaxPathLen:                  precert.MaxPathLen,
+		MaxPathLenZero:              precert.MaxPathLenZero,
+		PermittedDNSDomainsCritical: precert.PermittedDNSDomainsCritical,
+	}
+	if len(precert.Extensions) > 0 {
+		tbsCert.ExtraExtensions = make([]pkix.Extension, len(precert.Extensions))
+		copy(tbsCert.ExtraExtensions, precert.Extensions)
+	}
+	if len(precert.ExtKeyUsage) > 0 {
+		tbsCert.ExtKeyUsage = make([]x509.ExtKeyUsage, len(precert.ExtKeyUsage))
+		copy(tbsCert.ExtKeyUsage, precert.ExtKeyUsage)
+	}
+	if len(precert.SubjectKeyId) > 0 {
+		tbsCert.SubjectKeyId = make([]byte, len(precert.SubjectKeyId))
+		copy(tbsCert.SubjectKeyId, precert.SubjectKeyId)
+	}
+	if len(precert.AuthorityKeyId) > 0 {
+		tbsCert.AuthorityKeyId = make([]byte, len(precert.AuthorityKeyId))
+		copy(tbsCert.AuthorityKeyId, precert.AuthorityKeyId)
+	}
+	if len(precert.OCSPServer) > 0 {
+		tbsCert.OCSPServer = make([]string, len(precert.OCSPServer))
+		copy(tbsCert.OCSPServer, precert.OCSPServer)
+	}
+	if len(precert.IssuingCertificateURL) > 0 {
+		tbsCert.IssuingCertificateURL = make([]string, len(precert.IssuingCertificateURL))
+		copy(tbsCert.IssuingCertificateURL, precert.IssuingCertificateURL)
+	}
+	if len(precert.DNSNames) > 0 {
+		tbsCert.DNSNames = make([]string, len(precert.DNSNames))
+		copy(tbsCert.DNSNames, precert.DNSNames)
+	}
+	if len(precert.EmailAddresses) > 0 {
+		tbsCert.EmailAddresses = make([]string, len(precert.EmailAddresses))
+		copy(tbsCert.EmailAddresses, precert.EmailAddresses)
+	}
+	if len(precert.PermittedDNSDomains) > 0 {
+		tbsCert.PermittedDNSDomains = make([]string, len(precert.PermittedDNSDomains))
+		copy(tbsCert.PermittedDNSDomains, precert.PermittedDNSDomains)
+	}
+	if len(precert.ExcludedDNSDomains) > 0 {
+		tbsCert.ExcludedDNSDomains = make([]string, len(precert.ExcludedDNSDomains))
+		copy(tbsCert.ExcludedDNSDomains, precert.ExcludedDNSDomains)
+	}
+	if len(precert.CRLDistributionPoints) > 0 {
+		tbsCert.CRLDistributionPoints = make([]string, len(precert.CRLDistributionPoints))
+		copy(tbsCert.CRLDistributionPoints, precert.CRLDistributionPoints)
+	}
+	if len(precert.PolicyIdentifiers) > 0 {
+		tbsCert.PolicyIdentifiers = make([]asn1.ObjectIdentifier, len(precert.PolicyIdentifiers))
+		copy(tbsCert.PolicyIdentifiers, precert.PolicyIdentifiers)
+	}
+
 	// Remove the poison extension from Extensions
 	tbsCert.Extensions = append(tbsCert.Extensions[:poisonIndex], tbsCert.Extensions[poisonIndex+1:]...)
 	// Move extensions into ExtraExtensions so that they get put in the certificate
