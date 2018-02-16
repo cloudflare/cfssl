@@ -431,10 +431,10 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 	for i, ext := range precert.Extensions {
 		if ext.Id.Equal(signer.CTPoisonOID) {
 			if !ext.Critical {
-				return nil, errors.New("precertificate contained non-critical poison extension")
+				return nil, cferr.New(cferr.CTError, cferr.PrecertInvalidPoison)
 			}
 			if bytes.Compare(ext.Value, []byte{0x05, 0x00}) != 0 {
-				return nil, errors.New("precertificate poison extension contained invalid value")
+				return nil, cferr.New(cferr.CTError, cferr.PrecertInvalidPoison)
 			}
 			isPrecert = true
 			poisonIndex = i
@@ -442,7 +442,7 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 		}
 	}
 	if !isPrecert {
-		return nil, errors.New("provided certificate does not contain CT poison extension")
+		return nil, cferr.New(cferr.CTError, cferr.PrecertMissingPoison)
 	}
 
 	// Serialize SCTs into list format and create extension
@@ -455,7 +455,7 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 			return nil, err
 		}
 		if len(rest) != 0 {
-			return nil, errors.New("SCT contained trailing garbage")
+			return nil, cferr.New(cferr.CTError, cferr.SCTInvalid)
 		}
 		sctObjs[i] = sct
 	}
@@ -465,7 +465,8 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 	}
 	sctExt := pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedList}
 
-	// Create the new tbsCert from precert
+	// Create the new tbsCert from precert. Do explicit copies of any slices so that we don't
+	// use memory that may be altered by us or the caller at a later stage.
 	tbsCert := x509.Certificate{
 		SignatureAlgorithm:    precert.SignatureAlgorithm,
 		PublicKeyAlgorithm:    precert.PublicKeyAlgorithm,
@@ -532,10 +533,8 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 		copy(tbsCert.PolicyIdentifiers, precert.PolicyIdentifiers)
 	}
 
-	// Remove the poison extension from Extensions
-	tbsCert.Extensions = append(tbsCert.Extensions[:poisonIndex], tbsCert.Extensions[poisonIndex+1:]...)
-	// Move extensions into ExtraExtensions so that they get put in the certificate
-	tbsCert.ExtraExtensions = tbsCert.Extensions
+	// Remove the poison extension from ExtraExtensions
+	tbsCert.ExtraExtensions = append(tbsCert.ExtraExtensions[:poisonIndex], tbsCert.ExtraExtensions[poisonIndex+1:]...)
 	// Insert the SCT list extension
 	tbsCert.ExtraExtensions = append(tbsCert.ExtraExtensions, sctExt)
 

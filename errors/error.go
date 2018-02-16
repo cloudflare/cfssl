@@ -194,6 +194,15 @@ const (
 	// CTClientConstructionFailed occurs when the construction of a new
 	// github.com/google/certificate-transparency client fails.
 	CTClientConstructionFailed
+	// PrecertMissingPoison occurs when a precert is passed to SignFromPrecert
+	// and is missing the CT poison extension.
+	PrecertMissingPoison
+	// PrecertInvalidPoison occurs when a precert is pass to SignFromPrecert
+	// and has a invalid CT poison extension value or the extension is not
+	// critical.
+	PrecertInvalidPoison
+	// SCTInvalid occurs when attempting to parse a SCT with trailing garbage
+	SCTInvalid
 )
 
 // Certificate persistence related errors specified with CertStoreError
