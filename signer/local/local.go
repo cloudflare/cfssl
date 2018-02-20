@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -442,7 +441,6 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCert
 			}
 			// Check extension contains ASN.1 NULL
 			if bytes.Compare(ext.Value, []byte{0x05, 0x00}) != 0 {
-				fmt.Println("AHHHH")
 				return nil, cferr.New(cferr.CTError, cferr.PrecertInvalidPoison)
 			}
 			isPrecert = true
@@ -483,82 +481,6 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCert
 	if len(precert.Extensions) > 0 {
 		tbsCert.ExtraExtensions = make([]pkix.Extension, len(precert.Extensions))
 		copy(tbsCert.ExtraExtensions, precert.Extensions)
-	}
-	if len(precert.ExtKeyUsage) > 0 {
-		tbsCert.ExtKeyUsage = make([]x509.ExtKeyUsage, len(precert.ExtKeyUsage))
-		copy(tbsCert.ExtKeyUsage, precert.ExtKeyUsage)
-	}
-	if len(precert.SubjectKeyId) > 0 {
-		tbsCert.SubjectKeyId = make([]byte, len(precert.SubjectKeyId))
-		copy(tbsCert.SubjectKeyId, precert.SubjectKeyId)
-	}
-	if len(precert.AuthorityKeyId) > 0 {
-		tbsCert.AuthorityKeyId = make([]byte, len(precert.AuthorityKeyId))
-		copy(tbsCert.AuthorityKeyId, precert.AuthorityKeyId)
-	}
-	if len(precert.OCSPServer) > 0 {
-		tbsCert.OCSPServer = make([]string, len(precert.OCSPServer))
-		copy(tbsCert.OCSPServer, precert.OCSPServer)
-	}
-	if len(precert.IssuingCertificateURL) > 0 {
-		tbsCert.IssuingCertificateURL = make([]string, len(precert.IssuingCertificateURL))
-		copy(tbsCert.IssuingCertificateURL, precert.IssuingCertificateURL)
-	}
-	if len(precert.DNSNames) > 0 {
-		tbsCert.DNSNames = make([]string, len(precert.DNSNames))
-		copy(tbsCert.DNSNames, precert.DNSNames)
-	}
-	if len(precert.PermittedDNSDomains) > 0 {
-		tbsCert.PermittedDNSDomains = make([]string, len(precert.PermittedDNSDomains))
-		copy(tbsCert.PermittedDNSDomains, precert.PermittedDNSDomains)
-	}
-	if len(precert.ExcludedDNSDomains) > 0 {
-		tbsCert.ExcludedDNSDomains = make([]string, len(precert.ExcludedDNSDomains))
-		copy(tbsCert.ExcludedDNSDomains, precert.ExcludedDNSDomains)
-	}
-	if len(precert.EmailAddresses) > 0 {
-		tbsCert.EmailAddresses = make([]string, len(precert.EmailAddresses))
-		copy(tbsCert.EmailAddresses, precert.EmailAddresses)
-	}
-	// if len(precert.PermittedEmailAddresses) > 0 {
-	// 	tbsCert.PermittedEmailAddresses = make([]string, len(precert.PermittedEmailAddresses))
-	// 	copy(tbsCert.PermittedEmailAddresses, precert.PermittedEmailAddresses)
-	// }
-	// if len(precert.ExcludedEmailAddresses) > 0 {
-	// 	tbsCert.ExcludedEmailAddresses = make([]string, len(precert.ExcludedEmailAddresses))
-	// 	copy(tbsCert.ExcludedEmailAddresses, precert.ExcludedEmailAddresses)
-	// }
-	if len(precert.IPAddresses) > 0 {
-		tbsCert.IPAddresses = make([]net.IP, len(precert.IPAddresses))
-		copy(tbsCert.IPAddresses, precert.IPAddresses)
-	}
-	// if len(precert.PermittedIPRanges) > 0 {
-	// 	tbsCert.PermittedIPRanges = make([]string, len(precert.PermittedIPRanges))
-	// 	copy(tbsCert.PermittedIPRanges, precert.PermittedIPRanges)
-	// }
-	// if len(precert.ExcludedIPRanges) > 0 {
-	// 	tbsCert.ExcludedIPRanges = make([]string, len(precert.ExcludedIPRanges))
-	// 	copy(tbsCert.ExcludedIPRanges, precert.ExcludedIPRanges)
-	// }
-	// if len(precert.URIs) > 0 {
-	// 	tbsCert.URIs = make([]*url.URL, len(precert.URIs))
-	// 	copy(tbsCert.URIs, precert.URIs)
-	// }
-	// if len(precert.PermittedURIDomains) > 0 {
-	// 	tbsCert.PermittedURIDomains = make([]string, len(precert.PermittedURIDomains))
-	// 	copy(tbsCert.PermittedURIDomains, precert.PermittedURIDomains)
-	// }
-	// if len(precert.ExcludedURIDomains) > 0 {
-	// 	tbsCert.ExcludedURIDomains = make([]string, len(precert.ExcludedURIDomains))
-	// 	copy(tbsCert.ExcludedURIDomains, precert.ExcludedURIDomains)
-	// }
-	if len(precert.CRLDistributionPoints) > 0 {
-		tbsCert.CRLDistributionPoints = make([]string, len(precert.CRLDistributionPoints))
-		copy(tbsCert.CRLDistributionPoints, precert.CRLDistributionPoints)
-	}
-	if len(precert.PolicyIdentifiers) > 0 {
-		tbsCert.PolicyIdentifiers = make([]asn1.ObjectIdentifier, len(precert.PolicyIdentifiers))
-		copy(tbsCert.PolicyIdentifiers, precert.PolicyIdentifiers)
 	}
 
 	// Remove the poison extension from ExtraExtensions
