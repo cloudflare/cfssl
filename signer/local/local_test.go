@@ -1348,8 +1348,6 @@ func TestSignFromPrecert(t *testing.T) {
 		DNSNames:              []string{"example.com"},
 		EmailAddresses:        []string{"email@example.com"},
 		IPAddresses:           []net.IP{net.ParseIP("1.1.1.1")},
-		PermittedDNSDomains:   []string{"example.com"},
-		ExcludedDNSDomains:    []string{"not-example.com"},
 		CRLDistributionPoints: []string{"crl"},
 		PolicyIdentifiers:     []asn1.ObjectIdentifier{{1, 2, 3}},
 	})
@@ -1399,19 +1397,19 @@ func TestSignFromPrecert(t *testing.T) {
 	}
 
 	// Break poison extension
-	precert.Extensions[8].Value = []byte{1, 3, 3, 7}
+	precert.Extensions[7].Value = []byte{1, 3, 3, 7}
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with invalid poison extension")
 	}
 
-	precert.Extensions[8].Critical = false
+	precert.Extensions[7].Critical = false
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with non-critical poison extension")
 	}
 
-	precert.Extensions = append(precert.Extensions[:8], precert.Extensions[9:]...)
+	precert.Extensions = append(precert.Extensions[:7], precert.Extensions[8:]...)
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with missing poison extension")
