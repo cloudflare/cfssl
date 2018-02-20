@@ -201,8 +201,6 @@ const (
 	// and has a invalid CT poison extension value or the extension is not
 	// critical.
 	PrecertInvalidPoison
-	// SCTInvalid occurs when attempting to parse a SCT with trailing garbage
-	SCTInvalid
 )
 
 // Certificate persistence related errors specified with CertStoreError
@@ -378,6 +376,10 @@ func New(category Category, reason Reason) *Error {
 			msg = "Certificate transparency parsing failed due to unknown error"
 		case PrecertSubmissionFailed:
 			msg = "Certificate transparency precertificate submission failed"
+		case PrecertMissingPoison:
+			msg = "Precertificate is missing CT poison extension"
+		case PrecertInvalidPoison:
+			msg = "Precertificate contains an invalid CT poison extension"
 		default:
 			panic(fmt.Sprintf("Unsupported CF-SSL error reason %d under category CTError.", reason))
 		}

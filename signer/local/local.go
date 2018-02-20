@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -28,7 +29,6 @@ import (
 	"github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
-	cttls "github.com/google/certificate-transparency-go/tls"
 	"golang.org/x/net/context"
 )
 
@@ -419,7 +419,14 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	return signedCert, nil
 }
 
-func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]byte, error) {
+// SignFromPrecert creates and signs a certificarte from an existing precertificate
+// that was previously signed by Signer.ca and inserts the provided SCTs into the
+// new certificate. The resulting certificate will be a exact copy of the precert
+// except for the removal of the poison extension and the addition of the SCT list
+// extension. SignFromPrecert does not verify that the contents of the certificate
+// still match the signing profile of the signer, it simply requires that the precert
+// was previously signed by the Signers CA.
+func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCertificateTimestamp) ([]byte, error) {
 	// Verify certificate was signed by s.ca
 	if err := precert.CheckSignatureFrom(s.ca); err != nil {
 		return nil, err
@@ -433,7 +440,9 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 			if !ext.Critical {
 				return nil, cferr.New(cferr.CTError, cferr.PrecertInvalidPoison)
 			}
+			// Check extension contains ASN.1 NULL
 			if bytes.Compare(ext.Value, []byte{0x05, 0x00}) != 0 {
+				fmt.Println("AHHHH")
 				return nil, cferr.New(cferr.CTError, cferr.PrecertInvalidPoison)
 			}
 			isPrecert = true
@@ -446,20 +455,7 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 	}
 
 	// Serialize SCTs into list format and create extension
-	sctObjs := make([]ct.SignedCertificateTimestamp, len(scts))
-	for i, sctBytes := range scts {
-		// do something?
-		var sct ct.SignedCertificateTimestamp
-		rest, err := cttls.Unmarshal(sctBytes, sct)
-		if err != nil {
-			return nil, err
-		}
-		if len(rest) != 0 {
-			return nil, cferr.New(cferr.CTError, cferr.SCTInvalid)
-		}
-		sctObjs[i] = sct
-	}
-	serializedList, err := helpers.SerializeSCTList(sctObjs)
+	serializedList, err := helpers.SerializeSCTList(scts)
 	if err != nil {
 		return nil, err
 	}
@@ -512,10 +508,6 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 		tbsCert.DNSNames = make([]string, len(precert.DNSNames))
 		copy(tbsCert.DNSNames, precert.DNSNames)
 	}
-	if len(precert.EmailAddresses) > 0 {
-		tbsCert.EmailAddresses = make([]string, len(precert.EmailAddresses))
-		copy(tbsCert.EmailAddresses, precert.EmailAddresses)
-	}
 	if len(precert.PermittedDNSDomains) > 0 {
 		tbsCert.PermittedDNSDomains = make([]string, len(precert.PermittedDNSDomains))
 		copy(tbsCert.PermittedDNSDomains, precert.PermittedDNSDomains)
@@ -524,6 +516,42 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts [][]byte) ([]by
 		tbsCert.ExcludedDNSDomains = make([]string, len(precert.ExcludedDNSDomains))
 		copy(tbsCert.ExcludedDNSDomains, precert.ExcludedDNSDomains)
 	}
+	if len(precert.EmailAddresses) > 0 {
+		tbsCert.EmailAddresses = make([]string, len(precert.EmailAddresses))
+		copy(tbsCert.EmailAddresses, precert.EmailAddresses)
+	}
+	// if len(precert.PermittedEmailAddresses) > 0 {
+	// 	tbsCert.PermittedEmailAddresses = make([]string, len(precert.PermittedEmailAddresses))
+	// 	copy(tbsCert.PermittedEmailAddresses, precert.PermittedEmailAddresses)
+	// }
+	// if len(precert.ExcludedEmailAddresses) > 0 {
+	// 	tbsCert.ExcludedEmailAddresses = make([]string, len(precert.ExcludedEmailAddresses))
+	// 	copy(tbsCert.ExcludedEmailAddresses, precert.ExcludedEmailAddresses)
+	// }
+	if len(precert.IPAddresses) > 0 {
+		tbsCert.IPAddresses = make([]net.IP, len(precert.IPAddresses))
+		copy(tbsCert.IPAddresses, precert.IPAddresses)
+	}
+	// if len(precert.PermittedIPRanges) > 0 {
+	// 	tbsCert.PermittedIPRanges = make([]string, len(precert.PermittedIPRanges))
+	// 	copy(tbsCert.PermittedIPRanges, precert.PermittedIPRanges)
+	// }
+	// if len(precert.ExcludedIPRanges) > 0 {
+	// 	tbsCert.ExcludedIPRanges = make([]string, len(precert.ExcludedIPRanges))
+	// 	copy(tbsCert.ExcludedIPRanges, precert.ExcludedIPRanges)
+	// }
+	// if len(precert.URIs) > 0 {
+	// 	tbsCert.URIs = make([]*url.URL, len(precert.URIs))
+	// 	copy(tbsCert.URIs, precert.URIs)
+	// }
+	// if len(precert.PermittedURIDomains) > 0 {
+	// 	tbsCert.PermittedURIDomains = make([]string, len(precert.PermittedURIDomains))
+	// 	copy(tbsCert.PermittedURIDomains, precert.PermittedURIDomains)
+	// }
+	// if len(precert.ExcludedURIDomains) > 0 {
+	// 	tbsCert.ExcludedURIDomains = make([]string, len(precert.ExcludedURIDomains))
+	// 	copy(tbsCert.ExcludedURIDomains, precert.ExcludedURIDomains)
+	// }
 	if len(precert.CRLDistributionPoints) > 0 {
 		tbsCert.CRLDistributionPoints = make([]string, len(precert.CRLDistributionPoints))
 		copy(tbsCert.CRLDistributionPoints, precert.CRLDistributionPoints)
