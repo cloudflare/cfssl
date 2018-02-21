@@ -158,51 +158,6 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/gogo/protobuf/proto",
-			"repository": "https://github.com/gogo/protobuf",
-			"vcs": "git",
-			"revision": "b75782e777cfa7ca469bc46cc313ddd26e6e9d1c",
-			"branch": "master",
-			"path": "/proto",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/gogo/protobuf/sortkeys",
-			"repository": "https://github.com/gogo/protobuf",
-			"vcs": "git",
-			"revision": "b75782e777cfa7ca469bc46cc313ddd26e6e9d1c",
-			"branch": "master",
-			"path": "sortkeys",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/gogo/protobuf/types",
-			"repository": "https://github.com/gogo/protobuf",
-			"vcs": "git",
-			"revision": "b75782e777cfa7ca469bc46cc313ddd26e6e9d1c",
-			"branch": "master",
-			"path": "types",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/golang/protobuf/proto",
-			"repository": "https://github.com/golang/protobuf",
-			"vcs": "git",
-			"revision": "bbd03ef6da3a115852eaf24c8a1c46aeb39aa175",
-			"branch": "master",
-			"path": "/proto",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/golang/protobuf/ptypes",
-			"repository": "https://github.com/golang/protobuf",
-			"vcs": "git",
-			"revision": "bbd03ef6da3a115852eaf24c8a1c46aeb39aa175",
-			"branch": "master",
-			"path": "/ptypes",
-			"notests": true
-		},
-		{
 			"importpath": "github.com/google/certificate-transparency-go",
 			"repository": "https://github.com/google/certificate-transparency-go",
 			"vcs": "git",
@@ -332,15 +287,6 @@
 			"vcs": "",
 			"revision": "9f9027faeb0dad515336ed2f28317f9f8f527ab4",
 			"branch": "master"
-		},
-		{
-			"importpath": "golang.org/x/crypto/cryptobyte",
-			"repository": "https://go.googlesource.com/crypto",
-			"vcs": "git",
-			"revision": "432090b8f568c018896cd8a0fb0345872bbac6ce",
-			"branch": "master",
-			"path": "/cryptobyte",
-			"notests": true
 		},
 		{
 			"importpath": "golang.org/x/crypto/ocsp",
