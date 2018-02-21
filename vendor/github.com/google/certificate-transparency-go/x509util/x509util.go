@@ -1,3 +1,17 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package x509util includes utility code for working with X.509
 // certificates from the x509 package.
 package x509util
@@ -8,122 +22,51 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"strconv"
 
+	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/asn1"
+	"github.com/google/certificate-transparency-go/tls"
 	"github.com/google/certificate-transparency-go/x509"
 	"github.com/google/certificate-transparency-go/x509/pkix"
 )
 
-//////////////////////////////////////
-// TODO(drysdale): export these constants/functions from x509 and remove this section.
-// Copy of unexported code from x509/x509.go
-var (
-	OidAttribute          = asn1.ObjectIdentifier{2, 5, 4}
-	OidCountry            = asn1.ObjectIdentifier{2, 5, 4, 6}
-	OidOrganization       = asn1.ObjectIdentifier{2, 5, 4, 10}
-	OidOrganizationalUnit = asn1.ObjectIdentifier{2, 5, 4, 11}
-	OidCommonName         = asn1.ObjectIdentifier{2, 5, 4, 3}
-	OidSerialNumber       = asn1.ObjectIdentifier{2, 5, 4, 5}
-	OidLocality           = asn1.ObjectIdentifier{2, 5, 4, 7}
-	OidProvince           = asn1.ObjectIdentifier{2, 5, 4, 8}
-	OidStreetAddress      = asn1.ObjectIdentifier{2, 5, 4, 9}
-	OidPostalCode         = asn1.ObjectIdentifier{2, 5, 4, 17}
-
-	OidPseudonym           = asn1.ObjectIdentifier{2, 5, 4, 65}
-	OidTitle               = asn1.ObjectIdentifier{2, 5, 4, 12}
-	OidDnQualifier         = asn1.ObjectIdentifier{2, 5, 4, 46}
-	OidName                = asn1.ObjectIdentifier{2, 5, 4, 41}
-	OidSurname             = asn1.ObjectIdentifier{2, 5, 4, 4}
-	OidGivenName           = asn1.ObjectIdentifier{2, 5, 4, 42}
-	OidInitials            = asn1.ObjectIdentifier{2, 5, 4, 43}
-	OidGenerationQualifier = asn1.ObjectIdentifier{2, 5, 4, 44}
-
-	OidNamedCurveP224 = asn1.ObjectIdentifier{1, 3, 132, 0, 33}
-	OidNamedCurveP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
-	OidNamedCurveP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
-	OidNamedCurveP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
-)
-
-// OidFromNamedCurve returns the OID used to specify the use of the given
-// elliptic curve.
-func OidFromNamedCurve(curve elliptic.Curve) asn1.ObjectIdentifier {
-	switch curve {
-	case elliptic.P224():
-		return OidNamedCurveP224
-	case elliptic.P256():
-		return OidNamedCurveP256
-	case elliptic.P384():
-		return OidNamedCurveP384
-	case elliptic.P521():
-		return OidNamedCurveP521
-	}
-	return nil
-}
-
-// OID values for X.509 extensions.
-var (
-	OidExtensionArc                        = asn1.ObjectIdentifier{2, 5, 29} // id-ce RFC5280 s4.2.1
-	OidExtensionSubjectKeyId               = asn1.ObjectIdentifier{2, 5, 29, 14}
-	OidExtensionKeyUsage                   = asn1.ObjectIdentifier{2, 5, 29, 15}
-	OidExtensionExtendedKeyUsage           = asn1.ObjectIdentifier{2, 5, 29, 37}
-	OidExtensionAuthorityKeyId             = asn1.ObjectIdentifier{2, 5, 29, 35}
-	OidExtensionBasicConstraints           = asn1.ObjectIdentifier{2, 5, 29, 19}
-	OidExtensionSubjectAltName             = asn1.ObjectIdentifier{2, 5, 29, 17}
-	OidExtensionCertificatePolicies        = asn1.ObjectIdentifier{2, 5, 29, 32}
-	OidExtensionNameConstraints            = asn1.ObjectIdentifier{2, 5, 29, 30}
-	OidExtensionCRLDistributionPoints      = asn1.ObjectIdentifier{2, 5, 29, 31}
-	OidExtensionIssuerAltName              = asn1.ObjectIdentifier{2, 5, 29, 18}
-	OidExtensionSubjectDirectoryAttributes = asn1.ObjectIdentifier{2, 5, 29, 9}
-	OidExtensionInhibitAnyPolicy           = asn1.ObjectIdentifier{2, 5, 29, 54}
-	OidExtensionPolicyConstraints          = asn1.ObjectIdentifier{2, 5, 29, 36}
-	OidExtensionPolicyMappings             = asn1.ObjectIdentifier{2, 5, 29, 33}
-	OidExtensionFreshestCRL                = asn1.ObjectIdentifier{2, 5, 29, 46}
-
-	OidExtensionAuthorityInfoAccess = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 1}
-	OidExtensionSubjectInfoAccess   = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 11}
-
-	// RFC 6962 s3.1
-	OidExtensionCTPoison = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 3}
-	// RFC 6962 s3.3
-	OidExtensionCTSCT = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 2}
-)
-
-//////////////////////////////////////
-
-// OidForStandardExtension indicates whether oid identifies a standard extension.
+// OIDForStandardExtension indicates whether oid identifies a standard extension.
 // Standard extensions are listed in RFC 5280 (and other RFCs).
-func OidForStandardExtension(oid asn1.ObjectIdentifier) bool {
-	if oid.Equal(OidExtensionSubjectKeyId) ||
-		oid.Equal(OidExtensionKeyUsage) ||
-		oid.Equal(OidExtensionExtendedKeyUsage) ||
-		oid.Equal(OidExtensionAuthorityKeyId) ||
-		oid.Equal(OidExtensionBasicConstraints) ||
-		oid.Equal(OidExtensionSubjectAltName) ||
-		oid.Equal(OidExtensionCertificatePolicies) ||
-		oid.Equal(OidExtensionNameConstraints) ||
-		oid.Equal(OidExtensionCRLDistributionPoints) ||
-		oid.Equal(OidExtensionIssuerAltName) ||
-		oid.Equal(OidExtensionSubjectDirectoryAttributes) ||
-		oid.Equal(OidExtensionInhibitAnyPolicy) ||
-		oid.Equal(OidExtensionPolicyConstraints) ||
-		oid.Equal(OidExtensionPolicyMappings) ||
-		oid.Equal(OidExtensionFreshestCRL) ||
-		oid.Equal(OidExtensionSubjectInfoAccess) ||
-		oid.Equal(OidExtensionAuthorityInfoAccess) ||
-		oid.Equal(OidExtensionCTPoison) ||
-		oid.Equal(OidExtensionCTSCT) {
+func OIDForStandardExtension(oid asn1.ObjectIdentifier) bool {
+	if oid.Equal(x509.OIDExtensionSubjectKeyId) ||
+		oid.Equal(x509.OIDExtensionKeyUsage) ||
+		oid.Equal(x509.OIDExtensionExtendedKeyUsage) ||
+		oid.Equal(x509.OIDExtensionAuthorityKeyId) ||
+		oid.Equal(x509.OIDExtensionBasicConstraints) ||
+		oid.Equal(x509.OIDExtensionSubjectAltName) ||
+		oid.Equal(x509.OIDExtensionCertificatePolicies) ||
+		oid.Equal(x509.OIDExtensionNameConstraints) ||
+		oid.Equal(x509.OIDExtensionCRLDistributionPoints) ||
+		oid.Equal(x509.OIDExtensionIssuerAltName) ||
+		oid.Equal(x509.OIDExtensionSubjectDirectoryAttributes) ||
+		oid.Equal(x509.OIDExtensionInhibitAnyPolicy) ||
+		oid.Equal(x509.OIDExtensionPolicyConstraints) ||
+		oid.Equal(x509.OIDExtensionPolicyMappings) ||
+		oid.Equal(x509.OIDExtensionFreshestCRL) ||
+		oid.Equal(x509.OIDExtensionSubjectInfoAccess) ||
+		oid.Equal(x509.OIDExtensionAuthorityInfoAccess) ||
+		oid.Equal(x509.OIDExtensionCTPoison) ||
+		oid.Equal(x509.OIDExtensionCTSCT) {
 		return true
 	}
 	return false
 }
 
-// OidInExtensions checks whether the extension identified by oid is present in extensions
+// OIDInExtensions checks whether the extension identified by oid is present in extensions
 // and returns how many times it occurs together with an indication of whether any of them
 // are marked critical.
-func OidInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension) (int, bool) {
+func OIDInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension) (int, bool) {
 	count := 0
 	critical := false
 	for _, ext := range extensions {
@@ -176,15 +119,15 @@ func appendHexData(buf *bytes.Buffer, data []byte, count int, prefix string) {
 	}
 }
 
-func curveOidToString(oid asn1.ObjectIdentifier) (t string, bitlen int) {
+func curveOIDToString(oid asn1.ObjectIdentifier) (t string, bitlen int) {
 	switch {
-	case oid.Equal(OidNamedCurveP224):
+	case oid.Equal(x509.OIDNamedCurveP224):
 		return "secp224r1", 224
-	case oid.Equal(OidNamedCurveP256):
+	case oid.Equal(x509.OIDNamedCurveP256):
 		return "prime256v1", 256
-	case oid.Equal(OidNamedCurveP384):
+	case oid.Equal(x509.OIDNamedCurveP384):
 		return "secp384r1", 384
-	case oid.Equal(OidNamedCurveP521):
+	case oid.Equal(x509.OIDNamedCurveP521):
 		return "secp521r1", 521
 	}
 	return fmt.Sprintf("%v", oid), -1
@@ -215,11 +158,11 @@ func publicKeyToString(algo x509.PublicKeyAlgorithm, pub interface{}) string {
 		appendHexData(&buf, pub.G.Bytes(), 15, "                    ")
 	case *ecdsa.PublicKey:
 		data := elliptic.Marshal(pub.Curve, pub.X, pub.Y)
-		oid := OidFromNamedCurve(pub.Curve)
-		if oid == nil {
+		oid, ok := x509.OIDFromNamedCurve(pub.Curve)
+		if !ok {
 			return "                <unsupported elliptic curve>"
 		}
-		oidname, bitlen := curveOidToString(oid)
+		oidname, bitlen := curveOIDToString(oid)
 		buf.WriteString(fmt.Sprintf("                Public Key: (%d bit)\n", bitlen))
 		buf.WriteString("                pub:\n")
 		appendHexData(&buf, data, 15, "                    ")
@@ -296,46 +239,48 @@ func extKeyUsageToString(u x509.ExtKeyUsage) string {
 		return "Microsoft server gated cryptography"
 	case x509.ExtKeyUsageNetscapeServerGatedCrypto:
 		return "Netscape server gated cryptography"
+	case x509.ExtKeyUsageCertificateTransparency:
+		return "Certificate transparency"
 	default:
 		return "Unknown"
 	}
 }
 
-func attributeOidToString(oid asn1.ObjectIdentifier) string {
+func attributeOIDToString(oid asn1.ObjectIdentifier) string {
 	switch {
-	case oid.Equal(OidCountry):
+	case oid.Equal(pkix.OIDCountry):
 		return "Country"
-	case oid.Equal(OidOrganization):
+	case oid.Equal(pkix.OIDOrganization):
 		return "Organization"
-	case oid.Equal(OidOrganizationalUnit):
+	case oid.Equal(pkix.OIDOrganizationalUnit):
 		return "OrganizationalUnit"
-	case oid.Equal(OidCommonName):
+	case oid.Equal(pkix.OIDCommonName):
 		return "CommonName"
-	case oid.Equal(OidSerialNumber):
+	case oid.Equal(pkix.OIDSerialNumber):
 		return "SerialNumber"
-	case oid.Equal(OidLocality):
+	case oid.Equal(pkix.OIDLocality):
 		return "Locality"
-	case oid.Equal(OidProvince):
+	case oid.Equal(pkix.OIDProvince):
 		return "Province"
-	case oid.Equal(OidStreetAddress):
+	case oid.Equal(pkix.OIDStreetAddress):
 		return "StreetAddress"
-	case oid.Equal(OidPostalCode):
+	case oid.Equal(pkix.OIDPostalCode):
 		return "PostalCode"
-	case oid.Equal(OidPseudonym):
+	case oid.Equal(pkix.OIDPseudonym):
 		return "Pseudonym"
-	case oid.Equal(OidTitle):
+	case oid.Equal(pkix.OIDTitle):
 		return "Title"
-	case oid.Equal(OidDnQualifier):
+	case oid.Equal(pkix.OIDDnQualifier):
 		return "DnQualifier"
-	case oid.Equal(OidName):
+	case oid.Equal(pkix.OIDName):
 		return "Name"
-	case oid.Equal(OidSurname):
+	case oid.Equal(pkix.OIDSurname):
 		return "Surname"
-	case oid.Equal(OidGivenName):
+	case oid.Equal(pkix.OIDGivenName):
 		return "GivenName"
-	case oid.Equal(OidInitials):
+	case oid.Equal(pkix.OIDInitials):
 		return "Initials"
-	case oid.Equal(OidGenerationQualifier):
+	case oid.Equal(pkix.OIDGenerationQualifier):
 		return "GenerationQualifier"
 	default:
 		return oid.String()
@@ -372,36 +317,36 @@ func NameToString(name pkix.Name) string {
 			continue
 		}
 		t := atv.Type
-		// All of the defined attribute OIDs are of the form 2.5.4.N, and OidAttribute is
+		// All of the defined attribute OIDs are of the form 2.5.4.N, and OIDAttribute is
 		// the 2.5.4 prefix ('id-at' in RFC 5280).
-		if len(t) == 4 && t[0] == OidAttribute[0] && t[1] == OidAttribute[1] && t[2] == OidAttribute[2] {
+		if len(t) == 4 && t[0] == pkix.OIDAttribute[0] && t[1] == pkix.OIDAttribute[1] && t[2] == pkix.OIDAttribute[2] {
 			// OID is 'id-at N', so check the final value to figure out which attribute.
 			switch t[3] {
-			case OidCommonName[3], OidSerialNumber[3], OidCountry[3], OidLocality[3], OidProvince[3],
-				OidStreetAddress[3], OidOrganization[3], OidOrganizationalUnit[3], OidPostalCode[3]:
+			case pkix.OIDCommonName[3], pkix.OIDSerialNumber[3], pkix.OIDCountry[3], pkix.OIDLocality[3], pkix.OIDProvince[3],
+				pkix.OIDStreetAddress[3], pkix.OIDOrganization[3], pkix.OIDOrganizationalUnit[3], pkix.OIDPostalCode[3]:
 				continue // covered by explicit fields
-			case OidPseudonym[3]:
+			case pkix.OIDPseudonym[3]:
 				addSingle("pseudonym=", value)
 				continue
-			case OidTitle[3]:
+			case pkix.OIDTitle[3]:
 				addSingle("title=", value)
 				continue
-			case OidDnQualifier[3]:
+			case pkix.OIDDnQualifier[3]:
 				addSingle("dnQualifier=", value)
 				continue
-			case OidName[3]:
+			case pkix.OIDName[3]:
 				addSingle("name=", value)
 				continue
-			case OidSurname[3]:
+			case pkix.OIDSurname[3]:
 				addSingle("surname=", value)
 				continue
-			case OidGivenName[3]:
+			case pkix.OIDGivenName[3]:
 				addSingle("givenName=", value)
 				continue
-			case OidInitials[3]:
+			case pkix.OIDInitials[3]:
 				addSingle("initials=", value)
 				continue
-			case OidGenerationQualifier[3]:
+			case pkix.OIDGenerationQualifier[3]:
 				addSingle("generationQualifier=", value)
 				continue
 			}
@@ -411,13 +356,49 @@ func NameToString(name pkix.Name) string {
 	return result.String()
 }
 
+// OtherNameToString creates a string description of an x509.OtherName object.
+func OtherNameToString(other x509.OtherName) string {
+	return fmt.Sprintf("%v=%v", other.TypeID, hex.EncodeToString(other.Value.Bytes))
+}
+
+// GeneralNamesToString creates a string description of an x509.GeneralNames object.
+func GeneralNamesToString(gname *x509.GeneralNames) string {
+	var buf bytes.Buffer
+	for _, name := range gname.DNSNames {
+		commaAppend(&buf, "DNS:"+name)
+	}
+	for _, email := range gname.EmailAddresses {
+		commaAppend(&buf, "email:"+email)
+	}
+	for _, name := range gname.DirectoryNames {
+		commaAppend(&buf, "DirName:"+NameToString(name))
+	}
+	for _, uri := range gname.URIs {
+		commaAppend(&buf, "URI:"+uri)
+	}
+	for _, ip := range gname.IPNets {
+		if ip.Mask == nil {
+			commaAppend(&buf, "IP Address:"+ip.IP.String())
+		} else {
+			commaAppend(&buf, "IP Address:"+ip.IP.String()+"/"+ip.Mask.String())
+		}
+	}
+	for _, id := range gname.RegisteredIDs {
+		commaAppend(&buf, "Registered ID:"+id.String())
+	}
+	for _, other := range gname.OtherNames {
+		commaAppend(&buf, "othername:"+OtherNameToString(other))
+	}
+	return buf.String()
+}
+
 // CertificateToString generates a string describing the given certificate.
 // The output roughly resembles that from openssl x509 -text.
 func CertificateToString(cert *x509.Certificate) string {
 	var result bytes.Buffer
 	result.WriteString(fmt.Sprintf("Certificate:\n"))
 	result.WriteString(fmt.Sprintf("    Data:\n"))
-	result.WriteString(fmt.Sprintf("        Version: %d (%#[1]x)\n", cert.Version))
+	result.WriteString(fmt.Sprintf("        Version: %d (%#x)\n", cert.Version, cert.Version-1))
 	result.WriteString(fmt.Sprintf("        Serial Number: %d (%#[1]x)\n", cert.SerialNumber))
 	result.WriteString(fmt.Sprintf("    Signature Algorithm: %v\n", cert.SignatureAlgorithm))
 	result.WriteString(fmt.Sprintf("        Issuer: %v\n", NameToString(cert.Issuer)))
@@ -432,35 +413,65 @@ func CertificateToString(cert *x509.Certificate) string {
 	if len(cert.Extensions) > 0 {
 		result.WriteString(fmt.Sprintf("        X509v3 extensions:\n"))
 	}
-	var showCritical = func(critical bool) {
-		if critical {
-			result.WriteString(" critical")
-		}
-		result.WriteString("\n")
-	}
 	// First display the extensions that are already cracked out
-	count, critical := OidInExtensions(OidExtensionAuthorityKeyId, cert.Extensions)
+	showAuthKeyID(&result, cert)
+	showSubjectKeyID(&result, cert)
+	showKeyUsage(&result, cert)
+	showExtendedKeyUsage(&result, cert)
+	showBasicConstraints(&result, cert)
+	showSubjectAltName(&result, cert)
+	showNameConstraints(&result, cert)
+	showCertPolicies(&result, cert)
+	showCRLDPs(&result, cert)
+	showAuthInfoAccess(&result, cert)
+	showCTPoison(&result, cert)
+	showCTSCT(&result, cert)
+
+	showUnhandledExtensions(&result, cert)
+	showSignature(&result, cert)
+
+	return result.String()
+}
+
+func showCritical(result *bytes.Buffer, critical bool) {
+	if critical {
+		result.WriteString(" critical")
+	}
+	result.WriteString("\n")
+}
+
+func showAuthKeyID(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionAuthorityKeyId, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Authority Key Identifier:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                keyid:%v\n", hex.EncodeToString(cert.AuthorityKeyId)))
 	}
-	count, critical = OidInExtensions(OidExtensionSubjectKeyId, cert.Extensions)
+}
+
+func showSubjectKeyID(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionSubjectKeyId, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Subject Key Identifier:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                keyid:%v\n", hex.EncodeToString(cert.SubjectKeyId)))
 	}
-	count, critical = OidInExtensions(OidExtensionKeyUsage, cert.Extensions)
+}
+
+func showKeyUsage(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionKeyUsage, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Key Usage:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                %v\n", keyUsageToString(cert.KeyUsage)))
 	}
-	count, critical = OidInExtensions(OidExtensionExtendedKeyUsage, cert.Extensions)
+}
+
+func showExtendedKeyUsage(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionExtendedKeyUsage, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Extended Key Usage:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		var usages bytes.Buffer
 		for _, usage := range cert.ExtKeyUsage {
 			commaAppend(&usages, extKeyUsageToString(usage))
@@ -470,20 +481,26 @@ func CertificateToString(cert *x509.Certificate) string {
 		}
 		result.WriteString(fmt.Sprintf("                %v\n", usages.String()))
 	}
-	count, critical = OidInExtensions(OidExtensionBasicConstraints, cert.Extensions)
+}
+
+func showBasicConstraints(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionBasicConstraints, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Basic Constraints:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                CA:%t", cert.IsCA))
 		if cert.MaxPathLen > 0 || cert.MaxPathLenZero {
 			result.WriteString(fmt.Sprintf(", pathlen:%d", cert.MaxPathLen))
 		}
 		result.WriteString(fmt.Sprintf("\n"))
 	}
-	count, critical = OidInExtensions(OidExtensionSubjectAltName, cert.Extensions)
+}
+
+func showSubjectAltName(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionSubjectAltName, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Subject Alternative Name:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		var buf bytes.Buffer
 		for _, name := range cert.DNSNames {
 			commaAppend(&buf, "DNS:"+name)
@@ -498,11 +515,13 @@ func CertificateToString(cert *x509.Certificate) string {
 		result.WriteString(fmt.Sprintf("                %v\n", buf.String()))
 		// TODO(drysdale): include other name forms
 	}
+}
 
-	count, critical = OidInExtensions(OidExtensionNameConstraints, cert.Extensions)
+func showNameConstraints(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionNameConstraints, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Name Constraints:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		if len(cert.PermittedDNSDomains) > 0 {
 			result.WriteString(fmt.Sprintf("                Permitted:\n"))
 			var buf bytes.Buffer
@@ -514,20 +533,26 @@ func CertificateToString(cert *x509.Certificate) string {
 		// TODO(drysdale): include other name forms
 	}
 
-	count, critical = OidInExtensions(OidExtensionCertificatePolicies, cert.Extensions)
+}
+
+func showCertPolicies(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionCertificatePolicies, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 Certificate Policies:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		for _, oid := range cert.PolicyIdentifiers {
 			result.WriteString(fmt.Sprintf("                Policy: %v\n", oid.String()))
 			// TODO(drysdale): Display any qualifiers associated with the policy
 		}
 	}
 
-	count, critical = OidInExtensions(OidExtensionCRLDistributionPoints, cert.Extensions)
+}
+
+func showCRLDPs(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionCRLDistributionPoints, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            X509v3 CRL Distribution Points:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                Full Name:\n"))
 		var buf bytes.Buffer
 		for _, pt := range cert.CRLDistributionPoints {
@@ -537,10 +562,13 @@ func CertificateToString(cert *x509.Certificate) string {
 		// TODO(drysdale): Display other GeneralNames types, plus issuer/reasons/relative-name
 	}
 
-	count, critical = OidInExtensions(OidExtensionAuthorityInfoAccess, cert.Extensions)
+}
+
+func showAuthInfoAccess(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionAuthorityInfoAccess, cert.Extensions)
 	if count > 0 {
 		result.WriteString(fmt.Sprintf("            Authority Information Access:"))
-		showCritical(critical)
+		showCritical(result, critical)
 		var issuerBuf bytes.Buffer
 		for _, issuer := range cert.IssuingCertificateURL {
 			commaAppend(&issuerBuf, "URI:"+issuer)
@@ -557,23 +585,86 @@ func CertificateToString(cert *x509.Certificate) string {
 		}
 		// TODO(drysdale): Display other GeneralNames types
 	}
+}
 
+func showCTPoison(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionCTPoison, cert.Extensions)
+	if count > 0 {
+		result.WriteString(fmt.Sprintf("            RFC6962 Pre-Certificate Poison:"))
+		showCritical(result, critical)
+		result.WriteString("                .....\n")
+	}
+}
+
+func showCTSCT(result *bytes.Buffer, cert *x509.Certificate) {
+	count, critical := OIDInExtensions(x509.OIDExtensionCTSCT, cert.Extensions)
+	if count > 0 {
+		result.WriteString(fmt.Sprintf("            RFC6962 Certificate Transparency SCT:"))
+		showCritical(result, critical)
+		for i, sctData := range cert.SCTList.SCTList {
+			result.WriteString(fmt.Sprintf("              SCT [%d]:\n", i))
+			var sct ct.SignedCertificateTimestamp
+			_, err := tls.Unmarshal(sctData.Val, &sct)
+			if err != nil {
+				appendHexData(result, sctData.Val, 16, "                  ")
+				result.WriteString("\n")
+				continue
+			}
+			result.WriteString(fmt.Sprintf("                  Version: %d\n", sct.SCTVersion))
+			result.WriteString(fmt.Sprintf("                  LogID: %s\n", base64.StdEncoding.EncodeToString(sct.LogID.KeyID[:])))
+			result.WriteString(fmt.Sprintf("                  Timestamp: %d\n", sct.Timestamp))
+			result.WriteString(fmt.Sprintf("                  Signature: %s\n", sct.Signature.Algorithm))
+			result.WriteString(fmt.Sprintf("                  Signature:\n"))
+			appendHexData(result, sct.Signature.Signature, 16, "                    ")
+			result.WriteString("\n")
+		}
+	}
+}
+
+func showUnhandledExtensions(result *bytes.Buffer, cert *x509.Certificate) {
 	for _, ext := range cert.Extensions {
 		// Skip extensions that are already cracked out
-		if OidForStandardExtension(ext.Id) {
+		if oidAlreadyPrinted(ext.Id) {
 			continue
 		}
 		result.WriteString(fmt.Sprintf("            %v:", ext.Id))
-		if ext.Critical {
-			result.WriteString(" critical")
-		}
+		showCritical(result, ext.Critical)
+		appendHexData(result, ext.Value, 16, "                ")
 		result.WriteString("\n")
-		result.WriteString("                .....\n")
 	}
+}
 
+func showSignature(result *bytes.Buffer, cert *x509.Certificate) {
 	result.WriteString(fmt.Sprintf("    Signature Algorithm: %v\n", cert.SignatureAlgorithm))
-	appendHexData(&result, cert.Signature, 18, "         ")
+	appendHexData(result, cert.Signature, 18, "         ")
 	result.WriteString("\n")
+}
 
-	return result.String()
+// TODO(drysdale): remove this once all standard OIDs are parsed and printed.
+func oidAlreadyPrinted(oid asn1.ObjectIdentifier) bool {
+	if oid.Equal(x509.OIDExtensionSubjectKeyId) ||
+		oid.Equal(x509.OIDExtensionKeyUsage) ||
+		oid.Equal(x509.OIDExtensionExtendedKeyUsage) ||
+		oid.Equal(x509.OIDExtensionAuthorityKeyId) ||
+		oid.Equal(x509.OIDExtensionBasicConstraints) ||
+		oid.Equal(x509.OIDExtensionSubjectAltName) ||
+		oid.Equal(x509.OIDExtensionCertificatePolicies) ||
+		oid.Equal(x509.OIDExtensionNameConstraints) ||
+		oid.Equal(x509.OIDExtensionCRLDistributionPoints) ||
+		oid.Equal(x509.OIDExtensionAuthorityInfoAccess) ||
+		oid.Equal(x509.OIDExtensionCTPoison) ||
+		oid.Equal(x509.OIDExtensionCTSCT) {
+		return true
+	}
+	return false
+}
+
+// CertificateFromPEM takes a string representing a certificate in PEM format
+// and returns the corresponding x509.Certificate object.
+func CertificateFromPEM(pemBytes string) (*x509.Certificate, error) {
+	block, _ := pem.Decode([]byte(pemBytes))
+	if block == nil {
+		return nil, errors.New("failed to decode PEM")
+	}
+	return x509.ParseCertificate(block.Bytes)
 }
