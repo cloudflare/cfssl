@@ -8,7 +8,7 @@
 
 CFSSL is CloudFlare's PKI/TLS swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling TLS
-certificates. It requires Go 1.6+ to build.
+certificates. It requires Go 1.8+ to build.
 
 Note that certain linux distributions have certain algorithms removed
 (RHEL-based distributions in particular), so the golang from the
@@ -34,7 +34,7 @@ See [BUILDING](BUILDING.md)
 ### Installation
 
 Installation requires a
-[working Go 1.6+ installation](http://golang.org/doc/install) and a
+[working Go 1.8+ installation](http://golang.org/doc/install) and a
 properly set `GOPATH`.
 
 ```
@@ -64,7 +64,7 @@ This will download, build, and install all of the utility programs
 (including `cfssl`, `cfssljson`, and `mkbundle` among others) into the
 `$GOPATH/bin/` directory.
 
-#### Installing pre-Go 1.6
+#### Installing pre-Go 1.8
 
 With a Go 1.5 installation, CFSSL will still probably build. However,
 the test system uses [`golint`](https://github.com/golang/lint), which

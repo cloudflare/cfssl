@@ -1,3 +1,17 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package fixchain
 
 import (
@@ -6,7 +20,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/google/certificate-transparency-go/x509"
 )
@@ -19,8 +32,7 @@ const (
 	ParseFailure
 	CannotFetchURL
 	FixFailed
-	PostFailed    // Call to http.Client.PostChainToLog() failed
-	LogPostFailed // http.Response from Certificate Transparency log contained a status code other than 200
+	LogPostFailed // Posting to log failed
 	VerifyFailed
 )
 
@@ -32,12 +44,11 @@ type FixError struct {
 	URL   string              // URL, if a URL is involved
 	Bad   []byte              // The offending certificate bytes, if applicable
 	Error error               // The error
-	Code  int                 // The http response code from the Certificate Transparency log (only for use with LogPostFailed)
 }
 
 // Equal tests whether this FixError is equal to another given FixError
 func (e FixError) Equal(f *FixError) bool {
-	if f == nil || e.Type != f.Type || e.URL != f.URL || !bytes.Equal(e.Bad, f.Bad) || e.Code != f.Code {
+	if f == nil || e.Type != f.Type || e.URL != f.URL || !bytes.Equal(e.Bad, f.Bad) {
 		return false
 	}
 	// Check Cert equality
@@ -80,8 +91,6 @@ func (e FixError) TypeString() string {
 		return "CannotFetchURL"
 	case FixFailed:
 		return "FixFailed"
-	case PostFailed:
-		return "PostFailed"
 	case LogPostFailed:
 		return "LogPostFailed"
 	case VerifyFailed:
@@ -94,9 +103,6 @@ func (e FixError) TypeString() string {
 // String converts an error to a (mostly) human readable string
 func (e FixError) String() string {
 	s := e.TypeString() + "\n"
-	if e.Code != 0 {
-		s += "Status Code: " + strconv.Itoa(e.Code) + "\n"
-	}
 	if e.Error != nil {
 		s += "Error: " + e.Error.Error() + "\n"
 	}
@@ -138,7 +144,6 @@ func (e FixError) MarshalJSON() ([]byte, error) {
 	if e.Error != nil {
 		m.Error = e.Error.Error()
 	}
-	m.Code = e.Code
 
 	return json.Marshal(m)
 }
@@ -169,8 +174,6 @@ func UnmarshalJSON(b []byte) (*FixError, error) {
 		ferr.Type = CannotFetchURL
 	case "FixFailed":
 		ferr.Type = FixFailed
-	case "PostFailed":
-		ferr.Type = PostFailed
 	case "LogPostFailed":
 		ferr.Type = LogPostFailed
 	case "VerifyFailed":
@@ -200,7 +203,6 @@ func UnmarshalJSON(b []byte) (*FixError, error) {
 	if u.Error != "" {
 		ferr.Error = errors.New(u.Error)
 	}
-	ferr.Code = u.Code
 
 	return ferr, nil
 }

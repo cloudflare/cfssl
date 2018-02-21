@@ -7,12 +7,11 @@ package x509
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	// START CT CHANGES
-	"github.com/google/certificate-transparency-go/asn1"
-	// START CT CHANGES
 	"errors"
 	"fmt"
 	"math/big"
+
+	"github.com/google/certificate-transparency-go/asn1"
 )
 
 const ecPrivKeyVersion = 1
@@ -37,11 +36,17 @@ func ParseECPrivateKey(der []byte) (*ecdsa.PrivateKey, error) {
 
 // MarshalECPrivateKey marshals an EC private key into ASN.1, DER format.
 func MarshalECPrivateKey(key *ecdsa.PrivateKey) ([]byte, error) {
-	oid, ok := oidFromNamedCurve(key.Curve)
+	oid, ok := OIDFromNamedCurve(key.Curve)
 	if !ok {
 		return nil, errors.New("x509: unknown elliptic curve")
 	}
 
+	return marshalECPrivateKeyWithOID(key, oid)
+}
+
+// marshalECPrivateKey marshals an EC private key into ASN.1, DER format and
+// sets the curve ID to the given OID, or omits it if OID is nil.
+func marshalECPrivateKeyWithOID(key *ecdsa.PrivateKey, oid asn1.ObjectIdentifier) ([]byte, error) {
 	privateKeyBytes := key.D.Bytes()
 	paddedPrivateKey := make([]byte, (key.Curve.Params().N.BitLen()+7)/8)
 	copy(paddedPrivateKey[len(paddedPrivateKey)-len(privateKeyBytes):], privateKeyBytes)

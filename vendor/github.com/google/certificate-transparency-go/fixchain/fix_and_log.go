@@ -1,12 +1,28 @@
+// Copyright 2016 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package fixchain
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/x509"
 )
 
@@ -86,12 +102,12 @@ func (fl *FixAndLog) Wait() {
 // are added to its queue, and then log them to the Certificate Transparency log
 // found at the given url.  Any errors encountered along the way are pushed to
 // the given errors channel.
-func NewFixAndLog(fixerWorkerCount int, loggerWorkerCount int, errors chan<- *FixError, client *http.Client, logClient *http.Client, logURL string, limiter Limiter, logStats bool) *FixAndLog {
+func NewFixAndLog(ctx context.Context, fixerWorkerCount int, loggerWorkerCount int, errors chan<- *FixError, client *http.Client, logClient client.AddLogClient, limiter Limiter, logStats bool) *FixAndLog {
 	chains := make(chan []*x509.Certificate)
 	fl := &FixAndLog{
 		fixer:  NewFixer(fixerWorkerCount, chains, errors, client, logStats),
 		chains: chains,
-		logger: NewLogger(loggerWorkerCount, logURL, errors, logClient, limiter, logStats),
+		logger: NewLogger(ctx, loggerWorkerCount, errors, logClient, limiter, logStats),
 		done:   newLockedMap(),
 	}
 
