@@ -912,11 +912,7 @@ func TestBundlerWithEmptyRootInfo(t *testing.T) {
 }
 
 func TestBundlerClientAuth(t *testing.T) {
-	b, err := NewBundler(
-		"testdata/client-auth/root.pem",
-		"testdata/client-auth/int.pem",
-		WithKeyUsages(x509.ExtKeyUsageClientAuth),
-	)
+	b, err := NewBundler("testdata/client-auth/root.pem", "testdata/client-auth/int.pem")
 	if err != nil {
 		t.Fatal(err)
 	}

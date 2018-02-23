@@ -72,17 +72,15 @@ type options struct {
 
 var defaultOptions = options{
 	keyUsages: []x509.ExtKeyUsage{
-		x509.ExtKeyUsageServerAuth,
-		x509.ExtKeyUsageClientAuth,
-		x509.ExtKeyUsageMicrosoftServerGatedCrypto,
-		x509.ExtKeyUsageNetscapeServerGatedCrypto,
+		x509.ExtKeyUsageAny,
 	},
 }
 
 // An Option sets options such as allowed key usages, etc.
 type Option func(*options)
 
-// WithKeyUsages lets you set which Extended Key Usage values are acceptable.
+// WithKeyUsages lets you set which Extended Key Usage values are acceptable. By
+// default x509.ExtKeyUsageAny will be used.
 func WithKeyUsages(usages ...x509.ExtKeyUsage) Option {
 	return func(o *options) {
 		o.keyUsages = usages
