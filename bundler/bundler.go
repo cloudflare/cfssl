@@ -160,10 +160,7 @@ func (b *Bundler) VerifyOptions() x509.VerifyOptions {
 		Roots:         b.RootPool,
 		Intermediates: b.IntermediatePool,
 		KeyUsages: []x509.ExtKeyUsage{
-			x509.ExtKeyUsageServerAuth,
-			x509.ExtKeyUsageClientAuth,
-			x509.ExtKeyUsageMicrosoftServerGatedCrypto,
-			x509.ExtKeyUsageNetscapeServerGatedCrypto,
+			x509.ExtKeyUsageAny,
 		},
 	}
 }

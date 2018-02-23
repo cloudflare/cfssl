@@ -250,6 +250,10 @@ func (c *JSONClient) PostAndParseWithRetry(ctx context.Context, path string, req
 	for {
 		httpRsp, body, err := c.PostAndParse(ctx, path, req, rsp)
 		if err != nil {
+			// Don't retry context errors.
+			if err == context.Canceled || err == context.DeadlineExceeded {
+				return nil, nil, err
+			}
 			wait := c.backoff.set(nil)
 			c.logger.Printf("Request failed, backing-off for %s: %s", wait, err)
 		} else {

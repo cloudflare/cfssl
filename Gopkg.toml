@@ -46,8 +46,8 @@
   version = "1.3.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/google/certificate-transparency-go"
+  revision = "5ab67e519c93568ac3ee50fd6772a5bcf8aa460d"
 
 [[constraint]]
   name = "github.com/jmhodges/clock"

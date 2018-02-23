@@ -295,14 +295,8 @@ func parseIssuingDistributionPoint(data []byte, idp *IssuingDistributionPoint, n
 	if typeCount > 1 {
 		errs.AddID(ErrCertListIssuingDPMultipleTypes, idp.OnlyContainsUserCerts, idp.OnlyContainsCACerts, idp.OnlyContainsAttributeCerts)
 	}
-	fnData := idp.DistributionPoint.FullName.FullBytes
-	if len(fnData) > 0 {
-		// Replace the leading context-specific tag [0] with the SEQUENCE tag.
-		data := make([]byte, len(fnData))
-		copy(data, fnData)
-		data[0] = 0x30
-		err := parseGeneralNames(data, name)
-		if err != nil {
+	for _, fn := range idp.DistributionPoint.FullName {
+		if _, err := parseGeneralName(fn.FullBytes, name, false); err != nil {
 			errs.AddID(ErrCertListIssuingDPInvalidFullName, err)
 		}
 	}
