@@ -1,6 +1,6 @@
 // Package order manages the bookkeeping and utilies required
 // for users to create an 'order' meaning they have requested
-// delegations for a certian resource.
+// delegations for a certain resource.
 //
 // Copyright (c) 2016 CloudFlare, Inc.
 package order

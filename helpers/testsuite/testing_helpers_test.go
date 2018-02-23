@@ -214,7 +214,7 @@ func TestCreateCertificateChain(t *testing.T) {
 		org := randomElement(orgGrabBag)
 		orgUnit := randomElement(orgUnitGrabBag)
 
-		requests[i].CN = cn + "." + tld
+		requests[i].CN = cn + tld
 		requests[i].Names = []csr.Name{
 			{C: country,
 				ST: state,

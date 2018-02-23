@@ -1,7 +1,6 @@
 // Package padding adds and removes padding for AES-CBC mode.
 //
 // Copyright (c) 2013 CloudFlare, Inc.
-
 package padding
 
 import "errors"

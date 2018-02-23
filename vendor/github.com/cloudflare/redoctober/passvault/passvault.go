@@ -3,7 +3,6 @@
 // stored hashed (with salt) using scrypt.
 //
 // Copyright (c) 2013 CloudFlare, Inc.
-
 package passvault
 
 import (
@@ -89,7 +88,7 @@ type PasswordRecord struct {
 	Admin    bool
 }
 
-// diskRecords is the structure used to read and write a JSON file
+// Records is the structure used to read and write a JSON file
 // containing the contents of a password vault
 type Records struct {
 	Version   int
@@ -257,7 +256,7 @@ func encryptECB(data, key []byte) (encryptedData []byte, err error) {
 	return
 }
 
-// InitFromDisk reads the record from disk and initialize global context.
+// InitFrom reads the record from disk and initialize global context.
 func InitFrom(path string) (records Records, err error) {
 	var jsonDiskRecord []byte
 
@@ -423,7 +422,7 @@ func (records *Records) ChangePassword(name, password, newPassword, hipchatName 
 			return
 		}
 	} else {
-		err = errors.New("Unkown record type")
+		err = errors.New("Unknown record type")
 		return
 	}
 
@@ -482,12 +481,12 @@ func (records *Records) GetRecord(name string) (PasswordRecord, bool) {
 	return dpr, found
 }
 
-// GetVaultId returns the id of the current vault.
+// GetVaultID returns the id of the current vault.
 func (records *Records) GetVaultID() (id int, err error) {
 	return records.VaultId, nil
 }
 
-// GetHmacKey returns the hmac key of the current vault.
+// GetHMACKey returns the hmac key of the current vault.
 func (records *Records) GetHMACKey() (key []byte, err error) {
 	return records.HmacKey, nil
 }
@@ -626,8 +625,8 @@ func (pr *PasswordRecord) GetKeyRSA(password string) (key rsa.PrivateKey, err er
 
 	return
 }
-func (r *Records) GetAltNameFromName(alt, name string) (altName string, found bool) {
-	if passwordRecord, ok := r.Passwords[name]; ok {
+func (records *Records) GetAltNameFromName(alt, name string) (altName string, found bool) {
+	if passwordRecord, ok := records.Passwords[name]; ok {
 		if altName, ok := passwordRecord.AltNames[alt]; ok {
 			return altName, true
 		}
