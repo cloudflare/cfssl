@@ -3,34 +3,6 @@
 
 [[projects]]
   branch = "master"
-  name = "bitbucket.org/liamstask/goose"
-  packages = [
-    "cmd/goose",
-    "lib/goose"
-  ]
-  revision = "8488cc47d90c8a502b1c41a462a6d9cc8ee0a895"
-
-[[projects]]
-  name = "cloud.google.com/go"
-  packages = [
-    "compute/metadata",
-    "iam",
-    "internal",
-    "internal/optional",
-    "internal/version",
-    "storage"
-  ]
-  revision = "767c40d6a2e058483c25fa193e963a22da17236d"
-  version = "v0.18.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/GeertJohan/fgt"
-  packages = ["."]
-  revision = "262f7b11eec07dc7b147c44641236f3212fee89d"
-
-[[projects]]
-  branch = "master"
   name = "github.com/GeertJohan/go.rice"
   packages = [
     ".",
@@ -102,19 +74,9 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/golang/lint"
-  packages = [
-    ".",
-    "golint"
-  ]
-  revision = "ead987a65e5c7e053cf9633f9eac1f734f6b4fe3"
-
-[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
-    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -139,12 +101,6 @@
   revision = "3999d1f12477f88b144f3eb5be6cdd46e0e0c74b"
 
 [[projects]]
-  name = "github.com/googleapis/gax-go"
-  packages = ["."]
-  revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
-  version = "v2.0.0"
-
-[[projects]]
   name = "github.com/jmhodges/clock"
   packages = ["."]
   revision = "880ee4c335489bc78d01e4d0a254ae880734bc15"
@@ -166,15 +122,6 @@
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
 
 [[projects]]
-  name = "github.com/kisielk/gotool"
-  packages = [
-    ".",
-    "internal/load"
-  ]
-  revision = "80517062f582ea3340cd4baf70e86d539ae7d84d"
-  version = "v1.0.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/kisielk/sqlstruct"
   packages = ["."]
@@ -185,12 +132,6 @@
   packages = ["assert"]
   revision = "d6c5360a068641fc799295411f429be80115bcfc"
   version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/kylelemons/go-gypsy"
-  packages = ["yaml"]
-  revision = "08cad365cd28a7fba23bb1e57aa43c5e18ad8bb8"
 
 [[projects]]
   branch = "master"
@@ -208,86 +149,15 @@
   version = "v1.6.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/modocache/gover"
-  packages = [
-    ".",
-    "gover"
-  ]
-  revision = "b58185e213c533169f76aa366e6c68fe56f2881b"
-
-[[projects]]
-  name = "github.com/onsi/ginkgo"
-  packages = [
-    ".",
-    "config",
-    "internal/codelocation",
-    "internal/containernode",
-    "internal/failer",
-    "internal/leafnodes",
-    "internal/remote",
-    "internal/spec",
-    "internal/spec_iterator",
-    "internal/specrunner",
-    "internal/suite",
-    "internal/testingtproxy",
-    "internal/writer",
-    "reporters",
-    "reporters/stenographer",
-    "reporters/stenographer/support/go-colorable",
-    "reporters/stenographer/support/go-isatty",
-    "types"
-  ]
-  revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
-  version = "v1.4.0"
-
-[[projects]]
-  name = "github.com/onsi/gomega"
-  packages = [
-    ".",
-    "format",
-    "internal/assertion",
-    "internal/asyncassertion",
-    "internal/oraclematcher",
-    "internal/testingtsupport",
-    "matchers",
-    "matchers/support/goraph/bipartitegraph",
-    "matchers/support/goraph/edge",
-    "matchers/support/goraph/node",
-    "matchers/support/goraph/util",
-    "types"
-  ]
-  revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
-  version = "v1.3.0"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
-  name = "github.com/ziutek/mymysql"
-  packages = [
-    "godrv",
-    "mysql",
-    "native"
-  ]
-  revision = "e08c2f35356576b3c3690c252fe5dca728ae9292"
-  version = "v1.5.4"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/build"
-  packages = ["autocertcache"]
-  revision = "9b65dd4945ba659fb820d26305203c3ff6f4da12"
-
-[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = [
-    "acme",
-    "acme/autocert",
     "ocsp",
     "pbkdf2",
     "pkcs12",
@@ -301,201 +171,13 @@
   name = "golang.org/x/net"
   packages = [
     "context",
-    "context/ctxhttp",
-    "html",
-    "html/atom",
-    "html/charset",
-    "http2",
-    "http2/hpack",
-    "idna",
-    "internal/timeseries",
-    "lex/httplex",
-    "trace"
+    "context/ctxhttp"
   ]
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/oauth2"
-  packages = [
-    ".",
-    "google",
-    "internal",
-    "jws",
-    "jwt"
-  ]
-  revision = "543e37812f10c46c622c9575afd7ad22f22a12ba"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "c1138c84af3a9927aee1a1b8b7ce06c9b7ea52bc"
-
-[[projects]]
-  name = "golang.org/x/text"
-  packages = [
-    "collate",
-    "collate/build",
-    "encoding",
-    "encoding/charmap",
-    "encoding/htmlindex",
-    "encoding/internal",
-    "encoding/internal/identifier",
-    "encoding/japanese",
-    "encoding/korean",
-    "encoding/simplifiedchinese",
-    "encoding/traditionalchinese",
-    "encoding/unicode",
-    "internal/colltab",
-    "internal/gen",
-    "internal/tag",
-    "internal/triegen",
-    "internal/ucd",
-    "internal/utf8internal",
-    "language",
-    "runes",
-    "secure/bidirule",
-    "transform",
-    "unicode/bidi",
-    "unicode/cldr",
-    "unicode/norm",
-    "unicode/rangetable"
-  ]
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/tools"
-  packages = [
-    "cmd/goimports",
-    "go/ast/astutil",
-    "go/buildutil",
-    "go/gccgoexportdata",
-    "go/gcexportdata",
-    "go/gcimporter15",
-    "go/internal/gccgoimporter",
-    "go/loader",
-    "go/types/typeutil",
-    "imports",
-    "refactor/importgraph",
-    "refactor/rename",
-    "refactor/satisfy"
-  ]
-  revision = "f8f2f88271bf2c23f28a09d288d26507a9503c97"
-
-[[projects]]
-  branch = "master"
-  name = "google.golang.org/api"
-  packages = [
-    "gensupport",
-    "googleapi",
-    "googleapi/internal/uritemplates",
-    "googleapi/transport",
-    "internal",
-    "iterator",
-    "option",
-    "storage/v1",
-    "transport/http"
-  ]
-  revision = "ab90adb3efa287b869ecb698db42f923cc734972"
-
-[[projects]]
-  name = "google.golang.org/appengine"
-  packages = [
-    ".",
-    "datastore",
-    "internal",
-    "internal/app_identity",
-    "internal/base",
-    "internal/datastore",
-    "internal/log",
-    "internal/memcache",
-    "internal/modules",
-    "internal/remote_api",
-    "internal/urlfetch",
-    "internal/user",
-    "log",
-    "memcache",
-    "urlfetch",
-    "user"
-  ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "google.golang.org/genproto"
-  packages = [
-    "googleapis/api/annotations",
-    "googleapis/iam/v1",
-    "googleapis/rpc/status"
-  ]
-  revision = "2b5a72b8730b0b16380010cfe5286c42108d88e7"
-
-[[projects]]
-  name = "google.golang.org/grpc"
-  packages = [
-    ".",
-    "balancer",
-    "balancer/base",
-    "balancer/roundrobin",
-    "codes",
-    "connectivity",
-    "credentials",
-    "encoding",
-    "encoding/proto",
-    "grpclb/grpc_lb_v1/messages",
-    "grpclog",
-    "internal",
-    "keepalive",
-    "metadata",
-    "naming",
-    "peer",
-    "resolver",
-    "resolver/dns",
-    "resolver/passthrough",
-    "stats",
-    "status",
-    "tap",
-    "transport"
-  ]
-  revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
-  version = "v1.10.0"
-
-[[projects]]
-  branch = "v2"
-  name = "gopkg.in/yaml.v2"
-  packages = ["."]
-  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
-
-[[projects]]
-  name = "honnef.co/go/tools"
-  packages = [
-    "callgraph",
-    "callgraph/static",
-    "cmd/staticcheck",
-    "deprecated",
-    "functions",
-    "gcsizes",
-    "internal/sharedcheck",
-    "lint",
-    "lint/lintutil",
-    "lint/testutil",
-    "ssa",
-    "ssa/ssautil",
-    "staticcheck",
-    "staticcheck/vrp",
-    "structlayout",
-    "version"
-  ]
-  revision = "d73ab98e7c39fdcf9ba65062e43d34310f198353"
-  version = "2017.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de0faa9813f974ed2883e31bd14ff81ae35abd6daa24f025fb7e3fa2b6c0e7ce"
+  inputs-digest = "5cb6c97cbc2834ada01f3742835ae576315c9b912540ba277b7a75d5595e5871"
   solver-name = "gps-cdcl"
   solver-version = 1

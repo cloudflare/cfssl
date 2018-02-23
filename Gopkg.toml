@@ -24,17 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-# required for Travis build
-required = [
-  "golang.org/x/tools/cmd/goimports",
-  "github.com/onsi/gomega",
-  "github.com/onsi/ginkgo",
-  "github.com/golang/lint/golint",
-  "github.com/modocache/gover",
-  "github.com/GeertJohan/fgt",
-  "honnef.co/go/tools/cmd/staticcheck",
-  "bitbucket.org/liamstask/goose/cmd/goose"
-]
 
 [[constraint]]
   branch = "master"

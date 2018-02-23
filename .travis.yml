@@ -37,7 +37,15 @@ branches:
     - /^test-.*$/
 
 before_script:
+  - go get golang.org/x/tools/cmd/goimports
+  - go get github.com/onsi/gomega
+  - go get github.com/onsi/ginkgo
+  - go get -u github.com/golang/lint/golint
+  - go get github.com/modocache/gover
+  - go get -v github.com/GeertJohan/fgt
+  - go get -u honnef.co/go/tools/cmd/staticcheck
   # Setup DBs + run migrations
+  - go get bitbucket.org/liamstask/goose/cmd/goose
   - if [[ $(uname -s) == 'Linux' ]]; then
       psql -c 'create database certdb_development;' -U postgres;
       goose -path $GOPATH/src/github.com/cloudflare/cfssl/certdb/pg up;
