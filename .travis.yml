@@ -1,8 +1,10 @@
 sudo: false
 language: go
 go:
-  - 1.7.x
   - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - master
 # Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
 addons:
   apt:
