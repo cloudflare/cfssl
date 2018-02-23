@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -191,7 +192,7 @@ func (m MSP) DistributeShares(sec []byte, db UserDatabase) (map[string][][]byte,
 		case Name:
 			name := cond.string
 			if !db.ValidUser(name) {
-				return nil, errors.New("Unknown user in predicate.")
+				return nil, fmt.Errorf("Unknown user '%s' in predicate.", name)
 			}
 
 			out[name] = append(out[name], share)
@@ -211,6 +212,10 @@ func (m MSP) DistributeShares(sec []byte, db UserDatabase) (map[string][][]byte,
 	return out, nil
 }
 
+// ErrNotEnoughShares is returned if there aren't enough shares to
+// decrypt the secret.
+var ErrNotEnoughShares = errors.New("not enough shares to recover")
+
 // RecoverSecret takes a user database storing secret shares as input and returns the original secret.
 func (m MSP) RecoverSecret(db UserDatabase) ([]byte, error) {
 	cache := make(map[string][][]byte, 0) // Caches un-used shares for a user.
@@ -225,7 +230,7 @@ func (m MSP) recoverSecret(db UserDatabase, cache map[string][][]byte) ([]byte, 
 
 	ok, names, locs, _ := m.DerivePath(db)
 	if !ok {
-		return nil, errors.New("Not enough shares to recover.")
+		return nil, ErrNotEnoughShares
 	}
 
 	for _, name := range names {

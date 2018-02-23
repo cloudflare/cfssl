@@ -223,7 +223,6 @@ func (r Raw) Formatted() (out Formatted) {
 func (r Raw) Ok(db UserDatabase) bool {
 	if r.Type() == NodeAnd {
 		return r.Left.Ok(db) && r.Right.Ok(db)
-	} else {
-		return r.Left.Ok(db) || r.Right.Ok(db)
 	}
+	return r.Left.Ok(db) || r.Right.Ok(db)
 }

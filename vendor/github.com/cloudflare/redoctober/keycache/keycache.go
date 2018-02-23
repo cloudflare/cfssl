@@ -2,7 +2,6 @@
 // for the Red October server.
 //
 // Copyright (c) 2013 CloudFlare, Inc.
-
 package keycache
 
 import (
@@ -11,9 +10,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/redoctober/ecdh"
@@ -43,6 +45,7 @@ type ActiveUser struct {
 	AltNames map[string]string
 	Admin    bool
 	Type     string
+	Key      []byte
 
 	rsaKey rsa.PrivateKey
 	eccKey *ecdsa.PrivateKey
@@ -50,6 +53,7 @@ type ActiveUser struct {
 
 // Cache represents the current list of delegated keys in memory
 type Cache struct {
+	lock     *sync.Mutex
 	UserKeys map[DelegateIndex]ActiveUser
 }
 
@@ -91,12 +95,39 @@ func (usage Usage) matches(user string, labels []string) bool {
 
 // NewCache initalizes a new cache.
 func NewCache() Cache {
-	return Cache{make(map[DelegateIndex]ActiveUser)}
+	return Cache{
+		UserKeys: make(map[DelegateIndex]ActiveUser),
+		lock:     new(sync.Mutex),
+	}
+}
+
+// NewFrom takes the output of GetSummary and returns a new keycache.
+func NewFrom(summary map[string]ActiveUser) *Cache {
+	cache := &Cache{
+		UserKeys: make(map[DelegateIndex]ActiveUser),
+		lock:     new(sync.Mutex),
+	}
+
+	for di, user := range summary {
+		diSplit := strings.SplitN(di, "-", 2)
+		index := DelegateIndex{
+			Name: diSplit[0],
+		}
+
+		if len(diSplit) == 2 {
+			index.Slot = diSplit[1]
+		}
+		cache.UserKeys[index] = user
+	}
+
+	return cache
 }
 
 // setUser takes an ActiveUser and adds it to the cache.
 func (cache *Cache) setUser(in ActiveUser, name, slot string) {
+	cache.lock.Lock()
 	cache.UserKeys[DelegateIndex{Name: name, Slot: slot}] = in
+	cache.lock.Unlock()
 }
 
 // Valid returns true if matching active user is present.
@@ -133,7 +164,7 @@ func (cache *Cache) MatchUser(name, user string, labels []string) (ActiveUser, s
 // for decryption or symmetric encryption
 func (cache *Cache) useKey(name, user, slot string, labels []string) {
 	if val, slot, present := cache.MatchUser(name, user, labels); present {
-		val.Usage.Uses -= 1
+		val.Usage.Uses--
 		if val.Usage.Uses <= 0 {
 			delete(cache.UserKeys, DelegateIndex{name, slot})
 		} else {
@@ -155,21 +186,37 @@ func (cache *Cache) GetSummary() map[string]ActiveUser {
 	return summaryData
 }
 
-// FlushCache removes all delegated keys.
-func (cache *Cache) FlushCache() {
+// Flush removes all delegated keys. It returns true if the cache
+// wasn't empty (i.e. there were active users removed), and false if
+// the cache was empty.
+func (cache *Cache) Flush() bool {
+	if len(cache.UserKeys) == 0 {
+		return false
+	}
+
+	cache.lock.Lock()
 	for d := range cache.UserKeys {
 		delete(cache.UserKeys, d)
 	}
+	cache.lock.Unlock()
+
+	return true
 }
 
-// Refresh purges all expired or used up keys.
-func (cache *Cache) Refresh() {
+// Refresh purges all expired keys. It returns the number of
+// delegations that were removed.
+func (cache *Cache) Refresh() int {
+	var removed int
+
 	for d, active := range cache.UserKeys {
 		if active.Usage.Expiry.Before(time.Now()) {
 			log.Println("Record expired", d.Name, d.Slot, active.Usage.Users, active.Usage.Labels, active.Usage.Expiry)
+			removed++
 			delete(cache.UserKeys, d)
 		}
 	}
+
+	return removed
 }
 
 // AddKeyFromRecord decrypts a key for a given record and adds it to the cache.
@@ -192,8 +239,16 @@ func (cache *Cache) AddKeyFromRecord(record passvault.PasswordRecord, name, pass
 	switch record.Type {
 	case passvault.RSARecord:
 		current.rsaKey, err = record.GetKeyRSA(password)
+		if err != nil {
+			return
+		}
+		current.Key = x509.MarshalPKCS1PrivateKey(&current.rsaKey)
 	case passvault.ECCRecord:
 		current.eccKey, err = record.GetKeyECC(password)
+		if err != nil {
+			return
+		}
+		current.Key, err = x509.MarshalECPrivateKey(current.eccKey)
 	default:
 		err = errors.New("Unknown record type")
 	}
@@ -336,4 +391,32 @@ func (cache *Cache) DelegateStatus(name string, labels, admins []string) (admins
 		}
 	}
 	return
+}
+
+// Restore unmarshals the private key stored in the delegator to the
+// appropriate private structure.
+func (cache *Cache) Restore() (err error) {
+	for index, uk := range cache.UserKeys {
+		if len(uk.Key) == 0 {
+			return errors.New("keycache: no private key in active user")
+		}
+
+		rsaPriv, err := x509.ParsePKCS1PrivateKey(uk.Key)
+		if err == nil {
+			uk.rsaKey = *rsaPriv
+			cache.UserKeys[index] = uk
+			continue
+		}
+
+		ecPriv, err := x509.ParseECPrivateKey(uk.Key)
+		if err == nil {
+			uk.eccKey = ecPriv
+			cache.UserKeys[index] = uk
+			continue
+		}
+
+		return err
+	}
+
+	return nil
 }
