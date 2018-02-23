@@ -70,7 +70,7 @@ func initSystemRoots() []*x509.Certificate {
 	var roots []*x509.Certificate
 
 	var data C.CFDataRef
-	data = nil
+	setNilCFRef(&data)
 	err := C.FetchPEMRootsCFSSLTransport(&data)
 	if err == -1 {
 		return nil
