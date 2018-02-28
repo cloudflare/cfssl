@@ -197,7 +197,7 @@ const (
 	// PrecertMissingPoison occurs when a precert is passed to SignFromPrecert
 	// and is missing the CT poison extension.
 	PrecertMissingPoison
-	// PrecertInvalidPoison occurs when a precert is pass to SignFromPrecert
+	// PrecertInvalidPoison occurs when a precert is passed to SignFromPrecert
 	// and has a invalid CT poison extension value or the extension is not
 	// critical.
 	PrecertInvalidPoison

@@ -418,12 +418,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	return signedCert, nil
 }
 
-// SignFromPrecert creates and signs a certificarte from an existing precertificate
+// SignFromPrecert creates and signs a certificate from an existing precertificate
 // that was previously signed by Signer.ca and inserts the provided SCTs into the
 // new certificate. The resulting certificate will be a exact copy of the precert
 // except for the removal of the poison extension and the addition of the SCT list
 // extension. SignFromPrecert does not verify that the contents of the certificate
-// still match the signing profile of the signer, it simply requires that the precert
+// still match the signing profile of the signer, it only requires that the precert
 // was previously signed by the Signers CA.
 func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCertificateTimestamp) ([]byte, error) {
 	// Verify certificate was signed by s.ca
