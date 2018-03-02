@@ -2,12 +2,16 @@ package local
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
 	"io/ioutil"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -23,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/google/certificate-transparency-go"
 )
 
 const (
@@ -1257,5 +1262,162 @@ func TestCTSuccess(t *testing.T) {
 
 	if err != nil {
 		t.Fatal("Expected CT log submission success")
+	}
+}
+
+func TestReturnPrecert(t *testing.T) {
+	var config = &config.Signing{
+		Default: &config.SigningProfile{
+			Expiry:       helpers.OneYear,
+			CAConstraint: config.CAConstraint{IsCA: true},
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: "8760h",
+		},
+	}
+	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	csr, err := ioutil.ReadFile("testdata/ex.csr")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	validReq := signer.SignRequest{
+		Request:       string(csr),
+		Hosts:         []string{"example.com"},
+		ReturnPrecert: true,
+	}
+
+	certBytes, err := testSigner.Sign(validReq)
+	if err != nil {
+		t.Fatal("Failed to sign request")
+	}
+	block, _ := pem.Decode(certBytes)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse signed cert: %s", err)
+	}
+
+	// check cert with poison extension was returned
+	poisoned := false
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(signer.CTPoisonOID) {
+			poisoned = true
+			break
+		}
+	}
+	if !poisoned {
+		t.Fatal("Certificate without poison CT extension was returned")
+	}
+}
+
+func TestSignFromPrecert(t *testing.T) {
+	var config = &config.Signing{
+		Default: &config.SigningProfile{
+			Expiry:       helpers.OneYear,
+			CAConstraint: config.CAConstraint{IsCA: true},
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: "8760h",
+		},
+	}
+	testSigner, err := NewSignerFromFile(testCaFile, testCaKeyFile, config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Generate a precert
+	k, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("Failed to generate test key: %s", err)
+	}
+	precertBytes, err := testSigner.sign(&x509.Certificate{
+		SignatureAlgorithm: x509.SHA512WithRSA,
+		PublicKey:          k.Public(),
+		SerialNumber:       big.NewInt(10),
+		Subject:            pkix.Name{CommonName: "CN"},
+		NotBefore:          time.Now(),
+		NotAfter:           time.Now().Add(time.Hour),
+		ExtraExtensions: []pkix.Extension{
+			{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}},
+		},
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		SubjectKeyId:          []byte{0, 1},
+		AuthorityKeyId:        []byte{1, 0},
+		OCSPServer:            []string{"ocsp?"},
+		IssuingCertificateURL: []string{"url"},
+		DNSNames:              []string{"example.com"},
+		EmailAddresses:        []string{"email@example.com"},
+		IPAddresses:           []net.IP{net.ParseIP("1.1.1.1")},
+		CRLDistributionPoints: []string{"crl"},
+		PolicyIdentifiers:     []asn1.ObjectIdentifier{{1, 2, 3}},
+	})
+	if err != nil {
+		t.Fatalf("Failed to sign request: %s", err)
+	}
+	block, _ := pem.Decode(precertBytes)
+	precert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse signed cert: %s", err)
+	}
+
+	// Create a cert from the precert
+	scts := []ct.SignedCertificateTimestamp{}
+	certBytes, err := testSigner.SignFromPrecert(precert, scts)
+	if err != nil {
+		t.Fatal("Failed to sign cert from precert")
+	}
+	block, _ = pem.Decode(certBytes)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Failed to parse signed cert: %s", err)
+	}
+
+	// check cert doesn't contains poison extension
+	poisoned := false
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(signer.CTPoisonOID) {
+			poisoned = true
+			break
+		}
+	}
+	if poisoned {
+		t.Fatal("Certificate with poison CT extension was returned")
+	}
+
+	// check cert contains SCT list extension
+	list := false
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(signer.SCTListOID) {
+			list = true
+			break
+		}
+	}
+	if !list {
+		t.Fatal("Certificate without SCT list extension was returned")
+	}
+
+	// Break poison extension
+	precert.Extensions[7].Value = []byte{1, 3, 3, 7}
+	_, err = testSigner.SignFromPrecert(precert, scts)
+	if err == nil {
+		t.Fatal("SignFromPrecert didn't fail with invalid poison extension")
+	}
+
+	precert.Extensions[7].Critical = false
+	_, err = testSigner.SignFromPrecert(precert, scts)
+	if err == nil {
+		t.Fatal("SignFromPrecert didn't fail with non-critical poison extension")
+	}
+
+	precert.Extensions = append(precert.Extensions[:7], precert.Extensions[8:]...)
+	_, err = testSigner.SignFromPrecert(precert, scts)
+	if err == nil {
+		t.Fatal("SignFromPrecert didn't fail with missing poison extension")
+	}
+
+	precert.Signature = []byte("nop")
+	_, err = testSigner.SignFromPrecert(precert, scts)
+	if err == nil {
+		t.Fatal("SignFromPrecert didn't fail with signature not from CA")
 	}
 }

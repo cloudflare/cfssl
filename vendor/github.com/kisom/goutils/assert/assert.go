@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-// NoDebug, if set to true, will cause all asserts to be ignored.
+// NoDebug can be set to true to cause all asserts to be ignored.
 var NoDebug bool
 
 func die(what string, a ...string) {

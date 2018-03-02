@@ -1,3 +1,18 @@
+// Copyright 2015 Google Inc. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package ct holds core types and utilities for Certificate Transparency.
 package ct
 
 import (
@@ -101,6 +116,7 @@ type ASN1Cert struct {
 }
 
 // LogID holds the hash of the Log's public key (section 3.2).
+// TODO(pphaneuf): Users should be migrated to the one in the logid package.
 type LogID struct {
 	KeyID [sha256.Size]byte
 }
@@ -113,6 +129,7 @@ type PreCert struct {
 
 // CTExtensions is a representation of the raw bytes of any CtExtension
 // structure (see section 3.2).
+// nolint: golint
 type CTExtensions []byte // tls:"minlen:0,maxlen:65535"`
 
 // MerkleTreeNode represents an internal node in the CT tree.
@@ -176,9 +193,9 @@ func (d *DigitallySigned) UnmarshalJSON(b []byte) error {
 	return d.FromBase64String(content)
 }
 
-// LogEntry represents the contents of an entry in a CT log.  This is described in
-// section 3.1, but note that this structure does *not* match the TLS structure defined
-// there (the TLS structure is never used directly in RFC6962).
+// LogEntry represents the (parsed) contents of an entry in a CT log.  This is described
+// in section 3.1, but note that this structure does *not* match the TLS structure
+// defined there (the TLS structure is never used directly in RFC6962).
 type LogEntry struct {
 	Index int64
 	Leaf  MerkleTreeLeaf
@@ -187,6 +204,8 @@ type LogEntry struct {
 	Precert  *Precertificate   // Extracted precertificate
 	JSONData []byte
 
+	// Chain holds the issuing certificate chain, starting with the
+	// issuer of the leaf certificate / pre-certificate.
 	Chain []ASN1Cert
 }
 
@@ -316,18 +335,37 @@ type MerkleTreeLeaf struct {
 
 // Precertificate represents the parsed CT Precertificate structure.
 type Precertificate struct {
-	// Raw DER bytes of the precert
-	Raw []byte
+	// DER-encoded pre-certificate as originally added, which includes a
+	// poison extension and a signature generated over the pre-cert by
+	// the pre-cert issuer (which might differ from the issuer of the final
+	// cert, see RFC6962 s3.1).
+	Submitted ASN1Cert
 	// SHA256 hash of the issuing key
 	IssuerKeyHash [sha256.Size]byte
 	// Parsed TBSCertificate structure, held in an x509.Certificate for convenience.
-	TBSCertificate x509.Certificate
+	TBSCertificate *x509.Certificate
 }
 
 // X509Certificate returns the X.509 Certificate contained within the
 // MerkleTreeLeaf.
 func (m *MerkleTreeLeaf) X509Certificate() (*x509.Certificate, error) {
+	if m.TimestampedEntry.EntryType != X509LogEntryType {
+		return nil, fmt.Errorf("cannot call X509Certificate on a MerkleTreeLeaf that is not an X509 entry")
+	}
 	return x509.ParseCertificate(m.TimestampedEntry.X509Entry.Data)
+}
+
+// Precertificate returns the X.509 Precertificate contained within the MerkleTreeLeaf.
+//
+// The returned precertificate is embedded in an x509.Certificate, but is in the
+// form stored internally in the log rather than the original submitted form
+// (i.e. it does not include the poison extension and any changes to reflect the
+// final certificate's issuer have been made; see x509.BuildPrecertTBS).
+func (m *MerkleTreeLeaf) Precertificate() (*x509.Certificate, error) {
+	if m.TimestampedEntry.EntryType != PrecertLogEntryType {
+		return nil, fmt.Errorf("cannot call Precertificate on a MerkleTreeLeaf that is not a precert entry")
+	}
+	return x509.ParseTBSCertificate(m.TimestampedEntry.PrecertEntry.TBSCertificate)
 }
 
 // URI paths for Log requests; see section 4.
@@ -392,7 +430,8 @@ type GetProofByHashResponse struct {
 	AuditPath [][]byte `json:"audit_path"` // An array of base64-encoded Merkle Tree nodes proving the inclusion of the chosen certificate.
 }
 
-// LeafEntry represents a leaf in the Log's Merkle tree
+// LeafEntry represents a leaf in the Log's Merkle tree, as returned by the get-entries
+// GET method from section 4.6.
 type LeafEntry struct {
 	// LeafInput is a TLS-encoded MerkleTreeLeaf
 	LeafInput []byte `json:"leaf_input"`

@@ -8,7 +8,7 @@ import (
 
 func TestVersionString(t *testing.T) {
 	version := versionString()
-	if version != "1.2.0" {
+	if version != "1.3.0" {
 		t.Fatal("version string is not returned correctly")
 	}
 }

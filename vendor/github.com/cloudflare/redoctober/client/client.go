@@ -8,11 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"time"
 
-	backoff "github.com/cloudflare/cfssl/transport/core"
 	"github.com/cloudflare/redoctober/core"
 )
 
@@ -62,17 +59,9 @@ func (c *RemoteServer) getURL(path string) string {
 func (c *RemoteServer) doAction(action string, req []byte) ([]byte, error) {
 	buf := bytes.NewBuffer(req)
 	url := c.getURL("/" + action)
-	b := backoff.Backoff{}
-	var resp *http.Response
-	var err error
-	for {
-		resp, err = c.client.Post(url, "application/json", buf)
-		if err == nil {
-			break
-		}
-		delay := b.Duration()
-		log.Printf("Request to server failed. Will try again in %s", delay)
-		<-time.After(delay)
+	resp, err := c.client.Post(url, "application/json", buf)
+	if err != nil {
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -94,6 +83,20 @@ func (c *RemoteServer) doAction(action string, req []byte) ([]byte, error) {
 // into ResponseData object.
 func unmarshalResponseData(respBytes []byte) (*core.ResponseData, error) {
 	response := new(core.ResponseData)
+	err := json.Unmarshal(respBytes, response)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Status != "ok" {
+		return nil, errors.New(response.Status)
+	}
+
+	return response, nil
+}
+
+func unmarshalOwnersData(respBytes []byte) (*core.OwnersData, error) {
+	response := new(core.OwnersData)
 	err := json.Unmarshal(respBytes, response)
 	if err != nil {
 		return nil, err
@@ -284,6 +287,21 @@ func (c *RemoteServer) Password(req []byte) (*core.ResponseData, error) {
 	return unmarshalResponseData(respBytes)
 }
 
+// Owners issues an Owners request to the remote server
+func (c *RemoteServer) Owners(req core.OwnersRequest) (*core.OwnersData, error) {
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respBytes, err := c.doAction("owners", reqBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshalOwnersData(respBytes)
+}
+
 // Order issues an order request to the remote server
 func (c *RemoteServer) Order(req core.OrderRequest) (*core.ResponseData, error) {
 	reqBytes, err := json.Marshal(req)
@@ -337,6 +355,55 @@ func (c *RemoteServer) OrderCancel(req core.OrderInfoRequest) (*core.ResponseDat
 	}
 
 	respBytes, err := c.doAction("ordercancel", reqBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshalResponseData(respBytes)
+}
+
+// Status returns the current delegation persistence state from the remote server.
+func (c *RemoteServer) Status(req core.StatusRequest) (*core.ResponseData, error) {
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respBytes, err := c.doAction("status", reqBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshalResponseData(respBytes)
+}
+
+// Restore issues a restore request to the server. Note that a restore
+// request is the same as a delegation request, except that the user
+// and label lists are ignored.
+func (c *RemoteServer) Restore(req core.DelegateRequest) (*core.ResponseData, error) {
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respBytes, err := c.doAction("restore", reqBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshalResponseData(respBytes)
+}
+
+// ResetPersisted issues a persisted delegation reset request,
+// clearing out any persisted delegations. This must be done by an
+// admin user.
+func (c *RemoteServer) ResetPersisted(req core.PurgeRequest) (*core.ResponseData, error) {
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respBytes, err := c.doAction("reset-persisted", reqBytes)
 	if err != nil {
 		return nil, err
 	}
