@@ -457,6 +457,11 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCert
 	if err != nil {
 		return nil, err
 	}
+	// Serialize again as an octet string before embedding
+	serializedList, err = asn1.Marshal(serializedList)
+	if err != nil {
+		return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
+	}
 	sctExt := pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedList}
 
 	// Create the new tbsCert from precert. Do explicit copies of any slices so that we don't
