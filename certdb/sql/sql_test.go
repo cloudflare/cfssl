@@ -86,7 +86,7 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	got := rets[0]
 
-	// relfection comparison with zero time objects are not stable as it seems
+	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
 		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
@@ -132,7 +132,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 
 	got := rets[0]
 
-	// relfection comparison with zero time objects are not stable as it seems
+	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
 		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
@@ -188,7 +188,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	got := rets[0]
 
-	// relfection comparison with zero time objects are not stable as it seems
+	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
 		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
@@ -202,7 +202,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	got = rets[0]
 
-	// relfection comparison with zero time objects are not stable as it seems
+	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
 		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
@@ -216,7 +216,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	got = rets[0]
 
-	// relfection comparison with zero time objects are not stable as it seems
+	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
 		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {

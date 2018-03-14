@@ -185,7 +185,7 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
-// EncodeCertificatesPEM encodes a number of x509 certficates to PEM
+// EncodeCertificatesPEM encodes a number of x509 certificates to PEM
 func EncodeCertificatesPEM(certs []*x509.Certificate) []byte {
 	var buffer bytes.Buffer
 	for _, cert := range certs {
@@ -198,7 +198,7 @@ func EncodeCertificatesPEM(certs []*x509.Certificate) []byte {
 	return buffer.Bytes()
 }
 
-// EncodeCertificatePEM encodes a single x509 certficates to PEM
+// EncodeCertificatePEM encodes a single x509 certificates to PEM
 func EncodeCertificatePEM(cert *x509.Certificate) []byte {
 	return EncodeCertificatesPEM([]*x509.Certificate{cert})
 }
@@ -408,7 +408,7 @@ func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) 
 	return csr, rest, nil
 }
 
-// ParseCSRPEM parses a PEM-encoded certificiate signing request.
+// ParseCSRPEM parses a PEM-encoded certificate signing request.
 // It does not check the signature. This is useful for dumping data from a CSR
 // locally.
 func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {

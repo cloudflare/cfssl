@@ -80,7 +80,7 @@ func v1APIPath(path string) string {
 }
 
 // httpBox implements http.FileSystem which allows the use of Box with a http.FileServer.
-// Atempting to Open an API endpoint will result in an error.
+// Attempting to Open an API endpoint will result in an error.
 type httpBox struct {
 	*rice.Box
 	redirects map[string]string
