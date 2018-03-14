@@ -201,7 +201,7 @@ func TestBadGencertMain(t *testing.T) {
 
 	err = gencertMain([]string{"../testdata/nothing"}, cli.Config{})
 	if err == nil {
-		t.Fatal("Trying to read a non-existance file, should report error")
+		t.Fatal("Trying to read a non-existence file, should report error")
 	}
 
 	err = gencertMain([]string{"../testdata/csr.json"}, cli.Config{IsCA: true, CAKeyFile: "../../testdata/garbage.crt"})

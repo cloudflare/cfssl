@@ -19,7 +19,7 @@ var TLSHandshake = &Family{
 	Description: "Scans for host's SSL/TLS version and cipher suite negotiation",
 	Scanners: map[string]*Scanner{
 		"CipherSuite": {
-			"Determines host's cipher suites accepted and prefered order",
+			"Determines host's cipher suites accepted and preferred order",
 			cipherSuiteScan,
 		},
 		"SigAlgs": {

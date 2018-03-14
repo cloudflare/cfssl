@@ -53,7 +53,7 @@ var (
 )
 
 func initOnCloudFlareScan() ([]*net.IPNet, error) {
-	// Propogate previous errors and don't attempt to re-download.
+	// Propagate previous errors and don't attempt to re-download.
 	if cfNetsErr != nil {
 		return nil, cfNetsErr
 	}

@@ -240,7 +240,7 @@ func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	// load Platforms with test data
 	// "Macrosoft" has all three certs.
 	// "Godzilla" has two certs, cert1 and cert2.
-	// "Pinapple" has cert1.
+	// "Pineapple" has cert1.
 	// "Colorful" has no key store data, default to trust any cert
 	// All platforms support the same crypto suite.
 	platformA := Platform{Name: "MacroSoft", Weight: 100, HashAlgo: "SHA2", KeyAlgo: "ECDSA256", KeyStoreFile: "testdata/macrosoft.pem"}
