@@ -1361,10 +1361,10 @@ func TestSignFromPrecert(t *testing.T) {
 	}
 
 	// Create a cert from the precert
-	scts := []ct.SignedCertificateTimestamp{}
+	scts := []ct.SignedCertificateTimestamp{{}}
 	certBytes, err := testSigner.SignFromPrecert(precert, scts)
 	if err != nil {
-		t.Fatal("Failed to sign cert from precert")
+		t.Fatalf("Failed to sign cert from precert: %s", err)
 	}
 	block, _ = pem.Decode(certBytes)
 	cert, err := x509.ParseCertificate(block.Bytes)
