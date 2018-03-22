@@ -544,7 +544,7 @@ func TestDeserializeSCTList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !sctEquals(zeroSCT, (*deserializedSCTList)[0]) {
+	if !sctEquals(zeroSCT, (deserializedSCTList)[0]) {
 		t.Fatal("SCTs don't match")
 	}
 
