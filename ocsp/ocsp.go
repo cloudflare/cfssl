@@ -167,7 +167,7 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 
 	err := req.Certificate.CheckSignatureFrom(s.issuer)
 	if err != nil {
-		return nil, cferr.New(cferr.CertificateError, cferr.VerifyFailed, err)
+		return nil, cferr.Wrap(cferr.OCSPError, cferr.VerifyFailed, err)
 	}
 
 	var thisUpdate, nextUpdate time.Time
