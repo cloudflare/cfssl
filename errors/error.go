@@ -426,7 +426,7 @@ func Wrap(category Category, reason Reason, err error) *Error {
 			}
 		}
 	case PrivateKeyError, IntermediatesError, RootError, PolicyError, DialError,
-		APIClientError, CSRError, CTError, CertStoreError:
+		APIClientError, CSRError, CTError, CertStoreError, OCSPError:
 	// no-op, just use the error
 	default:
 		panic(fmt.Sprintf("Unsupported CFSSL error type: %d.",
