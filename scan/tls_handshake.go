@@ -38,6 +38,10 @@ var TLSHandshake = &Family{
 			"Determines the host's ec curve support for TLS 1.2",
 			ecCurveScan,
 		},
+		"ALPN": {
+			"Determines host's supported application-layer protocols",
+			alpnScan,
+		},
 	},
 }
 
@@ -424,4 +428,44 @@ func ecCurveScan(addr, hostname string) (grade Grade, output Output, err error) 
 	output = supportedCurves
 	grade = Good
 	return
+}
+
+type applicationProtocol struct {
+	name string
+	id   string
+}
+
+// alpnScan determines which application-layer protocols a server supports
+func alpnScan(addr, hostname string) (grade Grade, output Output, err error) {
+	HTTP1 := applicationProtocol{"HTTP/1", "http/1.1"}
+	SPDY := applicationProtocol{"SPDY/3", "spdy/3.1"}
+	HTTP2 := applicationProtocol{"HTTP/2", "h2"}
+	allProtocols := []applicationProtocol{HTTP1, SPDY, HTTP2}
+
+	var alpn = make(map[string]bool)
+	var conn *tls.Conn
+	config := defaultTLSConfig(hostname)
+	for _, protocol := range allProtocols {
+		// Attempt ALPN with each protocol in the scan list
+		config.NextProtos = []string{protocol.id}
+		if conn, err = tls.DialWithDialer(Dialer, Network, addr, config); err != nil {
+			return
+		}
+		connState := conn.ConnectionState()
+		conn.Close()
+		// Mark the requested protocol as supported if it was successfully negotiated
+		alpn[protocol.name] = (connState.NegotiatedProtocol == protocol.id)
+	}
+
+	// Set grade to Warning if *only* SPDY is supported (due to impending deprecation)
+	if alpn[SPDY.name] {
+		grade = Warning
+	}
+
+	// Set grade to Good if HTTP/2 is supported
+	if alpn[HTTP2.name] {
+		grade = Good
+	}
+
+	return grade, alpn, err
 }
