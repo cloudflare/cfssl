@@ -33,7 +33,7 @@ func TestOCSPRefreshMain(t *testing.T) {
 	certRecord := certdb.CertificateRecord{
 		Serial: cert.SerialNumber.String(),
 		AKI:    hex.EncodeToString(cert.AuthorityKeyId),
-		Expiry: null.TimeFrom(expirationTime),
+		Expiry: null.TimeFrom(expirationTime.UTC()),
 		PEM:    string(certPEM),
 		Status: "good",
 	}

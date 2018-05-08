@@ -340,7 +340,7 @@ func testUpdateOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 
 	want.Body = "fake body revoked"
 	newExpiry := time.Now().Add(time.Hour)
-	if err := ta.Accessor.UpdateOCSP(want.Serial, want.AKI, want.Body, null.TimeFrom(newExpiry)); err != nil {
+	if err := ta.Accessor.UpdateOCSP(want.Serial, want.AKI, want.Body, null.TimeFrom(newExpiry.UTC())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -355,7 +355,7 @@ func testUpdateOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 
 	got := rets[0]
 
-	want.Expiry = null.TimeFrom(newExpiry)
+	want.Expiry = null.TimeFrom(newExpiry.UTC())
 	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
 		!got.Expiry.Valid ||
 		!roughlySameTime(newExpiry, got.Expiry.Time) {
@@ -395,7 +395,7 @@ func testUpsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 	}
 
 	newExpiry := time.Now().Add(time.Hour)
-	if err := ta.Accessor.UpsertOCSP(want.Serial, want.AKI, "fake body revoked", null.TimeFrom(newExpiry)); err != nil {
+	if err := ta.Accessor.UpsertOCSP(want.Serial, want.AKI, "fake body revoked", null.TimeFrom(newExpiry.UTC())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -409,7 +409,7 @@ func testUpsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 
 	got = rets[0]
 
-	want.Expiry = null.TimeFrom(newExpiry)
+	want.Expiry = null.TimeFrom(newExpiry.UTC())
 	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
 		!got.Expiry.Valid ||
 		!roughlySameTime(newExpiry, got.Expiry.Time) {

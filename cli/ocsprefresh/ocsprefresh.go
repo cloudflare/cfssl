@@ -88,7 +88,7 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 			return err
 		}
 
-		err = dbAccessor.UpsertOCSP(cert.SerialNumber.String(), hex.EncodeToString(cert.AuthorityKeyId), string(resp), null.TimeFrom(ocspExpiry))
+		err = dbAccessor.UpsertOCSP(cert.SerialNumber.String(), hex.EncodeToString(cert.AuthorityKeyId), string(resp), null.TimeFrom(ocspExpiry.UTC()))
 		if err != nil {
 			log.Critical("Unable to save OCSP response: ", err)
 			return err

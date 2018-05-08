@@ -125,7 +125,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			Serial: req.Serial,
 			AKI:    req.AKI,
 			Body:   string(ocspResponse),
-			Expiry: null.TimeFrom(ocspParsed.NextUpdate),
+			Expiry: null.TimeFrom(ocspParsed.NextUpdate.UTC()),
 		}
 
 		if err = h.dbAccessor.InsertOCSP(ocspRecord); err != nil {

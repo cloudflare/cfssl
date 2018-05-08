@@ -30,10 +30,10 @@ func prepDB() (certdb.Accessor, error) {
 	var cert = certdb.CertificateRecord{
 		Serial:    "1",
 		AKI:       fakeAKI,
-		Expiry:    null.TimeFrom(expirationTime),
+		Expiry:    null.TimeFrom(expirationTime.UTC()),
 		PEM:       "revoked cert",
 		Status:    "revoked",
-		RevokedAt: null.TimeFrom(time.Now()),
+		RevokedAt: null.TimeFrom(time.Now().UTC()),
 		Reason:    4,
 	}
 

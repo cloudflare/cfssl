@@ -36,7 +36,7 @@ func prepDB() (certdb.Accessor, error) {
 	var cert = certdb.CertificateRecord{
 		Serial: "1",
 		AKI:    fakeAKI,
-		Expiry: null.TimeFrom(expirationTime),
+		Expiry: null.TimeFrom(expirationTime.UTC()),
 		PEM:    "unexpired cert",
 	}
 
@@ -219,7 +219,7 @@ func TestOCSPGeneration(t *testing.T) {
 	cr := certdb.CertificateRecord{
 		Serial: revokedSerialStr,
 		AKI:    revokedAKI,
-		Expiry: null.TimeFrom(expirationTime),
+		Expiry: null.TimeFrom(expirationTime.UTC()),
 		PEM:    string(revoked),
 	}
 	if err := dbAccessor.InsertCertificate(cr); err != nil {
