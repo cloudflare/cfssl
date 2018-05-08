@@ -12,6 +12,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // Usage text of 'cfssl ocsprefresh'
@@ -78,7 +79,7 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 
 		if certRecord.Status == "revoked" {
 			req.Reason = int(certRecord.Reason)
-			req.RevokedAt = certRecord.RevokedAt
+			req.RevokedAt = certRecord.RevokedAt.ValueOrZero()
 		}
 
 		resp, err := s.Sign(req)
@@ -87,7 +88,7 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 			return err
 		}
 
-		err = dbAccessor.UpsertOCSP(cert.SerialNumber.String(), hex.EncodeToString(cert.AuthorityKeyId), string(resp), ocspExpiry)
+		err = dbAccessor.UpsertOCSP(cert.SerialNumber.String(), hex.EncodeToString(cert.AuthorityKeyId), string(resp), null.TimeFrom(ocspExpiry))
 		if err != nil {
 			log.Critical("Unable to save OCSP response: ", err)
 			return err

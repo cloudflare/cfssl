@@ -14,6 +14,7 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 
 	stdocsp "golang.org/x/crypto/ocsp"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // A Handler accepts requests with a serial number parameter
@@ -124,7 +125,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			Serial: req.Serial,
 			AKI:    req.AKI,
 			Body:   string(ocspResponse),
-			Expiry: ocspParsed.NextUpdate,
+			Expiry: null.TimeFrom(ocspParsed.NextUpdate),
 		}
 
 		if err = h.dbAccessor.InsertOCSP(ocspRecord); err != nil {

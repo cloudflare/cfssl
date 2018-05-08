@@ -29,6 +29,7 @@ import (
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 	"golang.org/x/net/context"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -404,7 +405,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
 			CALabel: req.Label,
 			Status:  "good",
-			Expiry:  certTBS.NotAfter,
+			Expiry:  null.TimeFrom(certTBS.NotAfter.UTC()),
 			PEM:     string(signedCert),
 		}
 

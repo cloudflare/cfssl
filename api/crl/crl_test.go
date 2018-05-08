@@ -15,6 +15,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 const (
@@ -29,10 +30,10 @@ func prepDB() (certdb.Accessor, error) {
 	var cert = certdb.CertificateRecord{
 		Serial:    "1",
 		AKI:       fakeAKI,
-		Expiry:    expirationTime,
+		Expiry:    null.TimeFrom(expirationTime),
 		PEM:       "revoked cert",
 		Status:    "revoked",
-		RevokedAt: time.Now(),
+		RevokedAt: null.TimeFrom(time.Now()),
 		Reason:    4,
 	}
 

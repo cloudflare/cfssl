@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 const (
@@ -68,7 +69,7 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		AKI:    fakeAKI,
 		Status: "good",
 		Reason: 0,
-		Expiry: expiry,
+		Expiry: null.TimeFrom(expiry.UTC()),
 	}
 
 	if err := ta.Accessor.InsertCertificate(want); err != nil {
@@ -89,7 +90,7 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
 		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
-		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
+		want.PEM != got.PEM || !roughlySameTime(got.Expiry.Time, expiry) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 
@@ -114,7 +115,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 		AKI:    fakeAKI,
 		Status: "good",
 		Reason: 0,
-		Expiry: expiry,
+		Expiry: null.TimeFrom(expiry.UTC()),
 	}
 
 	if err := ta.Accessor.InsertCertificate(want); err != nil {
@@ -134,8 +135,8 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
-		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
-		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
+		want.AKI != got.AKI || got.RevokedAt.Valid ||
+		want.PEM != got.PEM || !roughlySameTime(got.Expiry.Time, expiry) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 
@@ -160,7 +161,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		AKI:    fakeAKI,
 		Status: "good",
 		Reason: 0,
-		Expiry: expiry,
+		Expiry: null.TimeFrom(expiry.UTC()),
 	}
 
 	// Make sure the revoke on a non-existent cert fails
@@ -190,7 +191,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
+		want.AKI != got.AKI || !got.RevokedAt.Valid ||
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
@@ -200,11 +201,15 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
 	got = rets[0]
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
+		want.AKI != got.AKI || !got.RevokedAt.Valid ||
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
@@ -214,11 +219,15 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
 	got = rets[0]
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
+		want.AKI != got.AKI || !got.RevokedAt.Valid ||
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
@@ -232,7 +241,7 @@ func testInsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 		Serial: "fake serial",
 		AKI:    fakeAKI,
 		Body:   "fake body",
-		Expiry: expiry,
+		Expiry: null.TimeFrom(expiry),
 	}
 	setupGoodCert(ta, t, want)
 
@@ -251,7 +260,8 @@ func testInsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 	got := rets[0]
 
 	if want.Serial != got.Serial || want.Body != got.Body ||
-		!roughlySameTime(want.Expiry, got.Expiry) {
+		!want.Expiry.Valid || !got.Expiry.Valid ||
+		!roughlySameTime(want.Expiry.Time, got.Expiry.Time) {
 		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 
@@ -273,7 +283,7 @@ func testInsertOCSPAndGetUnexpiredOCSP(ta TestAccessor, t *testing.T) {
 		Serial: "fake serial 2",
 		AKI:    fakeAKI,
 		Body:   "fake body",
-		Expiry: time.Now().Add(time.Minute),
+		Expiry: null.TimeFrom(time.Now().Add(time.Minute).UTC()),
 	}
 	setupGoodCert(ta, t, want)
 
@@ -292,7 +302,8 @@ func testInsertOCSPAndGetUnexpiredOCSP(ta TestAccessor, t *testing.T) {
 	got := rets[0]
 
 	if want.Serial != got.Serial || want.Body != got.Body ||
-		!roughlySameTime(want.Expiry, got.Expiry) {
+		!want.Expiry.Valid || !got.Expiry.Valid ||
+		!roughlySameTime(want.Expiry.Time, got.Expiry.Time) {
 		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 
@@ -314,7 +325,7 @@ func testUpdateOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 		Serial: "fake serial 3",
 		AKI:    fakeAKI,
 		Body:   "fake body",
-		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
+		Expiry: null.TimeFrom(time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)),
 	}
 	setupGoodCert(ta, t, want)
 
@@ -329,7 +340,7 @@ func testUpdateOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 
 	want.Body = "fake body revoked"
 	newExpiry := time.Now().Add(time.Hour)
-	if err := ta.Accessor.UpdateOCSP(want.Serial, want.AKI, want.Body, newExpiry); err != nil {
+	if err := ta.Accessor.UpdateOCSP(want.Serial, want.AKI, want.Body, null.TimeFrom(newExpiry)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -337,15 +348,17 @@ func testUpdateOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(rets) != 1 {
 		t.Fatal("should return exactly one record")
 	}
 
 	got := rets[0]
 
-	want.Expiry = newExpiry
+	want.Expiry = null.TimeFrom(newExpiry)
 	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
-		!roughlySameTime(newExpiry, got.Expiry) {
+		!got.Expiry.Valid ||
+		!roughlySameTime(newExpiry, got.Expiry.Time) {
 		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 }
@@ -357,7 +370,7 @@ func testUpsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 		Serial: "fake serial 3",
 		AKI:    fakeAKI,
 		Body:   "fake body",
-		Expiry: time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC),
+		Expiry: null.TimeFrom(time.Date(2010, time.December, 25, 23, 0, 0, 0, time.UTC)),
 	}
 	setupGoodCert(ta, t, want)
 
@@ -376,12 +389,13 @@ func testUpsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 	got := rets[0]
 
 	if want.Serial != got.Serial || want.Body != got.Body ||
-		!roughlySameTime(want.Expiry, got.Expiry) {
+		!want.Expiry.Valid || !got.Expiry.Valid ||
+		!roughlySameTime(want.Expiry.Time, got.Expiry.Time) {
 		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 
 	newExpiry := time.Now().Add(time.Hour)
-	if err := ta.Accessor.UpsertOCSP(want.Serial, want.AKI, "fake body revoked", newExpiry); err != nil {
+	if err := ta.Accessor.UpsertOCSP(want.Serial, want.AKI, "fake body revoked", null.TimeFrom(newExpiry)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -395,9 +409,10 @@ func testUpsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 
 	got = rets[0]
 
-	want.Expiry = newExpiry
+	want.Expiry = null.TimeFrom(newExpiry)
 	if want.Serial != got.Serial || got.Body != "fake body revoked" ||
-		!roughlySameTime(newExpiry, got.Expiry) {
+		!got.Expiry.Valid ||
+		!roughlySameTime(newExpiry, got.Expiry.Time) {
 		t.Errorf("want OCSP %+v, got %+v", want, got)
 	}
 }
@@ -406,7 +421,7 @@ func setupGoodCert(ta TestAccessor, t *testing.T, r certdb.OCSPRecord) {
 	certWant := certdb.CertificateRecord{
 		AKI:     r.AKI,
 		CALabel: "default",
-		Expiry:  time.Now().Add(time.Minute),
+		Expiry:  null.TimeFrom(time.Now().Add(time.Minute).UTC()),
 		PEM:     "fake cert data",
 		Serial:  r.Serial,
 		Status:  "good",

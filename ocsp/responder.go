@@ -116,7 +116,7 @@ func (src DBSource) Response(req *ocsp.Request) ([]byte, http.Header, error) {
 	// Response() finds the OCSPRecord with the expiration date furthest in the future.
 	cur := records[0]
 	for _, rec := range records {
-		if rec.Expiry.After(cur.Expiry) {
+		if rec.Expiry.ValueOrZero().After(cur.Expiry.ValueOrZero()) {
 			cur = rec
 		}
 	}

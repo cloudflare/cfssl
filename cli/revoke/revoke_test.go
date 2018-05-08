@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/cli"
 	"golang.org/x/crypto/ocsp"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 var dbAccessor certdb.Accessor
@@ -23,7 +24,7 @@ func prepDB() (err error) {
 	var cert = certdb.CertificateRecord{
 		Serial: "1",
 		AKI:    fakeAKI,
-		Expiry: expirationTime,
+		Expiry: null.TimeFrom(expirationTime),
 		PEM:    "unexpired cert",
 	}
 

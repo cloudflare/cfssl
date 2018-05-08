@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 
 	stdocsp "golang.org/x/crypto/ocsp"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // This is patterned on
@@ -143,8 +144,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		CALabel:   req.CALabel,
 		Status:    req.Status,
 		Reason:    req.Reason,
-		Expiry:    req.Expiry,
-		RevokedAt: req.RevokedAt,
+		Expiry:    null.TimeFrom(req.Expiry.UTC()),
+		RevokedAt: null.TimeFrom(req.RevokedAt.UTC()),
 		PEM:       req.PEM,
 	}
 
@@ -181,7 +182,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			Serial: req.Serial,
 			AKI:    req.AKI,
 			Body:   string(ocspResponse),
-			Expiry: ocspParsed.NextUpdate,
+			Expiry: null.TimeFrom(ocspParsed.NextUpdate.UTC()),
 		}
 
 		if err = h.dbAccessor.InsertOCSP(ocspRecord); err != nil {

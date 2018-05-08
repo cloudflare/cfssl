@@ -7,8 +7,8 @@ CREATE TABLE certificates (
   ca_label                 bytea,
   status                   bytea NOT NULL,
   reason                   int,
-  expiry                   timestamptz,
-  revoked_at               timestamptz,
+  expiry                   timestamptz NULL DEFAULT NULL,
+  revoked_at               timestamptz NULL DEFAULT NULL,
   pem                      bytea NOT NULL,
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
@@ -17,7 +17,7 @@ CREATE TABLE ocsp_responses (
   serial_number            bytea NOT NULL,
   authority_key_identifier bytea NOT NULL,
   body                     bytea NOT NULL,
-  expiry                   timestamptz,
+  expiry                   timestamptz NULL DEFAULT NULL,
   PRIMARY KEY(serial_number, authority_key_identifier),
   FOREIGN KEY(serial_number, authority_key_identifier) REFERENCES certificates(serial_number, authority_key_identifier)
 );

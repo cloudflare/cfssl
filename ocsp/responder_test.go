@@ -17,6 +17,7 @@ import (
 
 	"github.com/jmhodges/clock"
 	goocsp "golang.org/x/crypto/ocsp"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 const (
@@ -246,7 +247,7 @@ func TestSqliteTrivial(t *testing.T) {
 	ocsp := certdb.OCSPRecord{
 		AKI:    hex.EncodeToString(req.IssuerKeyHash),
 		Body:   "Test OCSP",
-		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		Expiry: null.TimeFrom(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
 		Serial: req.SerialNumber.String(),
 	}
 	err = accessor.InsertOCSP(ocsp)
@@ -327,7 +328,7 @@ func TestSqliteRealResponse(t *testing.T) {
 	ocsp := certdb.OCSPRecord{
 		AKI:    hex.EncodeToString(req.IssuerKeyHash),
 		Body:   string(response),
-		Expiry: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		Expiry: null.TimeFrom(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)),
 		Serial: req.SerialNumber.String(),
 	}
 	err = accessor.InsertOCSP(ocsp)

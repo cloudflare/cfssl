@@ -3,13 +3,12 @@ package sql
 import (
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // Match to sqlx
@@ -105,8 +104,8 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		CALabel:   cr.CALabel,
 		Status:    cr.Status,
 		Reason:    cr.Reason,
-		Expiry:    cr.Expiry.UTC(),
-		RevokedAt: cr.RevokedAt.UTC(),
+		Expiry:    cr.Expiry,
+		RevokedAt: cr.RevokedAt,
 		PEM:       cr.PEM,
 	})
 	if err != nil {
@@ -225,7 +224,7 @@ func (d *Accessor) InsertOCSP(rr certdb.OCSPRecord) error {
 	result, err := d.db.NamedExec(insertOCSPSQL, &certdb.OCSPRecord{
 		AKI:    rr.AKI,
 		Body:   rr.Body,
-		Expiry: rr.Expiry.UTC(),
+		Expiry: rr.Expiry,
 		Serial: rr.Serial,
 	})
 	if err != nil {
@@ -276,7 +275,7 @@ func (d *Accessor) GetUnexpiredOCSPs() (ors []certdb.OCSPRecord, err error) {
 }
 
 // UpdateOCSP updates a ocsp response record with a given serial number.
-func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error {
+func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry null.Time) error {
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -285,7 +284,7 @@ func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error 
 	result, err := d.db.NamedExec(updateOCSPSQL, &certdb.OCSPRecord{
 		AKI:    aki,
 		Body:   body,
-		Expiry: expiry.UTC(),
+		Expiry: expiry,
 		Serial: serial,
 	})
 	if err != nil {
@@ -321,7 +320,7 @@ func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error 
 // since we don't have write race condition on Certificate table and OCSP
 // writers should periodically use Certificate table to update OCSP table
 // to catch up.
-func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error {
+func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry null.Time) error {
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -330,7 +329,7 @@ func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error 
 	result, err := d.db.NamedExec(updateOCSPSQL, &certdb.OCSPRecord{
 		AKI:    aki,
 		Body:   body,
-		Expiry: expiry.UTC(),
+		Expiry: expiry,
 		Serial: serial,
 	})
 

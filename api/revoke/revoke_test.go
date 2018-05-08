@@ -23,6 +23,7 @@ import (
 	"github.com/cloudflare/cfssl/ocsp"
 
 	stdocsp "golang.org/x/crypto/ocsp"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 const (
@@ -35,7 +36,7 @@ func prepDB() (certdb.Accessor, error) {
 	var cert = certdb.CertificateRecord{
 		Serial: "1",
 		AKI:    fakeAKI,
-		Expiry: expirationTime,
+		Expiry: null.TimeFrom(expirationTime),
 		PEM:    "unexpired cert",
 	}
 
@@ -218,7 +219,7 @@ func TestOCSPGeneration(t *testing.T) {
 	cr := certdb.CertificateRecord{
 		Serial: revokedSerialStr,
 		AKI:    revokedAKI,
-		Expiry: expirationTime,
+		Expiry: null.TimeFrom(expirationTime),
 		PEM:    string(revoked),
 	}
 	if err := dbAccessor.InsertCertificate(cr); err != nil {

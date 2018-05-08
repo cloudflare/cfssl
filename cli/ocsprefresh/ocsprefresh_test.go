@@ -12,6 +12,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"golang.org/x/crypto/ocsp"
 	"io/ioutil"
+	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 var dbAccessor certdb.Accessor
@@ -32,7 +33,7 @@ func TestOCSPRefreshMain(t *testing.T) {
 	certRecord := certdb.CertificateRecord{
 		Serial: cert.SerialNumber.String(),
 		AKI:    hex.EncodeToString(cert.AuthorityKeyId),
-		Expiry: expirationTime,
+		Expiry: null.TimeFrom(expirationTime),
 		PEM:    string(certPEM),
 		Status: "good",
 	}
