@@ -10,9 +10,9 @@ import (
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/null"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
-	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // Usage text of 'cfssl ocsprefresh'

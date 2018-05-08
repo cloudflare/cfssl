@@ -6,9 +6,9 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
 
+	"github.com/cloudflare/cfssl/helpers/null"
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
-	"github.com/cloudflare/cfssl/helpers/null"
 )
 
 // Match to sqlx

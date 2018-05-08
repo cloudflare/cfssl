@@ -13,8 +13,8 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/ocsp"
 
-	stdocsp "golang.org/x/crypto/ocsp"
 	"github.com/cloudflare/cfssl/helpers/null"
+	stdocsp "golang.org/x/crypto/ocsp"
 )
 
 // A Handler accepts requests with a serial number parameter

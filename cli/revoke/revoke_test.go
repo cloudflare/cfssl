@@ -8,8 +8,8 @@ import (
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/cli"
-	"golang.org/x/crypto/ocsp"
 	"github.com/cloudflare/cfssl/helpers/null"
+	"golang.org/x/crypto/ocsp"
 )
 
 var dbAccessor certdb.Accessor

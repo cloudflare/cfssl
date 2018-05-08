@@ -8,8 +8,8 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/cloudflare/cfssl/helpers/null"
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -135,7 +135,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
-		want.AKI != got.AKI || !got.RevokedAt.IsZero()||
+		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry.Time, expiry) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}

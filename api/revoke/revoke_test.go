@@ -22,8 +22,8 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/ocsp"
 
-	stdocsp "golang.org/x/crypto/ocsp"
 	"github.com/cloudflare/cfssl/helpers/null"
+	stdocsp "golang.org/x/crypto/ocsp"
 )
 
 const (

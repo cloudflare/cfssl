@@ -17,8 +17,8 @@ import (
 
 	"encoding/base64"
 
-	stdocsp "golang.org/x/crypto/ocsp"
 	"github.com/cloudflare/cfssl/helpers/null"
+	stdocsp "golang.org/x/crypto/ocsp"
 )
 
 // This is patterned on
