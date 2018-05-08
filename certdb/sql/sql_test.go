@@ -135,7 +135,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || want.Status != got.Status ||
-		want.AKI != got.AKI || got.RevokedAt.Valid ||
+		want.AKI != got.AKI || !got.RevokedAt.IsZero()||
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry.Time, expiry) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
@@ -191,7 +191,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.AKI != got.AKI || !got.RevokedAt.Valid ||
+		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
@@ -209,7 +209,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.AKI != got.AKI || !got.RevokedAt.Valid ||
+		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
@@ -227,7 +227,7 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 
 	// reflection comparison with zero time objects are not stable as it seems
 	if want.Serial != got.Serial || got.Status != "revoked" ||
-		want.AKI != got.AKI || !got.RevokedAt.Valid ||
+		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
