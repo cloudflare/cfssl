@@ -45,7 +45,7 @@ will download and build the CFSSL tool, installing it in
 `$GOPATH/bin/cfssl`.
 
 To install any of the other utility programs that are
-in this repo (for instance `cffsljson` in this case):
+in this repo (for instance `cfssljson` in this case):
 
 ```
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssljson
