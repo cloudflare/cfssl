@@ -51,7 +51,7 @@ Usage of serve:
                     [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key] \
                     [-mutual-tls-ca ca] [-mutual-tls-cn regex] \
                     [-tls-remote-ca ca] [-mutual-tls-client-cert cert] [-mutual-tls-client-key key] \
-                    [-db-config db-config]
+                    [-db-config db-config] [-disable endpoint[,endpoint]]
 
 Flags:
 `
@@ -59,7 +59,7 @@ Flags:
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir", "metadata",
 	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca", "mutual-tls-cn",
-	"tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config"}
+	"tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable"}
 
 var (
 	conf       cli.Config
@@ -245,9 +245,19 @@ var endpoints = map[string]func() (http.Handler, error){
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
 func registerHandlers() {
+	disabled := make(map[string]bool)
+	if conf.Disable != "" {
+	    for _, endpoint := range strings.Split(conf.Disable, ",") {
+	        disabled[endpoint] = true
+	    }
+	}
+
 	for path, getHandler := range endpoints {
 		log.Debugf("getHandler for %s", path)
-		if handler, err := getHandler(); err != nil {
+
+		if _, ok := disabled[path]; ok {
+			log.Infof("endpoint '%s' is explicitly disabled", path)
+		} else if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)
 		} else {
 			if path, handler, err = wrapHandler(path, handler, err); err != nil {
