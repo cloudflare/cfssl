@@ -20,7 +20,7 @@ import (
 	"github.com/cloudflare/cfssl/api/crl"
 	"github.com/cloudflare/cfssl/api/gencrl"
 	"github.com/cloudflare/cfssl/api/generator"
-	"github.com/cloudflare/cfssl/api/healthz"
+	"github.com/cloudflare/cfssl/api/health"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
 	apiocsp "github.com/cloudflare/cfssl/api/ocsp"
@@ -243,8 +243,8 @@ var endpoints = map[string]func() (http.Handler, error){
 		return http.FileServer(staticBox), nil
 	},
 
-	"healthz": func() (http.Handler, error) {
-		return healthz.NewHealthCheck(), nil
+	"health": func() (http.Handler, error) {
+		return health.NewHealthCheck(), nil
 	},
 }
 
