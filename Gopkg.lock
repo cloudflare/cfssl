@@ -68,12 +68,6 @@
   version = "v1.3"
 
 [[projects]]
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
-
-[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -97,7 +91,8 @@
     "x509",
     "x509/pkix"
   ]
-  revision = "5ab67e519c93568ac3ee50fd6772a5bcf8aa460d"
+  revision = "1bec4527572c443752ad4f2830bef88be0533236"
+  version = "v1.0.10"
 
 [[projects]]
   name = "github.com/jmhodges/clock"
@@ -179,6 +174,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bc2e6cd6b70a716809560d945c3f215a1175741e5f79b3679a29a8454b6a4059"
+  inputs-digest = "77ce4ce1862ac0ffe3dfd5050efa3d430f6035081d258df9b5ccf6a6ac9f661a"
   solver-name = "gps-cdcl"
   solver-version = 1
