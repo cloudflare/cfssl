@@ -21,7 +21,7 @@ services:
   - postgresql
 before_install:
   # CFSSL consists of multiple Go packages, which refer to each other by
-  # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs11key.
+  # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs7.
   # That means, by default, if someone forks the repo and makes changes across
   # multiple packages within CFSSL, Travis won't pass for the branch on their
   # own repo. To fix that, we move the directory
