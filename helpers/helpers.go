@@ -184,6 +184,17 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
+func StringTLSVersion(version string) uint16 {
+	switch version {
+	case "12":
+		return tls.VersionTLS12
+	case "11":
+		return tls.VersionTLS11
+	default:
+		return tls.VersionTLS10
+	}
+}
+
 // EncodeCertificatesPEM encodes a number of x509 certificates to PEM
 func EncodeCertificatesPEM(certs []*x509.Certificate) []byte {
 	var buffer bytes.Buffer
