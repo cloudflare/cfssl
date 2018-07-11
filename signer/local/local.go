@@ -391,12 +391,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return nil, err
 	}
 
-	// Get the AKI from signedCert.  This is required to support Go 1.9+.
-	// In prior versions of Go, x509.CreateCertificate updated the
-	// AuthorityKeyId of certTBS.
-	parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
-
 	if s.dbAccessor != nil {
+		// Get the AKI from signedCert.  This is required to support Go 1.9+.
+		// In prior versions of Go, x509.CreateCertificate updated the
+		// AuthorityKeyId of certTBS.
+		parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
 		var certRecord = certdb.CertificateRecord{
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
