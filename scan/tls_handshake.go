@@ -2,13 +2,13 @@ package scan
 
 import (
 	"bytes"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/scan/crypto/tls"
 )
 
 // Sentinel for failures in sayHello. Should always be caught.
