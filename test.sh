@@ -55,8 +55,6 @@ do
 done
 cat $COVPROFILES > coverprofile.txt
 
-echo "go vet $PACKAGES"
-go vet $PACKAGES
 if ! command -v fgt > /dev/null ; then
     go get github.com/GeertJohan/fgt
 fi
@@ -69,14 +67,4 @@ for package in $PACKAGES
 do
     echo "fgt golint ${package}"
     fgt golint "${package}"
-done
-
-if ! command -v staticcheck  > /dev/null ; then
-    go get -u honnef.co/go/tools/cmd/staticcheck
-fi
-
-for package in $PACKAGES
-do
-    echo "fgt staticcheck ${package}"
-    fgt staticcheck "${package}"
 done
