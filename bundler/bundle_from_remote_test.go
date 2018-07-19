@@ -2,19 +2,12 @@ package bundler
 
 // This test file contains tests on checking the correctness of BundleFromRemote
 import (
-	"flag"
+	"net"
 	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/ubiquity"
 )
-
-var shouldTestSNI bool
-
-func init() {
-	flag.BoolVar(&shouldTestSNI, "test-sni", false, "run the SNI tests")
-	flag.Parse()
-}
 
 // remoteTest defines a test case for BundleFromRemote. Hostname and ip are the test inputs.
 // bundlerConstructor points the bundler ctor and errorCallback handles the error checking.
@@ -27,15 +20,14 @@ type remoteTest struct {
 }
 
 const (
-	ValidSSLSite           = "google.com"
+	RSACertSite            = "rsa2048.badssl.com"
 	SelfSignedSSLSite      = "self-signed.badssl.com"
 	MismatchedHostnameSite = "wrong.host.badssl.com"
-	ECCCertSite            = "benflare.us"
+	ECCCertSite            = "ecc256.badssl.com"
 	InvalidSite            = "cloudflare1337.com"
-	ValidSNI               = "alice.sni.velox.ch"
-	ValidSNIWildcard       = "cloudflare.sni.velox.ch"
-	SNISANWildcard         = "*.sni.velox.ch"
-	ValidSNIIP             = "85.25.46.13"
+	ValidSNI               = "badssl.com"
+	ValidSNIWildcard       = "badssl.com"
+	SNISANWildcard         = "*.badssl.com"
 	InvalidIP              = "300.300.300.300"
 )
 
@@ -51,7 +43,7 @@ func getBundleHostnameChecker(hostname string) func(*testing.T, *remoteTest, *Bu
 			}
 		}
 		if !found {
-			t.Errorf("hostname expected but not found: %s hostname=%q ip=%q", hostname, test.hostname, test.ip)
+			t.Errorf("hostname expected but not found: %s hostname=%q ip=%q found=%v", hostname, test.hostname, test.ip, bundle.Hostnames)
 		}
 	}
 }
@@ -73,7 +65,12 @@ func expectErrorMessages(expectedContents []string) func(*testing.T, *remoteTest
 // test cases of BundleFromRemote
 var remoteTests = []remoteTest{
 	{
-		hostname:           ValidSSLSite,
+		hostname:           RSACertSite,
+		bundlerConstructor: newBundler,
+		errorCallback:      nil,
+	},
+	{
+		hostname:           ECCCertSite,
 		bundlerConstructor: newBundler,
 		errorCallback:      nil,
 	},
@@ -124,6 +121,17 @@ func TestBundleFromRemote(t *testing.T) {
 	}
 }
 
+func resolveHostIP(host string) string {
+	addrs, err := net.LookupHost(host)
+	if err != nil {
+		panic(err)
+	}
+	if len(addrs) == 0 {
+		panic("failed to resolve " + host)
+	}
+	return addrs[0]
+}
+
 var remoteSNITests = []remoteTest{
 	{
 		hostname:           ValidSNI,
@@ -139,14 +147,14 @@ var remoteSNITests = []remoteTest{
 	},
 	{
 		hostname:           ValidSNI,
-		ip:                 ValidSNIIP,
+		ip:                 resolveHostIP(ValidSNI),
 		bundlerConstructor: newBundler,
 		errorCallback:      nil,
 		bundleCallback:     getBundleHostnameChecker(ValidSNI),
 	},
 	{
 		hostname:           ValidSNIWildcard,
-		ip:                 ValidSNIIP,
+		ip:                 resolveHostIP(ValidSNIWildcard),
 		bundlerConstructor: newBundler,
 		errorCallback:      nil,
 		bundleCallback:     getBundleHostnameChecker(SNISANWildcard),
@@ -155,9 +163,6 @@ var remoteSNITests = []remoteTest{
 
 // TestBundleFromRemoteSNI goes through the test cases defined in remoteSNITests and run them through. See above for test case definitions.
 func TestBundleFromRemoteSNI(t *testing.T) {
-	if !shouldTestSNI {
-		t.Skip()
-	}
 	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
 		for _, test := range remoteSNITests {
 			b := test.bundlerConstructor(t)
@@ -177,6 +182,11 @@ func TestBundleFromRemoteSNI(t *testing.T) {
 }
 
 func TestBundleFromRemoteFlavor(t *testing.T) {
+	// This test was crafted for the specific cert bundle that benflare.us was
+	// serving. The majority of the functionality is validated via the other
+	// bundle tests.
+	t.Skip("skipped; need new example site for test")
+
 	b := newBundler(t)
 	ubiquity.Platforms = nil
 	ubiquity.LoadPlatforms(testMetadata)
