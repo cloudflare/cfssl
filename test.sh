@@ -80,10 +80,3 @@ do
     echo "fgt staticcheck ${package}"
     fgt staticcheck "${package}"
 done
-
-# check go fmt
-for package in $PACKAGES
-do
-    echo "gofmt $package"
-    test -z "$(gofmt -s -l -d $GOPATH/src/$package/ | tee /dev/stderr)"
-done
