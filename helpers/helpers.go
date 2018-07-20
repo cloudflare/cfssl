@@ -184,11 +184,13 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
+// StringTLSVersion returns underlying enum values from human names for TLS
+// versions, defaults to current golang default of TLS 1.0
 func StringTLSVersion(version string) uint16 {
 	switch version {
-	case "12":
+	case "1.2":
 		return tls.VersionTLS12
-	case "11":
+	case "1.1":
 		return tls.VersionTLS11
 	default:
 		return tls.VersionTLS10
