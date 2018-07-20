@@ -59,7 +59,7 @@ Flags:
 
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "min-tls-version", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir",
-	"metadata",	"remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca",
+	"metadata", "remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca",
 	"mutual-tls-cn", "tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable"}
 
 var (
@@ -252,9 +252,9 @@ var endpoints = map[string]func() (http.Handler, error){
 func registerHandlers() {
 	disabled := make(map[string]bool)
 	if conf.Disable != "" {
-	    for _, endpoint := range strings.Split(conf.Disable, ",") {
-	        disabled[endpoint] = true
-	    }
+		for _, endpoint := range strings.Split(conf.Disable, ",") {
+			disabled[endpoint] = true
+		}
 	}
 
 	for path, getHandler := range endpoints {
@@ -313,6 +313,11 @@ func serverMain(args []string, c cli.Config) error {
 
 	addr := net.JoinHostPort(conf.Address, strconv.Itoa(conf.Port))
 
+	tlscfg := tls.Config{}
+	if conf.MinTLSVersion != "" {
+		tlscfg.MinVersion = helpers.StringTLSVersion(conf.MinTLSVersion)
+	}
+
 	if conf.TLSCertFile == "" || conf.TLSKeyFile == "" {
 		log.Info("Now listening on ", addr)
 		return http.ListenAndServe(addr, nil)
@@ -323,13 +328,12 @@ func serverMain(args []string, c cli.Config) error {
 			return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
 		}
 
+		tlscfg.ClientAuth = tls.RequireAndVerifyClientCert
+		tlscfg.ClientCAs = clientPool
+
 		server := http.Server{
-			Addr: addr,
-			TLSConfig: &tls.Config{
-				ClientAuth: tls.RequireAndVerifyClientCert,
-				ClientCAs:  clientPool,
-				MinVersion: helpers.StringTLSVersion(conf.MinTLSVersion),
-			},
+			Addr:      addr,
+			TLSConfig: &tlscfg,
 		}
 
 		if conf.MutualTLSCNRegex != "" {
@@ -355,10 +359,8 @@ func serverMain(args []string, c cli.Config) error {
 	}
 	log.Info("Now listening on https://", addr)
 	server := http.Server{
-		Addr: addr,
-		TLSConfig: &tls.Config{
-			MinVersion: helpers.StringTLSVersion(conf.MinTLSVersion),
-		},
+		Addr:      addr,
+		TLSConfig: &tlscfg,
 	}
 	return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
 
