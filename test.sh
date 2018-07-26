@@ -19,7 +19,7 @@ if [ ! -h gopath/src/${REPO_PATH} ]; then
     ln -s ../../../.. gopath/src/${REPO_PATH} || exit 255
 fi
 
-ls "${GOPATH}/src/${REPO_PATH}"
+echo "${GOPATH}/src/${REPO_PATH}"
 
 PACKAGES=""
 if [ "$#" != 0 ]; then
@@ -45,6 +45,11 @@ go install -tags "$BUILD_TAGS" ${REPO_PATH}/cmd/cfssl
 COVPROFILES=""
 for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
 do
+    if echo $package | grep -q "/scan/crypto"; then
+        echo "skipped $package"
+        continue
+    fi
+
     profile="$GOPATH/src/$package/.coverprofile"
     if [ $ARCH = 'x86_64'  ]; then
         go test -race -tags "$BUILD_TAGS" --coverprofile=$profile $package
@@ -65,6 +70,10 @@ fi
 
 for package in $PACKAGES
 do
+    if echo $package | grep -q "/scan/crypto"; then
+        continue
+    fi
+
     echo "fgt golint ${package}"
     fgt golint "${package}"
 done
