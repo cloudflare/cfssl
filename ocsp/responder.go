@@ -176,17 +176,25 @@ func NewSourceFromDB(DBConfigFile string) (Source, error) {
 	return src, nil
 }
 
+// Stats is a basic interface that allows users to record information
+// about returned responses
+type Stats interface {
+	ResponseStatus(ocsp.ResponseStatus)
+}
+
 // A Responder object provides the HTTP logic to expose a
 // Source of OCSP responses.
 type Responder struct {
 	Source Source
+	stats  Stats
 	clk    clock.Clock
 }
 
 // NewResponder instantiates a Responder with the give Source.
-func NewResponder(source Source) *Responder {
+func NewResponder(source Source, stats Stats) *Responder {
 	return &Responder{
 		Source: source,
+		stats:  stats,
 		clk:    clock.New(),
 	}
 }
@@ -282,6 +290,9 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		log.Debugf("Error decoding request body: %s", b64Body)
 		response.WriteHeader(http.StatusBadRequest)
 		response.Write(malformedRequestErrorResponse)
+		if rs.stats != nil {
+			rs.stats.ResponseStatus(ocsp.Malformed)
+		}
 		return
 	}
 
@@ -292,12 +303,18 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			log.Infof("No response found for request: serial %x, request body %s",
 				ocspRequest.SerialNumber, b64Body)
 			response.Write(unauthorizedErrorResponse)
+			if rs.stats != nil {
+				rs.stats.ResponseStatus(ocsp.Unauthorized)
+			}
 			return
 		}
 		log.Infof("Error retrieving response for request: serial %x, request body %s, error: %s",
 			ocspRequest.SerialNumber, b64Body, err)
 		response.WriteHeader(http.StatusInternalServerError)
 		response.Write(internalErrorErrorResponse)
+		if rs.stats != nil {
+			rs.stats.ResponseStatus(ocsp.InternalError)
+		}
 		return
 	}
 
@@ -305,7 +322,10 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	if err != nil {
 		log.Errorf("Error parsing response for serial %x: %s",
 			ocspRequest.SerialNumber, err)
-		response.Write(unauthorizedErrorResponse)
+		response.Write(internalErrorErrorResponse)
+		if rs.stats != nil {
+			rs.stats.ResponseStatus(ocsp.InternalError)
+		}
 		return
 	}
 
@@ -346,4 +366,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	}
 	response.WriteHeader(http.StatusOK)
 	response.Write(ocspResponse)
+	if rs.stats != nil {
+		rs.stats.ResponseStatus(ocsp.Success)
+	}
 }
