@@ -225,7 +225,7 @@ func TestNoOCSPServers(t *testing.T) {
 	certIsRevokedOCSP(badIssuer, true)
 	noOCSPCert := goodCert
 	noOCSPCert.OCSPServer = make([]string, 0)
-	if revoked, ok := certIsRevokedOCSP(noOCSPCert, true); revoked || !ok {
+	if revoked, ok, _ := certIsRevokedOCSP(noOCSPCert, true); revoked || !ok {
 		t.Fatalf("OCSP falsely registered as enabled for this certificate")
 	}
 }
