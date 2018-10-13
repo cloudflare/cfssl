@@ -65,7 +65,7 @@ if ! command -v fgt > /dev/null ; then
 fi
 
 if ! command -v golint > /dev/null ; then
-    go get github.com/golang/lint/golint
+    go get golang.org/x/lint/golint
 fi
 
 for package in $PACKAGES
