@@ -39,10 +39,10 @@ branches:
     - /^test-.*$/
 
 before_script:
-  - go get -u github.com/golang/lint/golint
-  - go get -v github.com/GeertJohan/fgt
+  - go install ./vendor/golang.org/x/lint/golint
+  - go install ./vendor/github.com/GeertJohan/fgt
   # Setup DBs + run migrations
-  - go get bitbucket.org/liamstask/goose/cmd/goose
+  - go install ./vendor/bitbucket.org/liamstask/goose/cmd/goose
   - if [[ $(uname -s) == 'Linux' ]]; then
       psql -c 'create database certdb_development;' -U postgres;
       goose -path $GOPATH/src/github.com/cloudflare/cfssl/certdb/pg up;
@@ -55,8 +55,13 @@ notifications:
   email:
     recipients:
     - cbroglie@cloudflare.com
+    - gabriel@cloudflare.com
     - kyle@cloudflare.com
+    - leland@cloudflare.com
+    - mihir@cloudflare.com
+    - mitul@cloudflare.com
     - nick@cloudflare.com
+    - nicky@cloudflare.com
     on_success: never
     on_failure: change
 env:

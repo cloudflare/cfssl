@@ -3,33 +3,61 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:62822818a2092b0474446db02570a2de7c3324cafc83fadbfe563c7e21d2eaf3"
+  name = "bitbucket.org/liamstask/goose"
+  packages = [
+    "cmd/goose",
+    "lib/goose",
+  ]
+  pruneopts = "UT"
+  revision = "8488cc47d90c8a502b1c41a462a6d9cc8ee0a895"
+
+[[projects]]
+  branch = "master"
+  digest = "1:9aaa71d60adb9904e1fd5923cd6a6debbe7176df5d4b079e2ad104a8347c674e"
+  name = "github.com/GeertJohan/fgt"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "262f7b11eec07dc7b147c44641236f3212fee89d"
+
+[[projects]]
+  branch = "master"
+  digest = "1:65796e5fdb94d94bc0ee6bc422aa3541dbe69ed4da275cb5a27f8fa141f4e35c"
   name = "github.com/GeertJohan/go.rice"
   packages = [
     ".",
-    "embedded"
+    "embedded",
   ]
+  pruneopts = "UT"
   revision = "c02ca9a983da5807ddf7d796784928f5be4afd09"
 
 [[projects]]
+  digest = "1:fed1f537c2f1269fe475a8556c393fe466641682d73ef8fd0491cd3aa1e47bad"
   name = "github.com/certifi/gocertifi"
   packages = ["."]
+  pruneopts = "UT"
   revision = "deb3ae2ef2610fde3330947281941c562861188b"
   version = "2018.01.18"
 
 [[projects]]
   branch = "master"
+  digest = "1:643fe12757fc28604199954aa88738b60c4beacbdfefa4a3aa943e8383ffbcc1"
   name = "github.com/cloudflare/backoff"
   packages = ["."]
+  pruneopts = "UT"
   revision = "647f3cdfc87a18586e279c97afd6526d01b0d063"
 
 [[projects]]
   branch = "master"
+  digest = "1:63e3efae411752c89c07f5ced84deb25293ad69a6d89cc4540ffa3082690f0a8"
   name = "github.com/cloudflare/go-metrics"
   packages = ["."]
+  pruneopts = "UT"
   revision = "6a9aea36fb410b71add0d0e58438e0cfc44d3076"
 
 [[projects]]
   branch = "master"
+  digest = "1:a4b006f9a0677d35f40904f83bd8d22c1bab6c37d8a7cc974e42af5a0e83494e"
   name = "github.com/cloudflare/redoctober"
   packages = [
     "client",
@@ -45,47 +73,59 @@
     "passvault",
     "persist",
     "report",
-    "symcrypt"
+    "symcrypt",
   ]
+  pruneopts = "UT"
   revision = "746a508df14c565d2074e2919d27c2efd1a7fe89"
 
 [[projects]]
   branch = "master"
+  digest = "1:5fd5c4d4282935b7a575299494f2c09e9d2cacded7815c83aff7c1602aff3154"
   name = "github.com/daaku/go.zipexe"
   packages = ["."]
+  pruneopts = "UT"
   revision = "a5fe2436ffcb3236e175e5149162b41cd28bd27d"
 
 [[projects]]
   branch = "master"
+  digest = "1:9c6a4ebc26a2b26c5c8d6989296e05713b600e43de296b4dec42d0b464f5d823"
   name = "github.com/getsentry/raven-go"
   packages = ["."]
+  pruneopts = "UT"
   revision = "563b81fc02b75d664e54da31f787c2cc2186780b"
 
 [[projects]]
+  digest = "1:850c49ca338a10fec2cb9e78f793043ed23965489d09e30bcc19fe29719da313"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
+  pruneopts = "UT"
   revision = "a0583e0143b1624142adab07e0e97fe106d99561"
   version = "v1.3"
 
 [[projects]]
+  digest = "1:9a688317f3231e0175b3429033f44411906c0ce119361b7b5019d01375f8cff7"
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
+  pruneopts = "UT"
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:8caffcd8995b0eae7d2c18b2baefabef331bb05b1e16ed2b26b732c3349e6989"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp"
+    "ptypes/timestamp",
   ]
+  pruneopts = "UT"
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:8632e80fb6a763b2b12f8679e14ec737b087507ce9426522cfe4d51be8935cde"
   name = "github.com/google/certificate-transparency-go"
   packages = [
     ".",
@@ -95,66 +135,104 @@
     "jsonclient",
     "tls",
     "x509",
-    "x509/pkix"
+    "x509/pkix",
   ]
+  pruneopts = "UT"
   revision = "5ab67e519c93568ac3ee50fd6772a5bcf8aa460d"
 
 [[projects]]
+  digest = "1:abb6572474aa961d2aa78aabf5aaa96cf623db17eb690e4dd1714611de999618"
   name = "github.com/jmhodges/clock"
   packages = ["."]
+  pruneopts = "UT"
   revision = "880ee4c335489bc78d01e4d0a254ae880734bc15"
   version = "v1.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:692a381c4e8423b0c7d1fdf06324677c930a4a53ca4ee205fc0fa64b2fc9d9af"
   name = "github.com/jmoiron/sqlx"
   packages = [
     ".",
-    "reflectx"
+    "reflectx",
   ]
+  pruneopts = "UT"
   revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
 
 [[projects]]
   branch = "master"
+  digest = "1:caf6db28595425c0e0f2301a00257d11712f65c1878e12cffc42f6b9a9cf3f23"
   name = "github.com/kardianos/osext"
   packages = ["."]
+  pruneopts = "UT"
   revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
 
 [[projects]]
   branch = "master"
+  digest = "1:b114c283c723ce1ab60087277de2c11b8c2efc696940d22621c1bd41940e8d1b"
   name = "github.com/kisielk/sqlstruct"
   packages = ["."]
+  pruneopts = "UT"
   revision = "648daed35d49dac24a4bff253b190a80da3ab6a5"
 
 [[projects]]
+  digest = "1:9fce655876ef6f94b1cd756ffec63d076f118ae52c28e15f7379095a84b7ba67"
   name = "github.com/kisom/goutils"
   packages = ["assert"]
+  pruneopts = "UT"
   revision = "d6c5360a068641fc799295411f429be80115bcfc"
   version = "v1.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:c1046169c43b3993cf00edc6fd4a85472badea8497010f883fa7008802d55389"
+  name = "github.com/kylelemons/go-gypsy"
+  packages = ["yaml"]
+  pruneopts = "UT"
+  revision = "08cad365cd28a7fba23bb1e57aa43c5e18ad8bb8"
+
+[[projects]]
+  branch = "master"
+  digest = "1:bd26bbaf1e9f9dfe829a88f87a0849b56f717c31785443a67668f2c752fa8412"
   name = "github.com/lib/pq"
   packages = [
     ".",
-    "oid"
+    "oid",
   ]
+  pruneopts = "UT"
   revision = "88edab0803230a3898347e77b474f8c1820a1f20"
 
 [[projects]]
+  digest = "1:ee0845ea64262e3d1a6e2eab768fcb2008a0c8e571b7a3bebea554a1c031aeeb"
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
+  pruneopts = "UT"
   revision = "6c771bb9887719704b210e87e934f08be014bdb1"
   version = "v1.6.0"
 
 [[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = "UT"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:19fd46009e9bad71f7e9a8367e7317ed632f89926352a7d59822edec785ae4f3"
+  name = "github.com/ziutek/mymysql"
+  packages = [
+    "godrv",
+    "mysql",
+    "native",
+  ]
+  pruneopts = "UT"
+  revision = "e08c2f35356576b3c3690c252fe5dca728ae9292"
+  version = "v1.5.4"
+
+[[projects]]
   branch = "master"
+  digest = "1:3603f69263be11dc30f6beb220f147f59e4d6ffa0c907c94bb852cf87afa206e"
   name = "golang.org/x/crypto"
   packages = [
     "cryptobyte",
@@ -165,22 +243,74 @@
     "pbkdf2",
     "pkcs12",
     "pkcs12/internal/rc2",
-    "scrypt"
+    "scrypt",
   ]
+  pruneopts = "UT"
   revision = "c126467f60eb25f8f27e5a981f32a87e3965053f"
 
 [[projects]]
   branch = "master"
+  digest = "1:711b716e33cd86b5ec7ce62f2b226915092323b6b6c95e1e2df922bec4da3d1b"
+  name = "golang.org/x/lint"
+  packages = [
+    ".",
+    "golint",
+  ]
+  pruneopts = "UT"
+  revision = "5906bd5c48cd840279ace88b165057fbbd7fb35a"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d6b719875cf8091fbab38527d81d34e71f4521b9ee9ccfbd4a32cff2ac5af96e"
   name = "golang.org/x/net"
   packages = [
     "context",
-    "context/ctxhttp"
+    "context/ctxhttp",
   ]
+  pruneopts = "UT"
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c0bb60d9eb4609e058ba4a0cd78b0f95d409bd7f2736155b8f60b70117584fcd"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/types/typeutil",
+  ]
+  pruneopts = "UT"
+  revision = "c0eb142035b5aa4db001a5cc0703b55a8fbf9540"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "eb3713a13a2a3e0a35c010aed983787299798de5f20ba838399802f9ae67107c"
+  input-imports = [
+    "bitbucket.org/liamstask/goose/cmd/goose",
+    "github.com/GeertJohan/fgt",
+    "github.com/GeertJohan/go.rice",
+    "github.com/cloudflare/backoff",
+    "github.com/cloudflare/go-metrics",
+    "github.com/cloudflare/redoctober/client",
+    "github.com/cloudflare/redoctober/core",
+    "github.com/go-sql-driver/mysql",
+    "github.com/google/certificate-transparency-go",
+    "github.com/google/certificate-transparency-go/client",
+    "github.com/google/certificate-transparency-go/jsonclient",
+    "github.com/google/certificate-transparency-go/tls",
+    "github.com/google/certificate-transparency-go/x509",
+    "github.com/jmhodges/clock",
+    "github.com/jmoiron/sqlx",
+    "github.com/kisielk/sqlstruct",
+    "github.com/kisom/goutils/assert",
+    "github.com/lib/pq",
+    "github.com/mattn/go-sqlite3",
+    "golang.org/x/crypto/ed25519",
+    "golang.org/x/crypto/ocsp",
+    "golang.org/x/crypto/pkcs12",
+    "golang.org/x/lint/golint",
+    "golang.org/x/net/context",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
