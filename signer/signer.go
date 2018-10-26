@@ -193,6 +193,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
+		ExtraExtensions:    csrv.Extensions,
 	}
 
 	for _, val := range csrv.Extensions {
