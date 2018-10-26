@@ -140,11 +140,12 @@ type CAConfig struct {
 // certificate request functionality.
 type CertificateRequest struct {
 	CN           string
-	Names        []Name     `json:"names" yaml:"names"`
-	Hosts        []string   `json:"hosts" yaml:"hosts"`
-	KeyRequest   KeyRequest `json:"key,omitempty" yaml:"key,omitempty"`
-	CA           *CAConfig  `json:"ca,omitempty" yaml:"ca,omitempty"`
-	SerialNumber string     `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	Names        []Name           `json:"names" yaml:"names"`
+	Hosts        []string         `json:"hosts" yaml:"hosts"`
+	KeyRequest   KeyRequest       `json:"key,omitempty" yaml:"key,omitempty"`
+	CA           *CAConfig        `json:"ca,omitempty" yaml:"ca,omitempty"`
+	SerialNumber string           `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	Extensions   []pkix.Extension `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 }
 
 // New returns a new, empty CertificateRequest with a
@@ -384,8 +385,18 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 		}
 	}
 
+	tpl.ExtraExtensions = []pkix.Extension{}
+
 	if req.CA != nil {
 		err = appendCAInfoToCSR(req.CA, &tpl)
+		if err != nil {
+			err = cferr.Wrap(cferr.CSRError, cferr.GenerationFailed, err)
+			return
+		}
+	}
+
+	if req.Extensions != nil {
+		err = appendExtensionsToCSR(req.Extensions, &tpl)
 		if err != nil {
 			err = cferr.Wrap(cferr.CSRError, cferr.GenerationFailed, err)
 			return
@@ -420,13 +431,19 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 		return err
 	}
 
-	csr.ExtraExtensions = []pkix.Extension{
-		{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
-			Value:    val,
-			Critical: true,
-		},
-	}
+	csr.ExtraExtensions = append(csr.ExtraExtensions, pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
+		Value:    val,
+		Critical: true,
+	})
 
+	return nil
+}
+
+// appendCAInfoToCSR appends user-defined extension to a CSR
+func appendExtensionsToCSR(extensions []pkix.Extension, csr *x509.CertificateRequest) error {
+	for _, extension := range extensions {
+		csr.ExtraExtensions = append(csr.ExtraExtensions, extension)
+	}
 	return nil
 }
