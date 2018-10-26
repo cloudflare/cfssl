@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"io/ioutil"
@@ -110,11 +111,43 @@ func TestParseRequest(t *testing.T) {
 		},
 		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com"},
 		KeyRequest: NewBasicKeyRequest(),
+		Extensions: []pkix.Extension{
+			pkix.Extension{
+				Id: asn1.ObjectIdentifier{1, 2, 3, 4, 5},
+				Value: []byte("AgEB"),
+			},
+		},
 	}
 
-	_, _, err := ParseRequest(cr)
+	csrBytes, _, err := ParseRequest(cr)
 	if err != nil {
 		t.Fatalf("%v", err)
+	}
+
+	block, _ := pem.Decode(csrBytes)
+	if block == nil {
+		t.Fatalf("%v", err)
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		t.Fatalf("Incorrect block type: %s", block.Type)
+	}
+
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	found := false
+	for _, ext := range csr.Extensions {
+		if ext.Id.Equal(asn1.ObjectIdentifier{1, 2, 3, 4, 5}) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("CSR did not include Custom Extension")
 	}
 }
 
