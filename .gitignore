@@ -3,3 +3,4 @@ cli/serve/static.rice-box.go
 .coverprofile
 coverprofile.txt
 gopath
+bin
