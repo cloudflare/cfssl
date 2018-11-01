@@ -29,7 +29,35 @@ CFSSL consists of:
 
 ### Building
 
-See [BUILDING](BUILDING.md)
+Building cfssl requires a
+[working Go 1.8+ installation](http://golang.org/doc/install) and a
+properly set `GOPATH`.
+
+```
+$ git clone git@github.com:cloudflare/cfssl.git $GOPATH/src/github.com/cloudflare/cfssl
+$ cd $GOPATH/src/github.com/cloudflare/cfssl
+$ make
+```
+
+The resulting binaries will be in the bin folder:
+```
+$ tree bin
+bin
+├── cfssl
+├── cfssl-bundle
+├── cfssl-certinfo
+├── cfssl-newkey
+├── cfssl-scan
+├── cfssljson
+├── mkbundle
+└── multirootca
+
+0 directories, 8 files
+```
+
+#### Cross Compilation
+
+You can set the `GOOS` and `GOARCH` environment variables to have Go cross compile for alternative platforms; however, cfssl requires cgo, and cgo requires a working compiler toolchain for the target platform.
 
 ### Installation
 
