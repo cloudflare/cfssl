@@ -1,11 +1,19 @@
 sudo: false
 language: go
-go:
-  - 1.8.x
-  - 1.9.x
-  - 1.10.x
-  - 1.11.x
-  - master
+
+matrix:
+  include:
+    - go: 1.8.x
+    - go: 1.9.x
+    - go: 1.10.x
+    - go: 1.11.x
+    - go: master
+    - go: 1.8.1
+      os: osx
+      env: BUILD_TAGS=
+  allow_failures:
+    - go: master
+
 # Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
 addons:
   apt:
@@ -71,10 +79,6 @@ env:
     - GO15VENDOREXPERIMENT=1
   matrix:
     - BUILD_TAGS="postgresql mysql"
-matrix:
-  include:
-    - os: osx
-      go: 1.8.1
-      env: BUILD_TAGS=
+
 after_success:
   - bash <(curl -s https://codecov.io/bash) -f coverprofile.txt
