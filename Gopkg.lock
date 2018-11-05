@@ -49,6 +49,87 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:ef9adfec92cc1d0ff22c2800221c5f395f948b4e6ad8c49ae910b39e6951f078"
+  name = "github.com/cloudflare/cfssl"
+  packages = [
+    "api",
+    "api/bundle",
+    "api/certinfo",
+    "api/client",
+    "api/crl",
+    "api/gencrl",
+    "api/generator",
+    "api/health",
+    "api/info",
+    "api/initca",
+    "api/ocsp",
+    "api/revoke",
+    "api/scan",
+    "api/signhandler",
+    "auth",
+    "bundler",
+    "certdb",
+    "certdb/dbconf",
+    "certdb/sql",
+    "certdb/testdb",
+    "certinfo",
+    "cli",
+    "cli/bundle",
+    "cli/certinfo",
+    "cli/crl",
+    "cli/gencert",
+    "cli/gencrl",
+    "cli/gencsr",
+    "cli/genkey",
+    "cli/info",
+    "cli/ocspdump",
+    "cli/ocsprefresh",
+    "cli/ocspserve",
+    "cli/ocspsign",
+    "cli/printdefault",
+    "cli/revoke",
+    "cli/scan",
+    "cli/selfsign",
+    "cli/serve",
+    "cli/sign",
+    "cli/version",
+    "config",
+    "crl",
+    "crypto/pkcs7",
+    "csr",
+    "errors",
+    "helpers",
+    "helpers/derhelpers",
+    "helpers/testsuite",
+    "info",
+    "initca",
+    "log",
+    "multiroot/config",
+    "ocsp",
+    "ocsp/config",
+    "revoke",
+    "scan",
+    "scan/crypto/tls",
+    "selfsign",
+    "signer",
+    "signer/local",
+    "signer/remote",
+    "signer/universal",
+    "transport",
+    "transport/ca",
+    "transport/core",
+    "transport/example/exlib",
+    "transport/kp",
+    "transport/roots",
+    "transport/roots/system",
+    "ubiquity",
+    "whitelist",
+  ]
+  pruneopts = "UT"
+  revision = "ea4033a214e73d353084d61c244b9ca1e9a727c4"
+
+[[projects]]
+  branch = "master"
   digest = "1:63e3efae411752c89c07f5ced84deb25293ad69a6d89cc4540ffa3082690f0a8"
   name = "github.com/cloudflare/go-metrics"
   packages = ["."]
@@ -103,14 +184,6 @@
   version = "v1.3"
 
 [[projects]]
-  digest = "1:9a688317f3231e0175b3429033f44411906c0ce119361b7b5019d01375f8cff7"
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  pruneopts = "UT"
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:8caffcd8995b0eae7d2c18b2baefabef331bb05b1e16ed2b26b732c3349e6989"
   name = "github.com/golang/protobuf"
   packages = [
@@ -125,7 +198,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:8632e80fb6a763b2b12f8679e14ec737b087507ce9426522cfe4d51be8935cde"
+  digest = "1:31f4817f638536811d1b92f08135483f8da2f9a9b75995d732c078638b388136"
   name = "github.com/google/certificate-transparency-go"
   packages = [
     ".",
@@ -138,7 +211,8 @@
     "x509/pkix",
   ]
   pruneopts = "UT"
-  revision = "5ab67e519c93568ac3ee50fd6772a5bcf8aa460d"
+  revision = "3629d6846518309d22c16fee15d1007262a459d2"
+  version = "v1.0.21"
 
 [[projects]]
   digest = "1:abb6572474aa961d2aa78aabf5aaa96cf623db17eb690e4dd1714611de999618"
@@ -291,6 +365,78 @@
     "github.com/GeertJohan/fgt",
     "github.com/GeertJohan/go.rice",
     "github.com/cloudflare/backoff",
+    "github.com/cloudflare/cfssl/api",
+    "github.com/cloudflare/cfssl/api/bundle",
+    "github.com/cloudflare/cfssl/api/certinfo",
+    "github.com/cloudflare/cfssl/api/client",
+    "github.com/cloudflare/cfssl/api/crl",
+    "github.com/cloudflare/cfssl/api/gencrl",
+    "github.com/cloudflare/cfssl/api/generator",
+    "github.com/cloudflare/cfssl/api/health",
+    "github.com/cloudflare/cfssl/api/info",
+    "github.com/cloudflare/cfssl/api/initca",
+    "github.com/cloudflare/cfssl/api/ocsp",
+    "github.com/cloudflare/cfssl/api/revoke",
+    "github.com/cloudflare/cfssl/api/scan",
+    "github.com/cloudflare/cfssl/api/signhandler",
+    "github.com/cloudflare/cfssl/auth",
+    "github.com/cloudflare/cfssl/bundler",
+    "github.com/cloudflare/cfssl/certdb",
+    "github.com/cloudflare/cfssl/certdb/dbconf",
+    "github.com/cloudflare/cfssl/certdb/sql",
+    "github.com/cloudflare/cfssl/certdb/testdb",
+    "github.com/cloudflare/cfssl/certinfo",
+    "github.com/cloudflare/cfssl/cli",
+    "github.com/cloudflare/cfssl/cli/bundle",
+    "github.com/cloudflare/cfssl/cli/certinfo",
+    "github.com/cloudflare/cfssl/cli/crl",
+    "github.com/cloudflare/cfssl/cli/gencert",
+    "github.com/cloudflare/cfssl/cli/gencrl",
+    "github.com/cloudflare/cfssl/cli/gencsr",
+    "github.com/cloudflare/cfssl/cli/genkey",
+    "github.com/cloudflare/cfssl/cli/info",
+    "github.com/cloudflare/cfssl/cli/ocspdump",
+    "github.com/cloudflare/cfssl/cli/ocsprefresh",
+    "github.com/cloudflare/cfssl/cli/ocspserve",
+    "github.com/cloudflare/cfssl/cli/ocspsign",
+    "github.com/cloudflare/cfssl/cli/printdefault",
+    "github.com/cloudflare/cfssl/cli/revoke",
+    "github.com/cloudflare/cfssl/cli/scan",
+    "github.com/cloudflare/cfssl/cli/selfsign",
+    "github.com/cloudflare/cfssl/cli/serve",
+    "github.com/cloudflare/cfssl/cli/sign",
+    "github.com/cloudflare/cfssl/cli/version",
+    "github.com/cloudflare/cfssl/config",
+    "github.com/cloudflare/cfssl/crl",
+    "github.com/cloudflare/cfssl/crypto/pkcs7",
+    "github.com/cloudflare/cfssl/csr",
+    "github.com/cloudflare/cfssl/errors",
+    "github.com/cloudflare/cfssl/helpers",
+    "github.com/cloudflare/cfssl/helpers/derhelpers",
+    "github.com/cloudflare/cfssl/helpers/testsuite",
+    "github.com/cloudflare/cfssl/info",
+    "github.com/cloudflare/cfssl/initca",
+    "github.com/cloudflare/cfssl/log",
+    "github.com/cloudflare/cfssl/multiroot/config",
+    "github.com/cloudflare/cfssl/ocsp",
+    "github.com/cloudflare/cfssl/ocsp/config",
+    "github.com/cloudflare/cfssl/revoke",
+    "github.com/cloudflare/cfssl/scan",
+    "github.com/cloudflare/cfssl/scan/crypto/tls",
+    "github.com/cloudflare/cfssl/selfsign",
+    "github.com/cloudflare/cfssl/signer",
+    "github.com/cloudflare/cfssl/signer/local",
+    "github.com/cloudflare/cfssl/signer/remote",
+    "github.com/cloudflare/cfssl/signer/universal",
+    "github.com/cloudflare/cfssl/transport",
+    "github.com/cloudflare/cfssl/transport/ca",
+    "github.com/cloudflare/cfssl/transport/core",
+    "github.com/cloudflare/cfssl/transport/example/exlib",
+    "github.com/cloudflare/cfssl/transport/kp",
+    "github.com/cloudflare/cfssl/transport/roots",
+    "github.com/cloudflare/cfssl/transport/roots/system",
+    "github.com/cloudflare/cfssl/ubiquity",
+    "github.com/cloudflare/cfssl/whitelist",
     "github.com/cloudflare/go-metrics",
     "github.com/cloudflare/redoctober/client",
     "github.com/cloudflare/redoctober/core",
