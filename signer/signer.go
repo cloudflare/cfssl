@@ -169,6 +169,21 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 	}
 }
 
+var oidExtensionSubjectAltName = []int{2, 5, 29, 17}
+
+// filter_names removes the Subject Alernative Name extension
+// from the extension
+func filter_names(exts []pkix.Extension) []pkix.Extension {
+	ret := make([]pkix.Extension, 0)
+	for _, ext := range exts {
+		if ext.Id.Equal(oidExtensionSubjectAltName) {
+			continue
+		}
+		ret = append(ret, ext)
+	}
+	return ret
+}
+
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
 func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certificate, err error) {
@@ -193,7 +208,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
-		ExtraExtensions:    csrv.Extensions,
+		ExtraExtensions:    filter_names(csrv.Extensions),
 	}
 
 	for _, val := range csrv.Extensions {
