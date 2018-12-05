@@ -56,8 +56,16 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 		return err
 	}
 
+	ca, err := helpers.ReadBytes(c.CAFile)
+	if err != nil {
+		return err
+	}
+	CACert, err := helpers.ParseCertificatePEM(ca)
+	if err != nil {
+		return err
+	}
 	dbAccessor := sql.NewAccessor(db)
-	certs, err := dbAccessor.GetUnexpiredCertificates()
+	certs, err := dbAccessor.GetUnexpiredCertificatesByAKI(hex.EncodeToString(CACert.SubjectKeyId))
 	if err != nil {
 		return err
 	}
