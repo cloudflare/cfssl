@@ -160,7 +160,7 @@ func (d *Accessor) GetUnexpiredCertificates() (crs []certdb.CertificateRecord, e
 	return crs, nil
 }
 
-// GetUnexpiredCertificates gets all unexpired certificate from db.
+// GetUnexpiredCertificatesByAKI gets all unexpired certificate from db, filtered by AKI
 func (d *Accessor) GetUnexpiredCertificatesByAKI(aki string) (crs []certdb.CertificateRecord, err error) {
 	err = d.checkDB()
 	if err != nil {
