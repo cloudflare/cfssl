@@ -3,12 +3,9 @@ language: go
 
 matrix:
   include:
-    - go: 1.8.x
-    - go: 1.9.x
     - go: 1.10.x
     - go: 1.11.x
     - go: master
-    - go: 1.8.1
       os: osx
       env: BUILD_TAGS=
   allow_failures:
