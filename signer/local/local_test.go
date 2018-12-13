@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"regexp"
 	"sort"
@@ -525,7 +526,7 @@ func TestOverrideSubject(t *testing.T) {
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 
 	request := signer.SignRequest{
-		Hosts:   []string{"127.0.0.1", "localhost", "xyz@example.com"},
+		Hosts:   []string{"127.0.0.1", "localhost", "xyz@example.com", "https://www.cloudflare.com"},
 		Request: string(csrPEM),
 		Subject: req,
 	}
@@ -597,7 +598,7 @@ func TestOverwriteHosts(t *testing.T) {
 		for _, hosts := range [][]string{
 			nil,
 			{},
-			{"127.0.0.1", "localhost", "xyz@example.com"},
+			{"127.0.0.1", "localhost", "xyz@example.com", "https://www.cloudflare.com"},
 		} {
 			request := signer.SignRequest{
 				Hosts:   hosts,
@@ -623,6 +624,10 @@ func TestOverwriteHosts(t *testing.T) {
 
 			for _, email := range cert.EmailAddresses {
 				certHosts = append(certHosts, email)
+			}
+
+			for _, uri := range cert.URIs {
+				certHosts = append(certHosts, uri.String())
 			}
 
 			// compare the sorted host lists
@@ -1330,6 +1335,9 @@ func TestSignFromPrecert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate test key: %s", err)
 	}
+
+	_uri, _ := url.Parse("https://www.cloudflare.com")
+
 	precertBytes, err := testSigner.sign(&x509.Certificate{
 		SignatureAlgorithm: x509.SHA512WithRSA,
 		PublicKey:          k.Public(),
@@ -1347,6 +1355,7 @@ func TestSignFromPrecert(t *testing.T) {
 		IssuingCertificateURL: []string{"url"},
 		DNSNames:              []string{"example.com"},
 		EmailAddresses:        []string{"email@example.com"},
+		URIs:                  []*url.URL{_uri},
 		IPAddresses:           []net.IP{net.ParseIP("1.1.1.1")},
 		CRLDistributionPoints: []string{"crl"},
 		PolicyIdentifiers:     []asn1.ObjectIdentifier{{1, 2, 3}},

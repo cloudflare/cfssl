@@ -192,6 +192,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		DNSNames:           csrv.DNSNames,
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
+		URIs:               csrv.URIs,
 	}
 
 	for _, val := range csrv.Extensions {
@@ -320,6 +321,7 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		}
 		template.DNSNames = nil
 		template.EmailAddresses = nil
+		template.URIs = nil
 	}
 	template.SubjectKeyId = ski
 
