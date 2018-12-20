@@ -290,6 +290,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 				return nil, cferr.New(cferr.PolicyError, cferr.UnmatchedWhitelist)
 			}
 		}
+		for _, name := range safeTemplate.IPAddresses {
+			if profile.NameWhitelist.Find([]byte(name)) == nil {
+				return nil, cferr.New(cferr.PolicyError, cferr.UnmatchedWhitelist)
+			}
+		}
 	}
 
 	if profile.ClientProvidesSerialNumbers {
