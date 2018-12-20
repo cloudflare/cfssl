@@ -1048,7 +1048,7 @@ func TestNameWhitelistSign(t *testing.T) {
 		CN: "1lab41.cf",
 	}
 
-	wl := regexp.MustCompile("^1[a-z]*[0-9]*\\.cf$")
+	wl := regexp.MustCompile("^(1[a-z]*[0-9]*\\.cf|127\\.0\\.0\\.1)$")
 
 	s := newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
 	// Whitelist only key-related fields. Subject, DNSNames, etc shouldn't get
