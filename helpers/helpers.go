@@ -581,7 +581,7 @@ func ReadBytes(valFile string) ([]byte, error) {
 		case "file":
 			return ioutil.ReadFile(splitVal[1])
 		default:
-			return nil, fmt.Errorf("unknown prefix: %s", splitVal[0])
+			return ioutil.ReadFile(valFile)
 		}
 	default:
 		return nil, fmt.Errorf("multiple prefixes: %s",
