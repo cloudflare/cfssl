@@ -48,11 +48,6 @@ type Resource interface {
 
 // ResourcePool allows you to use a pool of resources.
 type ResourcePool struct {
-	resources   chan resourceWrapper
-	factory     Factory
-	capacity    sync2.AtomicInt64
-	idleTimeout sync2.AtomicDuration
-	idleTimer   *timer.Timer
 
 	// stats
 	available  sync2.AtomicInt64
@@ -61,6 +56,12 @@ type ResourcePool struct {
 	waitCount  sync2.AtomicInt64
 	waitTime   sync2.AtomicDuration
 	idleClosed sync2.AtomicInt64
+
+	resources   chan resourceWrapper
+	factory     Factory
+	capacity    sync2.AtomicInt64
+	idleTimeout sync2.AtomicDuration
+	idleTimer   *timer.Timer
 }
 
 type resourceWrapper struct {
