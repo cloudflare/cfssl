@@ -275,15 +275,18 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 			log.Warning("No PKCS#11 token pin provided. Set token_pin to configure it.")
 		}
 
-		_, err := crypto11.Configure(&crypto11.PKCS11Config{
+		pkcs11Config := &crypto11.PKCS11Config{
 			Path:        modulePath,
 			TokenSerial: tokenSerial,
 			TokenLabel:  tokenLabel,
 			Pin:         pin,
 			MaxSessions: 1,
-		})
+		}
+
+		_, err := crypto11.Configure(pkcs11Config)
 
 		if err != nil {
+			log.Warning(err, " ", pkcs11Config)
 			log.Warning("PKCS#11 set on multiple roots. Only the first token will be used.")
 		}
 
