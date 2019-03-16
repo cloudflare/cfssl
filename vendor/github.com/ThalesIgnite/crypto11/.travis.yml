@@ -1,0 +1,24 @@
+sudo: required
+dist: trusty
+
+language: go
+
+go:
+ - "1.10.x"
+ - "master"
+
+# trusty only has softhsmv1
+before_script:
+ - sudo add-apt-repository -y ppa:pkg-opendnssec/ppa && sudo apt-get update && sudo apt-get install softhsm2
+ - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+script:
+ - echo directories.tokendir = `pwd`/tokens > softhsm2.conf
+ - echo objecstore.backend = file >> softhsm2.conf
+ - cat softhsm2.conf
+ - mkdir tokens
+ - export SOFTHSM2_CONF=`pwd`/softhsm2.conf
+ - softhsm2-util --init-token --slot 0 --label test --so-pin sopassword --pin password
+ - cp configs/config.softhsm2 config
+ - dep ensure
+ - go test -v -bench .

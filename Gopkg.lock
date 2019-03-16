@@ -32,6 +32,14 @@
   revision = "c02ca9a983da5807ddf7d796784928f5be4afd09"
 
 [[projects]]
+  digest = "1:4ef19fd14de08b1a360417518c308fb3fddaa2df59c455b4a06d6837e28997b4"
+  name = "github.com/ThalesIgnite/crypto11"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c73933259cb60509d00f32306eea53d10f8e8f10"
+  version = "v0.1.0"
+
+[[projects]]
   digest = "1:fed1f537c2f1269fe475a8556c393fe466641682d73ef8fd0491cd3aa1e47bad"
   name = "github.com/certifi/gocertifi"
   packages = ["."]
@@ -211,12 +219,28 @@
   version = "v1.6.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:576c089c15b7859973c70212c8539fa2ea3c0b257f72999fd7c2a70bb375d292"
+  name = "github.com/miekg/pkcs11"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6120d95c0e9576ccf4a78ba40855809dca31a9ed"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  digest = "1:46ff6fa98890fd862c4f2b00c952fe4e3bbc4d0583e0c87822030c5016dfdce5"
+  name = "github.com/youtube/vitess"
+  packages = ["go/pools"]
+  pruneopts = "UT"
+  revision = "4f192d1003d128e6d399f0a3b37747d9b970d70c"
+  version = "v3.0"
 
 [[projects]]
   digest = "1:19fd46009e9bad71f7e9a8367e7317ed632f89926352a7d59822edec785ae4f3"
@@ -283,6 +307,18 @@
   pruneopts = "UT"
   revision = "c0eb142035b5aa4db001a5cc0703b55a8fbf9540"
 
+[[projects]]
+  digest = "1:7de641366bb8ba53732f9a18ef775293d1b8ab44eac148060bebe15ade415d34"
+  name = "vitess.io/vitess"
+  packages = [
+    "go/cache",
+    "go/sync2",
+    "go/timer",
+  ]
+  pruneopts = "UT"
+  revision = "4f192d1003d128e6d399f0a3b37747d9b970d70c"
+  version = "v3.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -290,6 +326,7 @@
     "bitbucket.org/liamstask/goose/cmd/goose",
     "github.com/GeertJohan/fgt",
     "github.com/GeertJohan/go.rice",
+    "github.com/ThalesIgnite/crypto11",
     "github.com/cloudflare/backoff",
     "github.com/cloudflare/go-metrics",
     "github.com/cloudflare/redoctober/client",

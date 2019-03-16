@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/cloudflare/cfssl/certdb/dbconf"
@@ -22,6 +23,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/whitelist"
 
+	"github.com/ThalesIgnite/crypto11"
 	"github.com/cloudflare/redoctober/client"
 	"github.com/cloudflare/redoctober/core"
 	"github.com/jmoiron/sqlx"
@@ -256,6 +258,71 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 		log.Debug("loaded private key")
 
 		return priv, nil
+	case "pkcs11":
+		modulePath := cfg["pkcs11_module"]
+		if modulePath == "" {
+			return nil, errors.New("config: PKCS11 module path must be set (pkcs11_module)")
+		}
+
+		tokenSerial := cfg["token_serial"]
+		tokenLabel := cfg["token_label"]
+		if tokenSerial == "" && tokenLabel == "" {
+			return nil, errors.New("config: either token_serial or token_label must be set")
+		}
+
+		pin := cfg["token_pin"]
+		if pin == "" {
+			log.Warning("No PKCS#11 token pin provided. Set token_pin to configure it.")
+		}
+
+		_, err := crypto11.Configure(&crypto11.PKCS11Config{
+			Path:        modulePath,
+			TokenSerial: tokenSerial,
+			TokenLabel:  tokenLabel,
+			Pin:         pin,
+			MaxSessions: 1,
+		})
+
+		if err != nil {
+			log.Warning("PKCS#11 set on multiple roots. Only the first token will be used.")
+		}
+
+		slot := cfg["token_slot"]
+
+		keyIDText := cfg["key_id"]
+		if keyIDText == "" {
+			return nil, errors.New("config: Key ID must be set (keyID)")
+		}
+
+		keyID, err := strconv.ParseInt(keyIDText, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+
+		var key crypto.PrivateKey
+		if slot == "" {
+			key, err = crypto11.FindKeyPair([]byte{byte(keyID)}, nil)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			slotID, err := strconv.ParseUint(slot, 10, 32)
+			if err != nil {
+				return nil, err
+			}
+
+			key, err = crypto11.FindKeyPairOnSlot(uint(slotID), []byte{byte(keyID)}, nil)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		signer, ok := key.(crypto.Signer)
+		if !ok {
+			return nil, errors.New("unable to convert key to signer")
+		}
+
+		return signer, nil
 	default:
 		return nil, ErrUnsupportedScheme
 	}

@@ -1,0 +1,5 @@
+{
+  "Path" : "/opt/nfast/toolkits/pkcs11/libcknfast.so",
+  "TokenLabel": "rjk",
+  "Pin" : "password"
+}
