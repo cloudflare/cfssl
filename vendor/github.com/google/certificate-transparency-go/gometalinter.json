@@ -1,7 +1,9 @@
 {
+  "Deadline": "60s",
   "Linters": {
     "license": "./scripts/check_license.sh:PATH:LINE:MESSAGE",
-    "forked": "./scripts/check_forked.sh:PATH:LINE:MESSAGE"
+    "forked": "./scripts/check_forked.sh:PATH:LINE:MESSAGE",
+    "unforked": "./scripts/check_unforked.sh:PATH:LINE:MESSAGE"
   },
   "Enable": [
     "forked",
@@ -11,6 +13,7 @@
     "golint",
     "license",
     "misspell",
+    "unforked",
     "vet"
   ],
   "Exclude": [

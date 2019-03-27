@@ -103,15 +103,7 @@
   version = "v1.3"
 
 [[projects]]
-  digest = "1:9a688317f3231e0175b3429033f44411906c0ce119361b7b5019d01375f8cff7"
-  name = "github.com/gogo/protobuf"
-  packages = ["proto"]
-  pruneopts = "UT"
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
-
-[[projects]]
-  digest = "1:8caffcd8995b0eae7d2c18b2baefabef331bb05b1e16ed2b26b732c3349e6989"
+  digest = "1:239c4c7fd2159585454003d9be7207167970194216193a8a210b8d29576f19c9"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -121,11 +113,11 @@
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
+  version = "v1.3.1"
 
 [[projects]]
-  digest = "1:8632e80fb6a763b2b12f8679e14ec737b087507ce9426522cfe4d51be8935cde"
+  digest = "1:31f4817f638536811d1b92f08135483f8da2f9a9b75995d732c078638b388136"
   name = "github.com/google/certificate-transparency-go"
   packages = [
     ".",
@@ -138,7 +130,8 @@
     "x509/pkix",
   ]
   pruneopts = "UT"
-  revision = "5ab67e519c93568ac3ee50fd6772a5bcf8aa460d"
+  revision = "3629d6846518309d22c16fee15d1007262a459d2"
+  version = "v1.0.21"
 
 [[projects]]
   digest = "1:abb6572474aa961d2aa78aabf5aaa96cf623db17eb690e4dd1714611de999618"
@@ -203,12 +196,12 @@
   revision = "88edab0803230a3898347e77b474f8c1820a1f20"
 
 [[projects]]
-  digest = "1:ee0845ea64262e3d1a6e2eab768fcb2008a0c8e571b7a3bebea554a1c031aeeb"
+  digest = "1:4a49346ca45376a2bba679ca0e83bec949d780d4e927931317904bad482943ec"
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
   pruneopts = "UT"
-  revision = "6c771bb9887719704b210e87e934f08be014bdb1"
-  version = "v1.6.0"
+  revision = "c7c4067b79cc51e6dfdcef5c702e74b1e0fa7c75"
+  version = "v1.10.0"
 
 [[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
