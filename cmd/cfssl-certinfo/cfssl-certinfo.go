@@ -8,6 +8,10 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/certinfo"
 	"github.com/cloudflare/cfssl/config"
+
+	_ "github.com/go-sql-driver/mysql" // import to support MySQL
+	_ "github.com/lib/pq"              // import to support Postgres
+	_ "github.com/mattn/go-sqlite3"    // import to support SQLite3
 )
 
 // main defines the newkey usage and registers all defined commands and flags.
@@ -23,6 +27,8 @@ func main() {
         	certinfo -cert file
 		- Data from certificate from remote server.
         	certinfo -domain domain_name
+		- Data from CA storage
+        	certinfo -serial serial_number -aki authority_key_id (requires -db-config)
 
 	Flags:
 	`
@@ -68,4 +74,7 @@ func printDefaultValue(f *flag.Flag) {
 func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.StringVar(&c.CertFile, "cert", "", "Client certificate that contains the public key")
 	f.StringVar(&c.Domain, "domain", "", "remote server domain name")
+	f.StringVar(&c.Serial, "serial", "", "certificate serial number")
+	f.StringVar(&c.AKI, "aki", "", "certificate issuer (authority) key identifier")
+	f.StringVar(&c.DBConfigFile, "db-config", "", "certificate db configuration file")
 }

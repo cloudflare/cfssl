@@ -218,6 +218,10 @@ var endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"certinfo": func() (http.Handler, error) {
+		if db != nil {
+			return certinfo.NewAccessorHandler(certsql.NewAccessor(db)), nil
+		}
+
 		return certinfo.NewHandler(), nil
 	},
 
