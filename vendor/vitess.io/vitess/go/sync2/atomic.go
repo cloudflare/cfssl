@@ -59,9 +59,7 @@ type AtomicInt64 struct {
 
 // NewAtomicInt64 initializes a new AtomicInt64 with a given value.
 func NewAtomicInt64(n int64) AtomicInt64 {
-	i := new(AtomicInt64)
-	i.int64 = n
-	return *i
+	return AtomicInt64{n}
 }
 
 // Add atomically adds n to the value.
