@@ -24,8 +24,8 @@ Usage of certinfo:
         cfssl certinfo -csr file
 	- Data from certificate from remote server.
         cfssl certinfo -domain domain_name
-    - Data from CA storage
-    	cfssl certinfo -sn serial (requires -db-config and -aki)
+	- Data from CA storage
+        cfssl certinfo -sn serial (requires -db-config and -aki)
 
 Flags:
 `
@@ -72,6 +72,10 @@ func certinfoMain(args []string, c cli.Config) (err error) {
 			return
 		}
 	} else if c.Serial != "" && c.AKI != "" {
+		if c.DBConfigFile == "" {
+			return errors.New("need DB config file (provide with -db-config)")
+		}
+
 		var db *sqlx.DB
 
 		db, err = dbconf.DBFromConfig(c.DBConfigFile)
