@@ -43,6 +43,10 @@ func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x50
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,
 		SignatureAlgorithm: signer.DefaultSigAlgo(priv),
+		DNSNames:           csr.DNSNames,
+		EmailAddresses:     csr.EmailAddresses,
+		IPAddresses:        csr.IPAddresses,
+		URIs:               csr.URIs,
 	}
 
 	return

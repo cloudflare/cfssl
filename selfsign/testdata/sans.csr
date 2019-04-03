@@ -1,0 +1,32 @@
+Certificate Request:
+    Data:
+        Version: 0 (0x0)
+        Subject: CN=irrelevant
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+            EC Public Key: 
+                pub: 
+                    04:9f:e6:ab:90:2a:dc:22:c8:d3:f5:30:9c:0d:8a:
+                    35:9c:6e:e3:ab:1b:e4:4c:35:3f:a6:de:c6:96:a0:
+                    25:2c:80:df:95:cd:f7:8e:49:f3:d9:8a:c8:9e:3f:
+                    3b:64:c8:37:51:30:ed:97:6f:83:27:cc:59:39:12:
+                    a5:e5:75:5e:5b
+                ASN1 OID: prime256v1
+        Attributes:
+        Requested Extensions:
+            X509v3 Subject Alternative Name: 
+                DNS:cloudflare.com, DNS:www.cloudflare.com, email:jdoe@example.com, IP Address:192.168.0.1, URI:https://www.cloudflare.com
+    Signature Algorithm: ecdsa-with-SHA256
+        30:46:02:21:00:c8:98:66:6c:e6:98:83:89:72:b7:c0:64:f7:
+        5d:b7:ed:5a:0c:e2:90:16:a4:70:92:ac:d2:26:c5:4c:6a:7e:
+        1a:02:21:00:e2:3a:2a:7c:3b:7c:c3:f4:7b:01:89:3d:67:63:
+        c8:84:ea:52:0d:29:b1:8a:22:ef:26:ed:6f:a6:3d:d5:0e:2e
+-----BEGIN CERTIFICATE REQUEST-----
+MIIBRTCB6wIBADAVMRMwEQYDVQQDEwppcnJlbGV2YW50MFkwEwYHKoZIzj0CAQYI
+KoZIzj0DAQcDQgAEn+arkCrcIsjT9TCcDYo1nG7jqxvkTDU/pt7GlqAlLIDflc33
+jknz2YrInj87ZMg3UTDtl2+DJ8xZORKl5XVeW6B0MHIGCSqGSIb3DQEJDjFlMGMw
+YQYDVR0RBFowWIIOY2xvdWRmbGFyZS5jb22CEnd3dy5jbG91ZGZsYXJlLmNvbYEQ
+amRvZUBleGFtcGxlLmNvbYcEwKgAAYYaaHR0cHM6Ly93d3cuY2xvdWRmbGFyZS5j
+b20wCgYIKoZIzj0EAwIDSQAwRgIhAMiYZmzmmIOJcrfAZPddt+1aDOKQFqRwkqzS
+JsVMan4aAiEA4joqfDt8w/R7AYk9Z2PIhOpSDSmxiiLvJu1vpj3VDi4=
+-----END CERTIFICATE REQUEST-----
