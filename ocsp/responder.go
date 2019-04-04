@@ -186,6 +186,7 @@ type Stats interface {
 // Source of OCSP responses.
 type Responder struct {
 	Source Source
+	MaxAge time.Duration
 	stats  Stats
 	clk    clock.Clock
 }
@@ -331,21 +332,30 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 
 	// Write OCSP response to response
 	response.Header().Set("Last-Modified", parsedResponse.ThisUpdate.Format(time.RFC1123))
-	response.Header().Set("Expires", parsedResponse.NextUpdate.Format(time.RFC1123))
+
 	now := rs.clk.Now()
-	maxAge := 0
+
+	var maxAge time.Duration
 	if now.Before(parsedResponse.NextUpdate) {
-		maxAge = int(parsedResponse.NextUpdate.Sub(now) / time.Second)
+		maxAge = parsedResponse.NextUpdate.Sub(now)
 	} else {
 		// TODO(#530): we want max-age=0 but this is technically an authorized OCSP response
 		//             (despite being stale) and 5019 forbids attaching no-cache
 		maxAge = 0
 	}
+
+	// Allow setting a max-age that's less than the time until the next update
+	if rs.MaxAge != 0 && maxAge > rs.MaxAge {
+		maxAge = rs.MaxAge
+	}
+
+	response.Header().Set("Expires", now.Add(maxAge).Format(time.RFC1123))
+
 	response.Header().Set(
 		"Cache-Control",
 		fmt.Sprintf(
 			"max-age=%d, public, no-transform, must-revalidate",
-			maxAge,
+			int(maxAge/time.Second),
 		),
 	)
 	responseHash := sha256.Sum256(ocspResponse)

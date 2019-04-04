@@ -69,7 +69,8 @@ type Config struct {
 	AKI               string
 	DBConfigFile      string
 	CRLExpiration     time.Duration
-	Disable     	  string
+	Disable           string
+	MaxAge            time.Duration
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -132,6 +133,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.DurationVar(&c.CRLExpiration, "expiry", 7*helpers.OneDay, "time from now after which the CRL will expire (default: one week)")
 	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 	f.StringVar(&c.Disable, "disable", "", "endpoints to disable")
+	f.DurationVar(&c.MaxAge, "max-age", 0, "max-age for OCSP responses")
 }
 
 // RootFromConfig returns a universal signer Root structure that can

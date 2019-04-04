@@ -15,13 +15,13 @@ import (
 var ocspServerUsageText = `cfssl ocspserve -- set up an HTTP server that handles OCSP requests from either a file or directly from a database (see RFC 5019)
 
   Usage of ocspserve:
-          cfssl ocspserve [-address address] [-port port] [-responses file] [-db-config db-config]
+          cfssl ocspserve [-address address] [-port port] [-responses file] [-db-config db-config] [-max-age duration]
 
   Flags:
   `
 
 // Flags used by 'cfssl serve'
-var ocspServerFlags = []string{"address", "port", "responses", "db-config"}
+var ocspServerFlags = []string{"address", "port", "responses", "db-config", "max-age"}
 
 // ocspServerMain is the command line entry point to the OCSP responder.
 // It sets up a new HTTP server that responds to OCSP requests.
@@ -51,7 +51,14 @@ func ocspServerMain(args []string, c cli.Config) error {
 	}
 
 	log.Info("Registering OCSP responder handler")
-	http.Handle(c.Path, ocsp.NewResponder(src, nil))
+
+	responder := ocsp.NewResponder(src, nil)
+
+	// this is an new optional parameter, don't want to change the signature for NewResponder
+	// in case there are other users.
+	responder.MaxAge = c.MaxAge
+
+	http.Handle(c.Path, responder)
 
 	addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
 	log.Info("Now listening on ", addr)
