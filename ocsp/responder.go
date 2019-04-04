@@ -227,7 +227,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	// is only returned to the client if a valid authorized OCSP response
 	// is not found or an error is returned. If a response if found the header
 	// will be altered to contain the proper max-age and modifiers.
-	response.Header().Add("Cache-Control", "max-age=0, no-cache")
+	response.Header().Set("Cache-Control", "max-age=0, no-cache")
 	// Read response from request
 	var requestBody []byte
 	var err error
@@ -330,8 +330,8 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	}
 
 	// Write OCSP response to response
-	response.Header().Add("Last-Modified", parsedResponse.ThisUpdate.Format(time.RFC1123))
-	response.Header().Add("Expires", parsedResponse.NextUpdate.Format(time.RFC1123))
+	response.Header().Set("Last-Modified", parsedResponse.ThisUpdate.Format(time.RFC1123))
+	response.Header().Set("Expires", parsedResponse.NextUpdate.Format(time.RFC1123))
 	now := rs.clk.Now()
 	maxAge := 0
 	if now.Before(parsedResponse.NextUpdate) {
@@ -349,7 +349,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		),
 	)
 	responseHash := sha256.Sum256(ocspResponse)
-	response.Header().Add("ETag", fmt.Sprintf("\"%X\"", responseHash))
+	response.Header().Set("ETag", fmt.Sprintf("\"%X\"", responseHash))
 
 	if headers != nil {
 		overrideHeaders(response, headers)
