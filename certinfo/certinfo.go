@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/helpers"
 )
 
@@ -163,4 +164,27 @@ func ParseCertificateDomain(domain string) (cert *Certificate, err error) {
 
 	cert = ParseCertificate(conn.ConnectionState().PeerCertificates[0])
 	return
+}
+
+// ParseSerialNumber parses the serial number and does a lookup in the data
+// storage used for certificates. The authority key is required for the lookup
+// to work and must be passed as a hex string.
+func ParseSerialNumber(serial, aki string, dbAccessor certdb.Accessor) (*Certificate, error) {
+	normalizedAKI := strings.ToLower(aki)
+	normalizedAKI = strings.Replace(normalizedAKI, ":", "", -1)
+
+	certificates, err := dbAccessor.GetCertificate(serial, normalizedAKI)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(certificates) < 1 {
+		return nil, errors.New("no certificate found")
+	}
+
+	if len(certificates) > 1 {
+		return nil, errors.New("more than one certificate found")
+	}
+
+	return ParseCertificatePEM([]byte(certificates[0].PEM))
 }

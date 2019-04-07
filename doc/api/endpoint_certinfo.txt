@@ -5,11 +5,13 @@ Method:   POST
 
 Required parameters:
 
-        One of the following two parameters is required.
+        One of the following parameters is required.
 
         * certificate: the PEM-encoded certificate to be parsed.
         * domain: a domain name indicating a remote host to retrieve a
           certificate for.
+        * serial and authority_key_id: a certificate serial number and a
+          matching authority key to look for in the database
 
 Result:
 
@@ -41,7 +43,7 @@ Example:
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100  3229    0  3201  100    28  66658    583 --:--:-- --:--:-- --:--:-- 68106
-curl: (6) Could not resolve host:  
+curl: (6) Could not resolve host:
 {
     "errors": [],
     "messages": [],

@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cloudflare/cfssl/certdb/dbconf"
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certinfo"
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/jmoiron/sqlx"
 )
 
 // Usage text of 'cfssl certinfo'
@@ -21,12 +24,14 @@ Usage of certinfo:
         cfssl certinfo -csr file
 	- Data from certificate from remote server.
         cfssl certinfo -domain domain_name
+	- Data from CA storage
+        cfssl certinfo -sn serial (requires -db-config and -aki)
 
 Flags:
 `
 
 // flags used by 'cfssl certinfo'
-var certinfoFlags = []string{"cert", "csr", "domain"}
+var certinfoFlags = []string{"aki", "cert", "csr", "db-config", "domain", "serial"}
 
 // certinfoMain is the main CLI of certinfo functionality
 func certinfoMain(args []string, c cli.Config) (err error) {
@@ -66,8 +71,25 @@ func certinfoMain(args []string, c cli.Config) (err error) {
 		if cert, err = certinfo.ParseCertificateDomain(c.Domain); err != nil {
 			return
 		}
+	} else if c.Serial != "" && c.AKI != "" {
+		if c.DBConfigFile == "" {
+			return errors.New("need DB config file (provide with -db-config)")
+		}
+
+		var db *sqlx.DB
+
+		db, err = dbconf.DBFromConfig(c.DBConfigFile)
+		if err != nil {
+			return
+		}
+
+		dbAccessor := sql.NewAccessor(db)
+
+		if cert, err = certinfo.ParseSerialNumber(c.Serial, c.AKI, dbAccessor); err != nil {
+			return
+		}
 	} else {
-		return errors.New("Must specify certinfo target through -cert, -csr, or -domain")
+		return errors.New("Must specify certinfo target through -cert, -csr, -domain or -serial + -aki")
 	}
 
 	var b []byte
