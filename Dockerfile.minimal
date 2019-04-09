@@ -1,4 +1,4 @@
-FROM golang:1.9.2-alpine3.6
+FROM golang:1.12.1-alpine3.9
 
 ENV GOPATH /go
 ENV USER root
@@ -10,7 +10,7 @@ RUN set -x && \
 	go get github.com/cloudflare/cfssl_trust/... && \
 	go get github.com/GeertJohan/go.rice/rice && \
 	cd /go/src/github.com/cloudflare/cfssl && rice embed-go -i=./cli/serve && \
-	mkdir bin && cd bin && \
+	mkdir -p bin && cd bin && \
 	go build ../cmd/cfssl && \
 	go build ../cmd/cfssljson && \
 	go build ../cmd/mkbundle && \
