@@ -224,6 +224,49 @@ func TestPolicy(t *testing.T) {
 	}
 }
 
+func TestSigner_Sign_WithPublicKeyOverride(t *testing.T) {
+	s, err := NewSignerFromFile("testdata/ca.pem", "testdata/ca_key.pem", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyPem, err := ioutil.ReadFile("testdata/override_public_key.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyBlock, _ := pem.Decode(keyPem)
+	key := keyBlock.Bytes
+
+	pemCsr, err := ioutil.ReadFile("testdata/ex.csr")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	validReq := signer.SignRequest{
+		Request:           string(pemCsr),
+		Hosts:             []string{"example.com"},
+		OverridePublicKey: string(keyPem),
+	}
+	certPem, err := s.Sign(validReq)
+	if err != nil {
+		t.Fatal("Failed to sign")
+	}
+
+	certBlock, _ := pem.Decode(certPem)
+
+	parsedCert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actualKeyBytes, err := x509.MarshalPKIXPublicKey(parsedCert.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(actualKeyBytes, key) {
+		t.Errorf("Actual key is different")
+	}
+}
+
 func newCustomSigner(t *testing.T, testCaFile, testCaKeyFile string) (s *Signer) {
 	s, err := NewSignerFromFile(testCaFile, testCaKeyFile, nil)
 	if err != nil {

@@ -70,6 +70,9 @@ type SignRequest struct {
 	// be passed to SignFromPrecert with the SCTs in order to create a
 	// valid certificate.
 	ReturnPrecert bool
+
+	// If provided, public key specified in the CSR will be replaced with this key (by local signer only).
+	OverridePublicKey string `json:"override_public_key"`
 }
 
 // appendIf appends to a if s is not an empty string.

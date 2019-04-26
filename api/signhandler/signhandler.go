@@ -74,6 +74,8 @@ type jsonSignRequest struct {
 	Label    string          `json:"label"`
 	Serial   *big.Int        `json:"serial,omitempty"`
 	Bundle   bool            `json:"bundle"`
+
+	OverridePublicKey string `json:"override_public_key"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -93,6 +95,8 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 			Profile: js.Profile,
 			Label:   js.Label,
 			Serial:  js.Serial,
+
+			OverridePublicKey: js.OverridePublicKey,
 		}
 	}
 
@@ -103,6 +107,8 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 		Profile: js.Profile,
 		Label:   js.Label,
 		Serial:  js.Serial,
+
+		OverridePublicKey: js.OverridePublicKey,
 	}
 }
 

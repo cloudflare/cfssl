@@ -242,6 +242,21 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 	}
 
+	if len(req.OverridePublicKey) > 0 {
+		log.Info("Overriding public key %s", req.OverridePublicKey)
+		block, _ := pem.Decode([]byte(req.OverridePublicKey))
+		if block == nil {
+			log.Error("bad pub key override")
+			return nil, cferr.New(cferr.PolicyError, cferr.InvalidRequest)
+		}
+		if key, err := x509.ParsePKIXPublicKey(block.Bytes); err == nil {
+			safeTemplate.PublicKey = key
+		} else {
+			log.Errorf("override public key is invalid: %s", err)
+			return nil, cferr.New(cferr.PolicyError, cferr.InvalidRequest)
+		}
+	}
+
 	if req.CRLOverride != "" {
 		safeTemplate.CRLDistributionPoints = []string{req.CRLOverride}
 	}
