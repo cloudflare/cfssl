@@ -280,7 +280,7 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 		buf := bytes.NewBuffer(req)
 		resp, err = http.Post(server, "application/ocsp-request", buf)
 	} else {
-		reqURL := server + "/" + base64.StdEncoding.EncodeToString(req)
+		reqURL := server + "/" + neturl.QueryEscape(base64.StdEncoding.EncodeToString(req))
 		resp, err = http.Get(reqURL)
 	}
 
