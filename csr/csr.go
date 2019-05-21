@@ -36,6 +36,9 @@ type Name struct {
 	O            string // OrganisationName
 	OU           string // OrganisationalUnitName
 	SerialNumber string
+	// Unexported struct fields are invisible to the JSON package.
+	// Export a field by starting it with an uppercase letter.
+	EmailAddress string `json:"emailAddress" yaml:"emailAddress"`
 }
 
 // A KeyRequest is a generic request for a new key.
@@ -167,15 +170,26 @@ func appendIf(s string, a *[]string) {
 func (cr *CertificateRequest) Name() pkix.Name {
 	var name pkix.Name
 	name.CommonName = cr.CN
+	log.Infof("creating PKIX name for the request cr: %+v\n", cr)
 
 	for _, n := range cr.Names {
+		log.Infof("current n: %+v\n", n)
 		appendIf(n.C, &name.Country)
 		appendIf(n.ST, &name.Province)
 		appendIf(n.L, &name.Locality)
 		appendIf(n.O, &name.Organization)
 		appendIf(n.OU, &name.OrganizationalUnit)
+		if n.EmailAddress != "" {
+			var typeAndValue pkix.AttributeTypeAndValue
+			typeAndValue.Value = n.EmailAddress
+			typeAndValue.Type = []int{1, 2, 840, 113549, 1, 9, 1}
+			log.Infof("current typeAndValue: %+v\n", typeAndValue)
+			name.ExtraNames = append(name.ExtraNames, typeAndValue)
+		}
 	}
 	name.SerialNumber = cr.SerialNumber
+	log.Infof("current name: %+v\n", name)
+
 	return name
 }
 
