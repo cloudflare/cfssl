@@ -34,7 +34,7 @@ Building cfssl requires a
 properly set `GOPATH`.
 
 ```
-$ git clone git@github.com:cloudflare/cfssl.git $GOPATH/src/github.com/cloudflare/cfssl
+$ git clone https://github.com/cloudflare/cfssl.git $GOPATH/src/github.com/cloudflare/cfssl
 $ cd $GOPATH/src/github.com/cloudflare/cfssl
 $ make
 ```
