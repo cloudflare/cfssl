@@ -8,9 +8,11 @@
 package ocsp
 
 import (
+	"crypto"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -212,6 +214,31 @@ func overrideHeaders(response http.ResponseWriter, headers http.Header) {
 	}
 }
 
+type logEvent struct {
+	IP       string        `json:"ip,omitempty"`
+	UA       string        `json:"ua,omitempty"`
+	Method   string        `json:"method,omitempty"`
+	Path     string        `json:"path,omitempty"`
+	Body     string        `json:"body,omitempty"`
+	Received time.Time     `json:"received,omitempty"`
+	Took     time.Duration `json:"took,omitempty"`
+	Headers  http.Header   `json:"headers,omitempty"`
+
+	Serial         string `json:"serial,omitempty"`
+	IssuerKeyHash  string `json:"issuerKeyHash,omitempty"`
+	IssuerNameHash string `json:"issuerNameHash,omitempty"`
+	HashAlg        string `json:"hashAlg,omitempty"`
+}
+
+// hashToString contains mappings for the only hash functions
+// x/crypto/ocsp supports
+var hashToString = map[crypto.Hash]string{
+	crypto.SHA1:   "SHA1",
+	crypto.SHA256: "SHA256",
+	crypto.SHA384: "SHA384",
+	crypto.SHA512: "SHA512",
+}
+
 // A Responder can process both GET and POST requests.  The mapping
 // from an OCSP request to an OCSP response is done by the Source;
 // the Responder simply decodes the request, and passes back whatever
@@ -223,6 +250,25 @@ func overrideHeaders(response http.ResponseWriter, headers http.Header) {
 // strings of repeated '/' into a single '/', which will break the base64
 // encoding.
 func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	le := logEvent{
+		IP:       request.RemoteAddr,
+		UA:       request.UserAgent(),
+		Method:   request.Method,
+		Path:     request.URL.Path,
+		Received: time.Now(),
+	}
+	defer func() {
+		le.Headers = response.Header()
+		le.Took = time.Since(le.Received)
+		jb, err := json.Marshal(le)
+		if err != nil {
+			// we log this error at the debug level as if we aren't at that level anyway
+			// we shouldn't really care about marshalling the log event object
+			log.Debugf("failed to marshal log event object: %s", err)
+			return
+		}
+		log.Debugf("Received request: %s", string(jb))
+	}()
 	// By default we set a 'max-age=0, no-cache' Cache-Control header, this
 	// is only returned to the client if a valid authorized OCSP response
 	// is not found or an error is returned. If a response if found the header
@@ -275,6 +321,9 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	}
 	b64Body := base64.StdEncoding.EncodeToString(requestBody)
 	log.Debugf("Received OCSP request: %s", b64Body)
+	if request.Method == http.MethodPost {
+		le.Body = b64Body
+	}
 
 	// All responses after this point will be OCSP.
 	// We could check for the content type of the request, but that
@@ -295,6 +344,10 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		}
 		return
 	}
+	le.Serial = fmt.Sprintf("%x", ocspRequest.SerialNumber.Bytes())
+	le.IssuerKeyHash = fmt.Sprintf("%x", ocspRequest.IssuerKeyHash)
+	le.IssuerNameHash = fmt.Sprintf("%x", ocspRequest.IssuerNameHash)
+	le.HashAlg = hashToString[ocspRequest.HashAlgorithm]
 
 	// Look up OCSP response from source
 	ocspResponse, headers, err := rs.Source.Response(ocspRequest)
