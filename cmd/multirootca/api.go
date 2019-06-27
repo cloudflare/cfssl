@@ -177,7 +177,13 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !profile.Provider.Verify(&authReq) {
+	validAuth := false
+	if profile.Provider.Verify(&authReq) {
+		validAuth = true
+	} else if profile.PrevProvider != nil && profile.PrevProvider.Verify(&authReq) {
+		validAuth = true
+	}
+	if !validAuth {
 		fail(w, req, http.StatusBadRequest, 1, "invalid token", "received authenticated request with invalid token")
 		return
 	}
