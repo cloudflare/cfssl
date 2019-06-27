@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	keyRequest = csr.BasicKeyRequest{
+	keyRequest = csr.KeyRequest{
 		A: "rsa",
 		S: 2048,
 	}

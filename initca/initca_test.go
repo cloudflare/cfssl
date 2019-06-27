@@ -16,7 +16,7 @@ import (
 	"github.com/cloudflare/cfssl/signer/local"
 )
 
-var validKeyParams = []csr.BasicKeyRequest{
+var validKeyParams = []csr.KeyRequest{
 	{A: "rsa", S: 2048},
 	{A: "rsa", S: 3072},
 	{A: "rsa", S: 4096},
@@ -53,7 +53,7 @@ var testRSACAKeyFile = "testdata/5min-rsa-key.pem"
 var testECDSACAFile = "testdata/5min-ecdsa.pem"
 var testECDSACAKeyFile = "testdata/5min-ecdsa-key.pem"
 
-var invalidCryptoParams = []csr.BasicKeyRequest{
+var invalidCryptoParams = []csr.KeyRequest{
 	// Weak Key
 	{A: "rsa", S: 1024},
 	// Bad param

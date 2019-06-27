@@ -107,7 +107,7 @@ func (lca *CA) SignCSR(csrPEM []byte) ([]byte, error) {
 func ExampleRequest() *csr.CertificateRequest {
 	return &csr.CertificateRequest{
 		Hosts: []string{"localhost"},
-		KeyRequest: &csr.BasicKeyRequest{
+		KeyRequest: &csr.KeyRequest{
 			A: "ecdsa",
 			S: 256,
 		},
