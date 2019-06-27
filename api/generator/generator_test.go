@@ -34,7 +34,7 @@ func csrData(t *testing.T) *bytes.Reader {
 		},
 		CN:         "cloudflare.com",
 		Hosts:      []string{"cloudflare.com"},
-		KeyRequest: csr.NewBasicKeyRequest(),
+		KeyRequest: csr.NewKeyRequest(),
 	}
 	csrBytes, err := json.Marshal(req)
 	if err != nil {
@@ -90,7 +90,7 @@ func TestCSRValidate(t *testing.T) {
 		},
 		CN:         "cloudflare.com",
 		Hosts:      []string{},
-		KeyRequest: csr.NewBasicKeyRequest(),
+		KeyRequest: csr.NewKeyRequest(),
 	}
 	err := CSRValidate(req)
 	if err != nil {

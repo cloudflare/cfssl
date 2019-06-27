@@ -111,7 +111,7 @@ func TestLoadSigner(t *testing.T) {
 
 var testRequest = &csr.CertificateRequest{
 	CN: "Transport Test Identity",
-	KeyRequest: &csr.BasicKeyRequest{
+	KeyRequest: &csr.KeyRequest{
 		A: "ecdsa",
 		S: 256,
 	},

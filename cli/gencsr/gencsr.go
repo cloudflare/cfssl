@@ -42,7 +42,7 @@ func gencsrMain(args []string, c cli.Config) (err error) {
 
 	// prepare a stub CertificateRequest
 	req := &csr.CertificateRequest{
-		KeyRequest: csr.NewBasicKeyRequest(),
+		KeyRequest: csr.NewKeyRequest(),
 	}
 
 	if c.CertFile != "" {

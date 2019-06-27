@@ -115,7 +115,7 @@ func (g *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	r.Body.Close()
 
 	req := new(csr.CertificateRequest)
-	req.KeyRequest = csr.NewBasicKeyRequest()
+	req.KeyRequest = csr.NewKeyRequest()
 	err = json.Unmarshal(body, req)
 	if err != nil {
 		log.Warningf("failed to unmarshal request: %v", err)

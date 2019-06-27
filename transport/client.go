@@ -207,7 +207,7 @@ func (tr *Transport) RefreshKeys() (err error) {
 			log.Debugf("failed to load keypair: %v", err)
 			kr := tr.Identity.Request.KeyRequest
 			if kr == nil {
-				kr = csr.NewBasicKeyRequest()
+				kr = csr.NewKeyRequest()
 			}
 
 			err = tr.Provider.Generate(kr.Algo(), kr.Size())
