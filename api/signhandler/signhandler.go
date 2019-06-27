@@ -258,7 +258,13 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("no authentication provider")
 	}
 
-	if !profile.Provider.Verify(&aReq) {
+	validAuth := false
+	if profile.Provider.Verify(&aReq) {
+		validAuth = true
+	} else if profile.PrevProvider != nil && profile.PrevProvider.Verify(&aReq) {
+		validAuth = true
+	}
+	if !validAuth {
 		log.Warning("received authenticated request with invalid token")
 		return errors.NewBadRequestString("invalid token")
 	}

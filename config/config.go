@@ -81,6 +81,7 @@ type SigningProfile struct {
 	ExpiryString        string       `json:"expiry"`
 	BackdateString      string       `json:"backdate"`
 	AuthKeyName         string       `json:"auth_key"`
+	PrevAuthKeyName     string       `json:"prev_auth_key"` // to suppport key rotation
 	RemoteName          string       `json:"remote"`
 	NotBefore           time.Time    `json:"not_before"`
 	NotAfter            time.Time    `json:"not_after"`
@@ -94,6 +95,7 @@ type SigningProfile struct {
 	Expiry                      time.Duration
 	Backdate                    time.Duration
 	Provider                    auth.Provider
+	PrevProvider                auth.Provider // to suppport key rotation
 	RemoteProvider              auth.Provider
 	RemoteServer                string
 	RemoteCAs                   *x509.CertPool
@@ -229,7 +231,7 @@ func (p *SigningProfile) populate(cfg *Config) error {
 
 	if p.AuthKeyName != "" {
 		log.Debug("match auth key in profile to auth_keys section")
-		if key, ok := cfg.AuthKeys[p.AuthKeyName]; ok == true {
+		if key, ok := cfg.AuthKeys[p.AuthKeyName]; ok {
 			if key.Type == "standard" {
 				p.Provider, err = auth.New(key.Key, nil)
 				if err != nil {
@@ -245,6 +247,27 @@ func (p *SigningProfile) populate(cfg *Config) error {
 		} else {
 			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
 				errors.New("failed to find auth_key in auth_keys section"))
+		}
+	}
+
+	if p.PrevAuthKeyName != "" {
+		log.Debug("match previous auth key in profile to auth_keys section")
+		if key, ok := cfg.AuthKeys[p.PrevAuthKeyName]; ok {
+			if key.Type == "standard" {
+				p.PrevProvider, err = auth.New(key.Key, nil)
+				if err != nil {
+					log.Debugf("failed to create new standard auth provider: %v", err)
+					return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+						errors.New("failed to create new standard auth provider"))
+				}
+			} else {
+				log.Debugf("unknown authentication type %v", key.Type)
+				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+					errors.New("unknown authentication type"))
+			}
+		} else {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("failed to find prev_auth_key in auth_keys section"))
 		}
 	}
 
