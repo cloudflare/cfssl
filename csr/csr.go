@@ -30,12 +30,12 @@ const (
 
 // A Name contains the SubjectInfo fields.
 type Name struct {
-	C            string // Country
-	ST           string // State
-	L            string // Locality
-	O            string // OrganisationName
-	OU           string // OrganisationalUnitName
-	SerialNumber string
+	C            string `json:"C,omitempty" yaml:"C,omitempty"`   // Country
+	ST           string `json:"ST,omitempty" yaml:"ST,omitempty"` // State
+	L            string `json:"L,omitempty" yaml:"L,omitempty"`   // Locality
+	O            string `json:"O,omitempty" yaml:"O,omitempty"`   // OrganisationName
+	OU           string `json:"OU,omitempty" yaml:"OU,omitempty"` // OrganisationalUnitName
+	SerialNumber string `json:"SerialNumber,omitempty" yaml:"SerialNumber,omitempty"`
 }
 
 // A KeyRequest is a generic request for a new key.
@@ -140,7 +140,7 @@ type CAConfig struct {
 // A CertificateRequest encapsulates the API interface to the
 // certificate request functionality.
 type CertificateRequest struct {
-	CN           string
+	CN           string     `json:"CN" yaml:"CN"`
 	Names        []Name     `json:"names" yaml:"names"`
 	Hosts        []string   `json:"hosts" yaml:"hosts"`
 	KeyRequest   KeyRequest `json:"key,omitempty" yaml:"key,omitempty"`
