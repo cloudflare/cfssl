@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -31,6 +32,10 @@ import (
 	"github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
+
+	zx509 "github.com/zmap/zcrypto/x509"
+	"github.com/zmap/zlint"
+	"github.com/zmap/zlint/lints"
 	"golang.org/x/net/context"
 )
 
@@ -61,8 +66,8 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 	}
 
 	var lintPriv crypto.Signer
-	// If there is at least one profile that configures pre-issuance linting then
-	// generate the one-off lintPriv key.
+	// If there is at least one profile (including the default) that configures
+	// pre-issuance linting then generate the one-off lintPriv key.
 	for _, profile := range policy.Profiles {
 		if profile.LintErrLevel > 0 || policy.Default.LintErrLevel > 0 {
 			// In the future there may be demand for specifying the type of signer used
@@ -121,7 +126,73 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 	return NewSigner(priv, parsedCa, signer.DefaultSigAlgo(priv), policy)
 }
 
-func (s *Signer) sign(template *x509.Certificate) (cert []byte, err error) {
+// LintError is an error type returned when pre-issuance linting is configured
+// in a signing profile and a TBS Certificate fails linting. It wraps the
+// concrete zlint LintResults so that callers can further inspect the cause of
+// the failing lints.
+type LintError struct {
+	ErrorResults map[string]lints.LintResult
+}
+
+func (e *LintError) Error() string {
+	return fmt.Sprintf("pre-issuance linting found %d error results",
+		len(e.ErrorResults))
+}
+
+// lint performs pre-issuance linting of a given TBS certificate template when
+// the provided errLevel is > 0. Any lint results with a status higher than the
+// errLevel that isn't created by a lint in the ignoreMap will result in
+// a LintError being returned to the caller. Note that the template is provided
+// by-value and not by-reference. This is important as the lint function needs
+// to mutate the template's signature algorithm to match the lintPriv.
+func (s *Signer) lint(template x509.Certificate, errLevel int, ignoreMap map[string]bool) error {
+	// Always return nil when linting is disabled
+	if errLevel == 0 {
+		return nil
+	}
+	// without a lintPriv key to use to sign the tbsCertificate we can't lint it.
+	if s.lintPriv == nil {
+		return cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
+	}
+
+	// The template's SignatureAlgorithm must be mutated to match the lintPriv or
+	// x509.CreateCertificate will error because of the mismatch. At the time of
+	// writing s.lintPriv is always an ECDSA private key. This switch will need to
+	// be expanded if the lint key type is made configurable.
+	switch s.lintPriv.(type) {
+	case *ecdsa.PrivateKey:
+		template.SignatureAlgorithm = x509.ECDSAWithSHA256
+	default:
+		return cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+	}
+
+	prelintBytes, err := x509.CreateCertificate(rand.Reader, &template, s.ca, template.PublicKey, s.lintPriv)
+	if err != nil {
+		return cferr.Wrap(cferr.CertificateError, cferr.Unknown, err)
+	}
+	prelintCert, err := zx509.ParseCertificate(prelintBytes)
+	if err != nil {
+		return cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+	}
+	errorResults := map[string]lints.LintResult{}
+	results := zlint.LintCertificate(prelintCert)
+	for name, res := range results.Results {
+		if ignoreMap[name] {
+			continue
+		}
+		if int(res.Status) > errLevel {
+			errorResults[name] = *res
+		}
+	}
+	if len(errorResults) > 0 {
+		return &LintError{
+			ErrorResults: errorResults,
+		}
+	}
+	return nil
+}
+
+func (s *Signer) sign(template *x509.Certificate, lintErrLevel int, lintIgnore map[string]bool) (cert []byte, err error) {
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {
@@ -133,6 +204,10 @@ func (s *Signer) sign(template *x509.Certificate) (cert []byte, err error) {
 		template.URIs = nil
 		s.ca = template
 		initRoot = true
+	}
+
+	if err := s.lint(*template, lintErrLevel, lintIgnore); err != nil {
+		return nil, err
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, s.ca, template.PublicKey, s.priv)
@@ -379,7 +454,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
 		var poisonedPreCert = certTBS
 		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
-		cert, err = s.sign(&poisonedPreCert)
+		cert, err = s.sign(&poisonedPreCert, profile.LintErrLevel, profile.IgnoredLintsMap)
 		if err != nil {
 			return
 		}
@@ -422,8 +497,9 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
+
 	var signedCert []byte
-	signedCert, err = s.sign(&certTBS)
+	signedCert, err = s.sign(&certTBS, profile.LintErrLevel, profile.IgnoredLintsMap)
 	if err != nil {
 		return nil, err
 	}
@@ -461,7 +537,9 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 // except for the removal of the poison extension and the addition of the SCT list
 // extension. SignFromPrecert does not verify that the contents of the certificate
 // still match the signing profile of the signer, it only requires that the precert
-// was previously signed by the Signers CA.
+// was previously signed by the Signers CA. Similarly, any linting configured
+// by the profile used to sign the precert will not be re-applied to the final
+// cert and must be done separately by the caller.
 func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCertificateTimestamp) ([]byte, error) {
 	// Verify certificate was signed by s.ca
 	if err := precert.CheckSignatureFrom(s.ca); err != nil {
@@ -530,8 +608,10 @@ func (s *Signer) SignFromPrecert(precert *x509.Certificate, scts []ct.SignedCert
 	// Insert the SCT list extension
 	tbsCert.ExtraExtensions = append(tbsCert.ExtraExtensions, sctExt)
 
-	// Sign the tbsCert
-	return s.sign(&tbsCert)
+	// Sign the tbsCert. Linting is always disabled because there is no way for
+	// this API to know the correct lint settings to use because there is no
+	// reference to the signing profile of the precert available.
+	return s.sign(&tbsCert, 0, nil)
 }
 
 // Info return a populated info.Resp struct or an error.
