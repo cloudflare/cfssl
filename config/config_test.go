@@ -389,6 +389,23 @@ func TestParse(t *testing.T) {
 
 }
 
+func TestPopulateIgnoredLintsMap(t *testing.T) {
+	lintName := "n_subject_common_name_included"
+	profile := &SigningProfile{
+		ExpiryString: "300s",
+		IgnoredLints: []string{lintName},
+	}
+
+	if err := profile.populate(nil); err != nil {
+		t.Fatal("unexpected error from profile populate")
+	}
+
+	if !profile.IgnoredLintsMap[lintName] {
+		t.Errorf("expected to find lint %q in ignored lints map after populate()",
+			lintName)
+	}
+}
+
 func TestLoadFile(t *testing.T) {
 	validConfigFiles := []string{
 		"testdata/valid_config.json",

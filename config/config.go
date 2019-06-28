@@ -117,6 +117,9 @@ type SigningProfile struct {
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
 	ClientProvidesSerialNumbers bool
+	// IgnoredLintsMap is a bool map created from IgnoredLints when the profile is
+	// loaded. It facilitates set membership testing.
+	IgnoredLintsMap map[string]bool
 }
 
 // UnmarshalJSON unmarshals a JSON string into an OID.
@@ -318,6 +321,11 @@ func (p *SigningProfile) populate(cfg *Config) error {
 	p.ExtensionWhitelist = map[string]bool{}
 	for _, oid := range p.AllowedExtensions {
 		p.ExtensionWhitelist[asn1.ObjectIdentifier(oid).String()] = true
+	}
+
+	p.IgnoredLintsMap = map[string]bool{}
+	for _, lintName := range p.IgnoredLints {
+		p.IgnoredLintsMap[lintName] = true
 	}
 
 	return nil
