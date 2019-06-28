@@ -69,9 +69,12 @@ func TestNewSignerFromFilePolicy(t *testing.T) {
 			},
 		},
 	}
-	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
+	signer, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if signer.lintPriv != nil {
+		t.Error("expected signer with LintErrLevel == 0 to have lintPriv == nil")
 	}
 }
 
@@ -147,6 +150,51 @@ func TestNewSignerFromFileEdgeCases(t *testing.T) {
 	res, err = NewSignerFromFile("../../helpers/testdata/cert.pem", "../../helpers/testdata/messed_up_priv_key.pem", nil)
 	if res != nil && err == nil {
 		t.Fatal("Incorrect inputs failed to produce correct results")
+	}
+}
+
+func TestNewSignerFromFilePolicyLinting(t *testing.T) {
+	// CAConfig is a config that has an explicit "signature" profile that enables
+	// pre-issuance linting.
+	var CAConfig = &config.Config{
+		Signing: &config.Signing{
+			Profiles: map[string]*config.SigningProfile{
+				"signature": {
+					Usage:        []string{"digital signature"},
+					Expiry:       expiry,
+					LintErrLevel: 3,
+				},
+			},
+			Default: &config.SigningProfile{
+				Usage:        []string{"cert sign", "crl sign"},
+				ExpiryString: "43800h",
+				Expiry:       expiry,
+				CAConstraint: config.CAConstraint{IsCA: true},
+			},
+		},
+	}
+	signer, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A CAConfig with a signing profile that sets LintErrLevel > 0 should have
+	// a lintPriv key generated.
+	if signer.lintPriv == nil {
+		t.Error("expected signer with profile LintErrLevel > 0 to have lintPriv != nil")
+	}
+
+	// Reconfigure caConfig so that the explicit "signature" profile doesn't
+	// enable pre-issuance linting but the default profile does.
+	CAConfig.Signing.Profiles["signature"].LintErrLevel = 0
+	CAConfig.Signing.Default.LintErrLevel = 3
+	signer, err = NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A CAConfig with a default profile that sets LintErrLevel > 0 should have
+	// a lintPriv key generated.
+	if signer.lintPriv == nil {
+		t.Error("expected signer with default profile LintErrLevel > 0 to have lintPriv != nil")
 	}
 }
 

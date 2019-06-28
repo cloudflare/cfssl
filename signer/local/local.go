@@ -4,6 +4,8 @@ package local
 import (
 	"bytes"
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -35,8 +37,11 @@ import (
 // Signer contains a signer that uses the standard library to
 // support both ECDSA and RSA CA keys.
 type Signer struct {
-	ca         *x509.Certificate
-	priv       crypto.Signer
+	ca   *x509.Certificate
+	priv crypto.Signer
+	// lintPriv is generated randomly when pre-issuance linting is configured and
+	// used to sign TBSCertificates for linting.
+	lintPriv   crypto.Signer
 	policy     *config.Signing
 	sigAlgo    x509.SignatureAlgorithm
 	dbAccessor certdb.Accessor
@@ -55,11 +60,30 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
 	}
 
+	var lintPriv crypto.Signer
+	// If there is at least one profile that configures pre-issuance linting then
+	// generate the one-off lintPriv key.
+	for _, profile := range policy.Profiles {
+		if profile.LintErrLevel > 0 || policy.Default.LintErrLevel > 0 {
+			// In the future there may be demand for specifying the type of signer used
+			// for pre-issuance linting in configuration. For now we assume that signing
+			// with a randomly generated P-256 ECDSA private key is acceptable for all cases
+			// where linting is requested.
+			k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			if err != nil {
+				return nil, cferr.New(cferr.PrivateKeyError, cferr.GenerationFailed)
+			}
+			lintPriv = k
+			break
+		}
+	}
+
 	return &Signer{
-		ca:      cert,
-		priv:    priv,
-		sigAlgo: sigAlgo,
-		policy:  policy,
+		ca:       cert,
+		priv:     priv,
+		lintPriv: lintPriv,
+		sigAlgo:  sigAlgo,
+		policy:   policy,
 	}, nil
 }
 
