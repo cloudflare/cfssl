@@ -17,6 +17,11 @@ var invalidProfileConfig = &Config{
 				Expiry: expiry,
 			},
 			"empty": {},
+			"invalid-lint": {
+				Usage:        []string{"digital signature"},
+				Expiry:       expiry,
+				LintErrLevel: 9000,
+			},
 		},
 		Default: &SigningProfile{
 			Usage:  []string{"digital signature"},
@@ -44,6 +49,12 @@ var validConfig = &Config{
 			"valid": {
 				Usage:  []string{"digital signature"},
 				Expiry: expiry,
+			},
+			"valid-lint": {
+				Usage:        []string{"digital signature"},
+				Expiry:       expiry,
+				LintErrLevel: 5,
+				IgnoredLints: []string{"n_subject_common_name_included"},
 			},
 		},
 		Default: &SigningProfile{
@@ -251,6 +262,10 @@ func TestInvalidProfile(t *testing.T) {
 	}
 
 	if invalidProfileConfig.Signing.Profiles["empty"].validProfile(false) {
+		t.Fatal("invalid profile accepted as valid")
+	}
+
+	if invalidProfileConfig.Signing.Profiles["invalid-lint"].validProfile(false) {
 		t.Fatal("invalid profile accepted as valid")
 	}
 
