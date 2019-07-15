@@ -19,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	ocspConfig "github.com/cloudflare/cfssl/ocsp/config"
+	"github.com/zmap/zlint/lints"
 )
 
 // A CSRWhitelist stores booleans for fields in the CSR. If a CSRWhitelist is
@@ -98,7 +99,7 @@ type SigningProfile struct {
 	// 5 = all lint results except pass, notice and warn are considered errors
 	// 6 = all lint results except pass, notice, warn and error are considered errors.
 	// 7 = lint is performed, no lint results are treated as errors.
-	LintErrLevel int `json:"lint_error_level"`
+	LintErrLevel lints.LintStatus `json:"lint_error_level"`
 	// IgnoredLints lists zlint lint names to ignore. Any lint results from
 	// matching lints will be ignored no matter what the configured LintErrLevel
 	// is.

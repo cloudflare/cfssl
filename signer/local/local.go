@@ -145,9 +145,9 @@ func (e *LintError) Error() string {
 // a LintError being returned to the caller. Note that the template is provided
 // by-value and not by-reference. This is important as the lint function needs
 // to mutate the template's signature algorithm to match the lintPriv.
-func (s *Signer) lint(template x509.Certificate, errLevel int, ignoreMap map[string]bool) error {
-	// Always return nil when linting is disabled
-	if errLevel == 0 {
+func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, ignoreMap map[string]bool) error {
+	// Always return nil when linting is disabled (lints.Reserved == 0).
+	if errLevel == lints.Reserved {
 		return nil
 	}
 	// without a lintPriv key to use to sign the tbsCertificate we can't lint it.
@@ -180,7 +180,7 @@ func (s *Signer) lint(template x509.Certificate, errLevel int, ignoreMap map[str
 		if ignoreMap[name] {
 			continue
 		}
-		if int(res.Status) > errLevel {
+		if res.Status > errLevel {
 			errorResults[name] = *res
 		}
 	}
@@ -192,7 +192,7 @@ func (s *Signer) lint(template x509.Certificate, errLevel int, ignoreMap map[str
 	return nil
 }
 
-func (s *Signer) sign(template *x509.Certificate, lintErrLevel int, lintIgnore map[string]bool) (cert []byte, err error) {
+func (s *Signer) sign(template *x509.Certificate, lintErrLevel lints.LintStatus, lintIgnore map[string]bool) (cert []byte, err error) {
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {

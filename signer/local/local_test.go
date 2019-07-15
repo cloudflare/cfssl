@@ -1535,7 +1535,7 @@ func TestLint(t *testing.T) {
 	testCases := []struct {
 		name               string
 		signer             *Signer
-		lintErrLevel       int
+		lintErrLevel       lints.LintStatus
 		ignoredLintMap     map[string]bool
 		expectedErr        error
 		expectedErrResults map[string]lints.LintResult
@@ -1547,13 +1547,13 @@ func TestLint(t *testing.T) {
 		{
 			name:         "signer without lint key",
 			signer:       &Signer{},
-			lintErrLevel: 1,
+			lintErrLevel: lints.NA,
 			expectedErr:  errors.New(`{"code":2500,"message":"Private key is unavailable"}`),
 		},
 		{
 			name:         "lint results above err level",
 			signer:       lintSigner,
-			lintErrLevel: 4,
+			lintErrLevel: lints.Notice,
 			expectedErr:  errors.New("pre-issuance linting found 3 error results"),
 			expectedErrResults: map[string]lints.LintResult{
 				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
@@ -1564,7 +1564,7 @@ func TestLint(t *testing.T) {
 		{
 			name:         "lint results below err level",
 			signer:       lintSigner,
-			lintErrLevel: 5,
+			lintErrLevel: lints.Warn,
 			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
 			expectedErrResults: map[string]lints.LintResult{
 				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
@@ -1574,7 +1574,7 @@ func TestLint(t *testing.T) {
 		{
 			name:         "ignored lints, lint results above err level",
 			signer:       lintSigner,
-			lintErrLevel: 4,
+			lintErrLevel: lints.Notice,
 			ignoredLintMap: map[string]bool{
 				"w_serial_number_low_entropy": true,
 			},
