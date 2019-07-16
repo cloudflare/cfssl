@@ -2,6 +2,8 @@ package local
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -9,6 +11,7 @@ import (
 	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -29,6 +32,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/google/certificate-transparency-go"
+	"github.com/zmap/zlint/lints"
 )
 
 const (
@@ -69,9 +73,12 @@ func TestNewSignerFromFilePolicy(t *testing.T) {
 			},
 		},
 	}
-	_, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
+	signer, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if signer.lintPriv != nil {
+		t.Error("expected signer with LintErrLevel == 0 to have lintPriv == nil")
 	}
 }
 
@@ -147,6 +154,51 @@ func TestNewSignerFromFileEdgeCases(t *testing.T) {
 	res, err = NewSignerFromFile("../../helpers/testdata/cert.pem", "../../helpers/testdata/messed_up_priv_key.pem", nil)
 	if res != nil && err == nil {
 		t.Fatal("Incorrect inputs failed to produce correct results")
+	}
+}
+
+func TestNewSignerFromFilePolicyLinting(t *testing.T) {
+	// CAConfig is a config that has an explicit "signature" profile that enables
+	// pre-issuance linting.
+	var CAConfig = &config.Config{
+		Signing: &config.Signing{
+			Profiles: map[string]*config.SigningProfile{
+				"signature": {
+					Usage:        []string{"digital signature"},
+					Expiry:       expiry,
+					LintErrLevel: 3,
+				},
+			},
+			Default: &config.SigningProfile{
+				Usage:        []string{"cert sign", "crl sign"},
+				ExpiryString: "43800h",
+				Expiry:       expiry,
+				CAConstraint: config.CAConstraint{IsCA: true},
+			},
+		},
+	}
+	signer, err := NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A CAConfig with a signing profile that sets LintErrLevel > 0 should have
+	// a lintPriv key generated.
+	if signer.lintPriv == nil {
+		t.Error("expected signer with profile LintErrLevel > 0 to have lintPriv != nil")
+	}
+
+	// Reconfigure caConfig so that the explicit "signature" profile doesn't
+	// enable pre-issuance linting but the default profile does.
+	CAConfig.Signing.Profiles["signature"].LintErrLevel = 0
+	CAConfig.Signing.Default.LintErrLevel = 3
+	signer, err = NewSignerFromFile(testCaFile, testCaKeyFile, CAConfig.Signing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A CAConfig with a default profile that sets LintErrLevel > 0 should have
+	// a lintPriv key generated.
+	if signer.lintPriv == nil {
+		t.Error("expected signer with default profile LintErrLevel > 0 to have lintPriv != nil")
 	}
 }
 
@@ -1359,7 +1411,7 @@ func TestSignFromPrecert(t *testing.T) {
 		IPAddresses:           []net.IP{net.ParseIP("1.1.1.1")},
 		CRLDistributionPoints: []string{"crl"},
 		PolicyIdentifiers:     []asn1.ObjectIdentifier{{1, 2, 3}},
-	})
+	}, 0, nil)
 	if err != nil {
 		t.Fatalf("Failed to sign request: %s", err)
 	}
@@ -1428,5 +1480,145 @@ func TestSignFromPrecert(t *testing.T) {
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with signature not from CA")
+	}
+}
+
+func TestLint(t *testing.T) {
+	k, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	serial := big.NewInt(1337)
+
+	// jankyTemplate is an x509 cert template that mostly passes through zlint
+	// without errors/warnings. It is used as the basis of both the signer's issuing
+	// certificate and the end entity certificate that is linted.
+	jankyTemplate := &x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: "janky.cert",
+		},
+		SerialNumber: serial,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(0, 0, 90),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		PolicyIdentifiers: []asn1.ObjectIdentifier{
+			{1, 2, 3},
+		},
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		IssuingCertificateURL: []string{"http://ca.cpu"},
+		SubjectKeyId:          []byte("⚿"),
+		PublicKey:             k.Public(),
+	}
+
+	// Create a self-signed issuer certificate to use as the CA
+	issuerDer, _ := x509.CreateCertificate(rand.Reader, jankyTemplate, jankyTemplate, k.Public(), k)
+	issuerCert, _ := x509.ParseCertificate(issuerDer)
+
+	lintSigner := &Signer{
+		lintPriv: k,
+		ca:       issuerCert,
+	}
+
+	// Reconfigure the template for an end-entity certificate.
+	// On purpose this template will trip the following lints:
+	//   1. e_sub_cert_aia_does_not_contain_ocsp_url because there is no OCSP URL.
+	//   2. e_dnsname_not_valid_tld because `.cert` is not a real TLD
+	//   3. w_serial_number_low_entropy because '1338' is a static constant <8
+	//      bytes in length.
+	serial = big.NewInt(1338)
+	jankyTemplate.SerialNumber = serial
+	jankyTemplate.Subject.CommonName = "www.janky.cert"
+	jankyTemplate.DNSNames = []string{"janky.cert", "www.janky.cert"}
+	jankyTemplate.KeyUsage = x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
+	jankyTemplate.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
+	jankyTemplate.IsCA = false
+
+	testCases := []struct {
+		name               string
+		signer             *Signer
+		lintErrLevel       lints.LintStatus
+		ignoredLintMap     map[string]bool
+		expectedErr        error
+		expectedErrResults map[string]lints.LintResult
+	}{
+		{
+			name:   "linting disabled",
+			signer: lintSigner,
+		},
+		{
+			name:         "signer without lint key",
+			signer:       &Signer{},
+			lintErrLevel: lints.NA,
+			expectedErr:  errors.New(`{"code":2500,"message":"Private key is unavailable"}`),
+		},
+		{
+			name:         "lint results above err level",
+			signer:       lintSigner,
+			lintErrLevel: lints.Notice,
+			expectedErr:  errors.New("pre-issuance linting found 3 error results"),
+			expectedErrResults: map[string]lints.LintResult{
+				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
+				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
+				"w_serial_number_low_entropy":              lints.LintResult{Status: 5},
+			},
+		},
+		{
+			name:         "lint results below err level",
+			signer:       lintSigner,
+			lintErrLevel: lints.Warn,
+			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
+			expectedErrResults: map[string]lints.LintResult{
+				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
+				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
+			},
+		},
+		{
+			name:         "ignored lints, lint results above err level",
+			signer:       lintSigner,
+			lintErrLevel: lints.Notice,
+			ignoredLintMap: map[string]bool{
+				"w_serial_number_low_entropy": true,
+			},
+			expectedErr: errors.New("pre-issuance linting found 2 error results"),
+			expectedErrResults: map[string]lints.LintResult{
+				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
+				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.signer.lint(*jankyTemplate, tc.lintErrLevel, tc.ignoredLintMap)
+			if err != nil && tc.expectedErr == nil {
+				t.Errorf("Expected no err, got %#v", err)
+			} else if err == nil && tc.expectedErr != nil {
+				t.Errorf("Expected err %v, got nil", tc.expectedErr)
+			} else if err != nil && tc.expectedErr != nil {
+				actual := err.Error()
+				expected := tc.expectedErr.Error()
+				if actual != expected {
+					t.Errorf("Expected err %q got %q", expected, actual)
+				}
+				if len(tc.expectedErrResults) > 0 {
+					le, ok := err.(*LintError)
+					if !ok {
+						t.Fatalf("expected LintError type err, got %v", err)
+					}
+					if count := len(le.ErrorResults); count != len(tc.expectedErrResults) {
+						t.Fatalf("expected %d LintError results, got %d", len(tc.expectedErrResults), len(le.ErrorResults))
+					}
+					for name, result := range le.ErrorResults {
+						if result.Status != tc.expectedErrResults[name].Status {
+							t.Errorf("expected error from lint %q to have status %d not %d",
+								name, tc.expectedErrResults[name].Status, result.Status)
+						}
+						if result.Details != tc.expectedErrResults[name].Details {
+							t.Errorf("expected error from lint %q to have details %q not %q",
+								name, tc.expectedErrResults[name].Details, result.Details)
+						}
+					}
+				}
+			}
+		})
 	}
 }

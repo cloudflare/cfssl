@@ -17,6 +17,11 @@ var invalidProfileConfig = &Config{
 				Expiry: expiry,
 			},
 			"empty": {},
+			"invalid-lint": {
+				Usage:        []string{"digital signature"},
+				Expiry:       expiry,
+				LintErrLevel: 9000,
+			},
 		},
 		Default: &SigningProfile{
 			Usage:  []string{"digital signature"},
@@ -44,6 +49,12 @@ var validConfig = &Config{
 			"valid": {
 				Usage:  []string{"digital signature"},
 				Expiry: expiry,
+			},
+			"valid-lint": {
+				Usage:        []string{"digital signature"},
+				Expiry:       expiry,
+				LintErrLevel: 5,
+				IgnoredLints: []string{"n_subject_common_name_included"},
 			},
 		},
 		Default: &SigningProfile{
@@ -254,6 +265,10 @@ func TestInvalidProfile(t *testing.T) {
 		t.Fatal("invalid profile accepted as valid")
 	}
 
+	if invalidProfileConfig.Signing.Profiles["invalid-lint"].validProfile(false) {
+		t.Fatal("invalid profile accepted as valid")
+	}
+
 	if invalidProfileConfig.Valid() {
 		t.Fatal("invalid config accepted as valid")
 	}
@@ -372,6 +387,23 @@ func TestParse(t *testing.T) {
 		}
 	}
 
+}
+
+func TestPopulateIgnoredLintsMap(t *testing.T) {
+	lintName := "n_subject_common_name_included"
+	profile := &SigningProfile{
+		ExpiryString: "300s",
+		IgnoredLints: []string{lintName},
+	}
+
+	if err := profile.populate(nil); err != nil {
+		t.Fatal("unexpected error from profile populate")
+	}
+
+	if !profile.IgnoredLintsMap[lintName] {
+		t.Errorf("expected to find lint %q in ignored lints map after populate()",
+			lintName)
+	}
 }
 
 func TestLoadFile(t *testing.T) {
