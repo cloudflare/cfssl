@@ -21,6 +21,9 @@ Optional parameters:
     useful when interacting with a remote multi-root CA signer
     * bundle: a boolean specifying whether to include an "optimal"
     certificate bundle along with the certificate
+    * expiry: This should contain a time duration in the form
+    understood by Go's time package[1]. This unfortunately means
+    that the maximum unit of time that can be used here is the hour.
 
 Result:
 
