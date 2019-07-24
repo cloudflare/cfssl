@@ -144,7 +144,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			
 			dur, err := time.ParseDuration(req.ExpiryString)
 			if err != nil {
-				return errors.NewBadRequestString("Unable to parse sign requesti2")
+				return errors.NewBadRequestString("Unable to parse sign request")
 			}
 			log.Debugf("expiry is valid")
 
