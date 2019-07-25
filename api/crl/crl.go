@@ -51,7 +51,7 @@ func NewHandler(dbAccessor certdb.Accessor, caPath string, caKeyPath string) (ht
 	// Parse the key given
 	key, err := helpers.ParsePrivateKeyPEMWithPassword(caKey, password)
 	if err != nil {
-		log.Debug("malformed private key %v", err)
+		log.Debugf("malformed private key %v", err)
 		return nil, err
 	}
 
