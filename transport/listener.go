@@ -94,7 +94,7 @@ func (l *Listener) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- error
 
 		config, err := l.getConfig()
 		if err != nil {
-			log.Debug("immediately after getting a new certificate, the Transport is reporting errors: %v", err)
+			log.Debugf("immediately after getting a new certificate, the Transport is reporting errors: %v", err)
 			if errChan != nil {
 				errChan <- err
 			}
@@ -104,7 +104,7 @@ func (l *Listener) AutoUpdate(certUpdates chan<- time.Time, errChan chan<- error
 		lnet := l.Listener.Addr().Network()
 		l.Listener, err = tls.Listen(lnet, address, config)
 		if err != nil {
-			log.Debug("immediately after getting a new certificate, the Transport is reporting errors: %v", err)
+			log.Debugf("immediately after getting a new certificate, the Transport is reporting errors: %v", err)
 			if errChan != nil {
 				errChan <- err
 			}

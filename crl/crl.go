@@ -67,7 +67,7 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 	// Parse the key given
 	key, err := helpers.ParsePrivateKeyPEMWithPassword(keyFile, password)
 	if err != nil {
-		log.Debug("Malformed private key %v", err)
+		log.Debugf("Malformed private key %v", err)
 		return nil, err
 	}
 
@@ -100,7 +100,7 @@ func NewCRLFromDB(certs []certdb.CertificateRecord, issuerCert *x509.Certificate
 func CreateGenericCRL(certList []pkix.RevokedCertificate, key crypto.Signer, issuingCert *x509.Certificate, expiryTime time.Time) ([]byte, error) {
 	crlBytes, err := issuingCert.CreateCRL(rand.Reader, key, certList, time.Now(), expiryTime)
 	if err != nil {
-		log.Debug("error creating CRL: %s", err)
+		log.Debugf("error creating CRL: %s", err)
 	}
 
 	return crlBytes, err

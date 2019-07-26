@@ -80,13 +80,13 @@ func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 
 	key, err := helpers.ParsePrivateKeyPEM([]byte(req.PrivateKey))
 	if err != nil {
-		log.Debug("malformed private key %v", err)
+		log.Debugf("malformed private key %v", err)
 		return errors.NewBadRequestString("malformed Private Key")
 	}
 
 	result, err := cert.CreateCRL(rand.Reader, key, revokedCerts, time.Now(), newExpiryTime)
 	if err != nil {
-		log.Debug("unable to create CRL: %v", err)
+		log.Debugf("unable to create CRL: %v", err)
 		return err
 	}
 

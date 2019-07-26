@@ -119,7 +119,7 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 
 	priv, err := helpers.ParsePrivateKeyPEMWithPassword(cakey, password)
 	if err != nil {
-		log.Debug("Malformed private key %v", err)
+		log.Debugf("Malformed private key %v", err)
 		return nil, err
 	}
 

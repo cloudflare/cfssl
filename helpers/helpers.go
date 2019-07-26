@@ -473,7 +473,7 @@ func LoadClientCertificate(certFile string, keyFile string) (*tls.Certificate, e
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
-			log.Critical("Unable to read client certificate from file: %s or key from file: %s", certFile, keyFile)
+			log.Criticalf("Unable to read client certificate from file: %s or key from file: %s", certFile, keyFile)
 			return nil, err
 		}
 		log.Debug("Client certificate loaded ")

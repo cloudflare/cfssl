@@ -135,7 +135,7 @@ func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval time.
 
 	key, err := helpers.ParsePrivateKeyPEM(keyBytes)
 	if err != nil {
-		log.Debug("Malformed private key %v", err)
+		log.Debugf("Malformed private key %v", err)
 		return nil, err
 	}
 

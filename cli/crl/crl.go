@@ -74,7 +74,7 @@ func generateCRL(c cli.Config) (crlBytes []byte, err error) {
 	// Parse the key given
 	key, err := helpers.ParsePrivateKeyPEMWithPassword(cakey, password)
 	if err != nil {
-		log.Debug("malformed private key %v", err)
+		log.Debugf("malformed private key %v", err)
 		return nil, err
 	}
 
