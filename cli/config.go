@@ -31,6 +31,7 @@ type Config struct {
 	Address           string
 	Port              int
 	MinTLSVersion     string
+	CipherSuites      string
 	Password          string
 	ConfigFile        string
 	CFG               *config.Config
@@ -69,7 +70,7 @@ type Config struct {
 	AKI               string
 	DBConfigFile      string
 	CRLExpiration     time.Duration
-	Disable     	  string
+	Disable           string
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -93,6 +94,7 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.StringVar(&c.Address, "address", "127.0.0.1", "Address to bind")
 	f.IntVar(&c.Port, "port", 8888, "Port to bind")
 	f.StringVar(&c.MinTLSVersion, "min-tls-version", "", "Minimum version of TLS to use, defaults to 1.0")
+	f.StringVar(&c.CipherSuites, "cipher-suites", "", "Comma-separated list of supported TLS cipher suites, defaults to auto-populated by Go")
 	f.StringVar(&c.ConfigFile, "config", "", "path to configuration file")
 	f.StringVar(&c.Profile, "profile", "", "signing profile to use")
 	f.BoolVar(&c.IsCA, "initca", false, "initialise new CA")
