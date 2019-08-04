@@ -609,8 +609,8 @@ func LoadCipherSuites(cipherSuitesString string) ([]uint16, error) {
 	return cipherSuites, nil
 }
 
-// GetNamesForCipherSuites and GetCipherSuitesForNames has been copied from
-// is plucked from https://github.com/golang/go/pull/30326
+// GetNamesForCipherSuites has been copied from
+// https://github.com/golang/go/pull/30326
 // A better variation of that will be available from https://github.com/golang/go/issues/30325
 // when that is closed
 func GetNamesForCipherSuites() map[string]uint16 {
@@ -650,6 +650,10 @@ func GetNamesForCipherSuites() map[string]uint16 {
 	}
 }
 
+// GetCipherSuitesForNames has been copied from
+// https://github.com/golang/go/pull/30326
+// A better variation of that will be available from https://github.com/golang/go/issues/30325
+// when that is closed
 func GetCipherSuitesForNames() map[uint16]string {
 	return map[uint16]string{
 		// TLS 1.0 - 1.2 cipher suites.
