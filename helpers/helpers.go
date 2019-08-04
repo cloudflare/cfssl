@@ -609,7 +609,7 @@ func LoadCipherSuites(cipherSuitesString string) ([]uint16, error) {
 	return cipherSuites, nil
 }
 
-// This code for GetNamesForCipherSuites() and GetCipherSuitesForNames has been copied from
+// GetNamesForCipherSuites and GetCipherSuitesForNames has been copied from
 // is plucked from https://github.com/golang/go/pull/30326
 // A better variation of that will be available from https://github.com/golang/go/issues/30325
 // when that is closed
