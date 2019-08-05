@@ -606,6 +606,9 @@ func LoadCipherSuites(cipherSuitesString string) ([]uint16, error) {
 			}
 		}
 	}
+	if len(cipherSuites) == 0 {
+		return nil, errors.New("No valid cipher suites found")
+	}
 	return cipherSuites, nil
 }
 

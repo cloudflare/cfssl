@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -72,5 +73,26 @@ func TestServe(t *testing.T) {
 	var test = []string{"test"}
 	if err := serverMain(test, c); err == nil {
 		t.Fatalf("There should be an error for argument")
+	}
+}
+
+func TestServeParams(t *testing.T) {
+	// Test some optional parameters
+	keys := make([]string, 0)
+	for k := range endpoints {
+		keys = append(keys, k)
+	}
+	var c = cli.Config{
+		TLSCertFile:  "foo.pem",
+		TLSKeyFile:   "foo-key.pem",
+		CipherSuites: "TLS_NOT_A_CIPHER",
+		Disable:      strings.Join(keys, ","),
+	}
+	err := serverMain([]string{}, c)
+	if err == nil {
+		t.Fatalf("There should be an error for argument")
+	}
+	if err.Error() != "failed to load cipher-suites: No valid cipher suites found" {
+		t.Fatalf("Unexpected error string: %s", err.Error())
 	}
 }
