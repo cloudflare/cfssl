@@ -222,7 +222,7 @@ func lintReversedIPAddress(name string, ipv6 bool) error {
 
 func init() {
 	RegisterLint(&Lint{
-		Name:          "subject_contains_reserved_arpa_ip",
+		Name:          "e_subject_contains_reserved_arpa_ip",
 		Description:   "Checks no subject domain name contains a rDNS entry in an .arpa zone specifying a reserved IP address",
 		Citation:      "BRs: 7.1.4.2.1",
 		Source:        CABFBaselineRequirements,

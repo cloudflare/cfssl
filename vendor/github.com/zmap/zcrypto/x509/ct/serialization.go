@@ -6,7 +6,6 @@ package ct
 // These snippets only perform deserialization for SCTs and are recreated here to prevent pulling in the whole of the ct
 // which contains yet another version of x509,asn1 and tls
 
-
 import (
 	"encoding/binary"
 	"errors"
@@ -86,7 +85,6 @@ func readVarBytes(r io.Reader, numLenBytes int) ([]byte, error) {
 	}
 	return data, nil
 }
-
 
 // UnmarshalDigitallySigned reconstructs a DigitallySigned structure from a Reader
 func UnmarshalDigitallySigned(r io.Reader) (*DigitallySigned, error) {
@@ -168,5 +166,3 @@ func DeserializeSCT(r io.Reader) (*SignedCertificateTimestamp, error) {
 		return nil, fmt.Errorf("unknown SCT version %d", sct.SCTVersion)
 	}
 }
-
-

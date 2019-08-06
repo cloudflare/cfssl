@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	jsonKeys "github.com/zmap/zcrypto/json"
+	"github.com/zmap/zcrypto/util"
 	"github.com/zmap/zcrypto/x509/pkix"
 )
 
@@ -156,7 +156,7 @@ func (s *SignatureAlgorithm) UnmarshalJSON(b []byte) error {
 // the OID is unfortunately stored outside the scope of a
 // SignatureAlgorithm struct and cannot be recovered without access to the
 // entire Certificate if we do not know the signature algorithm.
-func (c *Certificate) jsonifySignatureAlgorithm() (JSONSignatureAlgorithm) {
+func (c *Certificate) jsonifySignatureAlgorithm() JSONSignatureAlgorithm {
 	aux := JSONSignatureAlgorithm{}
 	if c.SignatureAlgorithm == 0 {
 		aux.Name = "unknown_algorithm"
@@ -456,14 +456,14 @@ func (c *Certificate) MarshalJSON() ([]byte, error) {
 	}
 
 	for _, name := range c.URIs {
-		if govalidator.IsURL(name) {
+		if util.IsURL(name) {
 			jc.Names = append(jc.Names, name)
 		}
 	}
 
 	for _, name := range c.IPAddresses {
 		str := name.String()
-		if govalidator.IsURL(str) {
+		if util.IsURL(str) {
 			jc.Names = append(jc.Names, str)
 		}
 	}
@@ -558,7 +558,7 @@ func isValidName(name string) (ret bool) {
 	if strings.HasPrefix(name, "?.") || strings.HasPrefix(name, "*.") {
 		ret = isValidName(name[2:])
 	} else {
-		ret = govalidator.IsURL(name)
+		ret = util.IsURL(name)
 	}
 	return
 }

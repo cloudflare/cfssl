@@ -14,7 +14,11 @@ package lints
  * permissions and limitations under the License.
  */
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 // LintStatus is an enum returned by lints inside of a LintResult.
 type LintStatus int
@@ -37,6 +41,22 @@ const (
 	Fatal  LintStatus = 7
 )
 
+var (
+	// statusLabelToLintStatus is used to work backwards from
+	// a LintStatus.String() to the LintStatus. This is used by
+	// LintStatus.Unmarshal.
+	statusLabelToLintStatus = map[string]LintStatus{
+		Reserved.String(): Reserved,
+		NA.String():       NA,
+		NE.String():       NE,
+		Pass.String():     Pass,
+		Notice.String():   Notice,
+		Warn.String():     Warn,
+		Error.String():    Error,
+		Fatal.String():    Fatal,
+	}
+)
+
 // LintResult contains a LintStatus, and an optional human-readable description.
 // The output of a lint is a LintResult.
 type LintResult struct {
@@ -50,9 +70,22 @@ func (e LintStatus) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (e *LintStatus) UnmarshalJSON(data []byte) error {
+	key := strings.ReplaceAll(string(data), `"`, "")
+	if status, ok := statusLabelToLintStatus[key]; ok {
+		*e = status
+	} else {
+		return fmt.Errorf("bad LintStatus JSON value: %s", string(data))
+	}
+	return nil
+}
+
 // String returns the canonical representation of a LintStatus as a string.
 func (e LintStatus) String() string {
 	switch e {
+	case Reserved:
+		return "reserved"
 	case NA:
 		return "NA"
 	case NE:

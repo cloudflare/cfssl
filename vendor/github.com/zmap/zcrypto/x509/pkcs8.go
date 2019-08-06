@@ -5,10 +5,10 @@
 package x509
 
 import (
-	"github.com/zmap/zcrypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"github.com/zmap/zcrypto/x509/pkix"
 )
 
 // pkcs8 reflects an ASN.1, PKCS#8 PrivateKey. See
