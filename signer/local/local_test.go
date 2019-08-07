@@ -1522,8 +1522,6 @@ func TestLint(t *testing.T) {
 	// On purpose this template will trip the following lints:
 	//   1. e_sub_cert_aia_does_not_contain_ocsp_url because there is no OCSP URL.
 	//   2. e_dnsname_not_valid_tld because `.cert` is not a real TLD
-	//   3. w_serial_number_low_entropy because '1338' is a static constant <8
-	//      bytes in length.
 	serial = big.NewInt(1338)
 	jankyTemplate.SerialNumber = serial
 	jankyTemplate.Subject.CommonName = "www.janky.cert"
@@ -1554,11 +1552,10 @@ func TestLint(t *testing.T) {
 			name:         "lint results above err level",
 			signer:       lintSigner,
 			lintErrLevel: lints.Notice,
-			expectedErr:  errors.New("pre-issuance linting found 3 error results"),
+			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
 			expectedErrResults: map[string]lints.LintResult{
 				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
 				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
-				"w_serial_number_low_entropy":              lints.LintResult{Status: 5},
 			},
 		},
 		{
@@ -1576,12 +1573,11 @@ func TestLint(t *testing.T) {
 			signer:       lintSigner,
 			lintErrLevel: lints.Notice,
 			ignoredLintMap: map[string]bool{
-				"w_serial_number_low_entropy": true,
+				"e_dnsname_not_valid_tld": true,
 			},
-			expectedErr: errors.New("pre-issuance linting found 2 error results"),
+			expectedErr: errors.New("pre-issuance linting found 1 error results"),
 			expectedErrResults: map[string]lints.LintResult{
 				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
-				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
 			},
 		},
 	}
