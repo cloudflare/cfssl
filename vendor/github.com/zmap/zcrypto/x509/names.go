@@ -4,7 +4,6 @@
 
 package x509
 
-
 func (p PublicKeyAlgorithm) String() string {
 	if p >= total_key_algorithms || p < 0 {
 		p = UnknownPublicKeyAlgorithm

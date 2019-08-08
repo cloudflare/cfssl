@@ -56,7 +56,7 @@ func (l *torValidityTooLarge) Execute(c *x509.Certificate) *LintResult {
 
 func init() {
 	RegisterLint(&Lint{
-		Name: "onion_subject_validity_time_too_large",
+		Name: "e_onion_subject_validity_time_too_large",
 		Description: fmt.Sprintf(
 			"certificates with .onion names can not be valid for more than %d months",
 			maxOnionValidityMonths),

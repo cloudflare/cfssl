@@ -50,6 +50,7 @@ const (
 	UnknownLintSource LintSource = iota
 	CABFBaselineRequirements
 	RFC5280
+	RFC5480
 	RFC5891
 	ZLint
 	AWSLabs

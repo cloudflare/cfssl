@@ -30,9 +30,11 @@ func (l *sctPolicyCount) Initialize() error {
 	return nil
 }
 
-// CheckApplies returns true for any subscriber certificates.
+// CheckApplies returns true for any subscriber certificates that are not
+// precertificates (e.g. that do not have the CT poison extension defined in RFC
+// 6962.
 func (l *sctPolicyCount) CheckApplies(c *x509.Certificate) bool {
-	return util.IsSubscriberCert(c)
+	return util.IsSubscriberCert(c) && !util.IsExtInCert(c, util.CtPoisonOID)
 }
 
 // Execute checks if the provided certificate has embedded SCTs from
@@ -144,7 +146,7 @@ func appleCTPolicyExpectedSCTs(cert *x509.Certificate) int {
 
 func init() {
 	RegisterLint(&Lint{
-		Name:          "ct_sct_policy_count_unsatisfied",
+		Name:          "w_ct_sct_policy_count_unsatisfied",
 		Description:   "Check if certificate has enough embedded SCTs to meet Apple CT Policy",
 		Citation:      "https://support.apple.com/en-us/HT205280",
 		Source:        AppleCTPolicy,

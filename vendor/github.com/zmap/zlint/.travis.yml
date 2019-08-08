@@ -6,7 +6,13 @@ go:
   - "1.12.x"
 
 script:
+  # Fast-fail on non-zero exit codes
+  - set -e
+  # Build commands
   - make
+  # Verify that all files have been gofmt'd with simplification
+  - make format-check
+  # Run unit tests
   - make test
 
 notifications:

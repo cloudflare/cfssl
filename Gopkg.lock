@@ -32,14 +32,6 @@
   revision = "c02ca9a983da5807ddf7d796784928f5be4afd09"
 
 [[projects]]
-  digest = "1:320e7ead93de9fd2b0e59b50fd92a4d50c1f8ab455d96bc2eb083267453a9709"
-  name = "github.com/asaskevich/govalidator"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
-  version = "v9"
-
-[[projects]]
   digest = "1:fed1f537c2f1269fe475a8556c393fe466641682d73ef8fd0491cd3aa1e47bad"
   name = "github.com/certifi/gocertifi"
   packages = ["."]
@@ -241,20 +233,21 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:30b5f5466fa91c884bf995619af9a7037ee27f5767d99d3e0a5c40eda822300e"
+  digest = "1:1d53ab102f4ba6cb858c1e4b0d07aa9b4c8882fe3ab27642bd06779d38a50547"
   name = "github.com/zmap/zcrypto"
   packages = [
     "json",
+    "util",
     "x509",
     "x509/ct",
     "x509/pkix",
   ]
   pruneopts = "UT"
-  revision = "f0b20421c74e568701c7504e6b1a9807caa1cb49"
+  revision = "9051775e6a2e3a89ec27977077b09f4496febecf"
 
 [[projects]]
   branch = "master"
-  digest = "1:20db9667c2c9feb3c87698b7076c9457c8f38913ecf6d59a70fe4616c1221041"
+  digest = "1:ad138550c9c99f5d817938b031ada01189cb70de091ff7f3eff1ad0d5d8c731b"
   name = "github.com/zmap/zlint"
   packages = [
     ".",
@@ -262,7 +255,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "c65cea169ca143abb31093051f96d5fed68522e5"
+  revision = "fd021b4cfbeb919cc763d1cafd1e604658a6bbe7"
 
 [[projects]]
   branch = "master"
@@ -366,7 +359,9 @@
     "github.com/kisom/goutils/assert",
     "github.com/lib/pq",
     "github.com/mattn/go-sqlite3",
+    "github.com/zmap/zcrypto/x509",
     "github.com/zmap/zlint",
+    "github.com/zmap/zlint/lints",
     "golang.org/x/crypto/ed25519",
     "golang.org/x/crypto/ocsp",
     "golang.org/x/crypto/pkcs12",

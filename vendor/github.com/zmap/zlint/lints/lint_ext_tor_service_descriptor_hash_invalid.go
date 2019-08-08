@@ -200,7 +200,7 @@ func (l *torServiceDescHashInvalid) Execute(c *x509.Certificate) *LintResult {
 
 func init() {
 	RegisterLint(&Lint{
-		Name:          "ext_tor_service_descriptor_hash_invalid",
+		Name:          "e_ext_tor_service_descriptor_hash_invalid",
 		Description:   "certificates with .onion names need valid TorServiceDescriptors in extension",
 		Citation:      "BRS: Ballot 201",
 		Source:        CABFBaselineRequirements,

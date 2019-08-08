@@ -142,8 +142,8 @@ type auxName struct {
 	PostalCode         []string `json:"postal_code,omitempty"`
 	DomainComponent    []string `json:"domain_component,omitempty"`
 	EmailAddress       []string `json:"email_address,omitempty"`
-	GivenName	   []string `json:"given_name,omitempty"`
-	Surname		   []string `json:"surname,omitempty"`
+	GivenName          []string `json:"given_name,omitempty"`
+	Surname            []string `json:"surname,omitempty"`
 	// EV
 	JurisdictionCountry  []string `json:"jurisdiction_country,omitempty"`
 	JurisdictionLocality []string `json:"jurisdiction_locality,omitempty"`

@@ -129,7 +129,7 @@ func lintReversedIPAddressLabels(name string, ipv6 bool) error {
 
 func init() {
 	RegisterLint(&Lint{
-		Name:          "subject_contains_malformed_arpa_ip",
+		Name:          "w_subject_contains_malformed_arpa_ip",
 		Description:   "Checks no subject domain name contains a rDNS entry in an .arpa zone with the wrong number of labels",
 		Citation:      "BRs: 7.1.4.2.1",
 		Source:        CABFBaselineRequirements,

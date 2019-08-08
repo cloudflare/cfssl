@@ -62,7 +62,7 @@ func (l *onionNotEV) Execute(c *x509.Certificate) *LintResult {
 
 func init() {
 	RegisterLint(&Lint{
-		Name:          "san_dns_name_onion_not_ev_cert",
+		Name:          "e_san_dns_name_onion_not_ev_cert",
 		Description:   "certificates with a .onion subject name must be issued in accordance with EV Guidelines",
 		Citation:      "CABF Ballot 144",
 		Source:        CABFBaselineRequirements,

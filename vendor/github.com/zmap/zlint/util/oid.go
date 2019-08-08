@@ -110,10 +110,12 @@ func IsExtInCert(cert *x509.Certificate, oid asn1.ObjectIdentifier) bool {
 // GetExtFromCert returns the extension with the matching OID, if present. If
 // the extension if not present, it returns nil.
 func GetExtFromCert(cert *x509.Certificate, oid asn1.ObjectIdentifier) *pkix.Extension {
-	for i := range cert.Extensions {
-		if oid.Equal(cert.Extensions[i].Id) {
-			return &(cert.Extensions[i])
-		}
+	// Since this function is called by many Lint CheckApplies functions we use
+	// the x509.Certificate.ExtensionsMap field added by zcrypto to check for
+	// the extension in O(1) instead of looping through the
+	// `x509.Certificate.Extensions` in O(n).
+	if ext, found := cert.ExtensionsMap[oid.String()]; found {
+		return &ext
 	}
 	return nil
 }
