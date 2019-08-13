@@ -13,7 +13,7 @@ import (
 
 var gencsrUsageText = `cfssl gencsr -- generate a csr from a private key with existing CSR json specification or certificate
 
-Usage of genkey:
+Usage of gencsr:
         cfssl gencsr -key private_key_file [-host hostname_override] CSRJSON
         cfssl gencsr -key private_key_file [-host hostname_override] -cert certificate_file
 
