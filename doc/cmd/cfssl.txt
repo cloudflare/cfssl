@@ -163,6 +163,25 @@ blank.
     + name_whitelist: if provided, this should be a regular expression
       for permitted SANs.
 
+    + cert_policies: a list of Certificate Policies (RFC 5280
+      4.2.1.4); example:
+
+      "cert_policies": [
+          {
+              "id": "1.2.3",
+              "qualifiers": [
+                  {
+                      "type": "id-qt-cps",
+                      "value": "http://example.com/cps"
+                  },
+                  {
+                      "type": "id-qt-unotice",
+                      "value": "CPS available on http://example.com/cps"
+                  }
+              ]
+          }
+      ]
+
 The signing profiles reside in the "signing" dictionary. This may
 contain a "default" field which contains the profile to use by default
 for requests, and a "profiles" dictionary mapping profile names to
