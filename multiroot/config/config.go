@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"crypto"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,7 @@ import (
 	"github.com/cloudflare/redoctober/client"
 	"github.com/cloudflare/redoctober/core"
 	"github.com/jmoiron/sqlx"
+	"github.com/letsencrypt/pkcs11key"
 )
 
 // RawMap is shorthand for the type used as a map from string to raw Root struct.
@@ -254,6 +256,47 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 		}
 
 		log.Debug("loaded private key")
+
+		return priv, nil
+	case "pkcs11":
+		module := cfg["module"]
+		if module == "" {
+			return nil, errors.New("config: PKCS11 module path must be set (module)")
+		}
+
+		tokenLabel := cfg["token_label"]
+		if tokenLabel == "" {
+			return nil, errors.New("config: PKCS11 token label must be set (token_label)")
+		}
+
+		pin := cfg["pin"]
+		if pin == "" {
+			return nil, errors.New("config: PKCS11 PIN must be set (pin)")
+		}
+
+		certificate := cfg["certificate"]
+		if certificate == "" {
+			return nil, errors.New("config: PKCS11 public key path must be set (certificate)")
+		}
+
+		// load public key from certificate
+		p, err := ioutil.ReadFile(certificate)
+		if err != nil {
+			return nil, err
+		}
+		b, _ := pem.Decode(p)
+		cert, err := x509.ParseCertificate(b.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		// initialize token communication
+		priv, err = pkcs11key.New(module, tokenLabel, pin, cert.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debug(fmt.Sprintf("pkcs11 communication with token %s initialized successfully", tokenLabel))
 
 		return priv, nil
 	default:
