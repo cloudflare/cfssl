@@ -213,6 +213,20 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 			template.MaxPathLen = constraints.MaxPathLen
 			template.MaxPathLenZero = template.MaxPathLen == 0
 		}
+		// Check the CSR for the X.509 Extended Key Usage (RFC 5280, 4.2.1.12)
+		// extension and temporarily append to template as UnknownExtKeyUsage if found
+		if val.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 37}) {
+			var eku []asn1.ObjectIdentifier
+			var rest []byte
+
+			if rest, err = asn1.Unmarshal(val.Value, &eku); err != nil {
+				return nil, cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
+			} else if len(rest) != 0 {
+				return nil, cferr.Wrap(cferr.CSRError, cferr.ParseFailed, errors.New("x509: trailing data after X.509 Extended Key Usage"))
+			}
+
+			template.UnknownExtKeyUsage = eku
+		}
 	}
 
 	return
@@ -254,8 +268,8 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	}
 
 	var (
-		eku             []x509.ExtKeyUsage
 		ku              x509.KeyUsage
+		eku             []asn1.ObjectIdentifier
 		backdate        time.Duration
 		expiry          time.Duration
 		crlURL, ocspURL string
@@ -266,12 +280,13 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 	// This should be used when validating the profile at load, and isn't used
 	// here.
 	ku, eku, _ = profile.Usages()
-	if profile.IssuerURL == nil {
-		issuerURL = defaultProfile.IssuerURL
-	}
 
 	if ku == 0 && len(eku) == 0 {
 		return cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
+	}
+
+	if profile.IssuerURL == nil {
+		issuerURL = defaultProfile.IssuerURL
 	}
 
 	if expiry = profile.Expiry; expiry == 0 {
@@ -310,8 +325,41 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 
 	template.NotBefore = notBefore
 	template.NotAfter = notAfter
+
 	template.KeyUsage = ku
-	template.ExtKeyUsage = eku
+
+	if profile.CSRWhitelist != nil && profile.CSRWhitelist.EKUs {
+		// If EKUs are whitelisted - add only EKUs from CSR that are defined in profile.
+		ekusFromCSR := template.UnknownExtKeyUsage
+		template.UnknownExtKeyUsage = []asn1.ObjectIdentifier{}
+		for _, oidCSR := range ekusFromCSR {
+			for _, oidProfile := range eku {
+				if oidCSR.Equal(oidProfile) {
+					if e, ok := config.KnownExtKeyUsageFromOID(oidCSR); ok {
+						template.ExtKeyUsage = append(template.ExtKeyUsage, e)
+					} else {
+						template.UnknownExtKeyUsage = append(template.UnknownExtKeyUsage, oidCSR)
+					}
+				}
+
+			}
+		}
+	} else {
+		// If EKUs are not whitelisted - add EKUs defined in profile.
+		template.UnknownExtKeyUsage = []asn1.ObjectIdentifier{}
+		for _, oidProfile := range eku {
+			if e, ok := config.KnownExtKeyUsageFromOID(oidProfile); ok {
+				template.ExtKeyUsage = append(template.ExtKeyUsage, e)
+			} else {
+				template.UnknownExtKeyUsage = append(template.UnknownExtKeyUsage, oidProfile)
+			}
+		}
+	}
+
+	if template.KeyUsage == 0 && len(template.ExtKeyUsage) == 0 && len(template.UnknownExtKeyUsage) == 0 {
+		return cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
+	}
+
 	template.BasicConstraintsValid = true
 	template.IsCA = profile.CAConstraint.IsCA
 	if template.IsCA {
