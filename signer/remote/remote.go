@@ -2,7 +2,6 @@ package remote
 
 import (
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
-	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
 
@@ -22,7 +20,6 @@ import (
 type Signer struct {
 	policy      *config.Signing
 	reqModifier func(*http.Request, []byte)
-	dbAccessor  certdb.Accessor
 }
 
 // NewSigner creates a new remote Signer directly from a
@@ -50,31 +47,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return
 	}
 	if cert, ok := resp.([]byte); ok {
-
-		// Get the AKI from signedCert.  This is required to support Go 1.9+.
-		// In prior versions of Go, x509.CreateCertificate updated the
-		// AuthorityKeyId of certTBS.
-		parsedCert, _ := helpers.ParseCertificatePEM(cert)
-
-		if s.dbAccessor != nil {
-			var certRecord = certdb.CertificateRecord{
-				Serial: parsedCert.SerialNumber.String(),
-				// this relies on the specific behavior of x509.CreateCertificate
-				// which sets the AuthorityKeyId from the signer's SubjectKeyId
-				AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
-				CALabel: req.Label,
-				Status:  "good",
-				Expiry:  parsedCert.NotAfter,
-				PEM:     string(cert),
-			}
-
-			err = s.dbAccessor.InsertCertificate(certRecord)
-			if err != nil {
-				return nil, err
-			}
-			log.Debug("saved certificate with serial number ", parsedCert.SerialNumber)
-		}
-
 		return cert, nil
 	}
 	return
@@ -142,12 +114,12 @@ func (s *Signer) SetPolicy(policy *config.Signing) {
 
 // SetDBAccessor sets the signers' cert db accessor, currently noop.
 func (s *Signer) SetDBAccessor(dba certdb.Accessor) {
-	s.dbAccessor = dba
+	// noop
 }
 
 // GetDBAccessor returns the signers' cert db accessor, currently noop.
 func (s *Signer) GetDBAccessor() certdb.Accessor {
-	return s.dbAccessor
+	return nil
 }
 
 // SetReqModifier sets the function to call to modify the HTTP request prior to sending it
