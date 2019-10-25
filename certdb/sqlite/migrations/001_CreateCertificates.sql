@@ -7,6 +7,7 @@ CREATE TABLE certificates (
   ca_label                 blob,
   status                   blob NOT NULL,
   reason                   int,
+  created_at               timestamp,
   expiry                   timestamp,
   revoked_at               timestamp,
   pem                      blob NOT NULL,

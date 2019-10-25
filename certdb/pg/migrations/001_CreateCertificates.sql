@@ -7,6 +7,7 @@ CREATE TABLE certificates (
   ca_label                 bytea,
   status                   bytea NOT NULL,
   reason                   int,
+  created_at               timestamptz,
   expiry                   timestamptz,
   revoked_at               timestamptz,
   pem                      bytea NOT NULL,

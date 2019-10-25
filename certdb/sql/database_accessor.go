@@ -19,8 +19,8 @@ func init() {
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
-	VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, created_at, expiry, revoked_at, pem)
+	VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, CURRENT_TIMESTAMP, :expiry, :revoked_at, :pem);`
 
 	selectSQL = `
 SELECT %s FROM certificates

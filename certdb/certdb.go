@@ -12,6 +12,7 @@ type CertificateRecord struct {
 	CALabel   string    `db:"ca_label"`
 	Status    string    `db:"status"`
 	Reason    int       `db:"reason"`
+	CreatedAt time.Time `db:"created_at"`
 	Expiry    time.Time `db:"expiry"`
 	RevokedAt time.Time `db:"revoked_at"`
 	PEM       string    `db:"pem"`

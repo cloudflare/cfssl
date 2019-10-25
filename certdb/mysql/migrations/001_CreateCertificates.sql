@@ -7,6 +7,7 @@ CREATE TABLE certificates (
   ca_label                 varbinary(128),
   status                   varbinary(128) NOT NULL,
   reason                   int,
+  created_at               timestamp DEFAULT '0000-00-00 00:00:00',
   expiry                   timestamp DEFAULT '0000-00-00 00:00:00',
   revoked_at               timestamp DEFAULT '0000-00-00 00:00:00',
   pem                      varbinary(4096) NOT NULL,
