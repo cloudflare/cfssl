@@ -13,6 +13,8 @@ CREATE TABLE certificates (
   pem                      blob NOT NULL,
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
+CREATE INDEX certificates_created_at ON certificates (created_at);
+CREATE INDEX certificates_revoked_at ON certificates (revoked_at);
 
 CREATE TABLE ocsp_responses (
   serial_number            blob NOT NULL,

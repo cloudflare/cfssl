@@ -11,7 +11,9 @@ CREATE TABLE certificates (
   expiry                   timestamp DEFAULT '0000-00-00 00:00:00',
   revoked_at               timestamp DEFAULT '0000-00-00 00:00:00',
   pem                      varbinary(4096) NOT NULL,
-  PRIMARY KEY(serial_number, authority_key_identifier)
+  PRIMARY KEY(serial_number, authority_key_identifier),
+  INDEX certificates_created_at (created_at),
+  INDEX certificates_revoked_at (revoked_at)
 );
 
 CREATE TABLE ocsp_responses (
