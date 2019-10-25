@@ -72,7 +72,8 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			if err != nil {
 				return nil, err
 			}
-			log.Debug("saved certificate with serial number ", parsedCert.SerialNumber)
+
+			log.Infof("saved certificate with serial number %s", parsedCert.SerialNumber)
 		}
 
 		return cert, nil

@@ -11,6 +11,7 @@ import (
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 )
@@ -112,7 +113,7 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 // provided, subject information from the "subject" parameter will be used
 // in place of the subject information from the CSR.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	log.Info("signature request received")
+	log.Infof("signature request: requester=%s", r.RemoteAddr)
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -164,7 +165,9 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 		result["bundle"] = bundle
 	}
-	log.Info("wrote response")
+	parsedCert, _ := helpers.ParseCertificatePEM(cert)
+	log.Infof("signature response: requester=%s, label=%s, profile=%s, serialno=%s",
+        r.RemoteAddr, signReq.Label, signReq.Profile, parsedCert.SerialNumber)
 	return api.SendResponse(w, result)
 }
 
@@ -217,7 +220,7 @@ func (h *AuthHandler) SetBundler(caBundleFile, intBundleFile string) (err error)
 
 // Handle receives the incoming request, validates it, and processes it.
 func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	log.Info("signature request received")
+	log.Infof("signature request: requester=%s", r.RemoteAddr)
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -295,6 +298,8 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 		result["bundle"] = bundle
 	}
-	log.Info("wrote response")
+	parsedCert, _ := helpers.ParseCertificatePEM(cert)
+	log.Infof("signature response: requester=%s, label=%s, profile=%s, serialno=%s",
+        r.RemoteAddr, signReq.Label, signReq.Profile, parsedCert.SerialNumber)
 	return api.SendResponse(w, result)
 }
