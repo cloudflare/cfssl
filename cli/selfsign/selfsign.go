@@ -87,6 +87,9 @@ func selfSignMain(args []string, c cli.Config) (err error) {
 		if c.Profile != "" && c.CFG.Signing.Profiles != nil {
 			profile = c.CFG.Signing.Profiles[c.Profile]
 		}
+		if profile == nil {
+			profile = c.CFG.Signing.Default
+		}
 	}
 
 	if profile == nil {
