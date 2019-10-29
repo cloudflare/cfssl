@@ -32,6 +32,7 @@ type Accessor interface {
 	InsertCertificate(cr CertificateRecord) error
 	GetCertificate(serial, aki string) ([]CertificateRecord, error)
 	GetUnexpiredCertificates() ([]CertificateRecord, error)
+	GetUnexpiredCertificatesByAKI( aki string) ([]CertificateRecord, error)
 	GetRevokedAndUnexpiredCertificates() ([]CertificateRecord, error)
 	GetRevokedAndUnexpiredCertificatesByLabel(label string) ([]CertificateRecord, error)
 	RevokeCertificate(serial, aki string, reasonCode int) error
