@@ -9,6 +9,7 @@ package ocsp
 
 import (
 	"crypto"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -25,6 +26,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb/dbconf"
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/gomodule/redigo/redis"
 	"github.com/jmhodges/clock"
 	"golang.org/x/crypto/ocsp"
 )
@@ -54,6 +56,73 @@ var (
 // extra headers you may return nil instead.
 type Source interface {
 	Response(*ocsp.Request) ([]byte, http.Header, error)
+}
+
+// RedisSource represents a source of OCSP responses backed by the redis service.
+type RedisSource struct {
+	RedisPool redis.Pool
+}
+
+// NewRedisSource creates a new RedisSource type with an associated redisPool.
+func NewRedisSource(redisPool redis.Pool) Source {
+	return RedisSource{
+		RedisPool: redisPool,
+	}
+}
+
+// NewSourceFromRedis connects to specified redis server and
+// initializes connection pool for use with the OCSP responder.
+func NewSourceFromRedis(address string) (Source, error) {
+	redisPool := redis.Pool{
+		MaxIdle:     100,
+		MaxActive:   1000, // max number of connections
+		IdleTimeout: 180 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			dialOptions := []redis.DialOption{
+				redis.DialReadTimeout(time.Duration(3) * time.Second),
+				redis.DialWriteTimeout(time.Duration(3) * time.Second),
+				redis.DialConnectTimeout(time.Duration(5) * time.Second),
+			}
+
+			c, err := redis.Dial("tcp", address, dialOptions...)
+			if err != nil {
+				return nil, err
+			}
+
+			return c, nil
+		},
+	}
+	src := NewRedisSource(redisPool)
+	return src, nil
+}
+
+// Response implements cfssl.ocsp.responder.Source, which returns the
+// OCSP response from redis.
+func (src RedisSource) Response(req *ocsp.Request) ([]byte, http.Header, error) {
+
+	// Check if all required data is available.
+	if req == nil {
+		return nil, nil, errors.New("called with nil request")
+	}
+	if req.IssuerKeyHash == nil {
+		return nil, nil, errors.New("request contains no AKI")
+	}
+	if req.SerialNumber == nil {
+		return nil, nil, errors.New("request contains no cert serial number")
+	}
+
+	// Get redis connection from the pool and return it to the pool at the end.
+	redisConn := src.RedisPool.Get()
+	defer redisConn.Close()
+
+	// Search for OCSP response body in redis using sha1(AKI+SerialNumber) as key.
+	resp, err := redisConn.Do("GET", sha1.Sum(append(req.IssuerKeyHash, req.SerialNumber.Bytes()...)))
+	if err != nil {
+		log.Errorf("Error obtaining OCSP response from redis: %s", err)
+		return nil, nil, fmt.Errorf("failed to obtain OCSP response from redis: %s", err)
+	}
+
+	return resp.([]byte), nil, nil
 }
 
 // An InMemorySource is a map from serialNumber -> der(response)

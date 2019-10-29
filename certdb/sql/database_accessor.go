@@ -34,6 +34,10 @@ SELECT %s FROM certificates
 SELECT %s FROM certificates
 	WHERE (CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ?);`
 
+	selectAllUnexpiredRecentChangesOnlyByAKISQL = `
+SELECT %s FROM certificates
+	WHERE (CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ? AND (created_at >= ?) OR (revoked_at >= ?));`
+
 	selectAllRevokedAndUnexpiredWithLabelSQL = `
 SELECT %s FROM certificates
 	WHERE CURRENT_TIMESTAMP < expiry AND status='revoked' AND ca_label= ?;`
@@ -168,6 +172,21 @@ func (d *Accessor) GetUnexpiredCertificatesByAKI(aki string) (crs []certdb.Certi
 	}
 
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredByAKISQL), sqlstruct.Columns(certdb.CertificateRecord{})), aki)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetUnexpiredCertificatesRecentChangesOnlyByAKI gets from db all unexpired certificates changed not earlier than specified age, filtered by AKI.
+func (d *Accessor) GetUnexpiredCertificatesRecentChangesOnlyByAKI(aki string, oldestChangeTimestamp time.Time) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredRecentChangesOnlyByAKISQL), sqlstruct.Columns(certdb.CertificateRecord{})), aki, oldestChangeTimestamp, oldestChangeTimestamp)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
