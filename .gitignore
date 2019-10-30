@@ -1,6 +1,5 @@
 dist/*
 cli/serve/static.rice-box.go
-.coverprofile
-coverprofile.txt
-gopath
+coverage.txt
+profile.out
 bin

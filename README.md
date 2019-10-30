@@ -30,12 +30,11 @@ CFSSL consists of:
 ### Building
 
 Building cfssl requires a
-[working Go 1.12+ installation](http://golang.org/doc/install) and a
-properly set `GOPATH`.
+[working Go 1.12+ installation](http://golang.org/doc/install).
 
 ```
-$ git clone git@github.com:cloudflare/cfssl.git $GOPATH/src/github.com/cloudflare/cfssl
-$ cd $GOPATH/src/github.com/cloudflare/cfssl
+$ git clone git@github.com:cloudflare/cfssl.git
+$ cd cfssl
 $ make
 ```
 
@@ -62,15 +61,13 @@ You can set the `GOOS` and `GOARCH` environment variables to have Go cross compi
 ### Installation
 
 Installation requires a
-[working Go 1.12+ installation](http://golang.org/doc/install) and a
-properly set `GOPATH`.
+[working Go 1.12+ installation](http://golang.org/doc/install).
 
 ```
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssl
 ```
 
-will download and build the CFSSL tool, installing it in
-`$GOPATH/bin/cfssl`.
+will download, build, and install the CFSSL tool.
 
 To install any of the other utility programs that are
 in this repo (for instance `cfssljson` in this case):
@@ -79,8 +76,7 @@ in this repo (for instance `cfssljson` in this case):
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssljson
 ```
 
-This will download and build the CFSSLJSON tool, installing it in
-`$GOPATH/bin/`.
+This will download, build, and install the CFSSLJSON tool.
 
 And to simply install __all__ of the programs in this repo:
 
@@ -89,8 +85,7 @@ $ go get -u github.com/cloudflare/cfssl/cmd/...
 ```
 
 This will download, build, and install all of the utility programs
-(including `cfssl`, `cfssljson`, and `mkbundle` among others) into the
-`$GOPATH/bin/` directory.
+(including `cfssl`, `cfssljson`, and `mkbundle` among others).
 
 ### Using the Command Line Tool
 

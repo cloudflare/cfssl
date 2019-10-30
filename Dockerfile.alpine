@@ -1,0 +1,21 @@
+FROM golang:1.13.3-alpine3.10@sha256:40278d43a27b6e0563fcc4dd52c991a25741b1a775402aea342ab9a80158e69e as builder
+
+WORKDIR /workdir
+COPY . /workdir
+
+RUN set -x && \
+	apk --no-cache add git gcc libc-dev make
+
+RUN git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
+    make clean && \
+    make bin/rice && ./bin/rice embed-go -i=./cli/serve && \
+    make all
+
+FROM alpine:3.10
+COPY --from=builder /etc/cfssl /etc/cfssl
+COPY --from=builder /workdir/bin/ /usr/bin
+
+EXPOSE 8888
+
+ENTRYPOINT ["cfssl"]
+CMD ["--help"]
