@@ -3,12 +3,8 @@ language: go
 
 matrix:
   include:
-    - go: 1.12.7
-    - go: master
-      os: osx
-      env: BUILD_TAGS=
-  allow_failures:
-    - go: master
+    - go: 1.12.x
+    - go: 1.13.x
 
 # Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
 addons:
@@ -24,14 +20,6 @@ install:
 services:
   - mysql
   - postgresql
-before_install:
-  # CFSSL consists of multiple Go packages, which refer to each other by
-  # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs7.
-  # That means, by default, if someone forks the repo and makes changes across
-  # multiple packages within CFSSL, Travis won't pass for the branch on their
-  # own repo. To fix that, we move the directory
-  - mkdir -p $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare
-  - test ! -d $GOPATH/src/github.com/cloudflare/cfssl && mv $TRAVIS_BUILD_DIR $GOPATH/src/github.com/cloudflare/cfssl || true
 
 # Only build pull requests, pushes to the master branch, and branches
 # starting with `test-`. This is a convenient way to push branches to
@@ -44,41 +32,29 @@ branches:
     - /^test-.*$/
 
 before_script:
-  - go install ./vendor/golang.org/x/lint/golint
-  - go install ./vendor/github.com/GeertJohan/fgt
+  - make bin/golint
   # Setup DBs + run migrations
-  - go install ./vendor/bitbucket.org/liamstask/goose/cmd/goose
   # The sql_mode adjustment is to remove a sql_mode that was added in MySQL 5.7, this mode applies a rule that does:
   # > The NO_ZERO_DATE mode affects whether the server permits '0000-00-00' as a valid date.
   # https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html#sqlmode_no_zero_date
   - if [[ $(uname -s) == 'Linux' ]]; then
+      make bin/goose;
       psql -c 'create database certdb_development;' -U postgres;
-      goose -path $GOPATH/src/github.com/cloudflare/cfssl/certdb/pg up;
+      ./bin/goose -path certdb/pg up;
       mysql -e 'create database certdb_development;' -u root;
       mysql -e 'SET global sql_mode = 0;' -u root;
-      goose -path $GOPATH/src/github.com/cloudflare/cfssl/certdb/mysql up;
+      ./bin/goose -path certdb/mysql up;
     fi
+
 script:
   - ./test.sh
-notifications:
-  email:
-    recipients:
-    - cbroglie@cloudflare.com
-    - gabriel@cloudflare.com
-    - kyle@cloudflare.com
-    - leland@cloudflare.com
-    - mihir@cloudflare.com
-    - mitul@cloudflare.com
-    - nick@cloudflare.com
-    - nicky@cloudflare.com
-    on_success: never
-    on_failure: change
+
 env:
   global:
     - secure: "OmaaZ3jhU9VQ/0SYpenUJEfnmKy/MwExkefFRpDbkRSu/hTQpxxALAZV5WEHo7gxLRMRI0pytLo7w+lAd2FlX1CNcyY62MUicta/8P2twsxp+lR3v1bJ7dwk6qsDbO7Nvv3BKPCDQCHUkggbAEJaHEQGdLk4ursNEB1aGimuCEc="
-    - GO15VENDOREXPERIMENT=1
+    - GO111MODULE=on
   matrix:
     - BUILD_TAGS="postgresql mysql"
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash) -f coverprofile.txt
+  - bash <(curl -s https://codecov.io/bash)

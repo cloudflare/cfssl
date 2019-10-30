@@ -1,79 +1,37 @@
 #!/bin/bash
-set -o errexit
+set -e
 
-CDIR=$(cd `dirname "$0"` && pwd)
-cd "$CDIR"
+# Build and install all binaries in PATH
+export GOBIN="${HOME}/bin"
+export PATH="${PATH}:${GOBIN}"
+make install
 
-ORG_PATH="github.com/cloudflare"
-REPO_PATH="${ORG_PATH}/cfssl"
-ARCH="$(uname -m)"
-
-export GOPATH="${CDIR}/gopath"
-
-export PATH="${PATH}:${GOPATH}/bin"
-
-eval $(go env)
-
-if [ ! -h gopath/src/${REPO_PATH} ]; then
-    mkdir -p gopath/src/${ORG_PATH}
-    ln -s ../../../.. gopath/src/${REPO_PATH} || exit 255
-fi
-
-echo "${GOPATH}/src/${REPO_PATH}"
-
-PACKAGES=""
-if [ "$#" != 0 ]; then
-    for pkg in "$@"; do
-        PACKAGES="$PACKAGES $REPO_PATH/$pkg"
-    done
-else
-    PACKAGES=$(go list ./... | grep -v /vendor/ | grep ^_)
-    # Escape current cirectory
-    CDIR_ESC=$(printf "%q" "$CDIR/")
-    # Remove current directory from the package path
-    PACKAGES=${PACKAGES//$CDIR_ESC/}
-    # Remove underscores
-    PACKAGES=${PACKAGES//_/}
-    # split PACKAGES into an array and prepend REPO_PATH to each local package
-    split=(${PACKAGES// / })
-    PACKAGES=${split[@]/#/${REPO_PATH}/}
-fi
-
-# Build and install cfssl executable in PATH
-go install -tags "$BUILD_TAGS" ${REPO_PATH}/cmd/cfssl
-
-COVPROFILES=""
-for package in $(go list -f '{{if len .TestGoFiles}}{{.ImportPath}}{{end}}' $PACKAGES)
-do
-    if echo $package | grep -q "/scan/crypto"; then
+# Run go tests
+echo "" > coverage.txt
+for package in $(go list ./...); do
+    if echo "$package" | grep -q "/scan/crypto"; then
         echo "skipped $package"
         continue
     fi
 
-    profile="$GOPATH/src/$package/.coverprofile"
-    if [ $ARCH = 'x86_64'  ]; then
-        go test -race -tags "$BUILD_TAGS" --coverprofile=$profile $package
+    # only run the race detector on x86_64
+    if [ "$(uname -m)" = "x86_64" ]; then
+        go test -mod=vendor -tags "$BUILD_TAGS" -race -coverprofile=profile.out -covermode=atomic $package
     else
-        go test -tags "$BUILD_TAGS" --coverprofile=$profile $package
+        go test -mod=vendor -tags "$BUILD_TAGS" -coverprofile=profile.out $package
     fi
-    [ -s $profile ] && COVPROFILES="$COVPROFILES $profile"
+
+    if [ -f profile.out ]; then
+        cat profile.out >> coverage.txt
+        rm profile.out
+    fi
 done
-cat $COVPROFILES > coverprofile.txt
 
-if ! command -v fgt > /dev/null ; then
-    go get github.com/GeertJohan/fgt
-fi
-
-if ! command -v golint > /dev/null ; then
-    go get golang.org/x/lint/golint
-fi
-
-for package in $PACKAGES
-do
-    if echo $package | grep -q "/scan/crypto"; then
+for package in $(go list ./...); do
+    if echo "$package" | grep -q "/scan/crypto"; then
         continue
     fi
 
-    echo "fgt golint ${package}"
-    fgt golint "${package}"
+    echo "./bin/golint -set_exit_status=1 $package"
+    ./bin/golint -set_exit_status=1 "$package"
 done
