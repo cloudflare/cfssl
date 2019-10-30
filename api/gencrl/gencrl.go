@@ -5,16 +5,17 @@ import (
 	"crypto/rand"
 	"crypto/x509/pkix"
 	"encoding/json"
-	"github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/errors"
-	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/log"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/log"
 )
 
 // This type is meant to be unmarshalled from JSON

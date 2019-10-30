@@ -2,11 +2,12 @@ package client
 
 import (
 	"crypto/tls"
-	"github.com/cloudflare/cfssl/auth"
-	"github.com/cloudflare/cfssl/helpers"
 	"net"
 	"strings"
 	"testing"
+
+	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 var (

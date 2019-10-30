@@ -132,12 +132,12 @@ type CAConfig struct {
 // A CertificateRequest encapsulates the API interface to the
 // certificate request functionality.
 type CertificateRequest struct {
-	CN           string     `json:"CN" yaml:"CN"`
-	Names        []Name     `json:"names" yaml:"names"`
-	Hosts        []string   `json:"hosts" yaml:"hosts"`
+	CN           string      `json:"CN" yaml:"CN"`
+	Names        []Name      `json:"names" yaml:"names"`
+	Hosts        []string    `json:"hosts" yaml:"hosts"`
 	KeyRequest   *KeyRequest `json:"key,omitempty" yaml:"key,omitempty"`
-	CA           *CAConfig  `json:"ca,omitempty" yaml:"ca,omitempty"`
-	SerialNumber string     `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	CA           *CAConfig   `json:"ca,omitempty" yaml:"ca,omitempty"`
+	SerialNumber string      `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
 }
 
 // New returns a new, empty CertificateRequest with a

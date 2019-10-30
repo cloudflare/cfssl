@@ -18,7 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
 	"golang.org/x/crypto/ocsp"

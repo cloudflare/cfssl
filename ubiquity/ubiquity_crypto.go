@@ -6,8 +6,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
-	"github.com/cloudflare/cfssl/helpers"
 	"math"
+
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 // HashUbiquity represents a score for how ubiquitous a given hash

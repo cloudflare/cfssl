@@ -15,9 +15,8 @@ import (
 	"testing"
 	"time"
 
+	ct "github.com/google/certificate-transparency-go"
 	"golang.org/x/crypto/ocsp"
-
-	"github.com/google/certificate-transparency-go"
 )
 
 const (

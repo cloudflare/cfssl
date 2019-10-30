@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"io/ioutil"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
 	"golang.org/x/crypto/ocsp"
-	"io/ioutil"
 )
 
 var dbAccessor certdb.Accessor

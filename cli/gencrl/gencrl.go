@@ -2,9 +2,10 @@
 package gencrl
 
 import (
+	"strings"
+
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/crl"
-	"strings"
 )
 
 var gencrlUsageText = `cfssl gencrl -- generate a new Certificate Revocation List

@@ -3,11 +3,12 @@ package gencrl
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/cloudflare/cfssl/api"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/cloudflare/cfssl/api"
 )
 
 const (
