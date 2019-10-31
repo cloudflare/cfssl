@@ -49,6 +49,7 @@ func NewHandler(dbAccessor certdb.Accessor, signer ocsp.Signer) http.Handler {
 // certificate into the database.
 type AddRequest struct {
 	Serial    string    `json:"serial_number"`
+	Subject   string    `json:"subject"`
 	AKI       string    `json:"authority_key_identifier"`
 	CALabel   string    `json:"ca_label"`
 	Status    string    `json:"status"`
@@ -139,6 +140,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	cr := certdb.CertificateRecord{
 		Serial:    req.Serial,
+		Subject:   req.Subject,
 		AKI:       req.AKI,
 		CALabel:   req.CALabel,
 		Status:    req.Status,

@@ -58,7 +58,8 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 		if s.dbAccessor != nil {
 			var certRecord = certdb.CertificateRecord{
-				Serial: parsedCert.SerialNumber.String(),
+				Serial:  parsedCert.SerialNumber.String(),
+				Subject: parsedCert.Subject.String(),
 				// this relies on the specific behavior of x509.CreateCertificate
 				// which sets the AuthorityKeyId from the signer's SubjectKeyId
 				AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),

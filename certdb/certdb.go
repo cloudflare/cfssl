@@ -8,6 +8,7 @@ import (
 // that will be recorded in a database.
 type CertificateRecord struct {
 	Serial    string    `db:"serial_number"`
+	Subject   string    `db:"subject"`
 	AKI       string    `db:"authority_key_identifier"`
 	CALabel   string    `db:"ca_label"`
 	Status    string    `db:"status"`

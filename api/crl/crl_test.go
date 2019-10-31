@@ -28,6 +28,7 @@ func prepDB() (certdb.Accessor, error) {
 	expirationTime := time.Now().AddDate(1, 0, 0)
 	var cert = certdb.CertificateRecord{
 		Serial:    "1",
+		Subject:   "/C=PL/CN=Test",
 		AKI:       fakeAKI,
 		Expiry:    expirationTime,
 		PEM:       "revoked cert",

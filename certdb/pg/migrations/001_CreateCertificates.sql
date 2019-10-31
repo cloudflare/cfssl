@@ -3,6 +3,7 @@
 
 CREATE TABLE certificates (
   serial_number            bytea NOT NULL,
+  subject                  bytea NOT NULL,
   authority_key_identifier bytea NOT NULL,
   ca_label                 bytea,
   status                   bytea NOT NULL,
