@@ -1,0 +1,279 @@
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=1
+  - GOFLAGS=-mod=vendor
+  - GOPROXY=off
+builds:
+  - id: cfssl-darwin
+    binary: cfssl
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/cfssl
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-linux
+    binary: cfssl
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cfssl
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-windows
+    binary: cfssl
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/cfssl
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-bundle-darwin
+    binary: cfssl-bundle
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-bundle
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-bundle-linux
+    binary: cfssl-bundle
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-bundle
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-bundle-windows
+    binary: cfssl-bundle
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-bundle
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-certinfo-darwin
+    binary: cfssl-certinfo
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-certinfo
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-certinfo-linux
+    binary: cfssl-certinfo
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-certinfo
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-certinfo-windows
+    binary: cfssl-certinfo
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-certinfo
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-newkey-darwin
+    binary: cfssl-newkey
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-newkey
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-newkey-linux
+    binary: cfssl-newkey
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-newkey
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-newkey-windows
+    binary: cfssl-newkey
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-newkey
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-scan-darwin
+    binary: cfssl-scan
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-scan
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-scan-linux
+    binary: cfssl-scan
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-scan
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssl-scan-windows
+    binary: cfssl-scan
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/cfssl-scan
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssljson-darwin
+    binary: cfssljson
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/cfssljson
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssljson-linux
+    binary: cfssljson
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/cfssljson
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: cfssljson-windows
+    binary: cfssljson
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/cfssljson
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: mkbundle-darwin
+    binary: mkbundle
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/mkbundle
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: mkbundle-linux
+    binary: mkbundle
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/mkbundle
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: mkbundle-windows
+    binary: mkbundle
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/mkbundle
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: multirootca-darwin
+    binary: multirootca
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    main: ./cmd/multirootca
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: multirootca-linux
+    binary: multirootca
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/multirootca
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+  - id: multirootca-windows
+    binary: multirootca
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/multirootca
+    ldflags:
+      - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+archives:
+  - format: binary
+release:
+  github:
+    owner: cloudflare
+    name: cfssl
+  prerelease: auto
+changelog:
+  sort: asc
