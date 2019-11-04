@@ -36,7 +36,7 @@ SELECT %s FROM certificates
 
 	selectAllUnexpiredRecentChangesOnlyByAKISQL = `
 SELECT %s FROM certificates
-	WHERE (CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ? AND (created_at >= ?) OR (revoked_at >= ?));`
+	WHERE (CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ? AND ((created_at >= ?) OR (revoked_at >= ?)));`
 
 	selectAllRevokedAndUnexpiredWithLabelSQL = `
 SELECT %s FROM certificates
