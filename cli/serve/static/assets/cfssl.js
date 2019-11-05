@@ -121,7 +121,7 @@
               navLink('a', '/bundle', Tformat('bundle.title'))
             ]),
             m('ul.nav.navbar-nav.navbar-right', [
-              m('li', m('a[href="https://pkg.cfssl.org"]', Tformat('common.packages'))),
+              navLink('a', '/packages', Tformat('common.packages')),
               m('li', m('a[href="https://github.com/cloudflare/cfssl"]', 'GitHub')),
             ])
           ])
@@ -226,12 +226,29 @@
     },
     view: function() {
       return appWrapper([
-        m('h1.page-header', 'CFSSL: CloudFlare\'s PKI toolkit'), m('p', [
+        m('h1.page-header', 'CFSSL: Cloudflare\'s PKI toolkit'), m('p', [
           'See ',
           m('a[href="https://blog.cloudflare.com/introducing-cfssl"]', 'blog post'),
           ' or ',
           m('a[href="https://github.com/cloudflare/cfssl"]', 'contribute on GitHub'),
           '.'
+        ])
+      ]);
+    }
+  };
+
+  var packages = {
+    controller: function() {
+      page.title(Tformat('common.packages'));
+      return;
+    },
+    view: function() {
+      return appWrapper([
+        m('h1.page-header', Tformat('common.packages')),
+        m('ul', [
+          m('li', m('a[href="https://github.com/cloudflare/cfssl/releases"]', 'Download binaries (GitHub)')),
+          m('li', m('a[href="https://hub.docker.com/r/cloudflare/cfssl"]', 'Docker images')),
+          m('li', m('a[href="https://pkg.cloudflare.com/"]', 'Install from apt or yum'))
         ])
       ]);
     }
@@ -708,7 +725,8 @@
     '/bundle': bundle,
     '/bundle/:domain': bundle,
     '/scan': scan,
-    '/scan/:domain': scan
+    '/scan/:domain': scan,
+    '/packages': packages
   });
 
   window.scan = scan;
