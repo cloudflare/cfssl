@@ -1,3 +1,6 @@
+VERSION := $(shell git describe --tags --abbrev=0 | tr -d '[:alpha:]')
+LDFLAGS := "-s -w -X github.com/cloudflare/cfssl/cli/version.version=$(VERSION)"
+
 export GOFLAGS := -mod=vendor
 export GOPROXY := off
 
@@ -6,7 +9,7 @@ all: bin/cfssl bin/cfssl-bundle bin/cfssl-certinfo bin/cfssl-newkey bin/cfssl-sc
 
 bin/%: $(shell find . -type f -name '*.go')
 	@mkdir -p $(dir $@)
-	go build -o $@ ./cmd/$(@F)
+	go build -ldflags $(LDFLAGS) -o $@ ./cmd/$(@F)
 
 .PHONY: install
 install: install-cfssl install-cfssl-bundle install-cfssl-certinfo install-cfssl-newkey install-cfssl-scan install-cfssljson install-mkbundle install-multirootca
@@ -29,7 +32,7 @@ bin/goose: $(shell find . -type f -name '*.go')
 
 .PHONY: clean
 clean:
-	rm -rf bin
+	rm -rf bin *.deb *.rpm
 
 # Check that given variables are set and all have non-empty values,
 # die with an error otherwise.
@@ -50,3 +53,31 @@ __check_defined = \
 release:
 	@:$(call check_defined, GITHUB_TOKEN)
 	docker run -e GITHUB_TOKEN=$(GITHUB_TOKEN) --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12 goreleaser --rm-dist
+
+BUILD_PATH   := $(CURDIR)/build
+INSTALL_PATH := $(BUILD_PATH)/usr/local/bin
+
+FPM = fakeroot fpm -C $(BUILD_PATH) \
+	-a $(shell uname -m) \
+	-s dir \
+	-v $(VERSION) \
+	--url 'https://github.com/cloudflare/cfssl' \
+	--vendor Cloudflare \
+	-n cfssl
+
+.PHONY: package
+package: package-deb package-rpm
+
+.PHONY: package-deb
+package-deb: all
+	$(RM) -r build
+	mkdir -p $(INSTALL_PATH)
+	cp bin/* $(INSTALL_PATH)
+	$(FPM) -t deb .
+
+.PHONY: package-rpm
+package-rpm: all
+	$(RM) -r build
+	mkdir -p $(INSTALL_PATH)
+	cp bin/* $(INSTALL_PATH)
+	$(FPM) -t rpm .
