@@ -25,6 +25,9 @@ builds:
     main: ./cmd/cfssl
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: cfssl-windows
     binary: cfssl
     env:
@@ -58,6 +61,9 @@ builds:
     main: ./cmd/cfssl-bundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: cfssl-bundle-windows
     binary: cfssl-bundle
     env:
@@ -91,6 +97,9 @@ builds:
     main: ./cmd/cfssl-certinfo
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: cfssl-certinfo-windows
     binary: cfssl-certinfo
     env:
@@ -124,6 +133,9 @@ builds:
     main: ./cmd/cfssl-newkey
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: cfssl-newkey-windows
     binary: cfssl-newkey
     env:
@@ -157,6 +169,9 @@ builds:
     main: ./cmd/cfssl-scan
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: cfssl-scan-windows
     binary: cfssl-scan
     env:
@@ -190,6 +205,9 @@ builds:
     main: ./cmd/cfssljson
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: cfssljson-windows
     binary: cfssljson
     env:
@@ -223,6 +241,9 @@ builds:
     main: ./cmd/mkbundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: mkbundle-windows
     binary: mkbundle
     env:
@@ -256,6 +277,9 @@ builds:
     main: ./cmd/multirootca
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+      - -linkmode external -extldflags "-static"
+    env:
+      - CC=/usr/bin/musl-gcc
   - id: multirootca-windows
     binary: multirootca
     env:
