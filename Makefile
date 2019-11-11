@@ -49,10 +49,14 @@ __check_defined = \
 	$(if $(value $1),, \
 		$(error Undefined $1$(if $2, ($2))))
 
+.PHONY: snapshot
+snapshot:
+	docker run --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist --snapshot --skip-publish
+
 .PHONY: release
 release:
 	@:$(call check_defined, GITHUB_TOKEN)
-	docker run -e GITHUB_TOKEN=$(GITHUB_TOKEN) --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12 goreleaser --rm-dist
+	docker run -e GITHUB_TOKEN=$(GITHUB_TOKEN) --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist
 
 BUILD_PATH   := $(CURDIR)/build
 INSTALL_PATH := $(BUILD_PATH)/usr/local/bin
