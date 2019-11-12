@@ -52,6 +52,7 @@ type AddRequest struct {
 	Subject   string    `json:"subject"`
 	AKI       string    `json:"authority_key_identifier"`
 	CALabel   string    `json:"ca_label"`
+	CAProfile string    `json:"ca_profile"`
 	Status    string    `json:"status"`
 	Reason    int       `json:"reason"`
 	Expiry    time.Time `json:"expiry"`
@@ -143,6 +144,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		Subject:   req.Subject,
 		AKI:       req.AKI,
 		CALabel:   req.CALabel,
+		CAProfile: req.CAProfile,
 		Status:    req.Status,
 		Reason:    req.Reason,
 		Expiry:    req.Expiry,

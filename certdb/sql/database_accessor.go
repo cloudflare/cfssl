@@ -19,8 +19,8 @@ func init() {
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, subject, authority_key_identifier, ca_label, status, reason, created_at, expiry, revoked_at, pem)
-	VALUES (:serial_number, :subject, :authority_key_identifier, :ca_label, :status, :reason, CURRENT_TIMESTAMP, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (serial_number, subject, authority_key_identifier, ca_label, ca_profile, status, reason, created_at, expiry, revoked_at, pem)
+	VALUES (:serial_number, :subject, :authority_key_identifier, :ca_label, :ca_profile, :status, :reason, CURRENT_TIMESTAMP, :expiry, :revoked_at, :pem);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -112,6 +112,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		Subject:   cr.Subject,
 		AKI:       cr.AKI,
 		CALabel:   cr.CALabel,
+		CAProfile: cr.CAProfile,
 		Status:    cr.Status,
 		Reason:    cr.Reason,
 		Expiry:    cr.Expiry.UTC(),

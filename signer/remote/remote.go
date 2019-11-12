@@ -62,11 +62,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 				Subject: parsedCert.Subject.String(),
 				// this relies on the specific behavior of x509.CreateCertificate
 				// which sets the AuthorityKeyId from the signer's SubjectKeyId
-				AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
-				CALabel: req.Label,
-				Status:  "good",
-				Expiry:  parsedCert.NotAfter,
-				PEM:     string(cert),
+				AKI:       hex.EncodeToString(parsedCert.AuthorityKeyId),
+				CALabel:   req.Label,
+				CAProfile: req.Profile,
+				Status:    "good",
+				Expiry:    parsedCert.NotAfter,
+				PEM:       string(cert),
 			}
 
 			err = s.dbAccessor.InsertCertificate(certRecord)

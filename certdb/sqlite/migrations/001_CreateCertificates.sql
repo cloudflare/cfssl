@@ -6,6 +6,7 @@ CREATE TABLE certificates (
   subject                  blob NOT NULL,
   authority_key_identifier blob NOT NULL,
   ca_label                 blob,
+  ca_profile               blob,
   status                   blob NOT NULL,
   reason                   int,
   created_at               timestamp,

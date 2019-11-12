@@ -11,6 +11,7 @@ type CertificateRecord struct {
 	Subject   string    `db:"subject"`
 	AKI       string    `db:"authority_key_identifier"`
 	CALabel   string    `db:"ca_label"`
+	CAProfile string    `db:"ca_profile"`
 	Status    string    `db:"status"`
 	Reason    int       `db:"reason"`
 	CreatedAt time.Time `db:"created_at"`
