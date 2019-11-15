@@ -13,6 +13,7 @@ CREATE TABLE certificates (
   expiry                   timestamp,
   revoked_at               timestamp,
   pem                      blob NOT NULL,
+  request                  blob,
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
 CREATE INDEX certificates_created_at ON certificates (created_at);

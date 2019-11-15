@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -509,6 +510,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	// AuthorityKeyId of certTBS.
 	parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
 
+	// Create JSON req representation for saving in DB.
+	var reqJSON []byte
+	if reqJSON, err = json.Marshal(req); err != nil {
+		return nil, err
+	}
+
 	if s.dbAccessor != nil {
 		var certRecord = certdb.CertificateRecord{
 			Serial:  certTBS.SerialNumber.String(),
@@ -521,6 +528,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			Status:    "good",
 			Expiry:    certTBS.NotAfter,
 			PEM:       string(signedCert),
+			Request:   string(reqJSON),
 		}
 
 		err = s.dbAccessor.InsertCertificate(certRecord)

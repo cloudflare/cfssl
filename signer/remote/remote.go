@@ -56,6 +56,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		// AuthorityKeyId of certTBS.
 		parsedCert, _ := helpers.ParseCertificatePEM(cert)
 
+		// Create JSON req representation for saving in DB.
+		var reqJSON []byte
+		if reqJSON, err = json.Marshal(req); err != nil {
+			return nil, err
+		}
+
 		if s.dbAccessor != nil {
 			var certRecord = certdb.CertificateRecord{
 				Serial:  parsedCert.SerialNumber.String(),
@@ -68,6 +74,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 				Status:    "good",
 				Expiry:    parsedCert.NotAfter,
 				PEM:       string(cert),
+                Request:   string(reqJSON),
 			}
 
 			err = s.dbAccessor.InsertCertificate(certRecord)

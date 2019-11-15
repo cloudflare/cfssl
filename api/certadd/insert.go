@@ -58,6 +58,7 @@ type AddRequest struct {
 	Expiry    time.Time `json:"expiry"`
 	RevokedAt time.Time `json:"revoked_at"`
 	PEM       string    `json:"pem"`
+	Request   string    `json:"request"`
 }
 
 // Map of valid reason codes
@@ -150,6 +151,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		Expiry:    req.Expiry,
 		RevokedAt: req.RevokedAt,
 		PEM:       req.PEM,
+		Request:   req.Request,
 	}
 
 	err = h.dbAccessor.InsertCertificate(cr)

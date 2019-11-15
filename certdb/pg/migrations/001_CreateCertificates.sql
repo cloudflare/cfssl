@@ -13,6 +13,7 @@ CREATE TABLE certificates (
   expiry                   timestamptz,
   revoked_at               timestamptz,
   pem                      bytea NOT NULL,
+  request                  bytea,
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
 DO $$

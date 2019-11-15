@@ -19,8 +19,8 @@ func init() {
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, subject, authority_key_identifier, ca_label, ca_profile, status, reason, created_at, expiry, revoked_at, pem)
-	VALUES (:serial_number, :subject, :authority_key_identifier, :ca_label, :ca_profile, :status, :reason, CURRENT_TIMESTAMP, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (serial_number, subject, authority_key_identifier, ca_label, ca_profile, status, reason, created_at, expiry, revoked_at, pem, request)
+	VALUES (:serial_number, :subject, :authority_key_identifier, :ca_label, :ca_profile, :status, :reason, CURRENT_TIMESTAMP, :expiry, :revoked_at, :pem, :request);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -118,6 +118,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		Expiry:    cr.Expiry.UTC(),
 		RevokedAt: cr.RevokedAt.UTC(),
 		PEM:       cr.PEM,
+		Request:   cr.Request,
 	})
 	if err != nil {
 		return wrapSQLError(err)

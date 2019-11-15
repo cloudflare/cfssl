@@ -13,6 +13,7 @@ CREATE TABLE certificates (
   expiry                   timestamp DEFAULT '0000-00-00 00:00:00',
   revoked_at               timestamp DEFAULT '0000-00-00 00:00:00',
   pem                      varbinary(4096) NOT NULL,
+  request                  varbinary(8192),
   PRIMARY KEY(serial_number, authority_key_identifier),
   FULLTEXT INDEX certificates_subject (subject),
   INDEX certificates_created_at (created_at),
