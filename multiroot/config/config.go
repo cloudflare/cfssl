@@ -271,7 +271,7 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 
 		pin := cfg["pin"]
 		if pin == "" {
-			return nil, errors.New("config: PKCS11 PIN must be set (pin)")
+            log.Infof("PKCS11 PIN for token %s is not specified in config; please enter it on PIN pad if available", tokenLabel)
 		}
 
 		certificate := cfg["certificate"]
