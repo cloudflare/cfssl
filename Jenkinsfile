@@ -1,9 +1,10 @@
 @Library("release-pipeline") _
 
-IS_DEFAULT_BRANCH = env.BRANCH_NAME == defaultBranch
-def appName = 'cfssl'
+def appName = "cfssl"
 def allServices = [appName]
-def defaultBranch = 'master'
+def defaultBranch = "master"
+
+IS_DEFAULT_BRANCH = env.BRANCH_NAME == defaultBranch
 
 pipeline {
     agent any
