@@ -1,8 +1,8 @@
 @Library("release-pipeline") _
 
-def appName = "cfssl"
+def appName = 'cfssl'
 def allServices = [appName]
-def defaultBranch = "master"
+def defaultBranch = 'master'
 
 IS_DEFAULT_BRANCH = env.BRANCH_NAME == defaultBranch
 
@@ -14,7 +14,7 @@ pipeline {
                 name: 'DEPLOY_TO_DEV',
                 description: 'Check to deploy working branch to dev',
                 defaultValue: IS_DEFAULT_BRANCH,
-        )
+        ),
         booleanParam(
                 name: 'PUBLISH_IMAGE',
                 description: 'Check to publish docker images',
