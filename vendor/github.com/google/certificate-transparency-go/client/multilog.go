@@ -76,8 +76,8 @@ type TemporalLogClient struct {
 
 // NewTemporalLogClient builds a new client for interacting with a temporal log.
 // The provided config should be contiguous and chronological.
-func NewTemporalLogClient(cfg configpb.TemporalLogConfig, hc *http.Client) (*TemporalLogClient, error) {
-	if len(cfg.Shard) == 0 {
+func NewTemporalLogClient(cfg *configpb.TemporalLogConfig, hc *http.Client) (*TemporalLogClient, error) {
+	if len(cfg.GetShard()) == 0 {
 		return nil, errors.New("empty config")
 	}
 
@@ -106,7 +106,7 @@ func NewTemporalLogClient(cfg configpb.TemporalLogConfig, hc *http.Client) (*Tem
 	}
 	clients := make([]*LogClient, 0, len(cfg.Shard))
 	for i, shard := range cfg.Shard {
-		opts := jsonclient.Options{}
+		opts := jsonclient.Options{UserAgent: "ct-go-multilog/1.0"}
 		opts.PublicKeyDER = shard.GetPublicKeyDer()
 		c, err := New(shard.Uri, hc, opts)
 		if err != nil {

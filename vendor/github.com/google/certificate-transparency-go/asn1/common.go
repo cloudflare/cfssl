@@ -75,12 +75,14 @@ type fieldParameters struct {
 	optional     bool   // true iff the field is OPTIONAL
 	explicit     bool   // true iff an EXPLICIT tag is in use.
 	application  bool   // true iff an APPLICATION tag is in use.
+	private      bool   // true iff a PRIVATE tag is in use.
 	defaultValue *int64 // a default value for INTEGER typed fields (maybe nil).
 	tag          *int   // the EXPLICIT or IMPLICIT tag (maybe nil).
 	stringType   int    // the string tag to use when marshaling.
 	timeType     int    // the time tag to use when marshaling.
 	set          bool   // true iff this should be encoded as a SET
 	omitEmpty    bool   // true iff this should be omitted if empty when marshaling.
+	lax          bool   // true iff unmarshalling should skip some error checks
 	name         string // name of field for better diagnostics
 
 	// Invariants:
@@ -131,8 +133,15 @@ func parseFieldParameters(str string) (ret fieldParameters) {
 			if ret.tag == nil {
 				ret.tag = new(int)
 			}
+		case part == "private":
+			ret.private = true
+			if ret.tag == nil {
+				ret.tag = new(int)
+			}
 		case part == "omitempty":
 			ret.omitEmpty = true
+		case part == "lax":
+			ret.lax = true
 		}
 	}
 	return

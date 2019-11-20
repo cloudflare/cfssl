@@ -56,18 +56,8 @@ func New(uri string, hc *http.Client, opts jsonclient.Options) (*LogClient, erro
 	return &LogClient{*logClient}, err
 }
 
-// RspError represents an error that occurred when processing a response from  a server,
-// and also includes key details from the http.Response that triggered the error.
-type RspError struct {
-	Err        error
-	StatusCode int
-	Body       []byte
-}
-
-// Error formats the RspError instance, focusing on the error.
-func (e RspError) Error() string {
-	return e.Err.Error()
-}
+// RspError represents a server error including HTTP information.
+type RspError = jsonclient.RspError
 
 // Attempts to add |chain| to the log, using the api end-point specified by
 // |path|. If provided context expires before submission is complete an
@@ -81,9 +71,6 @@ func (c *LogClient) addChainWithRetry(ctx context.Context, ctype ct.LogEntryType
 
 	httpRsp, body, err := c.PostAndParseWithRetry(ctx, path, &req, &resp)
 	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
 		return nil, err
 	}
 
@@ -138,9 +125,6 @@ func (c *LogClient) AddJSON(ctx context.Context, data interface{}) (*ct.SignedCe
 	var resp ct.AddChainResponse
 	httpRsp, body, err := c.PostAndParse(ctx, ct.AddJSONPath, &req, &resp)
 	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
 		return nil, err
 	}
 	var ds ct.DigitallySigned
@@ -171,9 +155,6 @@ func (c *LogClient) GetSTH(ctx context.Context) (*ct.SignedTreeHead, error) {
 	var resp ct.GetSTHResponse
 	httpRsp, body, err := c.GetAndParse(ctx, ct.GetSTHPath, nil, &resp)
 	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
 		return nil, err
 	}
 
@@ -220,11 +201,7 @@ func (c *LogClient) GetSTHConsistency(ctx context.Context, first, second uint64)
 		"second": strconv.FormatUint(second, base10),
 	}
 	var resp ct.GetSTHConsistencyResponse
-	httpRsp, body, err := c.GetAndParse(ctx, ct.GetSTHConsistencyPath, params, &resp)
-	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
+	if _, _, err := c.GetAndParse(ctx, ct.GetSTHConsistencyPath, params, &resp); err != nil {
 		return nil, err
 	}
 	return resp.Consistency, nil
@@ -239,11 +216,7 @@ func (c *LogClient) GetProofByHash(ctx context.Context, hash []byte, treeSize ui
 		"hash":      b64Hash,
 	}
 	var resp ct.GetProofByHashResponse
-	httpRsp, body, err := c.GetAndParse(ctx, ct.GetProofByHashPath, params, &resp)
-	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
+	if _, _, err := c.GetAndParse(ctx, ct.GetProofByHashPath, params, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -254,9 +227,6 @@ func (c *LogClient) GetAcceptedRoots(ctx context.Context) ([]ct.ASN1Cert, error)
 	var resp ct.GetRootsResponse
 	httpRsp, body, err := c.GetAndParse(ctx, ct.GetRootsPath, nil, &resp)
 	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
 		return nil, err
 	}
 	var roots []ct.ASN1Cert
@@ -278,11 +248,7 @@ func (c *LogClient) GetEntryAndProof(ctx context.Context, index, treeSize uint64
 		"tree_size":  strconv.FormatUint(treeSize, base10),
 	}
 	var resp ct.GetEntryAndProofResponse
-	httpRsp, body, err := c.GetAndParse(ctx, ct.GetEntryAndProofPath, params, &resp)
-	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
+	if _, _, err := c.GetAndParse(ctx, ct.GetEntryAndProofPath, params, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
