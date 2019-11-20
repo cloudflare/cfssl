@@ -1,0 +1,46 @@
+---
+#
+# This is a file with default chart values
+#
+# Tip:
+#
+# You must add here any values that required in templates.
+# If you miss some of them, you will see an error after `helm lint charts/project-demo` command execution, such as:
+#
+# [ERROR] templates/: render error in "project-demo/templates/secret.yaml":
+# template: project-demo/templates/secret.yaml:14:48: executing "project-demo/templates/secret.yaml" at <b64enc>
+#
+replicas:
+  cfssl: 1
+
+# Do NOT set the image hash manually. Jenkins will do this for you.
+imageVersion: "master"
+imageName: "cfssl-intelity"
+imagePullPolicy: "Always"
+
+# CI which built the chart
+ciBuildNumber: "none"
+ciUser: "none"
+ciBranch: "none"
+
+# CI which deployed the chart
+ciDeployBuildNumber: "none"
+ciDeployUser: "none"
+
+# if the variable is changed in runtime, pods will be updated
+# Check this: https://github.com/kubernetes/kubernetes/issues/13488#issuecomment-240393845
+ciDummyRestart: "none"
+
+defaultServicePort: 80
+defaultContainerPort: 8888
+
+# This is a dirty hack. Templates in Helm don't allow to directly set variables.
+# A "Variable" it's just a link to some object.
+# So we need to define this "object" and create "variable" that points to it.
+# And this "variable" can be used then.
+# Usage example:
+# metadata:
+# {{- $appName := index .Values "apps" "cfssl" }}
+#   name: {{ $appName }}
+apps:
+  cfssl: cfssl

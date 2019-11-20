@@ -1,0 +1,39 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+{{- $appName := index .Values "apps" "cfssl" }}
+  name: {{ $appName }}
+spec:
+  selector:
+    # https://github.com/kubernetes/kubernetes/issues/26202
+    matchLabels:
+      name: {{ $appName }}
+{{ include "cfssl.labels-selector" . | indent 6 }}
+  replicas: {{ index .Values "replicas" $appName }}
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        name: {{ $appName }}
+{{ include "cfssl.labels" . | indent 8 }}
+    spec:
+      imagePullSecrets:
+        - name: keypr-docker-registry
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: cfssl-config
+      containers:
+        - name: {{ $appName }}
+          env:
+{{ include "cfssl.envs" . | indent 12 }}
+          volumeMounts:
+            - name: secret-volume
+              mountPath: /etc/cfssl-config
+              readOnly: true
+          image: registry.keypr.com/{{ .Values.imageName }}:{{ .Values.imageVersion }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: [ "cfssl", "serve", "-ca", "/etc/cfssl-config/ca-cert", "-ca-key", "/etc/cfssl-config/ca-key", "-config", "/etc/cfssl-config/ca-config", "-port", "8888", "-address", "0.0.0.0" ]
+          ports:
+            - containerPort: {{ .Values.defaultContainerPort }}

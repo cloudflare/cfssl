@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: Service
+{{- $appName := index .Values "apps" "cfssl" }}
+metadata:
+  labels:
+    name: {{ $appName }}-svc
+{{ include "cfssl.labels" . | indent 4 }}
+  name: {{ $appName }}-svc
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+    service.beta.kubernetes.io/aws-load-balancer-access-log-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-access-log-s3-bucket-name: "keypr-elb-logs"
+spec:
+  ports:
+    - port: {{ .Values.defaultServicePort }}
+      targetPort: {{ .Values.defaultContainerPort }}
+      name: {{ $appName }}-port
+  selector:
+    name: {{ $appName }}
+  type: LoadBalancer
