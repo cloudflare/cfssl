@@ -55,7 +55,7 @@ pipeline {
                 }
                 script {
                     commitId = gitCommitId()
-                    appEnv = dockerBuild(appName, commitId)
+                    appEnv = dockerBuild(appName, commitId, ['dockerFile': "Dockerfile.minimal"])
                     dockerTag(appName, commitId, allServices)
                 }
             }
