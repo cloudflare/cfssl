@@ -1,6 +1,6 @@
 @Library("release-pipeline") _
 
-def appName = 'cfssl'
+def appName = 'cfssl-intelity'
 def allServices = [appName]
 def defaultBranch = 'master'
 
