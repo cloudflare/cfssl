@@ -26,7 +26,6 @@ pipeline {
         timeout(time: 15, unit: 'MINUTES')
         ansiColor('xterm')
         timestamps()
-        dockerFile('Dockerfile.minimal')
     }
 
     stages {
