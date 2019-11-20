@@ -15,7 +15,7 @@ replicas:
 
 # Do NOT set the image hash manually. Jenkins will do this for you.
 imageVersion: "master"
-imageName: "cfssl-intelity"
+imageName: "cfssl"
 imagePullPolicy: "Always"
 
 # CI which built the chart
