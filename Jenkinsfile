@@ -4,7 +4,6 @@ IS_DEFAULT_BRANCH = env.BRANCH_NAME == defaultBranch
 def appName = 'cfssl'
 def allServices = [appName]
 def defaultBranch = 'master'
-def options = options.dockerFile ?: 'Dockerfile.minimal'
 
 pipeline {
     agent any
@@ -27,6 +26,7 @@ pipeline {
         timeout(time: 15, unit: 'MINUTES')
         ansiColor('xterm')
         timestamps()
+        dockerFile('Dockerfile.minimal')
     }
 
     stages {
@@ -35,16 +35,7 @@ pipeline {
                 ansiColor('xterm') {
                     println '\033[1;4;37;42mStage "Checkout"\033[0m'
                 }
-
                 gitCheckout()
-
-                ci_user = 'GitHub'
-                  wrap([$class: 'BuildUser']) {
-                    ci_user = env.BUILD_USER ?: 'GitHub'
-                 }
-
-                currentBuild.displayName = "#${env.BUILD_NUMBER}"
-                currentBuild.description = "by ${ci_user}"
             }
         }
 
