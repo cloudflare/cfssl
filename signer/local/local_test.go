@@ -363,6 +363,12 @@ var csrTests = []csrTest{
 		keyLen:        2048,
 		errorCallback: nil,
 	},
+	{
+		file:          "testdata/ed25519.csr",
+		keyAlgo:       "ed25519",
+		keyLen:        256,
+		errorCallback: nil,
+	},
 }
 
 func TestSignCSRs(t *testing.T) {

@@ -3,6 +3,7 @@ package helpers
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -102,10 +103,19 @@ func TestKeyLength(t *testing.T) {
 	rsaIn, _ := rsaPriv.Public().(*rsa.PublicKey)
 	expRsa := rsaIn.N.BitLen()
 	outRsa := KeyLength(rsaIn)
-
 	if expRsa != outRsa {
 		t.Fatal("KeyLength malfunctioning on rsa input")
 	}
+
+	//test the ed25519 branch
+	_, ed25519priv, _ := ed25519.GenerateKey(rand.Reader)
+	ed25519In, _ := ed25519priv.Public().(ed25519.PublicKey)
+	expEd25519 := len(ed25519In)
+	outEd25519 := KeyLength(ed25519In)
+	if expEd25519 != outEd25519 {
+		t.Fatal("KeyLength malfunctioning on ed25519 input")
+	}
+
 }
 
 func TestExpiryTime(t *testing.T) {
@@ -219,6 +229,9 @@ func TestHashAlgoString(t *testing.T) {
 	if HashAlgoString(x509.ECDSAWithSHA512) != "SHA512" {
 		t.Fatal("standin")
 	}
+	if HashAlgoString(x509.PureEd25519) != "ED25519" {
+		t.Fatal("standin")
+	}
 	if HashAlgoString(math.MaxInt32) != "Unknown Hash Algorithm" {
 		t.Fatal("standin")
 	}
@@ -259,6 +272,9 @@ func TestSignatureString(t *testing.T) {
 		t.Fatal("Signature String functioning improperly")
 	}
 	if SignatureString(x509.ECDSAWithSHA512) != "ECDSAWithSHA512" {
+		t.Fatal("Signature String functioning improperly")
+	}
+	if SignatureString(x509.PureEd25519) != "ED25519" {
 		t.Fatal("Signature String functioning improperly")
 	}
 	if SignatureString(math.MaxInt32) != "Unknown Signature" {
