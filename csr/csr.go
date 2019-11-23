@@ -4,6 +4,7 @@ package csr
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -12,6 +13,8 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
+	"io"
 	"net"
 	"net/mail"
 	"net/url"
@@ -72,6 +75,15 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 			return nil, errors.New("RSA key size too large")
 		}
 		return rsa.GenerateKey(rand.Reader, kr.Size())
+	case "ed25519":
+		if kr.Size() != 256 && kr.Size() != 0 {
+			return nil, errors.New("ED25519 keys are always 256Bit")
+		}
+		seed := make([]byte, ed25519.SeedSize)
+		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
+			return nil, err
+		}
+		return ed25519.NewKeyFromSeed(seed), nil
 	case "ecdsa":
 		var curve elliptic.Curve
 		switch kr.Size() {
@@ -105,6 +117,8 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
+	case "ed25519":
+		return x509.PureEd25519
 	case "ecdsa":
 		switch kr.Size() {
 		case curveP521:
@@ -203,6 +217,16 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 		block := pem.Block{
 			Type:  "RSA PRIVATE KEY",
 			Bytes: key,
+		}
+		key = pem.EncodeToMemory(&block)
+	case ed25519.PrivateKey:
+		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+
+		}
+		block := pem.Block{
+			Type:    "PRIVATE KEY",
+			Bytes:   key,
 		}
 		key = pem.EncodeToMemory(&block)
 	case *ecdsa.PrivateKey:

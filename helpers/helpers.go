@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/tls"
@@ -62,6 +63,8 @@ func KeyLength(key interface{}) int {
 		return ecdsaKey.Curve.Params().BitSize
 	} else if rsaKey, ok := key.(*rsa.PublicKey); ok {
 		return rsaKey.N.BitLen()
+	} else if _, ok := key.(ed25519.PublicKey); ok {
+		return ed25519.PublicKeySize
 	}
 
 	return 0
@@ -146,6 +149,8 @@ func SignatureString(alg x509.SignatureAlgorithm) string {
 		return "ECDSAWithSHA384"
 	case x509.ECDSAWithSHA512:
 		return "ECDSAWithSHA512"
+	case x509.PureEd25519:
+		return "ED25519"
 	default:
 		return "Unknown Signature"
 	}
@@ -179,6 +184,8 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 		return "SHA384"
 	case x509.ECDSAWithSHA512:
 		return "SHA512"
+	case x509.PureEd25519:
+		return "ED25519"
 	default:
 		return "Unknown Hash Algorithm"
 	}
@@ -460,6 +467,8 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
+	case ed25519.PublicKey:
+		return x509.PureEd25519
 	case *ecdsa.PublicKey:
 		switch pub.Curve {
 		case elliptic.P521():

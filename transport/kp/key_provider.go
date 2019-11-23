@@ -15,6 +15,7 @@ package kp
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -22,6 +23,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"io/ioutil"
 	"strings"
 
@@ -210,6 +212,19 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		}
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
+	case "ed25519":
+		_, priv, err := ed25519.GenerateKey(rand.Reader)
+
+		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			return err
+		}
+		p := &pem.Block{
+			Type:    "PRIVATE KEY",
+			Bytes:   keyPEM,
+		}
+		sp.internal.keyPEM = pem.EncodeToMemory(p)
+		sp.internal.priv = priv
 	case "ecdsa":
 		var priv *ecdsa.PrivateKey
 		var curve elliptic.Curve
@@ -243,7 +258,7 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 
 		sp.internal.priv = priv
 	default:
-		return errors.New("transport: invalid key algorithm; only RSA and ECDSA are supported")
+		return errors.New("transport: invalid key algorithm; only RSA, ED25519 and ECDSA are supported")
 	}
 
 	return nil
@@ -317,6 +332,11 @@ func (sp *StandardProvider) Load() (err error) {
 	case *rsa.PublicKey:
 		if p.Type != "RSA PRIVATE KEY" {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an RSA key")
+			return
+		}
+	case *ed25519.PublicKey:
+		if p.Type != "ED25519 PRIVATE KEY" && p.Type != "PRIVATE KEY" {
+			err = errors.New("transport: PEM type" + p.Type + "is invalid for an ED25519 key")
 			return
 		}
 	case *ecdsa.PublicKey:
