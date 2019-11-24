@@ -5,11 +5,11 @@ package derhelpers
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 
 	cferr "github.com/cloudflare/cfssl/errors"
-	"golang.org/x/crypto/ed25519"
 )
 
 // ParsePrivateKeyDER parses a PKCS #1, PKCS #8, ECDSA, or Ed25519 DER-encoded
