@@ -4,6 +4,7 @@ package generator
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -35,6 +36,7 @@ specifically, section 10.2.3 ("Information Requirements").`
 type Sum struct {
 	MD5  string `json:"md5"`
 	SHA1 string `json:"sha-1"`
+	SHA256 string `json:"sha-256"`
 }
 
 // Validator is a type of function that contains the logic for validating
@@ -97,8 +99,10 @@ func computeSum(in []byte) (sum Sum, err error) {
 
 	md5Sum := md5.Sum(data)
 	sha1Sum := sha1.Sum(data)
+	sha256Sum := sha256.Sum256(data)
 	sum.MD5 = fmt.Sprintf("%X", md5Sum[:])
 	sum.SHA1 = fmt.Sprintf("%X", sha1Sum[:])
+	sum.SHA256 = fmt.Sprintf("%X", sha256Sum[:])
 	return
 }
 
