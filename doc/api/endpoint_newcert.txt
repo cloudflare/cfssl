@@ -50,11 +50,13 @@ Example:
         "sums": {
             "certificate": {
                 "md5": "E9308D1892F1B77E6721EA2F79C026BE",
-                "sha-1": "4640E6DEC2C40B74F46C409C1D31928EE0073D25"
+                "sha-1": "4640E6DEC2C40B74F46C409C1D31928EE0073D25",
+                "sha-256": "8812010B59EB8C00CDD9292078717216B131A710703F18A4DFB94AC166F507DF"
             },
             "certificate_request": {
                 "md5": "AA924136405006E36CEE39FED9CBA5D7",
-                "sha-1": "DF955A43DF669D38E07BF0479789D13881DC9024"
+                "sha-1": "DF955A43DF669D38E07BF0479789D13881DC9024",
+                "sha-256": "C7600A68BDB689346E2E4438A374606DFC3FFD3B6B9722E0A8CB32AA88FBA686"
             }
         }
     },
