@@ -3,7 +3,6 @@ language: go
 
 matrix:
   include:
-    - go: 1.12.x
     - go: 1.13.x
 
 # Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
