@@ -118,7 +118,7 @@ func (src RedisSource) Response(req *ocsp.Request) ([]byte, http.Header, error) 
 	// Search for OCSP response body in redis using sha1(AKI+SerialNumber) as key.
 	resp, err := redis.Bytes(redisConn.Do("GET", sha1.Sum(append(req.IssuerKeyHash, req.SerialNumber.Bytes()...))))
 
-	if err == redis.ErrNil || len(resp) == 0 {
+	if err == redis.ErrNil {
 		return nil, nil, ErrNotFound
 	}
 
@@ -429,6 +429,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		if err == ErrNotFound {
 			log.Infof("No response found for request: serial %x, request body %s",
 				ocspRequest.SerialNumber, b64Body)
+			response.WriteHeader(http.StatusOK)
 			response.Write(unauthorizedErrorResponse)
 			if rs.stats != nil {
 				rs.stats.ResponseStatus(ocsp.Unauthorized)
@@ -437,10 +438,10 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		}
 		log.Infof("Error retrieving response for request: serial %x, request body %s, error: %s",
 			ocspRequest.SerialNumber, b64Body, err)
-		response.WriteHeader(http.StatusInternalServerError)
-		response.Write(internalErrorErrorResponse)
+		response.WriteHeader(http.StatusOK)
+		response.Write(tryLaterErrorResponse)
 		if rs.stats != nil {
-			rs.stats.ResponseStatus(ocsp.InternalError)
+			rs.stats.ResponseStatus(ocsp.TryLater)
 		}
 		return
 	}
@@ -449,9 +450,10 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	if err != nil {
 		log.Errorf("Error parsing response for serial %x: %s",
 			ocspRequest.SerialNumber, err)
-		response.Write(internalErrorErrorResponse)
+		response.WriteHeader(http.StatusOK)
+		response.Write(tryLaterErrorResponse)
 		if rs.stats != nil {
-			rs.stats.ResponseStatus(ocsp.InternalError)
+			rs.stats.ResponseStatus(ocsp.TryLater)
 		}
 		return
 	}
