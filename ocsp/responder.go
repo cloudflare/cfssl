@@ -116,13 +116,18 @@ func (src RedisSource) Response(req *ocsp.Request) ([]byte, http.Header, error) 
 	defer redisConn.Close()
 
 	// Search for OCSP response body in redis using sha1(AKI+SerialNumber) as key.
-	resp, err := redisConn.Do("GET", sha1.Sum(append(req.IssuerKeyHash, req.SerialNumber.Bytes()...)))
+	resp, err := redis.Bytes(redisConn.Do("GET", sha1.Sum(append(req.IssuerKeyHash, req.SerialNumber.Bytes()...))))
+
+	if err == redis.ErrNil || len(resp) == 0 {
+		return nil, nil, ErrNotFound
+	}
+
 	if err != nil {
 		log.Errorf("Error obtaining OCSP response from redis: %s", err)
 		return nil, nil, fmt.Errorf("failed to obtain OCSP response from redis: %s", err)
 	}
 
-	return resp.([]byte), nil, nil
+	return resp, nil, nil
 }
 
 // An InMemorySource is a map from serialNumber -> der(response)
