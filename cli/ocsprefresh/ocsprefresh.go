@@ -105,7 +105,7 @@ func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
 	if k == "" {
 		k = c.KeyFile
 	}
-	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval))
+	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval), nil)
 }
 
 // Command assembles the definition of Command 'ocsprefresh'

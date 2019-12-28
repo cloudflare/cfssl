@@ -142,7 +142,7 @@ var endpoints = map[string]func() (http.Handler, error){
 			return nil, errBadSigner
 		}
 
-		h, err := signhandler.NewAuthHandlerFromSigner(s)
+		h, err := signhandler.NewAuthHandlerFromSigner(s, ocspSigner)
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +309,7 @@ func serverMain(args []string, c cli.Config) error {
 		log.Warningf("couldn't initialize signer: %v", err)
 	}
 
-	if ocspSigner, err = ocspsign.SignerFromConfig(c); err != nil {
+	if ocspSigner, err = ocspsign.SignerFromConfig(c, db); err != nil {
 		log.Warningf("couldn't initialize ocsp signer: %v", err)
 	}
 
