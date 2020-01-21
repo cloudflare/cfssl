@@ -412,5 +412,3 @@ Then building with `go build` will use the embedded resources.
 Additional documentation can be found in the "doc" directory:
 
 * `api/intro.txt`: documents the API endpoints
-* `bootstrap.txt`: a walkthrough from building the package to getting
-  up and running
