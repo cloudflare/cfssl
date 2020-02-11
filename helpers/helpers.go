@@ -18,7 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
 	"golang.org/x/crypto/ocsp"
@@ -378,7 +378,15 @@ func ParsePrivateKeyPEMWithPassword(keyPEM []byte, password []byte) (key crypto.
 
 // GetKeyDERFromPEM parses a PEM-encoded private key and returns DER-format key bytes.
 func GetKeyDERFromPEM(in []byte, password []byte) ([]byte, error) {
-	keyDER, _ := pem.Decode(in)
+	// Ignore any EC PARAMETERS blocks when looking for a key (openssl includes
+	// them by default).
+	var keyDER *pem.Block
+	for {
+		keyDER, in = pem.Decode(in)
+		if keyDER == nil || keyDER.Type != "EC PARAMETERS" {
+			break
+		}
+	}
 	if keyDER != nil {
 		if procType, ok := keyDER.Headers["Proc-Type"]; ok {
 			if strings.Contains(procType, "ENCRYPTED") {
