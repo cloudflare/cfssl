@@ -32,6 +32,7 @@ const (
 	testPrivateRSAKey            = "testdata/priv_rsa_key.pem"
 	testPrivateECDSAKey          = "testdata/private_ecdsa_key.pem"
 	testPrivateEd25519Key        = "testdata/private_ed25519_key.pem"
+	testPrivateOpenSSLECKey      = "testdata/openssl_secp384.pem"
 	testUnsupportedECDSAKey      = "testdata/secp256k1-key.pem"
 	testMessedUpPrivateKey       = "testdata/messed_up_priv_key.pem"
 	testEncryptedPrivateKey      = "testdata/enc_priv_key.pem"
@@ -374,7 +375,18 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	_, err = ParsePrivateKeyPEM(testEd25519PEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testOpenSSLECKey, err := ioutil.ReadFile(testPrivateOpenSSLECKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ParsePrivateKeyPEM(testOpenSSLECKey)
 	if err != nil {
 		t.Fatal(err)
 	}
