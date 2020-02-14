@@ -51,10 +51,11 @@ var validConfig = &Config{
 				Expiry: expiry,
 			},
 			"valid-lint": {
-				Usage:        []string{"digital signature"},
-				Expiry:       expiry,
-				LintErrLevel: 5,
-				IgnoredLints: []string{"n_subject_common_name_included"},
+				Usage:              []string{"digital signature"},
+				Expiry:             expiry,
+				LintErrLevel:       5,
+				ExcludeLints:       []string{"n_subject_common_name_included"},
+				ExcludeLintSources: []string{"ETSI-ESI"},
 			},
 		},
 		Default: &SigningProfile{
@@ -389,20 +390,32 @@ func TestParse(t *testing.T) {
 
 }
 
-func TestPopulateIgnoredLintsMap(t *testing.T) {
-	lintName := "n_subject_common_name_included"
+func TestPopulateLintRegistry(t *testing.T) {
+	excludedLintName := "n_subject_common_name_included"
+	etsiLintName := "w_qcstatem_qctype_web"
 	profile := &SigningProfile{
-		ExpiryString: "300s",
-		IgnoredLints: []string{lintName},
+		ExpiryString:       "300s",
+		ExcludeLints:       []string{excludedLintName},
+		ExcludeLintSources: []string{"ETSI_ESI"},
 	}
 
 	if err := profile.populate(nil); err != nil {
 		t.Fatal("unexpected error from profile populate")
 	}
 
-	if !profile.IgnoredLintsMap[lintName] {
-		t.Errorf("expected to find lint %q in ignored lints map after populate()",
-			lintName)
+	// The LintRegistry shouldn't be nil.
+	if profile.LintRegistry == nil {
+		t.Errorf("expected to find non-nil lint registry after populate()")
+	}
+
+	// The excluded lint shouldn't be found in the registry
+	if l := profile.LintRegistry.ByName(excludedLintName); l != nil {
+		t.Errorf("expected lint name %q to be filtered out, found %v", excludedLintName, l)
+	}
+
+	// A lint from the excluded source category shouldn't be found in the registry.
+	if l := profile.LintRegistry.ByName(etsiLintName); l != nil {
+		t.Errorf("expected lint name %q to be filtered out, found %v", etsiLintName, l)
 	}
 }
 
