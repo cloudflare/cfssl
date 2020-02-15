@@ -288,6 +288,7 @@ func OverrideHosts(template *x509.Certificate, hosts []string) {
 // certificate or certificate request with the signing profile,
 // specified by profileName.
 func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
+	log.Debug("sign ", req)
 	profile, err := signer.Profile(s, req.Profile)
 	if err != nil {
 		return

@@ -19,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/log"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/info"
 )
@@ -172,6 +173,7 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
 func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certificate, err error) {
+	log.Debug("csrBytes ", csrBytes)
 	csrv, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
@@ -193,11 +195,14 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
+		Extensions:			csrv.Extensions,
+		ExtraExtensions:	[]pkix.Extension{},
 	}
 
 	for _, val := range csrv.Extensions {
 		// Check the CSR for the X.509 BasicConstraints (RFC 5280, 4.2.1.9)
 		// extension and append to template if necessary
+		log.Debug("Extension", val)
 		if val.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 19}) {
 			var constraints csr.BasicConstraints
 			var rest []byte
@@ -212,6 +217,8 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 			template.IsCA = constraints.IsCA
 			template.MaxPathLen = constraints.MaxPathLen
 			template.MaxPathLenZero = template.MaxPathLen == 0
+		} else {
+			template.ExtraExtensions = append(template.ExtraExtensions, val)
 		}
 	}
 
