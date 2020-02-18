@@ -298,6 +298,23 @@ type SignedTreeHead struct {
 	LogID             SHA256Hash      `json:"log_id"`              // The SHA256 hash of the log's public key
 }
 
+func (s SignedTreeHead) String() string {
+	sigStr, err := s.TreeHeadSignature.Base64String()
+	if err != nil {
+		sigStr = tls.DigitallySigned(s.TreeHeadSignature).String()
+	}
+
+	// If the LogID field in the SignedTreeHead is empty, don't include it in
+	// the string.
+	var logIDStr string
+	if id, empty := s.LogID, (SHA256Hash{}); id != empty {
+		logIDStr = fmt.Sprintf("LogID:%s, ", id.Base64String())
+	}
+
+	return fmt.Sprintf("{%sTreeSize:%d, Timestamp:%d, SHA256RootHash:%q, TreeHeadSignature:%q}",
+		logIDStr, s.TreeSize, s.Timestamp, s.SHA256RootHash.Base64String(), sigStr)
+}
+
 // TreeHeadSignature holds the data over which the signature in an STH is
 // generated; see section 3.5
 type TreeHeadSignature struct {
@@ -452,7 +469,7 @@ type AddJSONRequest struct {
 	Data interface{} `json:"data"`
 }
 
-// GetSTHResponse respresents the JSON response to the get-sth GET method from section 4.3.
+// GetSTHResponse represents the JSON response to the get-sth GET method from section 4.3.
 type GetSTHResponse struct {
 	TreeSize          uint64 `json:"tree_size"`           // Number of certs in the current tree
 	Timestamp         uint64 `json:"timestamp"`           // Time that the tree was created

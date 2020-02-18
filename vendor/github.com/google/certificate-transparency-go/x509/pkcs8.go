@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/certificate-transparency-go/asn1"
 	"github.com/google/certificate-transparency-go/x509/pkix"
+	"golang.org/x/crypto/ed25519"
 )
 
 // pkcs8 reflects an ASN.1, PKCS#8 PrivateKey. See
@@ -51,13 +52,20 @@ func ParsePKCS8PrivateKey(der []byte) (key interface{}, err error) {
 		}
 		return key, nil
 
+	case privKey.Algo.Algorithm.Equal(OIDPublicKeyEd25519):
+		key, err = ParseEd25519PrivateKey(privKey.PrivateKey)
+		if err != nil {
+			return nil, errors.New("x509: failed to parse Ed25519 private key embedded in PKCS#8: " + err.Error())
+		}
+		return key, nil
+
 	default:
 		return nil, fmt.Errorf("x509: PKCS#8 wrapping contained private key with unknown algorithm: %v", privKey.Algo.Algorithm)
 	}
 }
 
 // MarshalPKCS8PrivateKey converts a private key to PKCS#8 encoded form.
-// The following key types are supported: *rsa.PrivateKey, *ecdsa.PublicKey.
+// The following key types are supported: *rsa.PrivateKey, *ecdsa.PrivateKey.
 // Unsupported key types result in an error.
 //
 // See RFC 5208.
@@ -94,9 +102,35 @@ func MarshalPKCS8PrivateKey(key interface{}) ([]byte, error) {
 			return nil, errors.New("x509: failed to marshal EC private key while building PKCS#8: " + err.Error())
 		}
 
+	case ed25519.PrivateKey:
+		privKey.Algo = pkix.AlgorithmIdentifier{Algorithm: OIDPublicKeyEd25519}
+		var err error
+		if privKey.PrivateKey, err = MarshalEd25519PrivateKey(k); err != nil {
+			return nil, fmt.Errorf("x509: failed to marshal Ed25519 private key while building PKCS#8: %v", err)
+		}
+
 	default:
 		return nil, fmt.Errorf("x509: unknown key type while marshalling PKCS#8: %T", key)
 	}
 
 	return asn1.Marshal(privKey)
+}
+
+// MarshalEd25519PrivateKey converts an Ed25519 private key to ASN.1 DER encoded form
+// (as an OCTET STRING holding the key seed, as per RFC 8410 section 7).
+func MarshalEd25519PrivateKey(key ed25519.PrivateKey) ([]byte, error) {
+	return asn1.Marshal(key.Seed())
+}
+
+// ParseEd25519PrivateKey returns an Ed25519 private key from its ASN.1 DER encoded form
+// (as an OCTET STRING holding the key seed, as per RFC 8410 section 7).
+func ParseEd25519PrivateKey(der []byte) (ed25519.PrivateKey, error) {
+	var keySeed []byte
+	if _, err := asn1.Unmarshal(der, &keySeed); err != nil {
+		return nil, err
+	}
+	if len(keySeed) != ed25519.SeedSize {
+		return nil, fmt.Errorf("x509: ed25519 seed length should be %d bytes, got %d", ed25519.SeedSize, len(keySeed))
+	}
+	return ed25519.NewKeyFromSeed(keySeed), nil
 }

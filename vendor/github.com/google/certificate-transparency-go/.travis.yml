@@ -1,34 +1,34 @@
 sudo: true  # required for CI push into Kubernetes.
-language: go
 os: linux
-go: "1.10"
-
+dist: xenial
+language: go
+go: "1.11.x"
 go_import_path: github.com/google/certificate-transparency-go
 
+
 env:
-  - GCE_CI=${ENABLE_GCE_CI} GOFLAGS=
-  - GOFLAGS=-race
-  - GOFLAGS=      WITH_ETCD=true WITH_COVERAGE=true
-  - GOFLAGS=-race WITH_ETCD=true
+  global:
+  - GO111MODULE=on
+  - GOPROXY=https://proxy.golang.org
+  matrix:
+  - GOFLAGS=
+  - GOFLAGS=-race                PRESUBMIT_OPTS="--no-linters"
+  - GOFLAGS=      WITH_ETCD=true PRESUBMIT_OPTS="--no-linters --coverage"
+  - GOFLAGS=-race WITH_ETCD=true PRESUBMIT_OPTS="--no-linters"
+    # The CT integration tests do not currently use a pkcs11 key. This only tests the build.
+  - GOFLAGS='-race --tags=pkcs11' WITH_PKCS11=true PRESUBMIT_OPTS="--no-linters"
+
 
 matrix:
   fast_finish: true
 
-addons:
-  apt:
-    sources:
-      - mysql-5.7-trusty
-    packages:
-      - mysql-server
-      - mysql-client
+cache:
+  directories:
+    - "$HOME/gopath/pkg/mod"
 
 services:
   - docker
-
-before_install:
-  - sudo mysql -e "use mysql; update user set authentication_string=PASSWORD('') where User='root'; update user set plugin='mysql_native_password';FLUSH PRIVILEGES;"
-  - sudo mysql_upgrade
-  - sudo service mysql restart
+  - mysql
 
 install:
   - mkdir ../protoc
@@ -39,23 +39,22 @@ install:
       unzip protoc-3.5.1-${TRAVIS_OS_NAME}-x86_64.zip
     )
   - export PATH=$(pwd)/../protoc/bin:$PATH
-  - go get -d -t ./...
-  - go get github.com/alecthomas/gometalinter
-  - gometalinter --install
-  - go get -u github.com/golang/protobuf/proto
-  - go get -u github.com/golang/protobuf/protoc-gen-go
-  - go install github.com/golang/mock/mockgen
-  # install vendored etcd binary
-  - go install ./vendor/github.com/coreos/etcd/cmd/etcd
-  - go install ./vendor/github.com/coreos/etcd/cmd/etcdctl
-  - pushd ${GOPATH}/src/github.com/google/trillian
-  - go get -d -t ./...
-  - popd
+  - GOPROXY=direct go install
+     github.com/golangci/golangci-lint/cmd/golangci-lint
+     github.com/golang/protobuf/proto
+     github.com/golang/protobuf/protoc-gen-go
+     github.com/golang/mock/mockgen
+     go.etcd.io/etcd
+     go.etcd.io/etcd/etcdctl
+
+before_script:
+  - bash $(go list -f '{{.Dir}}' github.com/google/trillian)/scripts/resetdb.sh --force
+  - ./scripts/resetctdb.sh --force
 
 script:
   - set -e
   - cd $HOME/gopath/src/github.com/google/certificate-transparency-go
-  - ./scripts/presubmit.sh ${PRESUBMIT_OPTS} ${WITH_COVERAGE:+--coverage}
+  - ./scripts/presubmit.sh ${PRESUBMIT_OPTS}
   - |
       # Check re-generation didn't change anything
       status=$(git status --porcelain | grep -v coverage) || :
@@ -76,12 +75,3 @@ script:
 after_success:
   - cp /tmp/coverage.txt .
   - bash <(curl -s https://codecov.io/bash)
-  - |
-      # Push up to GCE CI instance if we're running after a merge to master
-      if [[ "${GCE_CI}" == "true" ]] && [[ $TRAVIS_PULL_REQUEST == "false" ]] && [[ $TRAVIS_BRANCH == "master" ]]; then
-        . scripts/install_cloud.sh
-        echo ${GCLOUD_SERVICE_KEY_CI} | base64 --decode -i > ${HOME}/gcloud-service-key.json
-        gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
-        rm ${HOME}/gcloud-service-key.json
-        . scripts/deploy_gce_ci.sh
-      fi

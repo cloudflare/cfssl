@@ -41,11 +41,7 @@ func (c *LogClient) GetRawEntries(ctx context.Context, start, end int64) (*ct.Ge
 	}
 
 	var resp ct.GetEntriesResponse
-	httpRsp, body, err := c.GetAndParse(ctx, ct.GetEntriesPath, params, &resp)
-	if err != nil {
-		if httpRsp != nil {
-			return nil, RspError{Err: err, StatusCode: httpRsp.StatusCode, Body: body}
-		}
+	if _, _, err := c.GetAndParse(ctx, ct.GetEntriesPath, params, &resp); err != nil {
 		return nil, err
 	}
 
