@@ -94,7 +94,7 @@ github.com/zmap/zcrypto/x509/pkix
 github.com/zmap/zlint
 github.com/zmap/zlint/lints
 github.com/zmap/zlint/util
-# golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+# golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
