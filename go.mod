@@ -18,7 +18,7 @@ require (
 	github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49
 	github.com/kisom/goutils v1.1.0
 	github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28 // indirect
-	github.com/lib/pq v0.0.0-20180201184707-88edab080323
+	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/weppos/publicsuffix-go v0.5.0 // indirect
