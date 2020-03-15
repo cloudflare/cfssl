@@ -34,8 +34,8 @@ import (
 	"github.com/google/certificate-transparency-go/jsonclient"
 
 	zx509 "github.com/zmap/zcrypto/x509"
-	"github.com/zmap/zlint"
-	"github.com/zmap/zlint/lints"
+	"github.com/zmap/zlint/v2"
+	"github.com/zmap/zlint/v2/lint"
 	"golang.org/x/net/context"
 )
 
@@ -131,7 +131,7 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 // concrete zlint LintResults so that callers can further inspect the cause of
 // the failing lints.
 type LintError struct {
-	ErrorResults map[string]lints.LintResult
+	ErrorResults map[string]lint.LintResult
 }
 
 func (e *LintError) Error() string {
@@ -145,9 +145,9 @@ func (e *LintError) Error() string {
 // a LintError being returned to the caller. Note that the template is provided
 // by-value and not by-reference. This is important as the lint function needs
 // to mutate the template's signature algorithm to match the lintPriv.
-func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, ignoreMap map[string]bool) error {
-	// Always return nil when linting is disabled (lints.Reserved == 0).
-	if errLevel == lints.Reserved {
+func (s *Signer) lint(template x509.Certificate, errLevel lint.LintStatus, ignoreMap map[string]bool) error {
+	// Always return nil when linting is disabled (lint.Reserved == 0).
+	if errLevel == lint.Reserved {
 		return nil
 	}
 	// without a lintPriv key to use to sign the tbsCertificate we can't lint it.
@@ -174,7 +174,7 @@ func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, igno
 	if err != nil {
 		return cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 	}
-	errorResults := map[string]lints.LintResult{}
+	errorResults := map[string]lint.LintResult{}
 	results := zlint.LintCertificate(prelintCert)
 	for name, res := range results.Results {
 		if ignoreMap[name] {
@@ -192,7 +192,7 @@ func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, igno
 	return nil
 }
 
-func (s *Signer) sign(template *x509.Certificate, lintErrLevel lints.LintStatus, lintIgnore map[string]bool) (cert []byte, err error) {
+func (s *Signer) sign(template *x509.Certificate, lintErrLevel lint.LintStatus, lintIgnore map[string]bool) (cert []byte, err error) {
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {

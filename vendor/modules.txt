@@ -84,17 +84,24 @@ github.com/weppos/publicsuffix-go/publicsuffix
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-# github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e
+# github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
 github.com/zmap/zcrypto/json
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb
-github.com/zmap/zlint
-github.com/zmap/zlint/lints
-github.com/zmap/zlint/util
-# golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+# github.com/zmap/zlint/v2 v2.0.0
+github.com/zmap/zlint/v2
+github.com/zmap/zlint/v2/lint
+github.com/zmap/zlint/v2/lints/apple
+github.com/zmap/zlint/v2/lints/cabf_br
+github.com/zmap/zlint/v2/lints/cabf_ev
+github.com/zmap/zlint/v2/lints/community
+github.com/zmap/zlint/v2/lints/etsi
+github.com/zmap/zlint/v2/lints/mozilla
+github.com/zmap/zlint/v2/lints/rfc
+github.com/zmap/zlint/v2/util
+# golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
@@ -107,7 +114,7 @@ golang.org/x/crypto/scrypt
 # golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/idna
