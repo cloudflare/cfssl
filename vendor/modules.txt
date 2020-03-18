@@ -65,9 +65,10 @@ github.com/kisielk/sqlstruct
 github.com/kisom/goutils/assert
 # github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28
 github.com/kylelemons/go-gypsy/yaml
-# github.com/lib/pq v0.0.0-20180201184707-88edab080323
+# github.com/lib/pq v1.3.0
 github.com/lib/pq
 github.com/lib/pq/oid
+github.com/lib/pq/scram
 # github.com/mattn/go-sqlite3 v1.10.0
 github.com/mattn/go-sqlite3
 # github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229
