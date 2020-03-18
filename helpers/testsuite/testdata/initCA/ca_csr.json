@@ -18,6 +18,6 @@
 	},
 	"ca": {
 		"pathlen": 1,
-		"expiry": "1/1/2015"
+		"expiry": "1h"
 	} 
 }
