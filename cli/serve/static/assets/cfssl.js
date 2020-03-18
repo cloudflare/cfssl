@@ -226,7 +226,7 @@
     },
     view: function() {
       return appWrapper([
-        m('h1.page-header', 'CFSSL: CloudFlare\'s PKI toolkit'), m('p', [
+        m('h1.page-header', 'CFSSL: Cloudflare\'s PKI toolkit'), m('p', [
           'See ',
           m('a[href="https://blog.cloudflare.com/introducing-cfssl"]', 'blog post'),
           ' or ',
