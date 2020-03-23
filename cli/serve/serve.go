@@ -108,8 +108,9 @@ func (hb *httpBox) Open(name string) (http.File, error) {
 // staticBox is the box containing all static assets.
 var staticBox = &httpBox{
 	redirects: map[string]string{
-		"/scan":   "/index.html",
-		"/bundle": "/index.html",
+		"/scan":     "/index.html",
+		"/bundle":   "/index.html",
+		"/packages": "/index.html",
 	},
 }
 
