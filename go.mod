@@ -23,10 +23,10 @@ require (
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/weppos/publicsuffix-go v0.5.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e
-	github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb
+	github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
+	github.com/zmap/zlint/v2 v2.0.0
 	golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/text v0.3.2 // indirect
 )
