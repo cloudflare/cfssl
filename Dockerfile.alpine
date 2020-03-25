@@ -1,4 +1,4 @@
-FROM golang:1.13.3-alpine3.10@sha256:f98761ca3b0855d554085eac8a55e6162f859b3f409c68fa4a7e3302c9d8bf5f as builder
+FROM golang:1.14.1-alpine3.11@sha256:244a736db4a1d2611d257e7403c729663ce2eb08d4628868f9d9ef2735496659 as builder
 
 WORKDIR /workdir
 COPY . /workdir
