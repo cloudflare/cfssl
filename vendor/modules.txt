@@ -105,19 +105,15 @@ github.com/weppos/publicsuffix-go/publicsuffix
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-<<<<<<< HEAD
 # github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
-=======
-# github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e
 ## explicit
->>>>>>> Update vendor
 github.com/zmap/zcrypto/json
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-<<<<<<< HEAD
 # github.com/zmap/zlint/v2 v2.0.0
+## explicit
 github.com/zmap/zlint/v2
 github.com/zmap/zlint/v2/lint
 github.com/zmap/zlint/v2/lints/apple
@@ -128,13 +124,6 @@ github.com/zmap/zlint/v2/lints/etsi
 github.com/zmap/zlint/v2/lints/mozilla
 github.com/zmap/zlint/v2/lints/rfc
 github.com/zmap/zlint/v2/util
-=======
-# github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb
-## explicit
-github.com/zmap/zlint
-github.com/zmap/zlint/lints
-github.com/zmap/zlint/util
->>>>>>> Update vendor
 # golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
 ## explicit
 golang.org/x/crypto/cryptobyte
