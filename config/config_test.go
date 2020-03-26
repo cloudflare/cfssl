@@ -257,6 +257,25 @@ var validLocalConfigsWithCAConstraint = []string{
 	}`,
 }
 
+var copyExtensionWantedlLocalConfig = `
+{
+	"signing": {
+		"default": {
+			"expiry": "8000h",
+			"copy_extensions": true
+		}
+	}
+}`
+
+var copyExtensionNotWantedlLocalConfig = `
+{
+	"signing": {
+		"default": {
+			"expiry": "8000h"
+		}
+	}
+}`
+
 func TestInvalidProfile(t *testing.T) {
 	if invalidProfileConfig.Signing.Profiles["invalid"].validProfile(false) {
 		t.Fatal("invalid profile accepted as valid")
@@ -578,5 +597,27 @@ func TestValidCAConstraint(t *testing.T) {
 		if err != nil {
 			t.Fatal("can't parse valid ca constraint")
 		}
+	}
+}
+
+func TestWantCopyExtension(t *testing.T) {
+	localConfig, err := LoadConfig([]byte(copyExtensionWantedlLocalConfig))
+	if localConfig.Signing.Default.CopyExtensions != true {
+		t.Fatal("incorrect TestWantCopyExtension().")
+	}
+
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDontWantCopyExtension(t *testing.T) {
+	localConfig, err := LoadConfig([]byte(copyExtensionNotWantedlLocalConfig))
+	if localConfig.Signing.Default.CopyExtensions != false {
+		t.Fatal("incorrect TestDontWantCopyExtension().")
+	}
+
+	if err != nil {
+		t.Fatal(err)
 	}
 }
