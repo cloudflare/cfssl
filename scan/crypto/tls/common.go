@@ -19,21 +19,24 @@ import (
 	"time"
 )
 
+//LBARMAN: add 1.3
 const (
 	VersionSSL30 = 0x0300
 	VersionTLS10 = 0x0301
 	VersionTLS11 = 0x0302
 	VersionTLS12 = 0x0303
+	VersionTLS13 = 0x0304 // lbarman: add
 )
 
 const (
-	maxPlaintext    = 16384        // maximum plaintext payload length
-	maxCiphertext   = 16384 + 2048 // maximum ciphertext payload length
-	recordHeaderLen = 5            // record header length
-	maxHandshake    = 65536        // maximum handshake we support (protocol max is 16 MB)
+	maxPlaintext       = 16384        // maximum plaintext payload length
+	maxCiphertext      = 16384 + 2048 // maximum ciphertext payload
+	maxCiphertextTLS13 = 16384 + 256  // lbarman: maximum ciphertext length in TLS 1.3
+	recordHeaderLen    = 5            // record header length
+	maxHandshake       = 65536        // maximum handshake we support (protocol max is 16 MB)
 
 	minVersion = VersionTLS10
-	maxVersion = VersionTLS12
+	maxVersion = VersionTLS13 // lbarman: change (TODO recheck 1.3 only appears in extension not packet version)
 )
 
 // TLS record types.
@@ -48,18 +51,21 @@ const (
 
 // TLS handshake message types.
 const (
-	typeClientHello        uint8 = 1
-	typeServerHello        uint8 = 2
-	typeNewSessionTicket   uint8 = 4
-	typeCertificate        uint8 = 11
-	typeServerKeyExchange  uint8 = 12
-	typeCertificateRequest uint8 = 13
-	typeServerHelloDone    uint8 = 14
-	typeCertificateVerify  uint8 = 15
-	typeClientKeyExchange  uint8 = 16
-	typeFinished           uint8 = 20
-	typeCertificateStatus  uint8 = 22
-	typeNextProtocol       uint8 = 67 // Not IANA assigned
+	typeClientHello         uint8 = 1
+	typeServerHello         uint8 = 2
+	typeNewSessionTicket    uint8 = 4
+	typeEndOfEarlyData      uint8 = 5 // lbarman: add two lines
+	typeEncryptedExtensions uint8 = 8
+	typeCertificate         uint8 = 11
+	typeServerKeyExchange   uint8 = 12
+	typeCertificateRequest  uint8 = 13
+	typeServerHelloDone     uint8 = 14
+	typeCertificateVerify   uint8 = 15
+	typeClientKeyExchange   uint8 = 16
+	typeFinished            uint8 = 20
+	typeCertificateStatus   uint8 = 22
+	typeKeyUpdate           uint8 = 24 // lbarman: add line
+	typeNextProtocol        uint8 = 67 // Not IANA assigned
 )
 
 // TLS compression types.
@@ -69,16 +75,24 @@ const (
 
 // TLS extension numbers
 const (
-	extensionServerName          uint16 = 0
-	extensionStatusRequest       uint16 = 5
-	extensionSupportedCurves     uint16 = 10
-	extensionSupportedPoints     uint16 = 11
-	extensionSignatureAlgorithms uint16 = 13
-	extensionALPN                uint16 = 16
-	extensionSCT                 uint16 = 18 // https://tools.ietf.org/html/rfc6962#section-6
-	extensionSessionTicket       uint16 = 35
-	extensionNextProtoNeg        uint16 = 13172 // not IANA assigned
-	extensionRenegotiationInfo   uint16 = 0xff01
+	extensionServerName              uint16 = 0
+	extensionStatusRequest           uint16 = 5
+	extensionSupportedCurves         uint16 = 10
+	extensionSupportedPoints         uint16 = 11
+	extensionSignatureAlgorithms     uint16 = 13
+	extensionALPN                    uint16 = 16
+	extensionSCT                     uint16 = 18 // https://tools.ietf.org/html/rfc6962#section-6
+	extensionSessionTicket           uint16 = 35
+	extensionPreSharedKey            uint16 = 41 // lbarman: add 8 lines
+	extensionEarlyData               uint16 = 42
+	extensionSupportedVersions       uint16 = 43
+	extensionCookie                  uint16 = 44
+	extensionPSKModes                uint16 = 45
+	extensionCertificateAuthorities  uint16 = 47
+	extensionSignatureAlgorithmsCert uint16 = 50
+	extensionKeyShare                uint16 = 51
+	extensionNextProtoNeg            uint16 = 13172 // not IANA assigned
+	extensionRenegotiationInfo       uint16 = 0xff01
 )
 
 // TLS signaling cipher suite values
@@ -94,7 +108,28 @@ const (
 	CurveP256 CurveID = 23
 	CurveP384 CurveID = 24
 	CurveP521 CurveID = 25
+	X25519    CurveID = 29 // lbarman: add
 )
+
+// lbarman: add 3 structs
+// TLS 1.3 Key Share. See RFC 8446, Section 4.2.8.
+type keyShare struct {
+	group CurveID
+	data  []byte
+}
+
+// TLS 1.3 PSK Key Exchange Modes. See RFC 8446, Section 4.2.9.
+const (
+	pskModePlain uint8 = 0
+	pskModeDHE   uint8 = 1
+)
+
+// TLS 1.3 PSK Identity. Can be a Session Ticket, or a reference to a saved
+// session. See RFC 8446, Section 4.2.11.
+type pskIdentity struct {
+	label               []byte
+	obfuscatedTicketAge uint32
+}
 
 // TLS Elliptic Curve Point Formats
 // http://www.iana.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-9
@@ -122,17 +157,20 @@ const (
 	// Rest of these are reserved by the TLS spec
 )
 
-// Hash functions for TLS 1.2 (See RFC 5246, section A.4.1)
+// Hash functions for TLS 1.2 (See RFC 5246, section A.4.1) //TODO: update RFC in comment
 const (
 	hashSHA1   uint8 = 2
 	hashSHA256 uint8 = 4
 	hashSHA384 uint8 = 5
+	hashSHA512 uint8 = 6 // lbarman: add
 )
 
-// Signature algorithms for TLS 1.2 (See RFC 5246, section A.4.1)
+// Signature algorithms for TLS 1.2 (See RFC 5246, section A.4.1) //TODO: update RFC in comment
 const (
 	signatureRSA   uint8 = 1
 	signatureECDSA uint8 = 3
+	// lbarman: we lack PSS which does not follow the same format (TODO: recheck)
+	// lbarman: we lack EdDSA which does not follow the same format (TODO: recheck)
 )
 
 // signatureAndHash mirrors the TLS 1.2, SignatureAndHashAlgorithm struct. See
@@ -151,6 +189,9 @@ var supportedSignatureAlgorithms = []signatureAndHash{
 	{hashSHA384, signatureECDSA},
 	{hashSHA1, signatureRSA},
 	{hashSHA1, signatureECDSA},
+	// lbarman: we lack Ed25519 which does not follow the same format (TODO: recheck)
+	// lbarman: we lack PSS+SHA256/384/512 which does not follow the same format (TODO: recheck)
+	// lbarman: we lack EdDSA+SHA256/384/512 which does not follow the same format (TODO: recheck)
 }
 
 // ConnectionState records basic TLS details about the connection.
@@ -197,6 +238,12 @@ type ClientSessionState struct {
 	masterSecret       []byte                // MasterSecret generated by client on a full handshake
 	serverCertificates []*x509.Certificate   // Certificate chain presented by the server
 	verifiedChains     [][]*x509.Certificate // Certificate chains we built for verification
+
+	// lbarman: add 3 fields
+	// TLS 1.3 fields.
+	nonce  []byte    // Ticket nonce sent by the server, to derive PSK
+	useBy  time.Time // Expiration of the ticket lifetime as set by the server
+	ageAdd uint32    // Random obfuscation factor for sending the ticket age
 }
 
 // ClientSessionCache is a cache of ClientSessionState objects that can be used
@@ -236,6 +283,26 @@ type ClientHelloInfo struct {
 	// is being used (see
 	// http://tools.ietf.org/html/rfc4492#section-5.1.2).
 	SupportedPoints []uint8
+
+	// lbarman: add 3 fields
+	// SignatureSchemes lists the signature and hash schemes that the client
+	// is willing to verify. SignatureSchemes is set only if the Signature
+	// Algorithms Extension is being used (see RFC 5246, Section 7.4.1.4.1).
+	SignatureSchemes []uint16
+
+	// SupportedProtos lists the application protocols supported by the client.
+	// SupportedProtos is set only if the Application-Layer Protocol
+	// Negotiation Extension is being used (see RFC 7301, Section 3.1).
+	//
+	// Servers can select a protocol by setting Config.NextProtos in a
+	// GetConfigForClient return value.
+	SupportedProtos []string
+
+	// SupportedVersions lists the TLS versions supported by the client.
+	// For TLS versions less than 1.3, this is extrapolated from the max
+	// version advertised by the client, so values other than the greatest
+	// might be rejected if used.
+	SupportedVersions []uint16
 }
 
 // A Config structure is used to configure a TLS client or server.
@@ -385,6 +452,7 @@ func ticketKeyFromBytes(b [32]byte) (key ticketKey) {
 }
 
 func (c *Config) serverInit() {
+	// lbarman: TODO should also return if len(c.ticketKeys()) != 0 ? see crypto/tls/common.go
 	if c.SessionTicketsDisabled {
 		return
 	}
@@ -460,6 +528,37 @@ func (c *Config) cipherSuites() []uint16 {
 	return s
 }
 
+// lbarman: add struct + method
+var supportedVersions = []uint16{
+	VersionTLS13,
+	VersionTLS12,
+	VersionTLS11,
+	VersionTLS10,
+	VersionSSL30,
+}
+
+func (c *Config) supportedVersions(isClient bool) []uint16 {
+	versions := make([]uint16, 0, len(supportedVersions))
+	for _, v := range supportedVersions {
+		// TLS 1.0 is the default minimum version.
+		if (c == nil || c.MinVersion == 0) && v < VersionTLS10 {
+			continue
+		}
+		if c != nil && c.MinVersion != 0 && v < c.MinVersion {
+			continue
+		}
+		if c != nil && c.MaxVersion != 0 && v > c.MaxVersion {
+			continue
+		}
+		// TLS 1.0 is the minimum version supported as a client.
+		if isClient && v < VersionTLS10 {
+			continue
+		}
+		versions = append(versions, v)
+	}
+	return versions
+}
+
 func (c *Config) minVersion() uint16 {
 	if c == nil || c.MinVersion == 0 {
 		return minVersion
@@ -467,6 +566,7 @@ func (c *Config) minVersion() uint16 {
 	return c.MinVersion
 }
 
+// lbarman: TODO: check that header.version=1.2 and 1.3 only appears in extension
 func (c *Config) maxVersion() uint16 {
 	if c == nil || c.MaxVersion == 0 {
 		return maxVersion
@@ -474,6 +574,7 @@ func (c *Config) maxVersion() uint16 {
 	return c.MaxVersion
 }
 
+// lbarman: lacks X25519
 var defaultCurvePreferences = []CurveID{CurveP256, CurveP384, CurveP521}
 
 func (c *Config) curvePreferences() []CurveID {
