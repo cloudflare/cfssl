@@ -4,7 +4,9 @@
 
 package tls
 
-import "bytes"
+import (
+	"bytes"
+)
 
 type clientHelloMsg struct {
 	raw                 []byte
@@ -24,6 +26,16 @@ type clientHelloMsg struct {
 	signatureAndHashes  []signatureAndHash
 	secureRenegotiation bool
 	alpnProtocols       []string
+
+	// lbarman: fields for TLS1.3
+	supportedVersions                []uint16
+	supportedSignatureAlgorithmsCert []signatureAndHash
+	cookie                           []byte
+	keyShares                        []keyShare
+	earlyData                        bool
+	pskModes                         []uint8
+	pskIdentities                    []pskIdentity
+	pskBinders                       [][]byte
 }
 
 func (m *clientHelloMsg) equal(i interface{}) bool {
@@ -49,6 +61,7 @@ func (m *clientHelloMsg) equal(i interface{}) bool {
 		eqSignatureAndHashes(m.signatureAndHashes, m1.signatureAndHashes) &&
 		m.secureRenegotiation == m1.secureRenegotiation &&
 		eqStrings(m.alpnProtocols, m1.alpnProtocols)
+	// lbarman: TODO include new fields in equal
 }
 
 func (m *clientHelloMsg) marshal() []byte {
@@ -108,6 +121,7 @@ func (m *clientHelloMsg) marshal() []byte {
 		extensionsLength += 4 * numExtensions
 		length += 2 + extensionsLength
 	}
+	// lbarman: TODO: add 7 missing extensions in size computation
 
 	x := make([]byte, 4+length)
 	x[0] = typeClientHello
@@ -248,6 +262,9 @@ func (m *clientHelloMsg) marshal() []byte {
 			z = z[2:]
 		}
 	}
+
+	// lbarman: TODO missing supportedSignatureAlgorithmsCert
+
 	if m.secureRenegotiation {
 		z[0] = byte(extensionRenegotiationInfo >> 8)
 		z[1] = byte(extensionRenegotiationInfo & 0xff)
@@ -256,6 +273,7 @@ func (m *clientHelloMsg) marshal() []byte {
 		z = z[5:]
 	}
 	if len(m.alpnProtocols) > 0 {
+		// lbarman: RFC 7301, Section 3.1
 		z[0] = byte(extensionALPN >> 8)
 		z[1] = byte(extensionALPN & 0xff)
 		lengths := z[2:]
@@ -283,6 +301,7 @@ func (m *clientHelloMsg) marshal() []byte {
 		// zero uint16 for the zero-length extension_data
 		z = z[4:]
 	}
+	// lbarman: TODO missing supportedVersions, cookie, keyshares, earlydata, pskModes, pskIdentities
 
 	m.raw = x
 
@@ -447,6 +466,8 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 				m.signatureAndHashes[i].signature = d[1]
 				d = d[2:]
 			}
+		case extensionSignatureAlgorithmsCert:
+			// lbarman: TODO missing extension
 		case extensionRenegotiationInfo:
 			if length != 1 || data[0] != 0 {
 				return false
@@ -475,7 +496,20 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 			if length != 0 {
 				return false
 			}
+		case extensionSupportedVersions:
+			// lbarman: TODO missing extension
+		case extensionCookie:
+			// lbarman: TODO missing extension
+		case extensionKeyShare:
+			// lbarman: TODO missing extension
+		case extensionEarlyData:
+			// lbarman: TODO missing extension
+		case extensionPSKModes:
+			// lbarman: TODO missing extension
+		case extensionPreSharedKey:
+			// lbarman: TODO missing extension
 		}
+
 		data = data[length:]
 	}
 
@@ -495,7 +529,16 @@ type serverHelloMsg struct {
 	scts                [][]byte
 	ticketSupported     bool
 	secureRenegotiation bool
-	alpnProtocol        string
+	// lbarman: TODO check why we don't need secureRenegotiation []byte
+	alpnProtocol string
+
+	// lbarman: fields for TLS1.3
+	supportedVersions       []uint16
+	serverShare             keyShare
+	selectedIdentityPresent bool
+	selectedIdentity        uint16
+	cookie                  []byte
+	selectedGroup           CurveID
 }
 
 func (m *serverHelloMsg) equal(i interface{}) bool {
@@ -525,6 +568,7 @@ func (m *serverHelloMsg) equal(i interface{}) bool {
 		m.ticketSupported == m1.ticketSupported &&
 		m.secureRenegotiation == m1.secureRenegotiation &&
 		m.alpnProtocol == m1.alpnProtocol
+	// lbarman: TODO include new fields in equal
 }
 
 func (m *serverHelloMsg) marshal() []byte {
@@ -576,6 +620,8 @@ func (m *serverHelloMsg) marshal() []byte {
 		length += 2 + extensionsLength
 	}
 
+	// lbarman: TODO: add missing extension size
+
 	x := make([]byte, 4+length)
 	x[0] = typeServerHello
 	x[1] = uint8(length >> 16)
@@ -583,7 +629,7 @@ func (m *serverHelloMsg) marshal() []byte {
 	x[3] = uint8(length)
 	x[4] = uint8(m.vers >> 8)
 	x[5] = uint8(m.vers)
-	copy(x[6:38], m.random)
+	copy(x[6:38], m.random) // lbarman: TODO why isn't this length-prefixed ? check
 	x[38] = uint8(len(m.sessionId))
 	copy(x[39:39+len(m.sessionId)], m.sessionId)
 	z := x[39+len(m.sessionId):]
@@ -630,6 +676,7 @@ func (m *serverHelloMsg) marshal() []byte {
 		z[2] = 0
 		z[3] = 1
 		z = z[5:]
+		// lbarman: TODO reference implementation actually sends some value here, not just a flag. Check
 	}
 	if alpnLen := len(m.alpnProtocol); alpnLen > 0 {
 		z[0] = byte(extensionALPN >> 8)
@@ -662,6 +709,7 @@ func (m *serverHelloMsg) marshal() []byte {
 			z = z[len(sct)+2:]
 		}
 	}
+	// lbarman: TODO missing extensions: supportedVersions, serverShare.group, selectedIdentityPresent, cookie, selectedGroup
 
 	m.raw = x
 
@@ -796,12 +844,28 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 				m.scts = append(m.scts, d[:sctLen])
 				d = d[sctLen:]
 			}
+		case extensionSupportedVersions:
+			// lbarman: TODO missing extension
+		case extensionCookie:
+			// lbarman: TODO missing extension
+		case extensionKeyShare:
+			// lbarman: TODO missing extension
+		case extensionPreSharedKey:
+			// lbarman: TODO missing extension
 		}
 		data = data[length:]
 	}
 
 	return true
 }
+
+// lbarman: TODO missing following message types & marshalling :
+// - encryptedExtensionsMsg
+// - endOfEarlyData
+// - keyUdpdateMsg
+// - newSessionTicketMsg
+// - certificateRequestMsg
+// - certificateMsg
 
 type certificateMsg struct {
 	raw          []byte
@@ -932,7 +996,7 @@ func (m *serverKeyExchangeMsg) unmarshal(data []byte) bool {
 
 type certificateStatusMsg struct {
 	raw        []byte
-	statusType uint8
+	statusType uint8 // lbarman: TODO not present in reference implementation, check
 	response   []byte
 }
 
