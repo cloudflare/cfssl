@@ -6,6 +6,7 @@ package tls
 
 import (
 	"bytes"
+	"reflect"
 )
 
 type clientHelloMsg struct {
@@ -30,12 +31,13 @@ type clientHelloMsg struct {
 	// lbarman: fields for TLS1.3
 	supportedVersions                []uint16
 	supportedSignatureAlgorithmsCert []signatureAndHash
-	cookie                           []byte
-	keyShares                        []keyShare
-	earlyData                        bool
-	pskModes                         []uint8
-	pskIdentities                    []pskIdentity
-	pskBinders                       [][]byte
+	// lbarman: TODO check inconsistency: do we want "hasCookie", "hasKeyShare" like we have "ticketSupported" ?
+	cookie        []byte
+	keyShares     []keyShare
+	earlyData     bool //requires pre_shared_key too, see RFC 8446 section 4.2.10
+	pskModes      []uint8
+	pskIdentities []pskIdentity
+	pskBinders    [][]byte
 }
 
 func (m *clientHelloMsg) equal(i interface{}) bool {
@@ -60,8 +62,16 @@ func (m *clientHelloMsg) equal(i interface{}) bool {
 		bytes.Equal(m.sessionTicket, m1.sessionTicket) &&
 		eqSignatureAndHashes(m.signatureAndHashes, m1.signatureAndHashes) &&
 		m.secureRenegotiation == m1.secureRenegotiation &&
-		eqStrings(m.alpnProtocols, m1.alpnProtocols)
-	// lbarman: TODO include new fields in equal
+		eqStrings(m.alpnProtocols, m1.alpnProtocols) &&
+		eqUint16s(m.supportedVersions, m1.supportedVersions) &&
+		eqSignatureAndHashes(m.supportedSignatureAlgorithmsCert, m1.supportedSignatureAlgorithmsCert) &&
+		bytes.Equal(m.cookie, m1.cookie) &&
+		eqKeyShares(m.keyShares, m1.keyShares) &&
+		m.earlyData == m1.earlyData &&
+		eqUint8s(m.pskModes, m1.pskModes) &&
+		eqPskIdentity(m.pskIdentities, m1.pskIdentities) &&
+		// lbarman: TODO check: do we want to avoid reflect ? If not, couldn't we simply DeepEqual(m,m1) ?
+		reflect.DeepEqual(m.pskBinders, m1.pskBinders)
 }
 
 func (m *clientHelloMsg) marshal() []byte {
@@ -117,11 +127,57 @@ func (m *clientHelloMsg) marshal() []byte {
 	if m.scts {
 		numExtensions++
 	}
+
+	if m.supportedSignatureAlgorithmsCert != nil && len(m.supportedSignatureAlgorithmsCert) > 0 {
+		extensionsLength += 2 + 2*len(m.supportedSignatureAlgorithmsCert) // uint16 size + uint16 for each algo
+		numExtensions++
+	}
+
+	if m.supportedVersions != nil && len(m.supportedVersions) > 0 {
+		extensionsLength += 1 + 2*len(m.supportedVersions) // uint8 size + uint16 for each version
+		numExtensions++
+	}
+
+	if m.cookie != nil {
+		extensionsLength += 2 + len(m.cookie) // payload prefixed with uint16 size
+		numExtensions++
+	}
+
+	if m.keyShares != nil && len(m.keyShares) > 0 {
+		extensionsLength += 2
+		for _, keyShare := range m.keyShares {
+			extensionsLength += 2 + 2 + len(keyShare.data) // uint16 for keyShare.group + for size of keyShare.data
+		}
+		numExtensions++
+	}
+
+	if m.earlyData {
+		// RFC 8446, Section 4.2.10
+		extensionsLength += 0 // this extension has no payload
+		numExtensions++
+	}
+
+	if m.pskModes != nil && len(m.pskModes) > 0 {
+		extensionsLength += 1 * len(m.pskModes) // uint8 for size + uint8 per mode
+		numExtensions++
+	}
+
+	if m.pskIdentities != nil && len(m.pskIdentities) > 0 {
+		extensionsLength += 2 // uint16 size of the data in the following loop
+		for _, psk := range m.pskIdentities {
+			extensionsLength += 2 + len(psk.label) + 4 // uint16 size + data + uint32 ticket
+		}
+		extensionsLength += 2 // uint16 size of the data in the following loop
+		for _, binder := range m.pskBinders {
+			extensionsLength += 1 + len(binder) // uint8 size + data
+		}
+		numExtensions++
+	}
+
 	if numExtensions > 0 {
 		extensionsLength += 4 * numExtensions
 		length += 2 + extensionsLength
 	}
-	// lbarman: TODO: add 7 missing extensions in size computation
 
 	x := make([]byte, 4+length)
 	x[0] = typeClientHello
@@ -263,8 +319,6 @@ func (m *clientHelloMsg) marshal() []byte {
 		}
 	}
 
-	// lbarman: TODO missing supportedSignatureAlgorithmsCert
-
 	if m.secureRenegotiation {
 		z[0] = byte(extensionRenegotiationInfo >> 8)
 		z[1] = byte(extensionRenegotiationInfo & 0xff)
@@ -301,7 +355,165 @@ func (m *clientHelloMsg) marshal() []byte {
 		// zero uint16 for the zero-length extension_data
 		z = z[4:]
 	}
-	// lbarman: TODO missing supportedVersions, cookie, keyshares, earlydata, pskModes, pskIdentities
+
+	if m.supportedSignatureAlgorithmsCert != nil && len(m.supportedSignatureAlgorithmsCert) > 0 {
+		// RFC 8446, Section 4.2.3
+		z[0] = byte(extensionSignatureAlgorithmsCert >> 8)
+		z[1] = byte(extensionSignatureAlgorithmsCert)
+		l := 2 + 2*len(m.supportedSignatureAlgorithmsCert)
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		l -= 2
+		z[0] = byte(l >> 8)
+		z[1] = byte(l)
+		z = z[2:]
+		for _, sigAndHash := range m.supportedSignatureAlgorithmsCert {
+			z[0] = sigAndHash.hash // lbarman: TODO check that this is not swapped. Tied to line 720
+			z[1] = sigAndHash.signature
+			z = z[2:]
+		}
+	}
+
+	if m.supportedVersions != nil && len(m.supportedVersions) > 0 {
+		z[0] = byte(extensionSupportedVersions >> 8)
+		z[1] = byte(extensionSupportedVersions)
+		l := 1 + 2*len(m.supportedVersions)
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		l--
+		z[0] = byte(l)
+		z = z[1:]
+		for _, version := range m.supportedVersions {
+			z[0] = byte(version >> 8)
+			z[1] = byte(version)
+			z = z[2:]
+		}
+	}
+
+	if m.cookie != nil {
+		// RFC 8446, Section 4.2.2
+		z[0] = byte(extensionCookie >> 8)
+		z[1] = byte(extensionCookie)
+		l := 2 + len(m.cookie)
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		l -= 2
+		z[0] = byte(l >> 8)
+		z[1] = byte(l)
+		z = z[2:]
+		copy(z[0:], m.cookie)
+		z = z[len(m.cookie):]
+	}
+
+	if m.keyShares != nil && len(m.keyShares) > 0 {
+		// RFC 8446, Section 4.2.3
+		z[0] = byte(extensionKeyShare >> 8)
+		z[1] = byte(extensionKeyShare)
+		l := 2
+		for _, keyShare := range m.keyShares {
+			l += 2 + 2 + len(keyShare.data) // uint16 for keyShare.group + for size of keyShare.data
+		}
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		l -= 2
+		z[0] = byte(l >> 8)
+		z[1] = byte(l)
+		z = z[2:]
+		for _, keyShare := range m.keyShares {
+			z[0] = byte(uint16(keyShare.group) >> 8)
+			z[1] = byte(uint16(keyShare.group))
+			z[2] = byte(len(keyShare.data) >> 8)
+			z[3] = byte(len(keyShare.data))
+			z = z[4:]
+			copy(z[0:], keyShare.data)
+			z = z[len(keyShare.data):]
+		}
+	}
+
+	if m.earlyData {
+		// RFC 8446, Section 4.2.10
+		z[0] = byte(extensionEarlyData >> 8)
+		z[1] = byte(extensionEarlyData)
+		z[2] = 0
+		z[3] = 0
+		z = z[4:]
+	}
+
+	if m.pskModes != nil && len(m.pskModes) > 0 {
+		// RFC 8446, Section 4.2.9
+		z[0] = byte(extensionPSKModes >> 8)
+		z[1] = byte(extensionPSKModes)
+		l := 1 + len(m.pskModes)
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		l--
+		z[0] = byte(l)
+		z = z[1:]
+
+		for _, pskMode := range m.pskModes {
+			z[0] = pskMode
+			z = z[1:]
+		}
+	}
+
+	// pre_shared_key must be the last extension
+	if m.pskIdentities != nil && len(m.pskIdentities) > 0 {
+		// RFC 8446, Section 4.2.11
+		z[0] = byte(extensionPreSharedKey >> 8)
+		z[1] = byte(extensionPreSharedKey)
+
+		lengthIdentities := 0
+		for _, psk := range m.pskIdentities {
+			lengthIdentities += 2 + len(psk.label) + 4 // uint16 size + data + uint32 ticket
+		}
+		lengthBinders := 0
+		for _, binder := range m.pskBinders {
+			lengthBinders += 1 + len(binder) // uint8 size + data
+		}
+		l := 2 + lengthIdentities + 2 + lengthBinders
+
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		z[0] = byte(lengthIdentities >> 8)
+		z[1] = byte(lengthIdentities)
+		z = z[2:]
+		for _, psk := range m.pskIdentities {
+			z[0] = byte((len(psk.label) >> 8) & 0xFF)
+			z[1] = byte(len(psk.label) & 0xFF)
+			z = z[2:]
+			copy(z[0:], psk.label)
+			z = z[len(psk.label):]
+
+			// lbarman: TODO check 0xFF might not be needed since ticketAge is uint
+			z[0] = byte((psk.obfuscatedTicketAge >> 24) & 0xFF)
+			z[1] = byte((psk.obfuscatedTicketAge >> 16) & 0xFF)
+			z[2] = byte((psk.obfuscatedTicketAge >> 8) & 0xFF)
+			z[3] = byte(psk.obfuscatedTicketAge & 0xFF)
+			z = z[4:]
+		}
+
+		z[0] = byte(lengthBinders >> 8)
+		z[1] = byte(lengthBinders)
+		z = z[2:]
+		for _, binder := range m.pskBinders {
+			z[0] = byte(len(binder))
+			z = z[1:]
+			copy(z[0:], binder)
+			z = z[len(binder):]
+		}
+	}
 
 	m.raw = x
 
@@ -466,8 +678,6 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 				m.signatureAndHashes[i].signature = d[1]
 				d = d[2:]
 			}
-		case extensionSignatureAlgorithmsCert:
-			// lbarman: TODO missing extension
 		case extensionRenegotiationInfo:
 			if length != 1 || data[0] != 0 {
 				return false
@@ -496,18 +706,164 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 			if length != 0 {
 				return false
 			}
+		case extensionSignatureAlgorithmsCert:
+			if length < 2 || length&1 != 0 {
+				return false
+			}
+			l := int(data[0])<<8 | int(data[1])
+			if l != length-2 {
+				return false
+			}
+			n := l / 2
+			d := data[2:]
+			m.supportedSignatureAlgorithmsCert = make([]signatureAndHash, n)
+			for i := range m.supportedSignatureAlgorithmsCert {
+				m.supportedSignatureAlgorithmsCert[i].hash = d[0]
+				m.supportedSignatureAlgorithmsCert[i].signature = d[1]
+				d = d[2:]
+			}
 		case extensionSupportedVersions:
-			// lbarman: TODO missing extension
+			if length < 1 || length&1 != 1 {
+				return false
+			}
+			l := int(data[0])
+			if l != length-1 {
+				return false
+			}
+			n := l / 2
+			d := data[1:]
+			m.supportedVersions = make([]uint16, n)
+			for i := range m.supportedVersions {
+				m.supportedVersions[i] = uint16(d[0])<<8 | uint16(d[1])
+				d = d[2:]
+			}
 		case extensionCookie:
-			// lbarman: TODO missing extension
+			if length < 2 {
+				return false
+			}
+			l := int(data[0])<<8 | int(data[1])
+			if l != length-2 {
+				return false
+			}
+			d := data[2:]
+			m.cookie = make([]byte, l)
+			copy(m.cookie[0:], d[0:l])
+			d = d[l:]
 		case extensionKeyShare:
-			// lbarman: TODO missing extension
+			d := data[:length]
+			if len(d) < 2 {
+				return false
+			}
+			keySharesLen := int(d[0])<<8 | int(d[1])
+			d = d[2:]
+			m.keyShares = make([]keyShare, 0)
+			if len(d) != keySharesLen {
+				return false
+			}
+			for len(d) > 0 {
+				if len(d) < 2 {
+					return false
+				}
+				keyShareGroup := CurveID(d[0])<<8 | CurveID(d[1])
+				keyShareDataLen := int(d[2])<<8 | int(d[3])
+				d = d[4:]
+				keyShare := keyShare{
+					group: keyShareGroup,
+					data:  make([]byte, keyShareDataLen),
+				}
+				if len(d) < keyShareDataLen {
+					return false
+				}
+				copy(keyShare.data[0:], d[0:keyShareDataLen])
+				m.keyShares = append(m.keyShares, keyShare)
+
+				d = d[keyShareDataLen:]
+			}
 		case extensionEarlyData:
-			// lbarman: TODO missing extension
+			m.earlyData = true
 		case extensionPSKModes:
-			// lbarman: TODO missing extension
+			if length < 1 || length&1 != 1 {
+				return false
+			}
+			l := int(data[0])
+			if l != length-1 {
+				return false
+			}
+			n := l / 2
+			d := data[1:]
+			m.pskModes = make([]uint8, n)
+			for i := range m.pskModes {
+				m.pskModes[i] = d[0]
+				d = d[1:]
+			}
 		case extensionPreSharedKey:
-			// lbarman: TODO missing extension
+			d := data[:length]
+			if len(d) < 2 {
+				return false
+			}
+			// lbarman: split between the ids and the binders
+			lengthIdentities := int(d[0])<<8 | int(d[1])
+			d_ids := d[2:]
+			if len(d_ids) < lengthIdentities {
+				return false
+			}
+			d_ids = d_ids[0:lengthIdentities]
+
+			d_binders_with_size := d[2+lengthIdentities:]
+			if len(d_binders_with_size) < 2 {
+				return false
+			}
+			lengthBinders := int(d_binders_with_size[0])<<8 | int(d_binders_with_size[1])
+			d_binders := d_binders_with_size[2:]
+			if len(d_binders) < lengthBinders {
+				return false
+			}
+			d_binders = d_binders[0:lengthBinders]
+
+			// lbarman parse identities
+			m.pskIdentities = make([]pskIdentity, 0)
+			for len(d_ids) > 0 {
+				if len(d_ids) < 2 {
+					return false
+				}
+				labelLength := int(d_ids[0])<<8 | int(d_ids[1])
+				d_ids = d_ids[2:]
+				label := make([]byte, labelLength)
+				if len(d) < labelLength {
+					return false
+				}
+				copy(label[0:], d_ids[0:labelLength])
+				d_ids = d_ids[labelLength:]
+				obfuscatedTicketAge := uint32(d_ids[0])<<24 | uint32(d_ids[1])<<16 | uint32(d_ids[2])<<8 | uint32(d_ids[3])
+
+				pskIdentity := pskIdentity{
+					label,
+					obfuscatedTicketAge,
+				}
+
+				m.pskIdentities = append(m.pskIdentities, pskIdentity)
+
+				d_ids = d_ids[4:]
+			}
+
+			// lbarman parse binders
+			m.pskBinders = make([][]byte, 0)
+			for len(d_binders) > 0 {
+				if len(d_binders) < 1 {
+					return false
+				}
+				binderLength := int(d_binders[0])
+				d_binders = d_binders[1:]
+				binder := make([]byte, binderLength)
+				if len(d_binders) < binderLength {
+					return false
+				}
+				copy(binder[0:], d[0:binderLength])
+
+				m.pskBinders = append(m.pskBinders, binder)
+				d_binders = d_binders[binderLength:]
+			}
+
 		}
 
 		data = data[length:]
@@ -533,7 +889,7 @@ type serverHelloMsg struct {
 	alpnProtocol string
 
 	// lbarman: fields for TLS1.3
-	supportedVersions       []uint16
+	supportedVersion        uint16
 	serverShare             keyShare
 	selectedIdentityPresent bool
 	selectedIdentity        uint16
@@ -567,8 +923,13 @@ func (m *serverHelloMsg) equal(i interface{}) bool {
 		m.ocspStapling == m1.ocspStapling &&
 		m.ticketSupported == m1.ticketSupported &&
 		m.secureRenegotiation == m1.secureRenegotiation &&
-		m.alpnProtocol == m1.alpnProtocol
-	// lbarman: TODO include new fields in equal
+		m.alpnProtocol == m1.alpnProtocol &&
+		m.supportedVersion == m1.supportedVersion &&
+		eqKeyShare(m.serverShare, m1.serverShare) &&
+		m.selectedIdentityPresent == m1.selectedIdentityPresent &&
+		m.selectedIdentity == m1.selectedIdentity &&
+		bytes.Equal(m.cookie, m1.cookie) &&
+		m.selectedGroup == m1.selectedGroup
 }
 
 func (m *serverHelloMsg) marshal() []byte {
@@ -614,13 +975,32 @@ func (m *serverHelloMsg) marshal() []byte {
 		extensionsLength += 2 + sctLen
 		numExtensions++
 	}
+	// lbarman: this is mandatory in TLS 1.3, we should even remove the condition, it is kept for now if we want to explicitely do TLS 1.2
+	if m.supportedVersion != 0 {
+		extensionsLength += 2
+		numExtensions++
+	}
+	if m.serverShare.group != 0 {
+		extensionsLength += 2 + 2 + len(m.serverShare.data) // uint16 for group + size of data
+		numExtensions++
+	}
+	if m.selectedIdentityPresent {
+		extensionsLength += 2
+		numExtensions++
+	}
+	if m.cookie != nil {
+		extensionsLength += 2 + len(m.cookie) // payload prefixed with uint16 size
+		numExtensions++
+	}
+	if m.selectedGroup != 0 {
+		extensionsLength += 2
+		numExtensions++
+	}
 
 	if numExtensions > 0 {
 		extensionsLength += 4 * numExtensions
 		length += 2 + extensionsLength
 	}
-
-	// lbarman: TODO: add missing extension size
 
 	x := make([]byte, 4+length)
 	x[0] = typeServerHello
@@ -629,7 +1009,7 @@ func (m *serverHelloMsg) marshal() []byte {
 	x[3] = uint8(length)
 	x[4] = uint8(m.vers >> 8)
 	x[5] = uint8(m.vers)
-	copy(x[6:38], m.random) // lbarman: TODO why isn't this length-prefixed ? check
+	copy(x[6:38], m.random)
 	x[38] = uint8(len(m.sessionId))
 	copy(x[39:39+len(m.sessionId)], m.sessionId)
 	z := x[39+len(m.sessionId):]
@@ -709,7 +1089,67 @@ func (m *serverHelloMsg) marshal() []byte {
 			z = z[len(sct)+2:]
 		}
 	}
-	// lbarman: TODO missing extensions: supportedVersions, serverShare.group, selectedIdentityPresent, cookie, selectedGroup
+	// lbarman: this is mandatory in TLS 1.3, we should even remove the condition, it is kept for now if we want to explicitely do TLS 1.2
+	if m.supportedVersion != 0 {
+		z[0] = byte(extensionSupportedVersions >> 8)
+		z[1] = byte(extensionSupportedVersions)
+		z[2] = 0
+		z[3] = 2
+		z[4] = uint8(m.supportedVersion >> 8)
+		z[5] = uint8(m.supportedVersion)
+		z = z[6:]
+	}
+	if m.serverShare.group != 0 {
+		extensionsLength += 2 + 2 + len(m.serverShare.data) // uint16 for group + size of data
+
+		z[0] = byte(extensionKeyShare >> 8)
+		z[1] = byte(extensionKeyShare)
+		l := 2 + 2 + len(m.serverShare.data)
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+
+		z[4] = byte(m.serverShare.group >> 8)
+		z[5] = byte(m.serverShare.group)
+
+		l -= 2
+		z[6] = byte(l >> 8)
+		z[7] = byte(l)
+
+		copy(z[8:], []byte(m.serverShare.data))
+		z = z[8+len(m.serverShare.data):]
+	}
+	if m.selectedIdentityPresent {
+		z[0] = byte(extensionPreSharedKey >> 8)
+		z[1] = byte(extensionPreSharedKey)
+		z[2] = 0
+		z[3] = 2
+		z[4] = uint8(m.selectedIdentity >> 8)
+		z[5] = uint8(m.selectedIdentity)
+		z = z[6:]
+	}
+	if m.cookie != nil {
+		z[0] = byte(extensionCookie >> 8)
+		z[1] = byte(extensionCookie)
+		l := 2 + len(m.cookie)
+		z[2] = byte(l >> 8)
+		z[3] = byte(l)
+		z = z[4:]
+
+		l -= 2
+		z[0] = byte(l >> 8)
+		z[1] = byte(l)
+		copy(z[2:], m.cookie)
+		z = z[2+len(m.cookie):]
+	}
+	if m.selectedGroup != 0 {
+		z[0] = byte(extensionKeyShare >> 8)
+		z[1] = byte(extensionKeyShare)
+		z[2] = 0
+		z[3] = 2
+		z[4] = uint8(m.selectedGroup >> 8)
+		z[5] = uint8(m.selectedGroup)
+		z = z[6:]
+	}
 
 	m.raw = x
 
@@ -845,13 +1285,47 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 				d = d[sctLen:]
 			}
 		case extensionSupportedVersions:
-			// lbarman: TODO missing extension
+			if length != 2 {
+				return false
+			}
+			m.supportedVersion = uint16(data[0])<<8 | uint16(data[1])
 		case extensionCookie:
-			// lbarman: TODO missing extension
+			if length < 2 {
+				return false
+			}
+			l := int(data[0])<<8 | int(data[1])
+			if l != length-2 {
+				return false
+			}
+			d := data[2:]
+			m.cookie = make([]byte, l)
+			copy(m.cookie[0:], d[0:l])
+			d = d[l:]
 		case extensionKeyShare:
-			// lbarman: TODO missing extension
+			// This extension has different formats in SH and HRR, accept either
+			// and let the handshake logic decide. See RFC 8446, Section 4.2.8.
+			if length == 2 {
+				m.selectedGroup = CurveID(data[0])<<8 | CurveID(data[1])
+			} else {
+				if length < 2 {
+					return false
+				}
+				m.serverShare.group = CurveID(data[0])<<8 | CurveID(data[1])
+				serverShareDataLen := int(data[2])<<8 | int(data[3])
+				d := data[4:]
+
+				if len(d) < serverShareDataLen {
+					return false
+				}
+
+				m.serverShare.data = make([]byte, serverShareDataLen)
+				copy(m.serverShare.data[0:], d)
+			}
 		case extensionPreSharedKey:
-			// lbarman: TODO missing extension
+			if length != 2 {
+				return false
+			}
+			m.selectedIdentity = uint16(data[0])<<8 | uint16(data[1])
 		}
 		data = data[length:]
 	}
@@ -1530,6 +2004,18 @@ func (m *newSessionTicketMsg) unmarshal(data []byte) bool {
 	return true
 }
 
+func eqUint8s(x, y []uint8) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for i, v := range x {
+		if y[i] != v {
+			return false
+		}
+	}
+	return true
+}
+
 func eqUint16s(x, y []uint16) bool {
 	if len(x) != len(y) {
 		return false
@@ -1585,6 +2071,36 @@ func eqSignatureAndHashes(x, y []signatureAndHash) bool {
 	for i, v := range x {
 		v2 := y[i]
 		if v.hash != v2.hash || v.signature != v2.signature {
+			return false
+		}
+	}
+	return true
+}
+
+func eqKeyShare(x, y keyShare) bool {
+	return x.group == y.group && bytes.Equal(x.data, y.data)
+}
+
+func eqKeyShares(x, y []keyShare) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for i, v := range x {
+		v2 := y[i]
+		if !eqKeyShare(v, v2) {
+			return false
+		}
+	}
+	return true
+}
+
+func eqPskIdentity(x, y []pskIdentity) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for i, v := range x {
+		v2 := y[i]
+		if v.obfuscatedTicketAge != v2.obfuscatedTicketAge || !bytes.Equal(v.label, v2.label) {
 			return false
 		}
 	}
