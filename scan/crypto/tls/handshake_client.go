@@ -57,7 +57,7 @@ func (c *Conn) clientHandshake() error {
 	}
 
 	hello := &clientHelloMsg{
-		vers:                c.config.maxVersion(),
+		vers:                VersionTLS12, // lbarman: note openssl uses 0x0304 despite the RFC
 		compressionMethods:  []uint8{compressionNone},
 		random:              make([]byte, 32),
 		ocspStapling:        true,
@@ -68,6 +68,7 @@ func (c *Conn) clientHandshake() error {
 		nextProtoNeg:        len(c.config.NextProtos) > 0,
 		secureRenegotiation: true,
 		alpnProtocols:       c.config.NextProtos,
+		supportedVersions:   c.config.supportedVersions(true),
 	}
 
 	possibleCipherSuites := c.config.cipherSuites()

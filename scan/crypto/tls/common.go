@@ -566,7 +566,6 @@ func (c *Config) minVersion() uint16 {
 	return c.MinVersion
 }
 
-// lbarman: TODO: check that header.version=1.2 and 1.3 only appears in extension
 func (c *Config) maxVersion() uint16 {
 	if c == nil || c.MaxVersion == 0 {
 		return maxVersion

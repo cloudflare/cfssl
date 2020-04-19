@@ -1336,7 +1336,7 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 // lbarman: TODO missing following message types & marshalling :
 // - encryptedExtensionsMsg
 // - endOfEarlyData
-// - keyUdpdateMsg
+// - keyUpdateMsg
 // - newSessionTicketMsg
 // - certificateRequestMsg
 // - certificateMsg
