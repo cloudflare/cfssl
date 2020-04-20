@@ -23,6 +23,7 @@ type clientHandshakeState struct {
 	serverHello  *serverHelloMsg
 	hello        *clientHelloMsg
 	suite        *cipherSuite
+	suiteTLS13   *cipherSuiteTLS13 // lbarman: is there something cleaner to do here ?
 	finishedHash finishedHash
 	masterSecret []byte
 	session      *ClientSessionState
@@ -49,6 +50,7 @@ func (c *Conn) clientHandshake() error {
 		return errors.New("tls: NextProtos values too large")
 	}
 
+	// lbarman: note: ref implementation does something more complex here
 	sni := c.config.ServerName
 	// IP address literals are not permitted as SNI values. See
 	// https://tools.ietf.org/html/rfc6066#section-3.
@@ -56,10 +58,24 @@ func (c *Conn) clientHandshake() error {
 		sni = ""
 	}
 
+	supportedVersions := c.config.supportedVersions(true)
+	if len(supportedVersions) == 0 {
+		return errors.New("tls: no supported versions satisfy MinVersion and MaxVersion")
+	}
+
+	clientHelloVersion := supportedVersions[0]
+	// The version at the beginning of the ClientHello was capped at TLS 1.2
+	// for compatibility reasons. The supported_versions extension is used
+	// to negotiate versions now. See RFC 8446, Section 4.2.1.
+	if clientHelloVersion > VersionTLS12 {
+		clientHelloVersion = VersionTLS12
+	}
+
 	hello := &clientHelloMsg{
-		vers:                VersionTLS12, // lbarman: note openssl uses 0x0304 despite the RFC
+		vers:                clientHelloVersion,
 		compressionMethods:  []uint8{compressionNone},
 		random:              make([]byte, 32),
+		sessionId:           make([]byte, 32), // lbarman: not sure if strictly necessary
 		ocspStapling:        true,
 		scts:                true,
 		serverName:          sni,
@@ -68,7 +84,7 @@ func (c *Conn) clientHandshake() error {
 		nextProtoNeg:        len(c.config.NextProtos) > 0,
 		secureRenegotiation: true,
 		alpnProtocols:       c.config.NextProtos,
-		supportedVersions:   c.config.supportedVersions(true),
+		supportedVersions:   supportedVersions,
 	}
 
 	possibleCipherSuites := c.config.cipherSuites()
@@ -98,6 +114,13 @@ NextCipherSuite:
 
 	if hello.vers >= VersionTLS12 {
 		hello.signatureAndHashes = supportedSignatureAlgorithms
+	}
+
+	if hello.supportedVersions[0] == VersionTLS13 {
+		hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13()...)
+
+		// lbarman: missing support for ECDHE
+		// see ref implementation golang/src/crypto/tls/handshake_client_tls13.go
 	}
 
 	var session *ClientSessionState
@@ -157,19 +180,31 @@ NextCipherSuite:
 		return unexpectedMessageError(serverHello, msg)
 	}
 
-	vers, ok := c.config.mutualVersion(serverHello.vers)
-	if !ok || vers < VersionTLS10 {
+	if err := c.pickTLSVersion(serverHello); err != nil {
+		return err
+	}
+
+	if !ok || c.vers < VersionTLS10 {
 		// TLS 1.0 is the minimum version supported as a client.
 		c.sendAlert(alertProtocolVersion)
 		return fmt.Errorf("tls: server selected unsupported protocol version %x", serverHello.vers)
 	}
-	c.vers = vers
 	c.haveVers = true
 
-	suite := mutualCipherSuite(hello.cipherSuites, serverHello.cipherSuite)
-	if suite == nil {
-		c.sendAlert(alertHandshakeFailure)
-		return errors.New("tls: server chose an unconfigured cipher suite")
+	var suite *cipherSuite
+	var suiteTLS13 *cipherSuiteTLS13
+	if c.vers == VersionTLS13 {
+		suiteTLS13 = mutualCipherSuiteTLS13(hello.cipherSuites, serverHello.cipherSuite)
+		if suiteTLS13 == nil {
+			c.sendAlert(alertIllegalParameter)
+			return errors.New("tls: server chose an unconfigured cipher suite")
+		}
+	} else {
+		suite = mutualCipherSuite(hello.cipherSuites, serverHello.cipherSuite)
+		if suite == nil {
+			c.sendAlert(alertHandshakeFailure)
+			return errors.New("tls: server chose an unconfigured cipher suite")
+		}
 	}
 
 	hs := &clientHandshakeState{
@@ -177,6 +212,7 @@ NextCipherSuite:
 		serverHello:  serverHello,
 		hello:        hello,
 		suite:        suite,
+		suiteTLS13:   suiteTLS13,
 		finishedHash: newFinishedHash(c.vers, suite),
 		session:      session,
 	}
@@ -235,6 +271,26 @@ NextCipherSuite:
 	c.didResume = isResume
 	c.handshakeComplete = true
 	c.cipherSuite = suite.id
+	return nil
+}
+
+func (c *Conn) pickTLSVersion(serverHello *serverHelloMsg) error {
+	peerVersion := serverHello.vers
+	if serverHello.supportedVersion != 0 {
+		peerVersion = serverHello.supportedVersion
+	}
+
+	vers, ok := c.config.mutualVersion(true, []uint16{peerVersion})
+	if !ok {
+		c.sendAlert(alertProtocolVersion)
+		return fmt.Errorf("tls: server selected unsupported protocol version %x", peerVersion)
+	}
+
+	c.vers = vers
+	c.haveVers = true
+	c.in.version = vers
+	c.out.version = vers
+
 	return nil
 }
 

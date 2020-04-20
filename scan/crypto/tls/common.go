@@ -585,17 +585,16 @@ func (c *Config) curvePreferences() []CurveID {
 
 // mutualVersion returns the protocol version to use given the advertised
 // version of the peer.
-func (c *Config) mutualVersion(vers uint16) (uint16, bool) {
-	minVersion := c.minVersion()
-	maxVersion := c.maxVersion()
-
-	if vers < minVersion {
-		return 0, false
+func (c *Config) mutualVersion(isClient bool, peerVersions []uint16) (uint16, bool) {
+	supportedVersions := c.supportedVersions(isClient)
+	for _, peerVersion := range peerVersions {
+		for _, v := range supportedVersions {
+			if v == peerVersion {
+				return v, true
+			}
+		}
 	}
-	if vers > maxVersion {
-		vers = maxVersion
-	}
-	return vers, true
+	return 0, false
 }
 
 // getCertificate returns the best certificate for the given ClientHelloInfo,
@@ -781,13 +780,19 @@ func defaultConfig() *Config {
 }
 
 var (
-	once                   sync.Once
-	varDefaultCipherSuites []uint16
+	once                        sync.Once
+	varDefaultCipherSuites      []uint16
+	varDefaultCipherSuitesTLS13 []uint16
 )
 
 func defaultCipherSuites() []uint16 {
 	once.Do(initDefaultCipherSuites)
 	return varDefaultCipherSuites
+}
+
+func defaultCipherSuitesTLS13() []uint16 {
+	once.Do(initDefaultCipherSuites)
+	return varDefaultCipherSuitesTLS13
 }
 
 func initDefaultCipherSuites() {
@@ -797,6 +802,11 @@ func initDefaultCipherSuites() {
 			continue
 		}
 		varDefaultCipherSuites = append(varDefaultCipherSuites, suite.id)
+	}
+	varDefaultCipherSuitesTLS13 = []uint16{
+		//TLS_CHACHA20_POLY1305_SHA256, // lbarman: not implemented
+		TLS_AES_128_GCM_SHA256,
+		TLS_AES_256_GCM_SHA384,
 	}
 }
 

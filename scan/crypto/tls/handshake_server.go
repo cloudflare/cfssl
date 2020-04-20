@@ -114,7 +114,11 @@ func (hs *serverHandshakeState) readClientHello() (isResume bool, err error) {
 		c.sendAlert(alertUnexpectedMessage)
 		return false, unexpectedMessageError(hs.clientHello, msg)
 	}
-	c.vers, ok = config.mutualVersion(hs.clientHello.vers)
+	peerVersions := []uint16{hs.clientHello.vers}
+	if len(hs.clientHello.supportedVersions) != 0 {
+		peerVersions = hs.clientHello.supportedVersions
+	}
+	c.vers, ok = config.mutualVersion(false, peerVersions)
 	if !ok {
 		c.sendAlert(alertProtocolVersion)
 		return false, fmt.Errorf("tls: client offered an unsupported, maximum protocol version of %x", hs.clientHello.vers)
@@ -277,7 +281,8 @@ func (hs *serverHandshakeState) checkForResumption() bool {
 	if hs.sessionState.vers > hs.clientHello.vers {
 		return false
 	}
-	if vers, ok := c.config.mutualVersion(hs.sessionState.vers); !ok || vers != hs.sessionState.vers {
+	clientSessionStateVersion := []uint16{hs.sessionState.vers}
+	if vers, ok := c.config.mutualVersion(false, clientSessionStateVersion); !ok || vers != hs.sessionState.vers {
 		return false
 	}
 
