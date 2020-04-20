@@ -5,6 +5,7 @@
 package tls
 
 import (
+	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
@@ -94,6 +95,22 @@ var cipherSuites = []*cipherSuite{
 	{TLS_RSA_WITH_3DES_EDE_CBC_SHA, 24, 20, 8, rsaKA, 0, cipher3DES, macSHA1, nil},
 }
 
+// A cipherSuiteTLS13 defines only the pair of the AEAD algorithm and hash
+// algorithm to be used with HKDF. See RFC 8446, Appendix B.4.
+type cipherSuiteTLS13 struct {
+	id     uint16
+	keyLen int
+	aead   func(key, fixedNonce []byte) cipher.AEAD
+	hash   crypto.Hash
+}
+
+var cipherSuitesTLS13 = []*cipherSuiteTLS13{
+	{TLS_AES_128_GCM_SHA256, 16, aeadAESGCMTLS13, crypto.SHA256},
+	//{TLS_CHACHA20_POLY1305_SHA256, 32, aeadChaCha20Poly1305, crypto.SHA256},
+	{TLS_AES_256_GCM_SHA384, 32, aeadAESGCMTLS13, crypto.SHA384},
+}
+
+
 func cipherRC4(key, iv []byte, isRead bool) interface{} {
 	cipher, _ := rc4.NewCipher(key)
 	return cipher
@@ -156,6 +173,46 @@ func (f *fixedNonceAEAD) Open(out, nonce, plaintext, additionalData []byte) ([]b
 	return f.aead.Open(out, f.openNonce, plaintext, additionalData)
 }
 
+const (
+	aeadNonceLength   = 12
+	noncePrefixLength = 4
+)
+
+// xoredNonceAEAD wraps an AEAD by XORing in a fixed pattern to the nonce
+// before each call.
+type xorNonceAEAD struct {
+	nonceMask [aeadNonceLength]byte
+	aead      cipher.AEAD
+}
+
+func (f *xorNonceAEAD) NonceSize() int        { return 8 } // 64-bit sequence number
+func (f *xorNonceAEAD) Overhead() int         { return f.aead.Overhead() }
+func (f *xorNonceAEAD) explicitNonceLen() int { return 0 }
+
+func (f *xorNonceAEAD) Seal(out, nonce, plaintext, additionalData []byte) []byte {
+	for i, b := range nonce {
+		f.nonceMask[4+i] ^= b
+	}
+	result := f.aead.Seal(out, f.nonceMask[:], plaintext, additionalData)
+	for i, b := range nonce {
+		f.nonceMask[4+i] ^= b
+	}
+
+	return result
+}
+
+func (f *xorNonceAEAD) Open(out, nonce, ciphertext, additionalData []byte) ([]byte, error) {
+	for i, b := range nonce {
+		f.nonceMask[4+i] ^= b
+	}
+	result, err := f.aead.Open(out, f.nonceMask[:], ciphertext, additionalData)
+	for i, b := range nonce {
+		f.nonceMask[4+i] ^= b
+	}
+
+	return result, err
+}
+
 func aeadAESGCM(key, fixedNonce []byte) cipher.AEAD {
 	aes, err := aes.NewCipher(key)
 	if err != nil {
@@ -171,6 +228,25 @@ func aeadAESGCM(key, fixedNonce []byte) cipher.AEAD {
 	copy(nonce2, fixedNonce)
 
 	return &fixedNonceAEAD{nonce1, nonce2, aead}
+}
+
+// lbarman: TODO careful review; ref implementation returns aead, whereas we return a type which lacks explicitNonceLen()
+func aeadAESGCMTLS13(key, nonceMask []byte) cipher.AEAD {
+	if len(nonceMask) != aeadNonceLength {
+		panic("tls: internal error: wrong nonce length")
+	}
+	aes, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+	aead, err := cipher.NewGCM(aes)
+	if err != nil {
+		panic(err)
+	}
+
+	ret := &xorNonceAEAD{aead: aead}
+	copy(ret.nonceMask[:], nonceMask)
+	return ret
 }
 
 // ssl30MAC implements the SSLv3 MAC function, as defined in
@@ -261,6 +337,24 @@ func mutualCipherSuite(have []uint16, want uint16) *cipherSuite {
 	return nil
 }
 
+func mutualCipherSuiteTLS13(have []uint16, want uint16) *cipherSuiteTLS13 {
+	for _, id := range have {
+		if id == want {
+			return cipherSuiteTLS13ByID(id)
+		}
+	}
+	return nil
+}
+
+func cipherSuiteTLS13ByID(id uint16) *cipherSuiteTLS13 {
+	for _, cipherSuite := range cipherSuitesTLS13 {
+		if cipherSuite.id == id {
+			return cipherSuite
+		}
+	}
+	return nil
+}
+
 // A list of the possible cipher suite ids. Taken from
 // http://www.iana.org/assignments/tls-parameters/tls-parameters.xml
 const (
@@ -268,6 +362,7 @@ const (
 	TLS_RSA_WITH_3DES_EDE_CBC_SHA           uint16 = 0x000a
 	TLS_RSA_WITH_AES_128_CBC_SHA            uint16 = 0x002f
 	TLS_RSA_WITH_AES_256_CBC_SHA            uint16 = 0x0035
+	TLS_RSA_WITH_AES_128_CBC_SHA256         uint16 = 0x003c
 	TLS_RSA_WITH_AES_128_GCM_SHA256         uint16 = 0x009c
 	TLS_RSA_WITH_AES_256_GCM_SHA384         uint16 = 0x009d
 	TLS_ECDHE_ECDSA_WITH_RC4_128_SHA        uint16 = 0xc007
@@ -277,10 +372,19 @@ const (
 	TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA     uint16 = 0xc012
 	TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA      uint16 = 0xc013
 	TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA      uint16 = 0xc014
+	TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 uint16 = 0xc023
+	TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256   uint16 = 0xc027
 	TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   uint16 = 0xc02f
 	TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 uint16 = 0xc02b
 	TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384   uint16 = 0xc030
 	TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 uint16 = 0xc02c
+	TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305    uint16 = 0xcca8
+	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305  uint16 = 0xcca9
+
+	// TLS 1.3 cipher suites.
+	TLS_AES_128_GCM_SHA256       uint16 = 0x1301
+	TLS_AES_256_GCM_SHA384       uint16 = 0x1302
+	TLS_CHACHA20_POLY1305_SHA256 uint16 = 0x1303
 
 	// TLS_FALLBACK_SCSV isn't a standard cipher suite but an indicator
 	// that the client is doing version fallback. See
