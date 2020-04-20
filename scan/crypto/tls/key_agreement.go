@@ -155,20 +155,6 @@ func pickTLS12HashForSignature(sigType uint8, clientList []signatureAndHash) (ui
 	return 0, errors.New("tls: client doesn't support any common hash functions")
 }
 
-func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
-	switch id {
-	case CurveP256:
-		return elliptic.P256(), true
-	case CurveP384:
-		return elliptic.P384(), true
-	case CurveP521:
-		return elliptic.P521(), true
-	default:
-		return nil, false
-	}
-
-}
-
 // ecdheRSAKeyAgreement implements a TLS key agreement where the server
 // generates a ephemeral EC public/private key pair and signs it. The
 // pre-master secret is then calculated using ECDH. The signature may

@@ -59,6 +59,7 @@ func (c *Conn) clientHandshake() error {
 	}
 
 	supportedVersions := c.config.supportedVersions(true)
+
 	if len(supportedVersions) == 0 {
 		return errors.New("tls: no supported versions satisfy MinVersion and MaxVersion")
 	}
@@ -70,6 +71,7 @@ func (c *Conn) clientHandshake() error {
 	if clientHelloVersion > VersionTLS12 {
 		clientHelloVersion = VersionTLS12
 	}
+	fmt.Printf("supportedVersions %x %x \n", clientHelloVersion, supportedVersions[0])
 
 	hello := &clientHelloMsg{
 		vers:                clientHelloVersion,
@@ -116,11 +118,19 @@ NextCipherSuite:
 		hello.signatureAndHashes = supportedSignatureAlgorithms
 	}
 
+	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 {
 		hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13()...)
 
-		// lbarman: missing support for ECDHE
-		// see ref implementation golang/src/crypto/tls/handshake_client_tls13.go
+		curveID := c.config.curvePreferences()[0]
+		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
+			return errors.New("tls: CurvePreferences includes unsupported curve")
+		}
+		params, err = generateECDHEParameters(c.config.rand(), curveID)
+		if err != nil {
+			return err
+		}
+		hello.keyShares = []keyShare{{group: curveID, data: params.PublicKey()}}
 	}
 
 	var session *ClientSessionState
@@ -180,6 +190,9 @@ NextCipherSuite:
 		return unexpectedMessageError(serverHello, msg)
 	}
 
+	fmt.Printf("serverHello %x %x \n", serverHello.vers, serverHello.supportedVersion)
+
+
 	if err := c.pickTLSVersion(serverHello); err != nil {
 		return err
 	}
@@ -206,6 +219,8 @@ NextCipherSuite:
 			return errors.New("tls: server chose an unconfigured cipher suite")
 		}
 	}
+
+	fmt.Printf("Calling newFinishedHash %x %x \n", c.vers, suite)
 
 	hs := &clientHandshakeState{
 		c:            c,
