@@ -21,7 +21,6 @@ import (
 //in KeyRequest field
 
 func TestNew(t *testing.T) {
-
 	if cr := New(); cr.KeyRequest == nil {
 		t.Fatalf("Should create a new, empty certificate request with KeyRequest")
 	}
@@ -47,7 +46,7 @@ func TestKeyRequest(t *testing.T) {
 		}
 	case ed25519.PrivateKey:
 		if kr.Algo() != "ed25519" {
-			t.Fatal("ED25519 key generated, but expected", kr.Algo())
+			t.Fatal("Ed25519 key generated, but expected", kr.Algo())
 		}
 	}
 }
@@ -118,7 +117,7 @@ func TestParseRequest(t *testing.T) {
 		KeyRequest: NewKeyRequest(),
 		Extensions: []pkix.Extension{
 			pkix.Extension{
-				Id: asn1.ObjectIdentifier{1, 2, 3, 4, 5},
+				Id:    asn1.ObjectIdentifier{1, 2, 3, 4, 5},
 				Value: []byte("AgEB"),
 			},
 		},
@@ -128,7 +127,7 @@ func TestParseRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	
+
 	block, _ := pem.Decode(csrBytes)
 	if block == nil {
 		t.Fatalf("%v", err)
@@ -385,7 +384,6 @@ func TestBadKeyRequest(t *testing.T) {
 		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
 	}
 
-
 	kr = &KeyRequest{"tobig", 9216}
 
 	kr.A = "rsa"
@@ -433,7 +431,7 @@ func TestDefaultKeyRequest(t *testing.T) {
 		if DefaultKeyRequest.Algo() != "ecdsa" {
 			t.Fatal("Invalid default key request.")
 		}
-	case "PRIVATE KEY":
+	case "Ed25519 PRIVATE KEY":
 		if DefaultKeyRequest.Algo() != "ed25519" {
 			t.Fatal("Invalid default key request.")
 		}

@@ -23,9 +23,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"io/ioutil"
 	"strings"
+
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
@@ -220,8 +221,8 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 			return err
 		}
 		p := &pem.Block{
-			Type:    "PRIVATE KEY",
-			Bytes:   keyPEM,
+			Type:  "Ed25519 PRIVATE KEY",
+			Bytes: keyPEM,
 		}
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
@@ -334,14 +335,14 @@ func (sp *StandardProvider) Load() (err error) {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an RSA key")
 			return
 		}
-	case *ed25519.PublicKey:
-		if p.Type != "ED25519 PRIVATE KEY" && p.Type != "PRIVATE KEY" {
-			err = errors.New("transport: PEM type" + p.Type + "is invalid for an ED25519 key")
-			return
-		}
 	case *ecdsa.PublicKey:
 		if p.Type != "EC PRIVATE KEY" {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an ECDSA key")
+			return
+		}
+	case *ed25519.PublicKey:
+		if p.Type != "Ed25519 PRIVATE KEY" {
+			err = errors.New("transport: PEM type" + p.Type + "is invalid for an ED25519 key")
 			return
 		}
 	default:

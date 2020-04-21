@@ -13,12 +13,13 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"io"
 	"net"
 	"net/mail"
 	"net/url"
 	"strings"
+
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -146,12 +147,12 @@ type CAConfig struct {
 // A CertificateRequest encapsulates the API interface to the
 // certificate request functionality.
 type CertificateRequest struct {
-	CN           string     `json:"CN" yaml:"CN"`
-	Names        []Name     `json:"names" yaml:"names"`
-	Hosts        []string   `json:"hosts" yaml:"hosts"`
-	KeyRequest   *KeyRequest `json:"key,omitempty" yaml:"key,omitempty"`
-	CA           *CAConfig  `json:"ca,omitempty" yaml:"ca,omitempty"`
-	SerialNumber string     `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	CN           string           `json:"CN" yaml:"CN"`
+	Names        []Name           `json:"names" yaml:"names"`
+	Hosts        []string         `json:"hosts" yaml:"hosts"`
+	KeyRequest   *KeyRequest      `json:"key,omitempty" yaml:"key,omitempty"`
+	CA           *CAConfig        `json:"ca,omitempty" yaml:"ca,omitempty"`
+	SerialNumber string           `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
 	Extensions   []pkix.Extension `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 }
 
@@ -225,8 +226,8 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 
 		}
 		block := pem.Block{
-			Type:    "PRIVATE KEY",
-			Bytes:   key,
+			Type:  "Ed25519 PRIVATE KEY",
+			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
 	case *ecdsa.PrivateKey:
@@ -454,12 +455,12 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 	}
 
 	csr.ExtraExtensions = append(csr.ExtraExtensions, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},			
-			Value:    val,
-			Critical: true,		
-		})
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
+		Value:    val,
+		Critical: true,
+	})
 
-		return nil
+	return nil
 }
 
 // appendCAInfoToCSR appends user-defined extension to a CSR

@@ -54,13 +54,6 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 	switch k := priv.(type) {
 	case *rsa.PrivateKey:
 		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
-	case *ed25519.PrivateKey:
-		b, err := derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to marshal ED25519 private key: %v", err)
-			os.Exit(2)
-		}
-		return &pem.Block{Type: "PRIVATE KEY", Bytes: b}
 	case *ecdsa.PrivateKey:
 		b, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
@@ -68,6 +61,13 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 			os.Exit(2)
 		}
 		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
+	case *ed25519.PrivateKey:
+		b, err := derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to marshal ED25519 private key: %v", err)
+			os.Exit(2)
+		}
+		return &pem.Block{Type: "Ed25519 PRIVATE KEY", Bytes: b}
 	default:
 		return nil
 	}
