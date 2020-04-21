@@ -13,20 +13,22 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"net"
 	"strconv"
 )
 
 type clientHandshakeState struct {
-	c            *Conn
-	serverHello  *serverHelloMsg
-	hello        *clientHelloMsg
-	suite        *cipherSuite
-	suiteTLS13   *cipherSuiteTLS13 // lbarman: is there something cleaner to do here ?
-	finishedHash finishedHash
-	masterSecret []byte
-	session      *ClientSessionState
+	c               *Conn
+	serverHello     *serverHelloMsg
+	hello           *clientHelloMsg
+	suite           *cipherSuite
+	suiteTLS13      *cipherSuiteTLS13 // lbarman: is there something cleaner to do here ?
+	transcriptTLS13 hash.Hash         // lbarman: also only used in 1.3, is there something cleaner to do here ?
+	finishedHash    finishedHash
+	masterSecret    []byte
+	session         *ClientSessionState
 }
 
 func (c *Conn) clientHandshake() error {
@@ -192,7 +194,6 @@ NextCipherSuite:
 
 	fmt.Printf("serverHello %x %x \n", serverHello.vers, serverHello.supportedVersion)
 
-
 	if err := c.pickTLSVersion(serverHello); err != nil {
 		return err
 	}
@@ -222,14 +223,22 @@ NextCipherSuite:
 
 	fmt.Printf("Calling newFinishedHash %x %x \n", c.vers, suite)
 
+	var transcriptTLS13 hash.Hash
+	var finishedHashTLS12 finishedHash
+	if c.vers == VersionTLS13 {
+		transcriptTLS13 = suiteTLS13.hash.New()
+	} else {
+		finishedHashTLS12 = newFinishedHash(c.vers, suite)
+	}
 	hs := &clientHandshakeState{
-		c:            c,
-		serverHello:  serverHello,
-		hello:        hello,
-		suite:        suite,
-		suiteTLS13:   suiteTLS13,
-		finishedHash: newFinishedHash(c.vers, suite),
-		session:      session,
+		c:               c,
+		serverHello:     serverHello,
+		hello:           hello,
+		suite:           suite,
+		suiteTLS13:      suiteTLS13,
+		finishedHash:    finishedHashTLS12,
+		transcriptTLS13: transcriptTLS13,
+		session:         session,
 	}
 
 	isResume, err := hs.processServerHello()
@@ -245,8 +254,15 @@ NextCipherSuite:
 		hs.finishedHash.discardHandshakeBuffer()
 	}
 
-	hs.finishedHash.Write(hs.hello.marshal())
-	hs.finishedHash.Write(hs.serverHello.marshal())
+	// lbarman: could use polymorphism here, but in general I think this approach is wrong.
+	// we should have one clean & simple implementation of TLS1.3
+	if c.vers == VersionTLS13 {
+		hs.transcriptTLS13.Write(hs.hello.marshal())
+		hs.transcriptTLS13.Write(hs.serverHello.marshal())
+	} else {
+		hs.finishedHash.Write(hs.hello.marshal())
+		hs.finishedHash.Write(hs.serverHello.marshal())
+	}
 
 	if isResume {
 		if err := hs.establishKeys(); err != nil {
