@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync/atomic"
 )
 
 // serverHandshakeState contains details of a server handshake in progress.
@@ -67,7 +68,7 @@ func (c *Conn) serverHandshake() error {
 				return err
 			}
 		}
-		if err := hs.sendFinished(c.firstFinished[:]); err != nil {
+		if err := hs.sendFinished(c.serverFinished[:]); err != nil {
 			return err
 		}
 		if err := hs.readFinished(nil); err != nil {
@@ -83,7 +84,7 @@ func (c *Conn) serverHandshake() error {
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
-		if err := hs.readFinished(c.firstFinished[:]); err != nil {
+		if err := hs.readFinished(c.clientFinished[:]); err != nil {
 			return err
 		}
 		if err := hs.sendSessionTicket(); err != nil {
@@ -93,7 +94,7 @@ func (c *Conn) serverHandshake() error {
 			return err
 		}
 	}
-	c.handshakeComplete = true
+	atomic.StoreUint32(&c.handshakeStatus, 1)
 
 	return nil
 }
@@ -575,8 +576,7 @@ func (hs *serverHandshakeState) establishKeys() error {
 func (hs *serverHandshakeState) readFinished(out []byte) error {
 	c := hs.c
 
-	c.readRecord(recordTypeChangeCipherSpec)
-	if err := c.in.error(); err != nil {
+	if err := c.readChangeCipherSpec(); err != nil {
 		return err
 	}
 

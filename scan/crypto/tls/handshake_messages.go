@@ -28,7 +28,6 @@ type clientHelloMsg struct {
 	secureRenegotiation bool
 	alpnProtocols       []string
 
-	// lbarman: fields for TLS1.3
 	supportedVersions                []uint16
 	supportedSignatureAlgorithmsCert []signatureAndHash
 	// lbarman: TODO check inconsistency: do we want "hasCookie", "hasKeyShare" like we have "ticketSupported" ?
@@ -2105,4 +2104,15 @@ func eqPskIdentity(x, y []pskIdentity) bool {
 		}
 	}
 	return true
+}
+
+type helloRequestMsg struct {
+}
+
+func (*helloRequestMsg) marshal() []byte {
+	return []byte{typeHelloRequest, 0, 0, 0}
+}
+
+func (*helloRequestMsg) unmarshal(data []byte) bool {
+	return len(data) == 4
 }

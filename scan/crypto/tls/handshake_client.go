@@ -17,6 +17,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"sync/atomic"
 )
 
 type clientHandshakeState struct {
@@ -73,7 +74,6 @@ func (c *Conn) clientHandshake() error {
 	if clientHelloVersion > VersionTLS12 {
 		clientHelloVersion = VersionTLS12
 	}
-	fmt.Printf("supportedVersions %x %x \n", clientHelloVersion, supportedVersions[0])
 
 	hello := &clientHelloMsg{
 		vers:                clientHelloVersion,
@@ -180,7 +180,9 @@ NextCipherSuite:
 		}
 	}
 
-	c.writeRecord(recordTypeHandshake, hello.marshal())
+	if _, err := c.writeRecord(recordTypeHandshake, hello.marshal()); err != nil {
+		return err
+	}
 
 	msg, err := c.readHandshake()
 	if err != nil {
@@ -191,8 +193,6 @@ NextCipherSuite:
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(serverHello, msg)
 	}
-
-	fmt.Printf("serverHello %x %x \n", serverHello.vers, serverHello.supportedVersion)
 
 	if err := c.pickTLSVersion(serverHello); err != nil {
 		return err
@@ -220,8 +220,6 @@ NextCipherSuite:
 			return errors.New("tls: server chose an unconfigured cipher suite")
 		}
 	}
-
-	fmt.Printf("Calling newFinishedHash %x %x \n", c.vers, suite)
 
 	var transcriptTLS13 hash.Hash
 	var finishedHashTLS12 finishedHash
@@ -271,7 +269,7 @@ NextCipherSuite:
 		if err := hs.readSessionTicket(); err != nil {
 			return err
 		}
-		if err := hs.readFinished(c.firstFinished[:]); err != nil {
+		if err := hs.readFinished(c.serverFinished[:]); err != nil {
 			return err
 		}
 		if err := hs.sendFinished(nil); err != nil {
@@ -284,7 +282,7 @@ NextCipherSuite:
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
-		if err := hs.sendFinished(c.firstFinished[:]); err != nil {
+		if err := hs.sendFinished(c.clientFinished[:]); err != nil {
 			return err
 		}
 		if err := hs.readSessionTicket(); err != nil {
@@ -300,8 +298,8 @@ NextCipherSuite:
 	}
 
 	c.didResume = isResume
-	c.handshakeComplete = true
 	c.cipherSuite = suite.id
+	atomic.StoreUint32(&c.handshakeStatus, 1)
 	return nil
 }
 
@@ -651,8 +649,7 @@ func (hs *clientHandshakeState) processServerHello() (bool, error) {
 func (hs *clientHandshakeState) readFinished(out []byte) error {
 	c := hs.c
 
-	c.readRecord(recordTypeChangeCipherSpec)
-	if err := c.in.error(); err != nil {
+	if err := c.readChangeCipherSpec(); err != nil {
 		return err
 	}
 
