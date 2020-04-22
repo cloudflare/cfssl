@@ -4,13 +4,26 @@ package tls
 // and returns the negotiated ciphersuite ID, and, if an EC cipher suite, the curve ID
 func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint16, curveID CurveID, version uint16, certs [][]byte, err error) {
 	// Set the supported signatures and hashes to the set `newSigAls`
-	supportedSignatureAlgorithms := make([]signatureAndHash, len(newSigAls))
+	supportedSignatureAlgorithms := make([]SignatureScheme, len(newSigAls))
 	for i := range newSigAls {
 		supportedSignatureAlgorithms[i] = newSigAls[i].internal()
 	}
+	supportedVersions := c.config.supportedVersions(true)
+	if len(supportedVersions) == 0 {
+		err = unexpectedMessageError(supportedVersions, "tls: no supported versions satisfy MinVersion and MaxVersion")
+		return
+	}
+
+	clientHelloVersion := supportedVersions[0]
+	// The version at the beginning of the ClientHello was capped at TLS 1.2
+	// for compatibility reasons. The supported_versions extension is used
+	// to negotiate versions now. See RFC 8446, Section 4.2.1.
+	if clientHelloVersion > VersionTLS12 {
+		clientHelloVersion = VersionTLS12
+	}
 
 	hello := &clientHelloMsg{
-		vers:                c.config.maxVersion(),
+		vers:                clientHelloVersion,
 		compressionMethods:  []uint8{compressionNone},
 		random:              make([]byte, 32),
 		ocspStapling:        true,
@@ -18,9 +31,9 @@ func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint1
 		supportedCurves:     c.config.curvePreferences(),
 		supportedPoints:     []uint8{pointFormatUncompressed},
 		nextProtoNeg:        len(c.config.NextProtos) > 0,
-		secureRenegotiation: true,
+		secureRenegotiationSupported: true,
 		cipherSuites:        c.config.cipherSuites(),
-		signatureAndHashes:  supportedSignatureAlgorithms,
+		supportedSignatureAlgorithms:  supportedSignatureAlgorithms,
 	}
 	serverHello, err := c.sayHello(hello)
 	if err != nil {
