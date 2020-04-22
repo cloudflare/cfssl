@@ -28,5 +28,6 @@ require (
 	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
 	golang.org/x/text v0.3.2 // indirect
 )
