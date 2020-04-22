@@ -136,7 +136,7 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 		}
 	}
 	if rand.Intn(10) > 5 {
-		m.signatureAndHashes = supportedSignatureAlgorithms
+		m.supportedSignatureAlgorithms = supportedSignatureAlgorithms
 	}
 	m.alpnProtocols = make([]string, rand.Intn(5))
 	for i := range m.alpnProtocols {
@@ -216,10 +216,10 @@ func (*certificateVerifyMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 func (*certificateStatusMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateStatusMsg{}
 	if rand.Intn(10) > 5 {
-		m.statusType = statusTypeOCSP
+		m.raw = randomBytes(rand.Intn(10)+1, rand)
 		m.response = randomBytes(rand.Intn(10)+1, rand)
 	} else {
-		m.statusType = 42
+		m.response = randomBytes(rand.Intn(10)+1, rand)
 	}
 	return reflect.ValueOf(m)
 }

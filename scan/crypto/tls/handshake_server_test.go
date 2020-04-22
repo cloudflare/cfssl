@@ -185,11 +185,11 @@ func TestDontSelectRSAWithECDSAKey(t *testing.T) {
 
 func TestRenegotiationExtension(t *testing.T) {
 	clientHello := &clientHelloMsg{
-		vers:                VersionTLS12,
-		compressionMethods:  []uint8{compressionNone},
-		random:              make([]byte, 32),
-		secureRenegotiation: true,
-		cipherSuites:        []uint16{TLS_RSA_WITH_RC4_128_SHA},
+		vers:                         VersionTLS12,
+		compressionMethods:           []uint8{compressionNone},
+		random:                       make([]byte, 32),
+		secureRenegotiationSupported: true,
+		cipherSuites:                 []uint16{TLS_RSA_WITH_RC4_128_SHA},
 	}
 
 	var buf []byte
@@ -226,7 +226,7 @@ func TestRenegotiationExtension(t *testing.T) {
 		t.Fatalf("Failed to parse ServerHello")
 	}
 
-	if !serverHello.secureRenegotiation {
+	if !serverHello.secureRenegotiationSupported {
 		t.Errorf("Secure renegotiation extension was not echoed.")
 	}
 }
@@ -908,7 +908,7 @@ func TestFallbackSCSV(t *testing.T) {
 		name:   "FallbackSCSV",
 		config: serverConfig,
 		// OpenSSL 1.0.1j is needed for the -fallback_scsv option.
-		command: []string{"openssl", "s_client", "-fallback_scsv"},
+		command:                       []string{"openssl", "s_client", "-fallback_scsv"},
 		expectHandshakeErrorIncluding: "inappropriate protocol fallback",
 	}
 	runServerTestTLS11(t, test)

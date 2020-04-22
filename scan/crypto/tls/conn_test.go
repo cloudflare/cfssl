@@ -37,15 +37,16 @@ var paddingTests = []struct {
 
 func TestRemovePadding(t *testing.T) {
 	for i, test := range paddingTests {
-		payload, good := removePadding(test.in)
+		paddingLen, paddingGood := extractPadding(test.in)
 		expectedGood := byte(255)
 		if !test.good {
 			expectedGood = 0
 		}
-		if good != expectedGood {
-			t.Errorf("#%d: wrong validity, want:%d got:%d", i, expectedGood, good)
+		if paddingGood != expectedGood {
+			t.Errorf("#%d: wrong validity, want:%d got:%d", i, expectedGood, paddingGood)
 		}
-		if good == 255 && len(payload) != test.expectedLen {
+		payload := test.in[:paddingLen]
+		if paddingGood == 255 && len(payload) != test.expectedLen {
 			t.Errorf("#%d: got %d, want %d", i, len(payload), test.expectedLen)
 		}
 	}
