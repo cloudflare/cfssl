@@ -11,7 +11,7 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"crypto/ed25519"
+	"golang.org/x/crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"

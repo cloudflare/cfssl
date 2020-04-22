@@ -7,7 +7,7 @@ package tls
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
+	"golang.org/x/crypto/ed25519"
 	"crypto/rsa"
 	"crypto/subtle"
 	"crypto/x509"

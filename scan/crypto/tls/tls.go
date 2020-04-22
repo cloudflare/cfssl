@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
+	"golang.org/x/crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
