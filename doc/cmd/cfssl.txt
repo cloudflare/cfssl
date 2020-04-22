@@ -171,7 +171,7 @@ default profile is used:
 
    {
 	"usages": ["signing", "key encipherment", "server auth", "client auth"],
-	"expiry: "8760h"
+	"expiry": "8760h"
    }
 
 The expiration time of 8760h is equivalent to one year.
