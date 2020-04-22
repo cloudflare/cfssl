@@ -1,10 +1,16 @@
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package tls
 
 import (
 	"crypto/elliptic"
 	"crypto/hmac"
+	"crypto/subtle"
 	"errors"
 	"golang.org/x/crypto/cryptobyte"
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 	"hash"
 	"io"
@@ -105,8 +111,12 @@ type ecdheParameters interface {
 
 func generateECDHEParameters(rand io.Reader, curveID CurveID) (ecdheParameters, error) {
 	if curveID == X25519 {
-		errors.New("X25119 is not implemented")
-		return nil, nil
+		p := &x25519Parameters{}
+		if _, err := io.ReadFull(rand, p.privateKey[:]); err != nil {
+			return nil, err
+		}
+		curve25519.ScalarBaseMult(&p.publicKey, &p.privateKey)
+		return p, nil
 	}
 
 	curve, ok := curveForCurveID(curveID)
@@ -165,4 +175,35 @@ func (p *nistParameters) SharedKey(peerPublicKey []byte) []byte {
 	copy(sharedKey[len(sharedKey)-len(xBytes):], xBytes)
 
 	return sharedKey
+}
+
+type x25519Parameters struct {
+	privateKey [32]byte
+	publicKey  [32]byte
+}
+
+func (p *x25519Parameters) CurveID() CurveID {
+	return X25519
+}
+
+func (p *x25519Parameters) PublicKey() []byte {
+	return p.publicKey[:]
+}
+
+func (p *x25519Parameters) SharedKey(peerPublicKey []byte) []byte {
+	if len(peerPublicKey) != 32 {
+		return nil
+	}
+
+	var theirPublicKey, sharedKey [32]byte
+	copy(theirPublicKey[:], peerPublicKey)
+	curve25519.ScalarMult(&sharedKey, &p.privateKey, &theirPublicKey)
+
+	// Check for low-order inputs. See RFC 8422, Section 5.11.
+	var allZeroes [32]byte
+	if subtle.ConstantTimeCompare(allZeroes[:], sharedKey[:]) == 1 {
+		return nil
+	}
+
+	return sharedKey[:]
 }

@@ -860,8 +860,50 @@ const (
 // In the interests of simplicity and determinism, this code does not attempt
 // to reset the record size once the connection is idle, however.
 func (c *Conn) maxPayloadSizeForWrite(typ recordType) int {
-	// lbarman: DynamicRecordSizing not implemented
-	return maxPlaintext
+	if c.config.DynamicRecordSizingDisabled || typ != recordTypeApplicationData {
+		return maxPlaintext
+	}
+
+	if c.bytesSent >= recordSizeBoostThreshold {
+		return maxPlaintext
+	}
+
+	// Subtract TLS overheads to get the maximum payload size.
+	payloadBytes := tcpMSSEstimate - recordHeaderLen - c.out.explicitNonceLen()
+	if c.out.cipher != nil {
+		switch ciph := c.out.cipher.(type) {
+		case cipher.Stream:
+			payloadBytes -= c.out.mac.Size()
+		case cipher.AEAD:
+			payloadBytes -= ciph.Overhead()
+		case cbcMode:
+			blockSize := ciph.BlockSize()
+			// The payload must fit in a multiple of blockSize, with
+			// room for at least one padding byte.
+			payloadBytes = (payloadBytes & ^(blockSize - 1)) - 1
+			// The MAC is appended before padding so affects the
+			// payload size directly.
+			payloadBytes -= c.out.mac.Size()
+		default:
+			panic("unknown cipher type")
+		}
+	}
+	if c.vers == VersionTLS13 {
+		payloadBytes-- // encrypted ContentType
+	}
+
+	// Allow packet growth in arithmetic progression up to max.
+	pkt := c.packetsSent
+	c.packetsSent++
+	if pkt > 1000 {
+		return maxPlaintext // avoid overflow in multiply below
+	}
+
+	n := payloadBytes * int(pkt+1)
+	if n > maxPlaintext {
+		n = maxPlaintext
+	}
+	return n
 }
 
 func (c *Conn) write(data []byte) (int, error) {
@@ -990,7 +1032,7 @@ func (c *Conn) readHandshake() (interface{}, error) {
 			m = new(certificateRequestMsgTLS13)
 		} else {
 			m = &certificateRequestMsg{
-				hasSignatureAndHash: c.vers >= VersionTLS12,
+				hasSignatureAlgorithm: c.vers >= VersionTLS12,
 			}
 		}
 	case typeCertificateStatus:
@@ -1003,7 +1045,7 @@ func (c *Conn) readHandshake() (interface{}, error) {
 		m = new(clientKeyExchangeMsg)
 	case typeCertificateVerify:
 		m = &certificateVerifyMsg{
-			hasSignatureAndHash: c.vers >= VersionTLS12,
+			hasSignatureAlgorithm: c.vers >= VersionTLS12,
 		}
 	case typeNextProtocol:
 		m = new(nextProtoMsg)
@@ -1097,7 +1139,101 @@ func (c *Conn) handleRenegotiation() error {
 	if c.vers == VersionTLS13 {
 		return errors.New("tls: internal error: unexpected renegotiation")
 	}
-	panic("renegotiation not implemented")
+
+	msg, err := c.readHandshake()
+	if err != nil {
+		return err
+	}
+
+	helloReq, ok := msg.(*helloRequestMsg)
+	if !ok {
+		c.sendAlert(alertUnexpectedMessage)
+		return unexpectedMessageError(helloReq, msg)
+	}
+
+	if !c.isClient {
+		return c.sendAlert(alertNoRenegotiation)
+	}
+
+	switch c.config.Renegotiation {
+	case RenegotiateNever:
+		return c.sendAlert(alertNoRenegotiation)
+	case RenegotiateOnceAsClient:
+		if c.handshakes > 1 {
+			return c.sendAlert(alertNoRenegotiation)
+		}
+	case RenegotiateFreelyAsClient:
+		// Ok.
+	default:
+		c.sendAlert(alertInternalError)
+		return errors.New("tls: unknown Renegotiation value")
+	}
+
+	c.handshakeMutex.Lock()
+	defer c.handshakeMutex.Unlock()
+
+	atomic.StoreUint32(&c.handshakeStatus, 0)
+	if c.handshakeErr = c.clientHandshake(); c.handshakeErr == nil {
+		c.handshakes++
+	}
+	return c.handshakeErr
+}
+
+// handlePostHandshakeMessage processes a handshake message arrived after the
+// handshake is complete. Up to TLS 1.2, it indicates the start of a renegotiation.
+func (c *Conn) handlePostHandshakeMessage() error {
+	if c.vers != VersionTLS13 {
+		return c.handleRenegotiation()
+	}
+
+	msg, err := c.readHandshake()
+	if err != nil {
+		return err
+	}
+
+	c.retryCount++
+	if c.retryCount > maxUselessRecords {
+		c.sendAlert(alertUnexpectedMessage)
+		return c.in.setErrorLocked(errors.New("tls: too many non-advancing records"))
+	}
+
+	switch msg := msg.(type) {
+	case *newSessionTicketMsgTLS13:
+		return c.handleNewSessionTicket(msg)
+	case *keyUpdateMsg:
+		return c.handleKeyUpdate(msg)
+	default:
+		c.sendAlert(alertUnexpectedMessage)
+		return fmt.Errorf("tls: received unexpected handshake message of type %T", msg)
+	}
+}
+
+func (c *Conn) handleKeyUpdate(keyUpdate *keyUpdateMsg) error {
+	cipherSuite := cipherSuiteTLS13ByID(c.cipherSuite)
+	if cipherSuite == nil {
+		return c.in.setErrorLocked(c.sendAlert(alertInternalError))
+	}
+
+	newSecret := cipherSuite.nextTrafficSecret(c.in.trafficSecret)
+	c.in.setTrafficSecret(cipherSuite, newSecret)
+
+	if keyUpdate.updateRequested {
+		c.out.Lock()
+		defer c.out.Unlock()
+
+		msg := &keyUpdateMsg{}
+		_, err := c.writeRecordLocked(recordTypeHandshake, msg.marshal())
+		if err != nil {
+			// Surface the error at the next write.
+			c.out.setErrorLocked(err)
+			return nil
+		}
+
+		newSecret := cipherSuite.nextTrafficSecret(c.out.trafficSecret)
+		c.out.setTrafficSecret(cipherSuite, newSecret)
+	}
+
+	return nil
 }
 
 // Read can be made to time out and return a net.Error with Timeout() == true
@@ -1120,7 +1256,9 @@ func (c *Conn) Read(b []byte) (int, error) {
 			return 0, err
 		}
 		for c.hand.Len() > 0 {
-			panic("renegotiation not implemented")
+			if err := c.handlePostHandshakeMessage(); err != nil {
+				return 0, err
+			}
 		}
 	}
 
@@ -1265,6 +1403,11 @@ func (c *Conn) ConnectionState() ConnectionState {
 			} else {
 				state.TLSUnique = c.serverFinished[:]
 			}
+		}
+		if c.config.Renegotiation != RenegotiateNever {
+			state.ekm = noExportedKeyingMaterial
+		} else {
+			state.ekm = c.ekm
 		}
 	}
 

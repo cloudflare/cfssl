@@ -12,7 +12,9 @@ import (
 	"crypto/hmac"
 	"crypto/rc4"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
+	"golang.org/x/crypto/chacha20poly1305"
 	"hash"
 )
 
@@ -41,11 +43,11 @@ const (
 	// client indicates that it supports ECC with a curve and point format
 	// that we're happy with.
 	suiteECDHE = 1 << iota
-	// suiteECDSA indicates that the cipher suite involves an ECDSA
-	// signature and therefore may only be selected when the server's
-	// certificate is ECDSA. If this is not set then the cipher suite is
-	// RSA based.
-	suiteECDSA
+	// suiteECSign indicates that the cipher suite involves an ECDSA or
+	// EdDSA signature and therefore may only be selected when the server's
+	// certificate is ECDSA or EdDSA. If this is not set then the cipher suite
+	// is RSA based.
+	suiteECSign
 	// suiteTLS12 indicates that the cipher suite should only be advertised
 	// and accepted when using TLS 1.2.
 	suiteTLS12
@@ -57,8 +59,7 @@ const (
 	suiteDefaultOff
 )
 
-// A cipherSuite is a specific combination of key agreement, cipher and MAC
-// function. All cipher suites currently assume RSA key agreement.
+// A cipherSuite is a specific combination of key agreement, cipher and MAC function.
 type cipherSuite struct {
 	id uint16
 	// the lengths, in bytes, of the key material needed for each component.
@@ -74,25 +75,32 @@ type cipherSuite struct {
 }
 
 var cipherSuites = []*cipherSuite{
-	// Ciphersuite order is chosen so that ECDHE comes before plain RSA
-	// and RC4 comes before AES (because of the Lucky13 attack).
+	// Ciphersuite order is chosen so that ECDHE comes before plain RSA and
+	// AEADs are the top preference.
+	{TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, 32, 0, 12, ecdheRSAKA, suiteECDHE | suiteTLS12, nil, nil, aeadChaCha20Poly1305},
+	{TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, 32, 0, 12, ecdheECDSAKA, suiteECDHE | suiteECSign | suiteTLS12, nil, nil, aeadChaCha20Poly1305},
 	{TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, 16, 0, 4, ecdheRSAKA, suiteECDHE | suiteTLS12, nil, nil, aeadAESGCM},
-	{TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, 16, 0, 4, ecdheECDSAKA, suiteECDHE | suiteECDSA | suiteTLS12, nil, nil, aeadAESGCM},
+	{TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, 16, 0, 4, ecdheECDSAKA, suiteECDHE | suiteECSign | suiteTLS12, nil, nil, aeadAESGCM},
 	{TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, 32, 0, 4, ecdheRSAKA, suiteECDHE | suiteTLS12 | suiteSHA384, nil, nil, aeadAESGCM},
-	{TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, 32, 0, 4, ecdheECDSAKA, suiteECDHE | suiteECDSA | suiteTLS12 | suiteSHA384, nil, nil, aeadAESGCM},
-	{TLS_ECDHE_RSA_WITH_RC4_128_SHA, 16, 20, 0, ecdheRSAKA, suiteECDHE | suiteDefaultOff, cipherRC4, macSHA1, nil},
-	{TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, 16, 20, 0, ecdheECDSAKA, suiteECDHE | suiteECDSA | suiteDefaultOff, cipherRC4, macSHA1, nil},
+	{TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, 32, 0, 4, ecdheECDSAKA, suiteECDHE | suiteECSign | suiteTLS12 | suiteSHA384, nil, nil, aeadAESGCM},
+	{TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, 16, 32, 16, ecdheRSAKA, suiteECDHE | suiteTLS12 | suiteDefaultOff, cipherAES, macSHA256, nil},
 	{TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, 16, 20, 16, ecdheRSAKA, suiteECDHE, cipherAES, macSHA1, nil},
-	{TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, 16, 20, 16, ecdheECDSAKA, suiteECDHE | suiteECDSA, cipherAES, macSHA1, nil},
+	{TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, 16, 32, 16, ecdheECDSAKA, suiteECDHE | suiteECSign | suiteTLS12 | suiteDefaultOff, cipherAES, macSHA256, nil},
+	{TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, 16, 20, 16, ecdheECDSAKA, suiteECDHE | suiteECSign, cipherAES, macSHA1, nil},
 	{TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, 32, 20, 16, ecdheRSAKA, suiteECDHE, cipherAES, macSHA1, nil},
-	{TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, 32, 20, 16, ecdheECDSAKA, suiteECDHE | suiteECDSA, cipherAES, macSHA1, nil},
+	{TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, 32, 20, 16, ecdheECDSAKA, suiteECDHE | suiteECSign, cipherAES, macSHA1, nil},
 	{TLS_RSA_WITH_AES_128_GCM_SHA256, 16, 0, 4, rsaKA, suiteTLS12, nil, nil, aeadAESGCM},
 	{TLS_RSA_WITH_AES_256_GCM_SHA384, 32, 0, 4, rsaKA, suiteTLS12 | suiteSHA384, nil, nil, aeadAESGCM},
-	{TLS_RSA_WITH_RC4_128_SHA, 16, 20, 0, rsaKA, suiteDefaultOff, cipherRC4, macSHA1, nil},
+	{TLS_RSA_WITH_AES_128_CBC_SHA256, 16, 32, 16, rsaKA, suiteTLS12 | suiteDefaultOff, cipherAES, macSHA256, nil},
 	{TLS_RSA_WITH_AES_128_CBC_SHA, 16, 20, 16, rsaKA, 0, cipherAES, macSHA1, nil},
 	{TLS_RSA_WITH_AES_256_CBC_SHA, 32, 20, 16, rsaKA, 0, cipherAES, macSHA1, nil},
 	{TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, 24, 20, 8, ecdheRSAKA, suiteECDHE, cipher3DES, macSHA1, nil},
 	{TLS_RSA_WITH_3DES_EDE_CBC_SHA, 24, 20, 8, rsaKA, 0, cipher3DES, macSHA1, nil},
+
+	// RC4-based cipher suites are disabled by default.
+	{TLS_RSA_WITH_RC4_128_SHA, 16, 20, 0, rsaKA, suiteDefaultOff, cipherRC4, macSHA1, nil},
+	{TLS_ECDHE_RSA_WITH_RC4_128_SHA, 16, 20, 0, ecdheRSAKA, suiteECDHE | suiteDefaultOff, cipherRC4, macSHA1, nil},
+	{TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, 16, 20, 0, ecdheECDSAKA, suiteECDHE | suiteECSign | suiteDefaultOff, cipherRC4, macSHA1, nil},
 }
 
 // A cipherSuiteTLS13 defines only the pair of the AEAD algorithm and hash
@@ -106,7 +114,7 @@ type cipherSuiteTLS13 struct {
 
 var cipherSuitesTLS13 = []*cipherSuiteTLS13{
 	{TLS_AES_128_GCM_SHA256, 16, aeadAESGCMTLS13, crypto.SHA256},
-	//{TLS_CHACHA20_POLY1305_SHA256, 32, aeadChaCha20Poly1305, crypto.SHA256},
+	{TLS_CHACHA20_POLY1305_SHA256, 32, aeadChaCha20Poly1305, crypto.SHA256},
 	{TLS_AES_256_GCM_SHA384, 32, aeadAESGCMTLS13, crypto.SHA384},
 }
 
@@ -141,12 +149,22 @@ func macSHA1(version uint16, key []byte) macFunction {
 		copy(mac.key, key)
 		return mac
 	}
-	return tls10MAC{hmac.New(sha1.New, key)}
+	return tls10MAC{h: hmac.New(newConstantTimeHash(sha1.New), key)}
+}
+
+// macSHA256 returns a SHA-256 based MAC. These are only supported in TLS 1.2
+// so the given version is ignored.
+func macSHA256(version uint16, key []byte) macFunction {
+	return tls10MAC{h: hmac.New(sha256.New, key)}
 }
 
 type macFunction interface {
+	// Size returns the length of the MAC.
 	Size() int
-	MAC(digestBuf, seq, header, data []byte) []byte
+	// MAC appends the MAC of (seq, header, data) to out. The extra data is fed
+	// into the MAC after obtaining the result to normalize timing. The result
+	// is only valid until the next invocation of MAC as the buffer is reused.
+	MAC(seq, header, data, extra []byte) []byte
 }
 
 type aead interface {
@@ -256,11 +274,26 @@ func aeadAESGCMTLS13(key, nonceMask []byte) aead {
 	return ret
 }
 
+func aeadChaCha20Poly1305(key, nonceMask []byte) aead {
+	if len(nonceMask) != aeadNonceLength {
+		panic("tls: internal error: wrong nonce length")
+	}
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		panic(err)
+	}
+
+	ret := &xorNonceAEAD{aead: aead}
+	copy(ret.nonceMask[:], nonceMask)
+	return ret
+}
+
 // ssl30MAC implements the SSLv3 MAC function, as defined in
 // www.mozilla.org/projects/security/pki/nss/ssl/draft302.txt section 5.2.3.1
 type ssl30MAC struct {
 	h   hash.Hash
 	key []byte
+	buf []byte
 }
 
 func (s ssl30MAC) Size() int {
@@ -271,7 +304,9 @@ var ssl30Pad1 = [48]byte{0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0
 
 var ssl30Pad2 = [48]byte{0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c, 0x5c}
 
-func (s ssl30MAC) MAC(digestBuf, seq, header, data []byte) []byte {
+// MAC does not offer constant timing guarantees for SSL v3.0, since it's deemed
+// useless considering the similar, protocol-level POODLE vulnerability.
+func (s ssl30MAC) MAC(seq, header, data, extra []byte) []byte {
 	padLength := 48
 	if s.h.Size() == 20 {
 		padLength = 40
@@ -284,30 +319,61 @@ func (s ssl30MAC) MAC(digestBuf, seq, header, data []byte) []byte {
 	s.h.Write(header[:1])
 	s.h.Write(header[3:5])
 	s.h.Write(data)
-	digestBuf = s.h.Sum(digestBuf[:0])
+	s.buf = s.h.Sum(s.buf[:0])
 
 	s.h.Reset()
 	s.h.Write(s.key)
 	s.h.Write(ssl30Pad2[:padLength])
-	s.h.Write(digestBuf)
-	return s.h.Sum(digestBuf[:0])
+	s.h.Write(s.buf)
+	return s.h.Sum(s.buf[:0])
 }
 
-// tls10MAC implements the TLS 1.0 MAC function. RFC 2246, section 6.2.3.
+type constantTimeHash interface {
+	hash.Hash
+	ConstantTimeSum(b []byte) []byte
+}
+
+// cthWrapper wraps any hash.Hash that implements ConstantTimeSum, and replaces
+// with that all calls to Sum. It's used to obtain a ConstantTimeSum-based HMAC.
+type cthWrapper struct {
+	h constantTimeHash
+}
+
+func (c *cthWrapper) Size() int                   { return c.h.Size() }
+func (c *cthWrapper) BlockSize() int              { return c.h.BlockSize() }
+func (c *cthWrapper) Reset()                      { c.h.Reset() }
+func (c *cthWrapper) Write(p []byte) (int, error) { return c.h.Write(p) }
+func (c *cthWrapper) Sum(b []byte) []byte         { return c.h.ConstantTimeSum(b) }
+
+func newConstantTimeHash(h func() hash.Hash) func() hash.Hash {
+	return func() hash.Hash {
+		return &cthWrapper{h().(constantTimeHash)}
+	}
+}
+
+// tls10MAC implements the TLS 1.0 MAC function. RFC 2246, Section 6.2.3.
 type tls10MAC struct {
-	h hash.Hash
+	h   hash.Hash
+	buf []byte
 }
 
 func (s tls10MAC) Size() int {
 	return s.h.Size()
 }
 
-func (s tls10MAC) MAC(digestBuf, seq, header, data []byte) []byte {
+// MAC is guaranteed to take constant time, as long as
+// len(seq)+len(header)+len(data)+len(extra) is constant. extra is not fed into
+// the MAC, but is only provided to make the timing profile constant.
+func (s tls10MAC) MAC(seq, header, data, extra []byte) []byte {
 	s.h.Reset()
 	s.h.Write(seq)
 	s.h.Write(header)
 	s.h.Write(data)
-	return s.h.Sum(digestBuf[:0])
+	res := s.h.Sum(s.buf[:0])
+	if extra != nil {
+		s.h.Write(extra)
+	}
+	return res
 }
 
 func rsaKA(version uint16) keyAgreement {
@@ -316,14 +382,14 @@ func rsaKA(version uint16) keyAgreement {
 
 func ecdheECDSAKA(version uint16) keyAgreement {
 	return &ecdheKeyAgreement{
-		sigType: signatureECDSA,
+		isRSA:   false,
 		version: version,
 	}
 }
 
 func ecdheRSAKA(version uint16) keyAgreement {
 	return &ecdheKeyAgreement{
-		sigType: signatureRSA,
+		isRSA:   true,
 		version: version,
 	}
 }
@@ -333,12 +399,16 @@ func ecdheRSAKA(version uint16) keyAgreement {
 func mutualCipherSuite(have []uint16, want uint16) *cipherSuite {
 	for _, id := range have {
 		if id == want {
-			for _, suite := range cipherSuites {
-				if suite.id == want {
-					return suite
-				}
-			}
-			return nil
+			return cipherSuiteByID(id)
+		}
+	}
+	return nil
+}
+
+func cipherSuiteByID(id uint16) *cipherSuite {
+	for _, cipherSuite := range cipherSuites {
+		if cipherSuite.id == id {
+			return cipherSuite
 		}
 	}
 	return nil
@@ -362,9 +432,12 @@ func cipherSuiteTLS13ByID(id uint16) *cipherSuiteTLS13 {
 	return nil
 }
 
-// A list of the possible cipher suite ids. Taken from
-// http://www.iana.org/assignments/tls-parameters/tls-parameters.xml
+// A list of cipher suite IDs that are, or have been, implemented by this
+// package.
+//
+// Taken from https://www.iana.org/assignments/tls-parameters/tls-parameters.xml
 const (
+	// TLS 1.0 - 1.2 cipher suites.
 	TLS_RSA_WITH_RC4_128_SHA                uint16 = 0x0005
 	TLS_RSA_WITH_3DES_EDE_CBC_SHA           uint16 = 0x000a
 	TLS_RSA_WITH_AES_128_CBC_SHA            uint16 = 0x002f
@@ -394,7 +467,6 @@ const (
 	TLS_CHACHA20_POLY1305_SHA256 uint16 = 0x1303
 
 	// TLS_FALLBACK_SCSV isn't a standard cipher suite but an indicator
-	// that the client is doing version fallback. See
-	// https://tools.ietf.org/html/draft-ietf-tls-downgrade-scsv-00.
+	// that the client is doing version fallback. See RFC 7507.
 	TLS_FALLBACK_SCSV uint16 = 0x5600
 )
