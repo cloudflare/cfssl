@@ -70,7 +70,7 @@ type cipherSuite struct {
 	flags  int
 	cipher func(key, iv []byte, isRead bool) interface{}
 	mac    func(version uint16, macKey []byte) macFunction
-	aead   func(key, fixedNonce []byte) cipher.AEAD
+	aead   func(key, fixedNonce []byte) aead
 }
 
 var cipherSuites = []*cipherSuite{
@@ -100,7 +100,7 @@ var cipherSuites = []*cipherSuite{
 type cipherSuiteTLS13 struct {
 	id     uint16
 	keyLen int
-	aead   func(key, fixedNonce []byte) cipher.AEAD
+	aead   func(key, fixedNonce []byte) aead
 	hash   crypto.Hash
 }
 
@@ -109,7 +109,6 @@ var cipherSuitesTLS13 = []*cipherSuiteTLS13{
 	//{TLS_CHACHA20_POLY1305_SHA256, 32, aeadChaCha20Poly1305, crypto.SHA256},
 	{TLS_AES_256_GCM_SHA384, 32, aeadAESGCMTLS13, crypto.SHA384},
 }
-
 
 func cipherRC4(key, iv []byte, isRead bool) interface{} {
 	cipher, _ := rc4.NewCipher(key)
@@ -150,33 +149,41 @@ type macFunction interface {
 	MAC(digestBuf, seq, header, data []byte) []byte
 }
 
-// fixedNonceAEAD wraps an AEAD and prefixes a fixed portion of the nonce to
-// each call.
-type fixedNonceAEAD struct {
-	// sealNonce and openNonce are buffers where the larger nonce will be
-	// constructed. Since a seal and open operation may be running
-	// concurrently, there is a separate buffer for each.
-	sealNonce, openNonce []byte
-	aead                 cipher.AEAD
-}
+type aead interface {
+	cipher.AEAD
 
-func (f *fixedNonceAEAD) NonceSize() int { return 8 }
-func (f *fixedNonceAEAD) Overhead() int  { return f.aead.Overhead() }
-
-func (f *fixedNonceAEAD) Seal(out, nonce, plaintext, additionalData []byte) []byte {
-	copy(f.sealNonce[len(f.sealNonce)-8:], nonce)
-	return f.aead.Seal(out, f.sealNonce, plaintext, additionalData)
-}
-
-func (f *fixedNonceAEAD) Open(out, nonce, plaintext, additionalData []byte) ([]byte, error) {
-	copy(f.openNonce[len(f.openNonce)-8:], nonce)
-	return f.aead.Open(out, f.openNonce, plaintext, additionalData)
+	// explicitNonceLen returns the number of bytes of explicit nonce
+	// included in each record. This is eight for older AEADs and
+	// zero for modern ones.
+	explicitNonceLen() int
 }
 
 const (
 	aeadNonceLength   = 12
 	noncePrefixLength = 4
 )
+
+// prefixNonceAEAD wraps an AEAD and prefixes a fixed portion of the nonce to
+// each call.
+type prefixNonceAEAD struct {
+	// nonce contains the fixed part of the nonce in the first four bytes.
+	nonce [aeadNonceLength]byte
+	aead  cipher.AEAD
+}
+
+func (f *prefixNonceAEAD) NonceSize() int        { return aeadNonceLength - noncePrefixLength }
+func (f *prefixNonceAEAD) Overhead() int         { return f.aead.Overhead() }
+func (f *prefixNonceAEAD) explicitNonceLen() int { return f.NonceSize() }
+
+func (f *prefixNonceAEAD) Seal(out, nonce, plaintext, additionalData []byte) []byte {
+	copy(f.nonce[4:], nonce)
+	return f.aead.Seal(out, f.nonce[:], plaintext, additionalData)
+}
+
+func (f *prefixNonceAEAD) Open(out, nonce, ciphertext, additionalData []byte) ([]byte, error) {
+	copy(f.nonce[4:], nonce)
+	return f.aead.Open(out, f.nonce[:], ciphertext, additionalData)
+}
 
 // xoredNonceAEAD wraps an AEAD by XORing in a fixed pattern to the nonce
 // before each call.
@@ -213,7 +220,10 @@ func (f *xorNonceAEAD) Open(out, nonce, ciphertext, additionalData []byte) ([]by
 	return result, err
 }
 
-func aeadAESGCM(key, fixedNonce []byte) cipher.AEAD {
+func aeadAESGCM(key, noncePrefix []byte) aead {
+	if len(noncePrefix) != noncePrefixLength {
+		panic("tls: internal error: wrong nonce length")
+	}
 	aes, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
@@ -223,15 +233,12 @@ func aeadAESGCM(key, fixedNonce []byte) cipher.AEAD {
 		panic(err)
 	}
 
-	nonce1, nonce2 := make([]byte, 12), make([]byte, 12)
-	copy(nonce1, fixedNonce)
-	copy(nonce2, fixedNonce)
-
-	return &fixedNonceAEAD{nonce1, nonce2, aead}
+	ret := &prefixNonceAEAD{aead: aead}
+	copy(ret.nonce[:], noncePrefix)
+	return ret
 }
 
-// lbarman: TODO careful review; ref implementation returns aead, whereas we return a type which lacks explicitNonceLen()
-func aeadAESGCMTLS13(key, nonceMask []byte) cipher.AEAD {
+func aeadAESGCMTLS13(key, nonceMask []byte) aead {
 	if len(nonceMask) != aeadNonceLength {
 		panic("tls: internal error: wrong nonce length")
 	}

@@ -25,18 +25,19 @@ const (
 	VersionTLS10 = 0x0301
 	VersionTLS11 = 0x0302
 	VersionTLS12 = 0x0303
-	VersionTLS13 = 0x0304 // lbarman: add
+	VersionTLS13 = 0x0304
 )
 
 const (
 	maxPlaintext       = 16384        // maximum plaintext payload length
 	maxCiphertext      = 16384 + 2048 // maximum ciphertext payload
-	maxCiphertextTLS13 = 16384 + 256  // lbarman: maximum ciphertext length in TLS 1.3
+	maxCiphertextTLS13 = 16384 + 256  // maximum ciphertext length in TLS 1.3
 	recordHeaderLen    = 5            // record header length
 	maxHandshake       = 65536        // maximum handshake we support (protocol max is 16 MB)
+	maxUselessRecords  = 16           // maximum number of consecutive non-advancing records
 
 	minVersion = VersionTLS10
-	maxVersion = VersionTLS13 // lbarman: change (TODO recheck 1.3 only appears in extension not packet version)
+	maxVersion = VersionTLS13
 )
 
 // TLS record types.
@@ -51,10 +52,11 @@ const (
 
 // TLS handshake message types.
 const (
+	typeHelloRequest        uint8 = 0
 	typeClientHello         uint8 = 1
 	typeServerHello         uint8 = 2
 	typeNewSessionTicket    uint8 = 4
-	typeEndOfEarlyData      uint8 = 5 // lbarman: add two lines
+	typeEndOfEarlyData      uint8 = 5
 	typeEncryptedExtensions uint8 = 8
 	typeCertificate         uint8 = 11
 	typeServerKeyExchange   uint8 = 12
@@ -64,7 +66,7 @@ const (
 	typeClientKeyExchange   uint8 = 16
 	typeFinished            uint8 = 20
 	typeCertificateStatus   uint8 = 22
-	typeKeyUpdate           uint8 = 24 // lbarman: add line
+	typeKeyUpdate           uint8 = 24
 	typeNextProtocol        uint8 = 67 // Not IANA assigned
 )
 
