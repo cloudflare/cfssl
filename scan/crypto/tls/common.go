@@ -261,6 +261,10 @@ type ClientSessionCache interface {
 	Put(sessionKey string, cs *ClientSessionState)
 }
 
+// SignatureScheme identifies a signature algorithm supported by TLS. See
+// RFC 8446, Section 4.2.3.
+type SignatureScheme uint16
+
 // ClientHelloInfo contains information from a ClientHello message in order to
 // guide certificate selection in the GetCertificate callback.
 type ClientHelloInfo struct {
@@ -286,11 +290,10 @@ type ClientHelloInfo struct {
 	// http://tools.ietf.org/html/rfc4492#section-5.1.2).
 	SupportedPoints []uint8
 
-	// lbarman: add 3 fields
 	// SignatureSchemes lists the signature and hash schemes that the client
 	// is willing to verify. SignatureSchemes is set only if the Signature
 	// Algorithms Extension is being used (see RFC 5246, Section 7.4.1.4.1).
-	SignatureSchemes []uint16
+	SignatureSchemes []SignatureScheme
 
 	// SupportedProtos lists the application protocols supported by the client.
 	// SupportedProtos is set only if the Application-Layer Protocol

@@ -6,8 +6,65 @@ package tls
 
 import (
 	"bytes"
+	"fmt"
+	"golang.org/x/crypto/cryptobyte"
 	"reflect"
 )
+
+// The marshalingFunction type is an adapter to allow the use of ordinary
+// functions as cryptobyte.MarshalingValue.
+type marshalingFunction func(b *cryptobyte.Builder) error
+
+func (f marshalingFunction) Marshal(b *cryptobyte.Builder) error {
+	return f(b)
+}
+
+// addBytesWithLength appends a sequence of bytes to the cryptobyte.Builder. If
+// the length of the sequence is not the value specified, it produces an error.
+func addBytesWithLength(b *cryptobyte.Builder, v []byte, n int) {
+	b.AddValue(marshalingFunction(func(b *cryptobyte.Builder) error {
+		if len(v) != n {
+			return fmt.Errorf("invalid value length: expected %d, got %d", n, len(v))
+		}
+		b.AddBytes(v)
+		return nil
+	}))
+}
+
+// addUint64 appends a big-endian, 64-bit value to the cryptobyte.Builder.
+func addUint64(b *cryptobyte.Builder, v uint64) {
+	b.AddUint32(uint32(v >> 32))
+	b.AddUint32(uint32(v))
+}
+
+// readUint64 decodes a big-endian, 64-bit value into out and advances over it.
+// It reports whether the read was successful.
+func readUint64(s *cryptobyte.String, out *uint64) bool {
+	var hi, lo uint32
+	if !s.ReadUint32(&hi) || !s.ReadUint32(&lo) {
+		return false
+	}
+	*out = uint64(hi)<<32 | uint64(lo)
+	return true
+}
+
+// readUint8LengthPrefixed acts like s.ReadUint8LengthPrefixed, but targets a
+// []byte instead of a cryptobyte.String.
+func readUint8LengthPrefixed(s *cryptobyte.String, out *[]byte) bool {
+	return s.ReadUint8LengthPrefixed((*cryptobyte.String)(out))
+}
+
+// readUint16LengthPrefixed acts like s.ReadUint16LengthPrefixed, but targets a
+// []byte instead of a cryptobyte.String.
+func readUint16LengthPrefixed(s *cryptobyte.String, out *[]byte) bool {
+	return s.ReadUint16LengthPrefixed((*cryptobyte.String)(out))
+}
+
+// readUint24LengthPrefixed acts like s.ReadUint24LengthPrefixed, but targets a
+// []byte instead of a cryptobyte.String.
+func readUint24LengthPrefixed(s *cryptobyte.String, out *[]byte) bool {
+	return s.ReadUint24LengthPrefixed((*cryptobyte.String)(out))
+}
 
 type clientHelloMsg struct {
 	raw                 []byte
@@ -1332,13 +1389,366 @@ func (m *serverHelloMsg) unmarshal(data []byte) bool {
 	return true
 }
 
-// lbarman: TODO missing following message types & marshalling :
-// - encryptedExtensionsMsg
-// - endOfEarlyData
-// - keyUpdateMsg
-// - newSessionTicketMsg
-// - certificateRequestMsg
-// - certificateMsg
+type encryptedExtensionsMsg struct {
+	raw          []byte
+	alpnProtocol string
+}
+
+func (m *encryptedExtensionsMsg) marshal() []byte {
+	if m.raw != nil {
+		return m.raw
+	}
+
+	var b cryptobyte.Builder
+	b.AddUint8(typeEncryptedExtensions)
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			if len(m.alpnProtocol) > 0 {
+				b.AddUint16(extensionALPN)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+							b.AddBytes([]byte(m.alpnProtocol))
+						})
+					})
+				})
+			}
+		})
+	})
+
+	m.raw = b.BytesOrPanic()
+	return m.raw
+}
+
+func (m *encryptedExtensionsMsg) unmarshal(data []byte) bool {
+	*m = encryptedExtensionsMsg{raw: data}
+	s := cryptobyte.String(data)
+
+	var extensions cryptobyte.String
+	if !s.Skip(4) || // message type and uint24 length field
+		!s.ReadUint16LengthPrefixed(&extensions) || !s.Empty() {
+		return false
+	}
+
+	for !extensions.Empty() {
+		var extension uint16
+		var extData cryptobyte.String
+		if !extensions.ReadUint16(&extension) ||
+			!extensions.ReadUint16LengthPrefixed(&extData) {
+			return false
+		}
+
+		switch extension {
+		case extensionALPN:
+			var protoList cryptobyte.String
+			if !extData.ReadUint16LengthPrefixed(&protoList) || protoList.Empty() {
+				return false
+			}
+			var proto cryptobyte.String
+			if !protoList.ReadUint8LengthPrefixed(&proto) ||
+				proto.Empty() || !protoList.Empty() {
+				return false
+			}
+			m.alpnProtocol = string(proto)
+		default:
+			// Ignore unknown extensions.
+			continue
+		}
+
+		if !extData.Empty() {
+			return false
+		}
+	}
+
+	return true
+}
+
+type endOfEarlyDataMsg struct{}
+
+func (m *endOfEarlyDataMsg) marshal() []byte {
+	x := make([]byte, 4)
+	x[0] = typeEndOfEarlyData
+	return x
+}
+
+func (m *endOfEarlyDataMsg) unmarshal(data []byte) bool {
+	return len(data) == 4
+}
+
+type keyUpdateMsg struct {
+	raw             []byte
+	updateRequested bool
+}
+
+func (m *keyUpdateMsg) marshal() []byte {
+	if m.raw != nil {
+		return m.raw
+	}
+
+	var b cryptobyte.Builder
+	b.AddUint8(typeKeyUpdate)
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		if m.updateRequested {
+			b.AddUint8(1)
+		} else {
+			b.AddUint8(0)
+		}
+	})
+
+	m.raw = b.BytesOrPanic()
+	return m.raw
+}
+
+func (m *keyUpdateMsg) unmarshal(data []byte) bool {
+	m.raw = data
+	s := cryptobyte.String(data)
+
+	var updateRequested uint8
+	if !s.Skip(4) || // message type and uint24 length field
+		!s.ReadUint8(&updateRequested) || !s.Empty() {
+		return false
+	}
+	switch updateRequested {
+	case 0:
+		m.updateRequested = false
+	case 1:
+		m.updateRequested = true
+	default:
+		return false
+	}
+	return true
+}
+
+type newSessionTicketMsgTLS13 struct {
+	raw          []byte
+	lifetime     uint32
+	ageAdd       uint32
+	nonce        []byte
+	label        []byte
+	maxEarlyData uint32
+}
+
+func (m *newSessionTicketMsgTLS13) marshal() []byte {
+	if m.raw != nil {
+		return m.raw
+	}
+
+	var b cryptobyte.Builder
+	b.AddUint8(typeNewSessionTicket)
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddUint32(m.lifetime)
+		b.AddUint32(m.ageAdd)
+		b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes(m.nonce)
+		})
+		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes(m.label)
+		})
+
+		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			if m.maxEarlyData > 0 {
+				b.AddUint16(extensionEarlyData)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint32(m.maxEarlyData)
+				})
+			}
+		})
+	})
+
+	m.raw = b.BytesOrPanic()
+	return m.raw
+}
+
+func (m *newSessionTicketMsgTLS13) unmarshal(data []byte) bool {
+	*m = newSessionTicketMsgTLS13{raw: data}
+	s := cryptobyte.String(data)
+
+	var extensions cryptobyte.String
+	if !s.Skip(4) || // message type and uint24 length field
+		!s.ReadUint32(&m.lifetime) ||
+		!s.ReadUint32(&m.ageAdd) ||
+		!readUint8LengthPrefixed(&s, &m.nonce) ||
+		!readUint16LengthPrefixed(&s, &m.label) ||
+		!s.ReadUint16LengthPrefixed(&extensions) ||
+		!s.Empty() {
+		return false
+	}
+
+	for !extensions.Empty() {
+		var extension uint16
+		var extData cryptobyte.String
+		if !extensions.ReadUint16(&extension) ||
+			!extensions.ReadUint16LengthPrefixed(&extData) {
+			return false
+		}
+
+		switch extension {
+		case extensionEarlyData:
+			if !extData.ReadUint32(&m.maxEarlyData) {
+				return false
+			}
+		default:
+			// Ignore unknown extensions.
+			continue
+		}
+
+		if !extData.Empty() {
+			return false
+		}
+	}
+
+	return true
+}
+
+type certificateRequestMsgTLS13 struct {
+	raw                              []byte
+	ocspStapling                     bool
+	scts                             bool
+	supportedSignatureAlgorithms     []SignatureScheme
+	supportedSignatureAlgorithmsCert []SignatureScheme
+	certificateAuthorities           [][]byte
+}
+
+func (m *certificateRequestMsgTLS13) marshal() []byte {
+	if m.raw != nil {
+		return m.raw
+	}
+
+	var b cryptobyte.Builder
+	b.AddUint8(typeCertificateRequest)
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		// certificate_request_context (SHALL be zero length unless used for
+		// post-handshake authentication)
+		b.AddUint8(0)
+
+		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			if m.ocspStapling {
+				b.AddUint16(extensionStatusRequest)
+				b.AddUint16(0) // empty extension_data
+			}
+			if m.scts {
+				// RFC 8446, Section 4.4.2.1 makes no mention of
+				// signed_certificate_timestamp in CertificateRequest, but
+				// "Extensions in the Certificate message from the client MUST
+				// correspond to extensions in the CertificateRequest message
+				// from the server." and it appears in the table in Section 4.2.
+				b.AddUint16(extensionSCT)
+				b.AddUint16(0) // empty extension_data
+			}
+			if len(m.supportedSignatureAlgorithms) > 0 {
+				b.AddUint16(extensionSignatureAlgorithms)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, sigAlgo := range m.supportedSignatureAlgorithms {
+							b.AddUint16(uint16(sigAlgo))
+						}
+					})
+				})
+			}
+			if len(m.supportedSignatureAlgorithmsCert) > 0 {
+				b.AddUint16(extensionSignatureAlgorithmsCert)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, sigAlgo := range m.supportedSignatureAlgorithmsCert {
+							b.AddUint16(uint16(sigAlgo))
+						}
+					})
+				})
+			}
+			if len(m.certificateAuthorities) > 0 {
+				b.AddUint16(extensionCertificateAuthorities)
+				b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						for _, ca := range m.certificateAuthorities {
+							b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+								b.AddBytes(ca)
+							})
+						}
+					})
+				})
+			}
+		})
+	})
+
+	m.raw = b.BytesOrPanic()
+	return m.raw
+}
+
+func (m *certificateRequestMsgTLS13) unmarshal(data []byte) bool {
+	*m = certificateRequestMsgTLS13{raw: data}
+	s := cryptobyte.String(data)
+
+	var context, extensions cryptobyte.String
+	if !s.Skip(4) || // message type and uint24 length field
+		!s.ReadUint8LengthPrefixed(&context) || !context.Empty() ||
+		!s.ReadUint16LengthPrefixed(&extensions) ||
+		!s.Empty() {
+		return false
+	}
+
+	for !extensions.Empty() {
+		var extension uint16
+		var extData cryptobyte.String
+		if !extensions.ReadUint16(&extension) ||
+			!extensions.ReadUint16LengthPrefixed(&extData) {
+			return false
+		}
+
+		switch extension {
+		case extensionStatusRequest:
+			m.ocspStapling = true
+		case extensionSCT:
+			m.scts = true
+		case extensionSignatureAlgorithms:
+			var sigAndAlgs cryptobyte.String
+			if !extData.ReadUint16LengthPrefixed(&sigAndAlgs) || sigAndAlgs.Empty() {
+				return false
+			}
+			for !sigAndAlgs.Empty() {
+				var sigAndAlg uint16
+				if !sigAndAlgs.ReadUint16(&sigAndAlg) {
+					return false
+				}
+				m.supportedSignatureAlgorithms = append(
+					m.supportedSignatureAlgorithms, SignatureScheme(sigAndAlg))
+			}
+		case extensionSignatureAlgorithmsCert:
+			var sigAndAlgs cryptobyte.String
+			if !extData.ReadUint16LengthPrefixed(&sigAndAlgs) || sigAndAlgs.Empty() {
+				return false
+			}
+			for !sigAndAlgs.Empty() {
+				var sigAndAlg uint16
+				if !sigAndAlgs.ReadUint16(&sigAndAlg) {
+					return false
+				}
+				m.supportedSignatureAlgorithmsCert = append(
+					m.supportedSignatureAlgorithmsCert, SignatureScheme(sigAndAlg))
+			}
+		case extensionCertificateAuthorities:
+			var auths cryptobyte.String
+			if !extData.ReadUint16LengthPrefixed(&auths) || auths.Empty() {
+				return false
+			}
+			for !auths.Empty() {
+				var ca []byte
+				if !readUint16LengthPrefixed(&auths, &ca) || len(ca) == 0 {
+					return false
+				}
+				m.certificateAuthorities = append(m.certificateAuthorities, ca)
+			}
+		default:
+			// Ignore unknown extensions.
+			continue
+		}
+
+		if !extData.Empty() {
+			return false
+		}
+	}
+
+	return true
+}
 
 type certificateMsg struct {
 	raw          []byte
@@ -1424,6 +1834,152 @@ func (m *certificateMsg) unmarshal(data []byte) bool {
 		d = d[3+certLen:]
 	}
 
+	return true
+}
+
+type certificateMsgTLS13 struct {
+	raw          []byte
+	certificate  Certificate
+	ocspStapling bool
+	scts         bool
+}
+
+func (m *certificateMsgTLS13) marshal() []byte {
+	if m.raw != nil {
+		return m.raw
+	}
+
+	var b cryptobyte.Builder
+	b.AddUint8(typeCertificate)
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddUint8(0) // certificate_request_context
+
+		certificate := m.certificate
+		if !m.ocspStapling {
+			certificate.OCSPStaple = nil
+		}
+		if !m.scts {
+			certificate.SignedCertificateTimestamps = nil
+		}
+		marshalCertificate(b, certificate)
+	})
+
+	m.raw = b.BytesOrPanic()
+	return m.raw
+}
+
+func marshalCertificate(b *cryptobyte.Builder, certificate Certificate) {
+	b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+		for i, cert := range certificate.Certificate {
+			b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+				b.AddBytes(cert)
+			})
+			b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+				if i > 0 {
+					// This library only supports OCSP and SCT for leaf certificates.
+					return
+				}
+				if certificate.OCSPStaple != nil {
+					b.AddUint16(extensionStatusRequest)
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddUint8(statusTypeOCSP)
+						b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+							b.AddBytes(certificate.OCSPStaple)
+						})
+					})
+				}
+				if certificate.SignedCertificateTimestamps != nil {
+					b.AddUint16(extensionSCT)
+					b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+						b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+							for _, sct := range certificate.SignedCertificateTimestamps {
+								b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+									b.AddBytes(sct)
+								})
+							}
+						})
+					})
+				}
+			})
+		}
+	})
+}
+
+func (m *certificateMsgTLS13) unmarshal(data []byte) bool {
+	*m = certificateMsgTLS13{raw: data}
+	s := cryptobyte.String(data)
+
+	var context cryptobyte.String
+	if !s.Skip(4) || // message type and uint24 length field
+		!s.ReadUint8LengthPrefixed(&context) || !context.Empty() ||
+		!unmarshalCertificate(&s, &m.certificate) ||
+		!s.Empty() {
+		return false
+	}
+
+	m.scts = m.certificate.SignedCertificateTimestamps != nil
+	m.ocspStapling = m.certificate.OCSPStaple != nil
+
+	return true
+}
+
+func unmarshalCertificate(s *cryptobyte.String, certificate *Certificate) bool {
+	var certList cryptobyte.String
+	if !s.ReadUint24LengthPrefixed(&certList) {
+		return false
+	}
+	for !certList.Empty() {
+		var cert []byte
+		var extensions cryptobyte.String
+		if !readUint24LengthPrefixed(&certList, &cert) ||
+			!certList.ReadUint16LengthPrefixed(&extensions) {
+			return false
+		}
+		certificate.Certificate = append(certificate.Certificate, cert)
+		for !extensions.Empty() {
+			var extension uint16
+			var extData cryptobyte.String
+			if !extensions.ReadUint16(&extension) ||
+				!extensions.ReadUint16LengthPrefixed(&extData) {
+				return false
+			}
+			if len(certificate.Certificate) > 1 {
+				// This library only supports OCSP and SCT for leaf certificates.
+				continue
+			}
+
+			switch extension {
+			case extensionStatusRequest:
+				var statusType uint8
+				if !extData.ReadUint8(&statusType) || statusType != statusTypeOCSP ||
+					!readUint24LengthPrefixed(&extData, &certificate.OCSPStaple) ||
+					len(certificate.OCSPStaple) == 0 {
+					return false
+				}
+			case extensionSCT:
+				var sctList cryptobyte.String
+				if !extData.ReadUint16LengthPrefixed(&sctList) || sctList.Empty() {
+					return false
+				}
+				for !sctList.Empty() {
+					var sct []byte
+					if !readUint16LengthPrefixed(&sctList, &sct) ||
+						len(sct) == 0 {
+						return false
+					}
+					certificate.SignedCertificateTimestamps = append(
+						certificate.SignedCertificateTimestamps, sct)
+				}
+			default:
+				// Ignore unknown extensions.
+				continue
+			}
+
+			if !extData.Empty() {
+				return false
+			}
+		}
+	}
 	return true
 }
 

@@ -974,11 +974,25 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	case typeServerHello:
 		m = new(serverHelloMsg)
 	case typeNewSessionTicket:
-		panic("not implemented")
+		if c.vers == VersionTLS13 {
+			m = new(newSessionTicketMsgTLS13)
+		} else {
+			m = new(newSessionTicketMsg)
+		}
 	case typeCertificate:
-		panic("not implemented")
+		if c.vers == VersionTLS13 {
+			m = new(certificateMsgTLS13)
+		} else {
+			m = new(certificateMsg)
+		}
 	case typeCertificateRequest:
-		panic("not implemented")
+		if c.vers == VersionTLS13 {
+			m = new(certificateRequestMsgTLS13)
+		} else {
+			m = &certificateRequestMsg{
+				hasSignatureAndHash: c.vers >= VersionTLS12,
+			}
+		}
 	case typeCertificateStatus:
 		m = new(certificateStatusMsg)
 	case typeServerKeyExchange:
@@ -988,17 +1002,19 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	case typeClientKeyExchange:
 		m = new(clientKeyExchangeMsg)
 	case typeCertificateVerify:
-		panic("not implemented")
+		m = &certificateVerifyMsg{
+			hasSignatureAndHash: c.vers >= VersionTLS12,
+		}
 	case typeNextProtocol:
 		m = new(nextProtoMsg)
 	case typeFinished:
 		m = new(finishedMsg)
 	case typeEncryptedExtensions:
-		panic("not implemented")
+		m = new(encryptedExtensionsMsg)
 	case typeEndOfEarlyData:
-		panic("not implemented")
+		m = new(endOfEarlyDataMsg)
 	case typeKeyUpdate:
-		panic("not implemented")
+		m = new(keyUpdateMsg)
 	default:
 		return nil, c.in.setErrorLocked(c.sendAlert(alertUnexpectedMessage))
 	}
