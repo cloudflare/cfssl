@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="d479d5dd-f8b8-413f-9367-3aadb9844033" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/scan/crypto/tls/cfsslscan_common.go" beforeDir="false" afterPath="$PROJECT_DIR$/scan/crypto/tls/cfsslscan_common.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scan/crypto/tls/cfsslscan_handshake.go" beforeDir="false" afterPath="$PROJECT_DIR$/scan/crypto/tls/cfsslscan_handshake.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scan/crypto/tls/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/scan/crypto/tls/common.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" path="/usr/lib/golang" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+  </component>
+  <component name="IgnoredFileRootStore">
+    <option name="generatedRoots">
+      <set>
+        <option value="$PROJECT_DIR$/.idea" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectId" id="1adnwO3jc4ijYdvPtGzlyL6mKgg" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="DefaultGoTemplateProperty" value="Go File" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="full.screen.before.presentation.mode" value="false" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
+    <property name="go.vendoring.notification.had.been.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="go" />
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
+    <proxy>direct</proxy>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="555" y="200" width="800" height="684" key="#Go_Modules_(vgo)" timestamp="1587074599434">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="555" y="200" width="800" height="684" key="#Go_Modules_(vgo)/0.28.1920.1022@0.28.1920.1022" timestamp="1587074599434" />
+    <state x="555" y="200" width="800" height="684" key="#Notifications" timestamp="1587198033843">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="555" y="200" width="800" height="684" key="#Notifications/0.28.1920.1022@0.28.1920.1022" timestamp="1587198033843" />
+    <state x="418" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1587074611924">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="418" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.28.1920.1022@0.28.1920.1022" timestamp="1587074611924" />
+    <state x="661" y="343" width="588" height="398" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1587074633352">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="661" y="343" width="588" height="398" key="#com.intellij.fileTypes.FileTypeChooser/0.28.1920.1022@0.28.1920.1022" timestamp="1587074633352" />
+    <state x="693" y="287" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1587110564062">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="693" y="287" width="524" height="510" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.28.1920.1022@0.28.1920.1022" timestamp="1587110564062" />
+    <state x="717" y="165" width="424" height="491" key="FileChooserDialogImpl" timestamp="1587372950276">
+      <screen x="0" y="28" width="1280" height="692" />
+    </state>
+    <state x="717" y="165" key="FileChooserDialogImpl/0.28.1280.692/0.28.1920.1022@0.28.1920.1022" timestamp="1587372950276" />
+    <state x="639" y="238" width="424" height="491" key="FileChooserDialogImpl/0.28.1712.905@0.28.1712.905" timestamp="1587159753969" />
+    <state x="441" y="174" width="1017" height="737" key="SettingsEditor" timestamp="1587567225498">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="243" y="28" width="1017" height="737" key="SettingsEditor/0.28.1280.692/0.28.1920.1022@0.28.1920.1022" timestamp="1587484171836" />
+    <state x="441" y="174" width="1037" height="737" key="SettingsEditor/0.28.1920.1022@0.28.1920.1022" timestamp="1587567225498" />
+    <state x="1079" y="665" width="471" height="167" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1587568460161">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="719" y="459" width="471" height="167" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.28.1280.692/0.28.1920.1022@0.28.1920.1022" timestamp="1587292311321" />
+    <state x="1079" y="665" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.28.1920.1022@0.28.1920.1022" timestamp="1587568460161" />
+    <state x="459" y="101" width="821" height="619" key="find.popup" timestamp="1587496617232">
+      <screen x="0" y="28" width="1280" height="692" />
+    </state>
+    <state x="459" y="101" width="821" height="619" key="find.popup/0.28.1280.692/0.28.1920.1022@0.28.1920.1022" timestamp="1587496617232" />
+    <state x="530" y="238" width="732" height="548" key="find.popup/0.28.1712.905@0.28.1712.905" timestamp="1587159889502" />
+    <state x="594" y="265" width="732" height="548" key="find.popup/0.28.1920.1022@0.28.1920.1022" timestamp="1587111804171" />
+    <state x="609" y="254" width="700" height="530" key="recent.locations.popup" timestamp="1587198533783">
+      <screen x="0" y="28" width="1920" height="1022" />
+    </state>
+    <state x="609" y="254" width="700" height="530" key="recent.locations.popup/0.28.1920.1022@0.28.1920.1022" timestamp="1587198533783" />
+    <state x="623" y="252" width="672" height="678" key="search.everywhere.popup" timestamp="1587291847694">
+      <screen x="0" y="28" width="1280" height="692" />
+    </state>
+    <state x="623" y="252" width="672" height="678" key="search.everywhere.popup/0.28.1280.692/0.28.1920.1022@0.28.1920.1022" timestamp="1587291847694" />
+    <state x="623" y="252" width="672" height="678" key="search.everywhere.popup/0.28.1920.1022@0.28.1920.1022" timestamp="1587201475048" />
+  </component>
+</project>

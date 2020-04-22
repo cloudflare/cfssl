@@ -77,23 +77,26 @@ func (sigAlg SignatureAndHash) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`{"signature":"%s","hash":"%s"}`, sigAlg.s, sigAlg.h)), nil
 }
 
-func (sigAlg SignatureAndHash) internal() signatureAndHash {
-	return signatureAndHash{uint8(sigAlg.h), uint8(sigAlg.s)}
+func (sigAlg SignatureAndHash) internal() SignatureScheme {
+	hashAndSig := uint16(sigAlg.h << 8) & uint16(sigAlg.s)
+	return SignatureScheme(hashAndSig)
 }
 
 // defaultSignatureAndHashAlgorithms contains the default signature and hash
-// algorithm paris supported by `crypto/tls`
-var defaultSignatureAndHashAlgorithms []signatureAndHash
+// algorithm pairs supported by `crypto/tls`
+var defaultSignatureAndHashAlgorithms []SignatureScheme
 
 // AllSignatureAndHashAlgorithms contains all possible signature and
-// hash algorithm pairs that the can be advertised in a TLS 1.2 ClientHello.
+// hash algorithm pairs that the can be advertised in a TLS 1.3 ClientHello.
 var AllSignatureAndHashAlgorithms []SignatureAndHash
 
 func init() {
 	defaultSignatureAndHashAlgorithms = supportedSignatureAlgorithms
 	for _, sighash := range supportedSignatureAlgorithms {
+		hash := uint8(sighash >> 8)
+		signature := uint8(sighash & 0xFF)
 		AllSignatureAndHashAlgorithms = append(AllSignatureAndHashAlgorithms,
-			SignatureAndHash{hashAlgID(sighash.hash), sigAlgID(sighash.signature)})
+			SignatureAndHash{hashAlgID(hash), sigAlgID(signature)})
 	}
 }
 
@@ -103,6 +106,7 @@ var Versions = map[uint16]string{
 	VersionTLS10: "TLS 1.0",
 	VersionTLS11: "TLS 1.1",
 	VersionTLS12: "TLS 1.2",
+	VersionTLS13: "TLS 1.3",
 }
 
 // CipherSuite describes an individual cipher suite, with long and short names
