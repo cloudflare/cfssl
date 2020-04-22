@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"internal/cpu"
 	"io"
 	"math/big"
 	"net"
@@ -1131,6 +1130,7 @@ func initDefaultCipherSuites() {
 
 	// Check the cpu flags for each platform that has optimized GCM implementations.
 	// Worst case, these variables will just all be false.
+	/*
 	var (
 		hasGCMAsmAMD64 = cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ
 		hasGCMAsmARM64 = cpu.ARM64.HasAES && cpu.ARM64.HasPMULL
@@ -1139,6 +1139,8 @@ func initDefaultCipherSuites() {
 
 		hasGCMAsm = hasGCMAsmAMD64 || hasGCMAsmARM64 || hasGCMAsmS390X
 	)
+	 */
+	hasGCMAsm := false
 
 	if hasGCMAsm {
 		// If AES-GCM hardware is provided then prioritise AES-GCM
