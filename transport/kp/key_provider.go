@@ -213,6 +213,9 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
 	case "ed25519":
+		if size != 256 && size != 0 {
+			return errors.New("ED25519 keys are always 256Bit")
+		}
 		_, priv, err := ed25519.GenerateKey(rand.Reader)
 
 		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
