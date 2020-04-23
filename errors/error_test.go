@@ -87,7 +87,7 @@ func TestNew(t *testing.T) {
 	if code != 2100 {
 		t.Fatal("Improper error code")
 	}
-	code = New(PrivateKeyError, NotRSAOrECC).ErrorCode
+	code = New(PrivateKeyError, NotRSAOrECCOrEd25519).ErrorCode
 	if code != 2200 {
 		t.Fatal("Improper error code")
 	}

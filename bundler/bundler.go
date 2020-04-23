@@ -553,7 +553,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 
 // Bundle takes an X509 certificate (already in the
 // Certificate structure), a private key as crypto.Signer in one of the appropriate
-// formats (i.e. *rsa.PrivateKey or *ecdsa.PrivateKey, or even a opaque key), using them to
+// formats (i.e. *rsa.PrivateKey or *ecdsa.PrivateKey, *ed25519.PrivateKey, or even a opaque key), using them to
 // build a certificate bundle.
 func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor BundleFlavor) (*Bundle, error) {
 	log.Infof("bundling certificate for %+v", certs[0].Subject)
@@ -602,7 +602,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
 	} else {
 		switch {
@@ -610,7 +610,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
 		case cert.PublicKeyAlgorithm == x509.Ed25519:
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
 	}
 

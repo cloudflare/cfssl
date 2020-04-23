@@ -212,7 +212,7 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
 	default:
-		return nil, cferr.New(cferr.PrivateKeyError, cferr.NotRSAOrECC)
+		return nil, cferr.New(cferr.PrivateKeyError, cferr.NotRSAOrECCOrEd25519)
 	}
 
 	req := csr.ExtractCertificateRequest(ca)

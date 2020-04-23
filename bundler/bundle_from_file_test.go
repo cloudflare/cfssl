@@ -250,7 +250,7 @@ var fileTests = []fileTest{
 	},
 
 	// DSA is NOT supported.
-	// Keyless bundling, expect private key error "NotRSAOrECC"
+	// Keyless bundling, expect private key error "NotRSAOrECCOrEd25519"
 	{
 		cert:          certDSA2048,
 		caBundleFile:  testCFSSLRootBundle,
