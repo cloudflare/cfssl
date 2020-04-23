@@ -4,6 +4,7 @@ package genkey
 import (
 	"encoding/json"
 	"errors"
+	"github.com/cloudflare/cfssl/config"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/csr"
@@ -47,7 +48,11 @@ func genkeyMain(args []string, c cli.Config) (err error) {
 
 	if c.IsCA {
 		var key, csrPEM, cert []byte
-		cert, csrPEM, key, err = initca.New(&req)
+		var caSigningConfig *config.Signing
+		if c.CFG != nil {
+			caSigningConfig = c.CFG.Signing
+		}
+		cert, csrPEM, key, err = initca.New(&req, caSigningConfig)
 		if err != nil {
 			return
 		}

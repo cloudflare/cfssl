@@ -82,7 +82,7 @@ func TestEncodePEM(t *testing.T) {
 
 func TestLoadSigner(t *testing.T) {
 	lca := &CA{}
-	certPEM, csrPEM, keyPEM, err := initca.New(ExampleRequest())
+	certPEM, csrPEM, keyPEM, err := initca.New(ExampleRequest(), nil)
 	assert.NoErrorT(t, err)
 
 	_, err = lca.CACertificate()

@@ -43,8 +43,12 @@ func validator(req *csr.CertificateRequest) error {
 }
 
 // New creates a new root certificate from the certificate request.
-func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
-	policy := CAPolicy()
+// The parameter caSigningPolicy can be nil (then a default config is used)
+func New(req *csr.CertificateRequest, caSigningPolicy *config.Signing) (cert, csrPEM, key []byte, err error) {
+	policy := DefaultCAPolicy()
+	if caSigningPolicy != nil {
+		policy = caSigningPolicy // lbarman: we could do more fancy things here to make sure we have at least the values in DefaultCAPolicy
+	}
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
 			policy.Default.ExpiryString = req.CA.Expiry
@@ -142,7 +146,7 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 
 // NewFromSigner creates a new root certificate from a crypto.Signer.
 func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
-	policy := CAPolicy()
+	policy := DefaultCAPolicy()
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
 			policy.Default.ExpiryString = req.CA.Expiry
@@ -216,8 +220,8 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 
 }
 
-// CAPolicy contains the CA issuing policy as default policy.
-var CAPolicy = func() *config.Signing {
+// DefaultCAPolicy contains the CA issuing policy as default policy.
+var DefaultCAPolicy = func() *config.Signing {
 	return &config.Signing{
 		Default: &config.SigningProfile{
 			Usage:        []string{"cert sign", "crl sign"},

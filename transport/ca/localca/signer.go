@@ -129,13 +129,16 @@ func ExampleSigningConfig() *config.Signing {
 				"server auth", "client auth",
 				"signing", "key encipherment",
 			},
+			CAConstraint: config.CAConstraint{
+				IsCA: true,
+			},
 		},
 	}
 }
 
 // New generates a new CA from a certificate request and signing profile.
 func New(req *csr.CertificateRequest, profiles *config.Signing) (*CA, error) {
-	certPEM, _, keyPEM, err := initca.New(req)
+	certPEM, _, keyPEM, err := initca.New(req, profiles)
 	if err != nil {
 		return nil, err
 	}

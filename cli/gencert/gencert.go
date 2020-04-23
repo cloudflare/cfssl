@@ -4,11 +4,11 @@ package gencert
 import (
 	"encoding/json"
 	"errors"
-
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/genkey"
 	"github.com/cloudflare/cfssl/cli/sign"
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
@@ -73,6 +73,7 @@ func gencertMain(args []string, c cli.Config) error {
 	if c.CNOverride != "" {
 		req.CN = c.CNOverride
 	}
+
 	switch {
 	case c.IsCA:
 		var key, csrPEM, cert []byte
@@ -85,7 +86,11 @@ func gencertMain(args []string, c cli.Config) error {
 			}
 		} else {
 			log.Infof("generating a new CA key and certificate from CSR")
-			cert, csrPEM, key, err = initca.New(&req)
+			var caSigningConfig *config.Signing
+			if c.CFG != nil {
+				caSigningConfig = c.CFG.Signing
+			}
+			cert, csrPEM, key, err = initca.New(&req, caSigningConfig)
 			if err != nil {
 				return err
 			}
@@ -124,6 +129,7 @@ func gencertMain(args []string, c cli.Config) error {
 		}
 
 		s, err := sign.SignerFromConfig(c)
+
 		if err != nil {
 			return err
 		}

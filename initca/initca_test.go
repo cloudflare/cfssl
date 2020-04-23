@@ -81,7 +81,7 @@ func TestInitCA(t *testing.T) {
 				KeyRequest: &param,
 				CA:         &caconfig,
 			}
-			certBytes, _, keyBytes, err := New(req)
+			certBytes, _, keyBytes, err := New(req, nil)
 			if err != nil {
 				t.Fatal("InitCA failed:", err)
 			}
@@ -126,8 +126,8 @@ func TestInitCA(t *testing.T) {
 				}
 			}
 
-			// Replace the default CAPolicy with a test (short expiry) version.
-			CAPolicy = func() *config.Signing {
+			// Replace the default DefaultCAPolicy with a test (short expiry) version.
+			DefaultCAPolicy = func() *config.Signing {
 				return &config.Signing{
 					Default: &config.SigningProfile{
 						Usage:        []string{"cert sign", "crl sign"},
@@ -143,7 +143,7 @@ func TestInitCA(t *testing.T) {
 			if err != nil {
 				t.Fatal("Signer Creation error:", err)
 			}
-			s.SetPolicy(CAPolicy())
+			s.SetPolicy(DefaultCAPolicy())
 
 			// Sign RSA and ECDSA customer CSRs.
 			for _, csrFile := range csrFiles {
@@ -192,7 +192,7 @@ func TestInvalidCAConfig(t *testing.T) {
 		CA:         &invalidCAConfig,
 	}
 
-	_, _, _, err := New(req)
+	_, _, _, err := New(req, nil)
 	if err == nil {
 		t.Fatal("InitCA with bad CAConfig should fail:", err)
 	}
@@ -215,7 +215,7 @@ func TestInvalidCryptoParams(t *testing.T) {
 			Hosts:      []string{hostname, "www." + hostname},
 			KeyRequest: &invalidParam,
 		}
-		_, _, _, err := New(req)
+		_, _, _, err := New(req, nil)
 		if err == nil {
 			t.Fatal("InitCA with bad params should fail:", err)
 		}
