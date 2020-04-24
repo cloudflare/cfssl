@@ -221,7 +221,7 @@ func TestGencertMainWithConfigLoading(t *testing.T) {
 	c := cli.Config{
 		// note: despite IsCA being re-specified in
 		IsCA:       true,
-		ConfigFile: "../testdata/good_config_ca.json",
+		ConfigFile: "../../testdata/good_config_ca.json",
 	}
 
 	// loading the config is done in the entrypoint of the program, we have to fill c.CFG manually here
