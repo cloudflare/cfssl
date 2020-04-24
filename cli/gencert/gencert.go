@@ -88,11 +88,7 @@ func gencertMain(args []string, c cli.Config) error {
 			log.Infof("generating a new CA key and certificate from CSR")
 			var caSigningConfig *config.Signing
 			if c.CFG != nil {
-				log.Warning("Using provided config")
-				log.Infof("Here it is %+v\n", c.CFG.Signing)
 				caSigningConfig = c.CFG.Signing
-			} else {
-				log.Infof("Using default config")
 			}
 			cert, csrPEM, key, err = initca.New(&req, caSigningConfig)
 			if err != nil {
