@@ -7,10 +7,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/cloudflare/cfssl/cli/version"
 	"io/ioutil"
 	"os"
-
-	"github.com/cloudflare/cfssl/cli/version"
 )
 
 func readFile(filespec string) ([]byte, error) {
@@ -28,13 +27,13 @@ func writeFile(filespec, contents string, perms os.FileMode) {
 	}
 }
 
-// ResponseMessage represents the format of a CFSSL output for an error or message
+// ResponseMessage represents the format of a CFSSL writeOutput for an error or message
 type ResponseMessage struct {
 	Code    int    `json:"int"`
 	Message string `json:"message"`
 }
 
-// Response represents the format of a CFSSL output
+// Response represents the format of a CFSSL writeOutput
 type Response struct {
 	Success  bool                   `json:"success"`
 	Result   map[string]interface{} `json:"result"`
@@ -49,11 +48,16 @@ type outputFile struct {
 	Perms    os.FileMode
 }
 
+func writeErrorAndExit(formatString string, arguments ...interface{}) {
+	fmt.Fprintf(os.Stderr, formatString, arguments...)
+	os.Exit(1)
+}
+
 func main() {
 	bare := flag.Bool("bare", false, "the response from CFSSL is not wrapped in the API standard response")
 	inFile := flag.String("f", "-", "JSON input")
-	stdoutOutput := flag.Bool("stdout", false, "stdoutOutput the response instead of saving to a file")
-	jsonOutput := flag.Bool("json", false, "stdoutOutput the response as JSON instead of raw data")
+	stdoutOutput := flag.Bool("stdout", false, "output the response instead of saving to a file")
+	jsonOutput := flag.Bool("json", false, "output the response as JSON. Implies -stdout")
 	printVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 
@@ -69,30 +73,36 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
+	fileData, err := readFile(*inFile)
+	if err != nil {
+		writeErrorAndExit("Failed to read input: %v\n", err)
+	}
+
+	if *jsonOutput {
+		*stdoutOutput = true
+	}
+
+	writeOutput(baseName, fileData, *bare, *stdoutOutput, *jsonOutput)
+}
+
+func writeOutput(baseName string, fileData []byte, bare, stdoutOutput, jsonOutput bool) {
+
 	var input = map[string]interface{}{}
 	var outs []outputFile
 	var cert string
 	var key string
 	var csr string
 
-	fileData, err := readFile(*inFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to read input: %v\n", err)
-		os.Exit(1)
-	}
-
-	if *bare {
-		err = json.Unmarshal(fileData, &input)
+	if bare {
+		err := json.Unmarshal(fileData, &input)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
-			os.Exit(1)
+			writeErrorAndExit("Failed to parse JSON: %v\n", string(fileData))
 		}
 	} else {
 		var response Response
-		err = json.Unmarshal(fileData, &response)
+		err := json.Unmarshal(fileData, &response)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse input: %v\n", err)
-			os.Exit(1)
+			writeErrorAndExit("Failed to parse input: %v\n", err)
 		}
 
 		if !response.Success {
@@ -163,13 +173,11 @@ func main() {
 
 			certificateBundle, ok := bundle["bundle"].(string)
 			if !ok {
-				fmt.Fprintf(os.Stderr, "inner bundle parsing failed!\n")
-				os.Exit(1)
+				writeErrorAndExit("inner bundle parsing failed!\n")
 			}
 			rootCertificate, ok := bundle["root"].(string)
 			if !ok {
-				fmt.Fprintf(os.Stderr, "root parsing failed!\n")
-				os.Exit(1)
+				writeErrorAndExit("root parsing failed!\n")
 			}
 			outs = append(outs, outputFile{
 				Filename: baseName + "-bundle.pem",
@@ -188,8 +196,7 @@ func main() {
 		//ocspResponse is base64 encoded
 		resp, err := base64.StdEncoding.DecodeString(contents.(string))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse ocspResponse: %v\n", err)
-			os.Exit(1)
+			writeErrorAndExit("Failed to parse ocspResponse: %v\n", err)
 		}
 		outs = append(outs, outputFile{
 			Filename: baseName + "-response.der",
@@ -199,7 +206,7 @@ func main() {
 		})
 	}
 
-	if *jsonOutput {
+	if jsonOutput {
 		outObject := make(map[string]string)
 		for _, e := range outs {
 			if e.IsBinary {
@@ -210,13 +217,12 @@ func main() {
 
 		jsonData, err := json.Marshal(outObject)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to marshal to JSON the following data: %v\n", outObject)
-			os.Exit(1)
+			writeErrorAndExit("Failed to marshal to JSON the following data: %v\n", outObject)
 		}
 		fmt.Fprintln(os.Stdout, string(jsonData))
 	} else {
 		for _, e := range outs {
-			if *stdoutOutput {
+			if stdoutOutput {
 				if e.IsBinary {
 					e.Contents = base64.StdEncoding.EncodeToString([]byte(e.Contents))
 				}

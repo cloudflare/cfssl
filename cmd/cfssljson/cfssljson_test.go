@@ -18,3 +18,14 @@ func TestReadFile(t *testing.T) {
 		t.Fatal("File not read correctly")
 	}
 }
+
+func TestParseJSON(t *testing.T) {
+	bytes, err := readFile("./testdata/cert.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writeOutput("cert", bytes, true, false, false)
+	writeOutput("cert", bytes, true, true, false)
+	writeOutput("cert", bytes, true, true, true)
+}
