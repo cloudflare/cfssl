@@ -1,6 +1,7 @@
 package gencert
 
 import (
+	"github.com/cloudflare/cfssl/config"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -213,5 +214,28 @@ func TestBadGencertMain(t *testing.T) {
 	if err == nil {
 		t.Fatal("Invalid remote, should reort error")
 	}
+}
 
+func TestGencertMainWithConfigLoading(t *testing.T) {
+
+	c := cli.Config{
+		// note: despite IsCA being re-specified in
+		IsCA:       true,
+		ConfigFile: "../testdata/good_config_ca.json",
+	}
+
+	// loading the config is done in the entrypoint of the program, we have to fill c.CFG manually here
+	var err error
+	c.CFG, err = config.LoadFile(c.ConfigFile)
+	if c.ConfigFile != "" && err != nil {
+		t.Fatal("Failed to load config file:", err)
+	}
+
+	// test: this should use the config specified in "good_config_ca.json" (hence produce a 10-year cert)
+	err = gencertMain([]string{"../testdata/csr.json"}, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// this can be checked manually with `go test | cfssljson -bare ca - | cfssl certinfo -cert ca.pem | grep not_after`
 }

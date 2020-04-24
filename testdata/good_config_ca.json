@@ -1,0 +1,25 @@
+{
+    "signing": {
+        "default": {
+            "usages": [
+                "cert sign",
+                "crl sign"
+            ],
+            "ca_constraint" : {
+                "is_ca": true
+            },
+            "expiry": "87600h"
+        },
+        "profiles": {
+            "www": {
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ],
+                "name_whitelist": "^.*\\.cloudflare.com$",
+                "expiry": "87600h"
+            }
+        }
+    }
+}
