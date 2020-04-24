@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"github.com/cloudflare/cfssl/certinfo"
+	"github.com/cloudflare/cfssl/cli"
 	"io/ioutil"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -174,6 +177,58 @@ func TestInitCA(t *testing.T) {
 		}
 	}
 }
+
+func TestInitCaWithJsonConfig(t *testing.T) {
+
+	c := cli.Config{
+		ConfigFile: "../testdata/good_config_ca.json",
+	}
+
+	// loading the config is done in the entrypoint of the program, we have to fill c.CFG manually here
+	var err error
+	c.CFG, err = config.LoadFile(c.ConfigFile)
+	if c.ConfigFile != "" && err != nil {
+		t.Fatal("Failed to load config file:", err)
+	}
+
+	hostname := "example.com"
+	req := &csr.CertificateRequest{
+		Names: []csr.Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         hostname,
+		Hosts:      []string{hostname, "www." + hostname},
+		KeyRequest: &validKeyParams[0],
+		CA:         &validCAConfigs[0],
+	}
+
+	cert, _, _, err := New(req, c.CFG.Signing)
+	if err != nil {
+		t.Fatal("InitCA with loaded JSON config should succeed:", err)
+	}
+
+	certParsed, err := certinfo.ParseCertificatePEM(cert)
+
+	if err != nil {
+		t.Fatal("Couldn't parse the produced cert", err)
+	}
+
+	HoursInAYear := float64(8766) // 365.25 * 24
+	expiryHoursInConfig := c.CFG.Signing.Default.Expiry.Hours()
+	expiryYearsInConfig := int(math.Ceil(expiryHoursInConfig / HoursInAYear))
+	certExpiryInYears := certParsed.NotAfter.Year() - time.Now().Year()
+
+	if certExpiryInYears != expiryYearsInConfig {
+		t.Fatal("Expiry specified in Config file is", expiryYearsInConfig, "but cert has expiry", certExpiryInYears)
+	}
+}
+
 func TestInvalidCAConfig(t *testing.T) {
 	hostname := "example.com"
 	req := &csr.CertificateRequest{
