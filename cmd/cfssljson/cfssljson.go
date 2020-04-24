@@ -52,7 +52,8 @@ type outputFile struct {
 func main() {
 	bare := flag.Bool("bare", false, "the response from CFSSL is not wrapped in the API standard response")
 	inFile := flag.String("f", "-", "JSON input")
-	output := flag.Bool("stdout", false, "output the response instead of saving to a file")
+	stdoutOutput := flag.Bool("stdout", false, "stdoutOutput the response instead of saving to a file")
+	jsonOutput := flag.Bool("json", false, "stdoutOutput the response as JSON instead of raw data")
 	printVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
 
@@ -198,14 +199,31 @@ func main() {
 		})
 	}
 
-	for _, e := range outs {
-		if *output {
+	if *jsonOutput {
+		outObject := make(map[string]string)
+		for _, e := range outs {
 			if e.IsBinary {
 				e.Contents = base64.StdEncoding.EncodeToString([]byte(e.Contents))
 			}
-			fmt.Fprintf(os.Stdout, "%s\n", e.Contents)
-		} else {
-			writeFile(e.Filename, e.Contents, e.Perms)
+			outObject[e.Filename] = e.Contents
+		}
+
+		jsonData, err := json.Marshal(outObject)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to marshal to JSON the following data: %v\n", outObject)
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stdout, string(jsonData))
+	} else {
+		for _, e := range outs {
+			if *stdoutOutput {
+				if e.IsBinary {
+					e.Contents = base64.StdEncoding.EncodeToString([]byte(e.Contents))
+				}
+				fmt.Fprintf(os.Stdout, "%s\n", e.Contents)
+			} else {
+				writeFile(e.Filename, e.Contents, e.Perms)
+			}
 		}
 	}
 }
