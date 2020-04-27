@@ -310,8 +310,6 @@ func TestGencertMainWithConfigLoading(t *testing.T) {
 		t.Fatal("Couldn't parse the produced cert", err)
 	}
 
-	fmt.Println(parsedCert)
-
 	HoursInAYear := float64(8766) // 365.25 * 24
 	expiryHoursInConfig := c.CFG.Signing.Default.Expiry.Hours()
 	expiryYearsInConfig := int(math.Ceil(expiryHoursInConfig / HoursInAYear))
