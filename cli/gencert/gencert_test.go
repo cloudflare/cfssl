@@ -2,11 +2,10 @@ package gencert
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/cloudflare/cfssl/certinfo"
 	"github.com/cloudflare/cfssl/config"
 	"io/ioutil"
-	"errors"
 	"math"
 	"os"
 	"testing"
