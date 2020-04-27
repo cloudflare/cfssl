@@ -59,29 +59,29 @@ func TestGenkey(t *testing.T) {
 	var err error
 
 	if pipe, err = newStdoutRedirect(); err != nil {
-		t.Fatal(err)
+		t.Fatal("Could not create stdout pipe; cannot run test.", err)
 	}
 	if err := genkeyMain([]string{"testdata/csr.json"}, cli.Config{}); err != nil {
 		t.Fatal(err)
 	}
 	if out, err = pipe.readAll(); err != nil {
-		t.Fatal(err)
+		t.Fatal("Couldn't read from stdout", err)
 	}
-	if err, _ := checkResponse(out); err != nil {
-		t.Fatal(err)
+	if _, err := checkResponse(out); err != nil {
+		t.Fatal("Format on stdout is unexpected", err)
 	}
 
 	if pipe, err = newStdoutRedirect(); err != nil {
-		t.Fatal(err)
+		t.Fatal("Could not create stdout pipe; cannot run test.", err)
 	}
 	if err := genkeyMain([]string{"testdata/csr.json"}, cli.Config{IsCA: true}); err != nil {
 		t.Fatal(err)
 	}
 	if out, err = pipe.readAll(); err != nil {
-		t.Fatal(err)
+		t.Fatal("Couldn't read from stdout", err)
 	}
-	if err, _ := checkResponse(out); err != nil {
-		t.Fatal(err)
+	if _, err := checkResponse(out); err != nil {
+		t.Fatal("Format on stdout is unexpected", err)
 	}
 }
 
