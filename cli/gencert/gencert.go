@@ -73,7 +73,6 @@ func gencertMain(args []string, c cli.Config) error {
 	if c.CNOverride != "" {
 		req.CN = c.CNOverride
 	}
-
 	switch {
 	case c.IsCA:
 		var key, csrPEM, cert []byte
@@ -129,7 +128,6 @@ func gencertMain(args []string, c cli.Config) error {
 		}
 
 		s, err := sign.SignerFromConfig(c)
-
 		if err != nil {
 			return err
 		}

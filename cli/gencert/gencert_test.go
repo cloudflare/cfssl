@@ -1,10 +1,16 @@
 package gencert
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/cloudflare/cfssl/certinfo"
 	"github.com/cloudflare/cfssl/config"
 	"io/ioutil"
+	"errors"
+	"math"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/cloudflare/cfssl/cli"
 )
@@ -216,16 +222,68 @@ func TestBadGencertMain(t *testing.T) {
 	}
 }
 
+// taken from cli/genkey/genkey_test.go, could be factored in some utils/ package
+type stdoutRedirect struct {
+	r     *os.File
+	w     *os.File
+	saved *os.File
+}
+
+func newStdoutRedirect() (*stdoutRedirect, error) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+
+	pipe := &stdoutRedirect{r, w, os.Stdout}
+	os.Stdout = pipe.w
+	return pipe, nil
+}
+
+func (pipe *stdoutRedirect) readAll() ([]byte, error) {
+	pipe.w.Close()
+	os.Stdout = pipe.saved
+	return ioutil.ReadAll(pipe.r)
+}
+
+func checkResponse(out []byte) (map[string]interface{}, error) {
+	var response map[string]interface{}
+	if err := json.Unmarshal(out, &response); err != nil {
+		return nil, err
+	}
+
+	if response["cert"] == nil {
+		return nil, errors.New("no cert is outputted")
+	}
+
+	if response["key"] == nil {
+		return nil, errors.New("no key is outputted")
+	}
+
+	if response["csr"] == nil {
+		return nil, errors.New("no csr is outputted")
+	}
+
+	return response, nil
+}
+
 func TestGencertMainWithConfigLoading(t *testing.T) {
 
+	var pipe *stdoutRedirect
+	var out []byte
+	var err error
+
+	if pipe, err = newStdoutRedirect(); err != nil {
+		t.Fatal("Could not create stdout pipe; cannot run test.", err)
+	}
+
 	c := cli.Config{
-		// note: despite IsCA being re-specified in
+		// note: despite IsCA being re-specified in ConfigFile, it also needs to be manually set in config
 		IsCA:       true,
 		ConfigFile: "../../testdata/good_config_ca.json",
 	}
 
 	// loading the config is done in the entrypoint of the program, we have to fill c.CFG manually here
-	var err error
 	c.CFG, err = config.LoadFile(c.ConfigFile)
 	if c.ConfigFile != "" && err != nil {
 		t.Fatal("Failed to load config file:", err)
@@ -234,8 +292,32 @@ func TestGencertMainWithConfigLoading(t *testing.T) {
 	// test: this should use the config specified in "good_config_ca.json" (hence produce a 10-year cert)
 	err = gencertMain([]string{"../testdata/csr.json"}, c)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Could not generate a cert with the config file", err)
 	}
 
-	// this can be checked manually with `go test | cfssljson -bare ca - | cfssl certinfo -cert ca.pem | grep not_after`
+	if out, err = pipe.readAll(); err != nil {
+		t.Fatal("Couldn't read from stdout", err)
+	}
+	response, err := checkResponse(out)
+	if err != nil {
+		t.Fatal("Format on stdout is unexpected", err)
+	}
+
+	cert := []byte(response["cert"].(string))
+
+	parsedCert, err := certinfo.ParseCertificatePEM(cert)
+	if err != nil {
+		t.Fatal("Couldn't parse the produced cert", err)
+	}
+
+	fmt.Println(parsedCert)
+
+	HoursInAYear := float64(8766) // 365.25 * 24
+	expiryHoursInConfig := c.CFG.Signing.Default.Expiry.Hours()
+	expiryYearsInConfig := int(math.Ceil(expiryHoursInConfig / HoursInAYear))
+	certExpiryInYears := parsedCert.NotAfter.Year() - time.Now().Year()
+
+	if certExpiryInYears != expiryYearsInConfig {
+		t.Fatal("Expiry specified in Config file is", expiryYearsInConfig, "but cert has expiry", certExpiryInYears)
+	}
 }
