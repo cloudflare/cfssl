@@ -207,28 +207,28 @@ func writeOutput(baseName string, fileData []byte, bare, stdoutOutput, jsonOutpu
 	}
 
 	if jsonOutput {
-		outObject := make(map[string]string)
-		for _, e := range outs {
-			if e.IsBinary {
-				e.Contents = base64.StdEncoding.EncodeToString([]byte(e.Contents))
+		jsonOutputDict := make(map[string]string)
+		for _, outputFile := range outs {
+			if outputFile.IsBinary {
+				outputFile.Contents = base64.StdEncoding.EncodeToString([]byte(outputFile.Contents))
 			}
-			outObject[e.Filename] = e.Contents
+			jsonOutputDict[outputFile.Filename] = outputFile.Contents
 		}
 
-		jsonData, err := json.Marshal(outObject)
+		jsonData, err := json.Marshal(jsonOutputDict)
 		if err != nil {
-			writeErrorAndExit("Failed to marshal to JSON the following data: %v\n", outObject)
+			writeErrorAndExit("Failed to marshal to JSON the following data: %v\n", jsonOutputDict)
 		}
 		fmt.Fprintln(os.Stdout, string(jsonData))
 	} else {
-		for _, e := range outs {
+		for _, outputFile := range outs {
 			if stdoutOutput {
-				if e.IsBinary {
-					e.Contents = base64.StdEncoding.EncodeToString([]byte(e.Contents))
+				if outputFile.IsBinary {
+					outputFile.Contents = base64.StdEncoding.EncodeToString([]byte(outputFile.Contents))
 				}
-				fmt.Fprintf(os.Stdout, "%s\n", e.Contents)
+				fmt.Fprintf(os.Stdout, "%s\n", outputFile.Contents)
 			} else {
-				writeFile(e.Filename, e.Contents, e.Perms)
+				writeFile(outputFile.Filename, outputFile.Contents, outputFile.Perms)
 			}
 		}
 	}
