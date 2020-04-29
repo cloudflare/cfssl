@@ -15,14 +15,14 @@ import (
 
 var scanUsageText = `cfssl scan -- scan a host for issues
 Usage of scan:
-        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] [-num-workers num] [-max-hosts num] [-csv hosts.csv] HOST+
+        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] [-num-workers num] [-max-hosts num] [-csv hosts.csv] [-apitoken empty] HOST+
         cfssl scan -list
 
 Arguments:
         HOST:    Host(s) to scan (including port)
 Flags:
 `
-var scanFlags = []string{"list", "family", "scanner", "timeout", "ip", "ca-bundle", "num-workers", "csv", "max-hosts"}
+var scanFlags = []string{"list", "family", "scanner", "timeout", "ip", "ca-bundle", "num-workers", "csv", "max-hosts", "cert-verbose", "apitoken"}
 
 func printJSON(v interface{}) {
 	b, err := json.MarshalIndent(v, "", "  ")
@@ -53,7 +53,7 @@ func newContext(c cli.Config, numWorkers int) *context {
 func (ctx *context) runWorker() {
 	for host := range ctx.hosts {
 		fmt.Printf("Scanning %s...\n", host)
-		results, err := scan.Default.RunScans(host, ctx.c.IP, ctx.c.Family, ctx.c.Scanner, ctx.c.Timeout)
+		results, err := scan.Default.RunScans(host, ctx.c.IP, ctx.c.Family, ctx.c.Scanner, ctx.c.Timeout, ctx.c.APIToken, ctx.c.CertVerbose)
 		fmt.Printf("=== %s ===\n", host)
 		if err != nil {
 			log.Error(err)

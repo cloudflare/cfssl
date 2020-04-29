@@ -26,7 +26,8 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
 	github.com/zmap/zlint/v2 v2.0.0
 	golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
-	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20200428211428-0c9eba77bc32 // indirect
 )

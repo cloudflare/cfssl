@@ -23,6 +23,8 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 	scanner := r.Form.Get("scanner")
 	ip := r.Form.Get("ip")
 	timeoutStr := r.Form.Get("timeout")
+
+	ctAPIToken := r.Form.Get("cttoken")
 	var timeout time.Duration
 	var err error
 	if timeoutStr != "" {
@@ -42,7 +44,9 @@ func scanHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("no host given")
 	}
 
-	results, err := scan.Default.RunScans(host, ip, family, scanner, timeout)
+	verbosity := false
+
+	results, err := scan.Default.RunScans(host, ip, family, scanner, timeout, ctAPIToken, verbosity)
 	if err != nil {
 		return errors.NewBadRequest(err)
 	}

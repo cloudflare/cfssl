@@ -646,7 +646,7 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to serialize SCT list")
 	}
-	// The value of Id below is the object identifier of the OCSP Stapling
+	// The value of ID below is the object identifier of the OCSP Stapling
 	// SCT extension (see section 3.3. of RFC 6962).
 	response.Extensions = []pkix.Extension{{
 		Id:       asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5},

@@ -15,7 +15,7 @@ var TLSSession = &Family{
 }
 
 // SessionResumeScan tests that host is able to resume sessions across all addresses.
-func sessionResumeScan(addr, hostname string) (grade Grade, output Output, err error) {
+func sessionResumeScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	config := defaultTLSConfig(hostname)
 	config.ClientSessionCache = tls.NewLRUClientSessionCache(1)
 

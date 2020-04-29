@@ -18,7 +18,7 @@ func main() {
 	var c cli.Config
 	var usageText = `cfssl scan -- scan a host for issues
 Usage of scan:
-        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] [-num-workers num] [-max-hosts num] [-csv hosts.csv] HOST+
+        cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] [-num-workers num] [-max-hosts num] [-csv hosts.csv] [-cert-verbose bool] HOST+
         cfssl scan -list
 
 Arguments:
@@ -75,4 +75,6 @@ func registerFlags(c *cli.Config, f *flag.FlagSet) {
 	f.IntVar(&c.MaxHosts, "max-hosts", 100, "maximum number of hosts to scan")
 	f.StringVar(&c.IP, "ip", "", "remote server ip")
 	f.StringVar(&c.CABundleFile, "ca-bundle", "", "path to root certificate store")
+	f.BoolVar(&c.CertVerbose, "cert-verbose", false, "print verbose certificates using certinfo")
+	f.StringVar(&c.APIToken, "apitoken", "", "API Token to use for CT API Scanners")
 }

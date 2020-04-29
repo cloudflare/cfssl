@@ -7,7 +7,7 @@ import (
 
 var TestingScanner = &Scanner{
 	Description: "Tests common scan functions",
-	scan: func(addr, hostname string) (Grade, Output, error) {
+	scan: func(addr, hostname string, token string, verbosity bool) (Grade, Output, error) {
 		switch addr {
 		case "bad.example.com:443":
 			return Bad, "bad.com", nil
@@ -39,27 +39,30 @@ func TestCommon(t *testing.T) {
 	var output Output
 	var err error
 
-	grade, output, err = TestingScanner.Scan("bad.example.com:443", "bad.example.com")
+	var token string
+	var verbosity bool
+
+	grade, output, err = TestingScanner.Scan("bad.example.com:443", "bad.example.com", token, verbosity)
 	if grade != Bad || output.(string) != "bad.com" || err != nil {
 		t.FailNow()
 	}
 
-	grade, output, err = TestingScanner.Scan("Warning.example.com:443", "Warning.example.com")
+	grade, output, err = TestingScanner.Scan("Warning.example.com:443", "Warning.example.com", token, verbosity)
 	if grade != Warning || output.(string) != "Warning.com" || err != nil {
 		t.FailNow()
 	}
 
-	grade, output, err = TestingScanner.Scan("good.example.com:443", "good.example.com")
+	grade, output, err = TestingScanner.Scan("good.example.com:443", "good.example.com", token, verbosity)
 	if grade != Good || output.(string) != "good.com" || err != nil {
 		t.FailNow()
 	}
 
-	grade, output, err = TestingScanner.Scan("skipped.example.com:443/0", "")
+	grade, output, err = TestingScanner.Scan("skipped.example.com:443/0", "", token, verbosity)
 	if grade != Skipped || output.(string) != "skipped" || err != nil {
 		t.FailNow()
 	}
 
-	_, _, err = TestingScanner.Scan("invalid", "invalid")
+	_, _, err = TestingScanner.Scan("invalid", "invalid", token, verbosity)
 	if err == nil {
 		t.FailNow()
 	}
