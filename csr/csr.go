@@ -4,7 +4,6 @@ package csr
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -13,16 +12,17 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
-	"io"
+	"fmt"
 	"net"
 	"net/mail"
 	"net/url"
 	"strings"
 
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
+	"github.com/cloudflare/circl/sign/ed25519"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -76,15 +76,6 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 			return nil, errors.New("RSA key size too large")
 		}
 		return rsa.GenerateKey(rand.Reader, kr.Size())
-	case "ed25519":
-		if kr.Size() != 256 && kr.Size() != 0 {
-			return nil, errors.New("ED25519 keys are always 256Bit")
-		}
-		seed := make([]byte, ed25519.SeedSize)
-		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
-			return nil, err
-		}
-		return ed25519.NewKeyFromSeed(seed), nil
 	case "ecdsa":
 		var curve elliptic.Curve
 		switch kr.Size() {
@@ -98,6 +89,13 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 			return nil, errors.New("invalid curve")
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
+	case "ed25519":
+		if kr.Size() != (ed25519.Size * 8) { // TODO: check if 0 is needed
+			fmt.Printf("\n %d %d \n", kr.Size(), ed25519.Size*8)
+			return nil, errors.New("ED25519 keys should be 256 bit long")
+		}
+		keypair, err := ed25519.GenerateKey(rand.Reader)
+		return keypair.GetPrivate(), err
 	default:
 		return nil, errors.New("invalid algorithm")
 	}
@@ -118,8 +116,6 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case "ed25519":
-		return x509.PureEd25519
 	case "ecdsa":
 		switch kr.Size() {
 		case curveP521:
@@ -131,6 +127,8 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case "ed25519":
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -220,16 +218,6 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
-	case ed25519.PrivateKey:
-		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-
-		}
-		block := pem.Block{
-			Type:  "Ed25519 PRIVATE KEY",
-			Bytes: key,
-		}
-		key = pem.EncodeToMemory(&block)
 	case *ecdsa.PrivateKey:
 		key, err = x509.MarshalECPrivateKey(priv)
 		if err != nil {
@@ -241,11 +229,21 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
+	case ed25519.PrivateKey:
+		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+
+		}
+		block := pem.Block{
+			Type:  "Ed25519 PRIVATE KEY",
+			Bytes: key,
+		}
+		key = pem.EncodeToMemory(&block)
 	default:
 		panic("Generate should have failed to produce a valid key.")
 	}
 
-	csr, err = Generate(priv.(crypto.Signer), req)
+	csr, err = Generate(priv.(crypto.Signer), req) // TODO: solve
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)

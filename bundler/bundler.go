@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -21,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudflare/circl/sign/ed25519"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -574,16 +575,11 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	if key != nil {
 		switch {
 		case cert.PublicKeyAlgorithm == x509.RSA:
-
 			var rsaPublicKey *rsa.PublicKey
 			if rsaPublicKey, ok = key.Public().(*rsa.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 			if cert.PublicKey.(*rsa.PublicKey).N.Cmp(rsaPublicKey.N) != 0 {
-				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
-			}
-		case cert.PublicKeyAlgorithm == x509.Ed25519:
-			if _, ok := key.Public().(ed25519.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
@@ -592,6 +588,14 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 			if cert.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaPublicKey.X) != 0 {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
+		case cert.PublicKeyAlgorithm == x509.Ed25519:
+			var ed25519PublicKey *ed25519.PublicKey
+			if ed25519PublicKey, ok = key.Public().(*ed25519.PublicKey); !ok {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
+			if !(bytes.Equal(*cert.PublicKey.(*ed25519.PublicKey), *ed25519PublicKey)) {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:

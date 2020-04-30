@@ -25,7 +25,7 @@ import (
 func parseSigner(root *config.Root) (signer.Signer, error) {
 	privateKey := root.PrivateKey
 	switch priv := privateKey.(type) {
-	case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
+	case *rsa.PrivateKey, *ecdsa.PrivateKey, *ed25519.PrivateKey:
 		s, err := local.NewSigner(priv, root.Certificate, signer.DefaultSigAlgo(priv), nil)
 		if err != nil {
 			return nil, err

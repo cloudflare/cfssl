@@ -3,7 +3,6 @@ package bundler
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -13,9 +12,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
+	"github.com/cloudflare/circl/sign/ed25519"
 
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 )
 
 // A Bundle contains a certificate and its trust chain. It is intended

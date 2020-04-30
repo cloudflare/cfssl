@@ -3,7 +3,6 @@ package csr
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/circl/sign/ed25519"
 )
 
 //TestNew validate the CertificateRequest created to return with a KeyRequest
@@ -315,19 +315,17 @@ func TestECGeneration(t *testing.T) {
 }
 
 func TestED25519Generation(t *testing.T) {
-	for _, sz := range []int{256, 0} {
-		kr := &KeyRequest{"ed25519", sz}
-		priv, err := kr.Generate()
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
-		_, ok := priv.(ed25519.PrivateKey)
-		if !ok {
-			t.Fatal("Expected ed25519 key")
-		}
-		if sa := kr.SigAlgo(); sa == x509.UnknownSignatureAlgorithm {
-			t.Fatal("Invalid signature algorithm!")
-		}
+	kr := &KeyRequest{"ed25519", 256}
+	priv, err := kr.Generate()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	_, ok := priv.(ed25519.PrivateKey)
+	if !ok {
+		t.Fatal("Expected ed25519 key")
+	}
+	if sa := kr.SigAlgo(); sa == x509.UnknownSignatureAlgorithm {
+		t.Fatal("Invalid signature algorithm!")
 	}
 }
 
