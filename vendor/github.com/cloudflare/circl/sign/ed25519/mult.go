@@ -17,13 +17,13 @@ var paramD = fp.Elt{
 	0x73, 0xfe, 0x6f, 0x2b, 0xee, 0x6c, 0x03, 0x52,
 }
 
-// mLSBRecoding parameters
+// mLSBRecoding parameters.
 const (
 	fxT        = 257
 	fxV        = 2
 	fxW        = 3
 	fx2w1      = 1 << (uint(fxW) - 1)
-	numWords64 = (Size * 8 / 64)
+	numWords64 = (paramB * 8 / 64)
 )
 
 // mLSBRecoding is the odd-only modified LSB-set.
@@ -31,7 +31,7 @@ const (
 // Reference:
 //  "Efficient and secure algorithms for GLV-based scalar multiplication and
 //   their implementation on GLV–GLS curves" by (Faz-Hernandez et al.)
-//   http://doi.org/10.1007/s13389-014-0085-7
+//   http://doi.org/10.1007/s13389-014-0085-7.
 func mLSBRecoding(L []int8, k []byte) {
 	const ee = (fxT + fxW*fxV - 1) / (fxW * fxV)
 	const dd = ee * fxV
@@ -71,7 +71,7 @@ func absolute(x int32) int32 {
 	return (x + mask) ^ mask
 }
 
-// condAddOrderN updates x = x+order if x is even, otherwise x remains unchanged
+// condAddOrderN updates x = x+order if x is even, otherwise x remains unchanged.
 func condAddOrderN(x *[numWords64 + 1]uint64) {
 	isOdd := (x[0] & 0x1) - 1
 	c := uint64(0)
@@ -85,7 +85,7 @@ func condAddOrderN(x *[numWords64 + 1]uint64) {
 	x[numWords64], _ = bits.Add64(x[numWords64], 0, c)
 }
 
-// div2subY update x = (x/2) - y
+// div2subY update x = (x/2) - y.
 func div2subY(x []uint64, y int64, l int) {
 	s := uint64(y >> 63)
 	for i := 0; i < l-1; i++ {
@@ -106,7 +106,7 @@ func div2subY(x []uint64, y int64, l int) {
 }
 
 func (P *pointR1) fixedMult(scalar []byte) {
-	if len(scalar) != Size {
+	if len(scalar) != paramB {
 		panic("wrong scalar size")
 	}
 	const ee = (fxT + fxW*fxV - 1) / (fxW * fxV)
@@ -141,7 +141,7 @@ const (
 	omegaVar = 5
 )
 
-// doubleMult returns P=mG+nQ
+// doubleMult returns P=mG+nQ.
 func (P *pointR1) doubleMult(Q *pointR1, m, n []byte) {
 	nafFix := math.OmegaNAF(conv.BytesLe2BigInt(m), omegaFix)
 	nafVar := math.OmegaNAF(conv.BytesLe2BigInt(n), omegaVar)

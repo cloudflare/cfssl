@@ -33,20 +33,27 @@ func (P *pointR1) toAffine() {
 	P.tb = P.y
 }
 
-func (P *pointR1) ToBytes(k []byte) {
+func (P *pointR1) ToBytes(k []byte) error {
 	P.toAffine()
 	var x [fp.Size]byte
-	fp.ToBytes(k[:fp.Size], &P.y)
-	fp.ToBytes(x[:], &P.x)
+	err := fp.ToBytes(k[:fp.Size], &P.y)
+	if err != nil {
+		return err
+	}
+	err = fp.ToBytes(x[:], &P.x)
+	if err != nil {
+		return err
+	}
 	b := x[0] & 1
-	k[Size-1] = k[Size-1] | (b << 7)
+	k[paramB-1] = k[paramB-1] | (b << 7)
+	return nil
 }
 
 func (P *pointR1) FromBytes(k []byte) bool {
-	if len(k) != Size {
+	if len(k) != paramB {
 		panic("wrong size")
 	}
-	signX := k[Size-1] >> 7
+	signX := k[paramB-1] >> 7
 	copy(P.y[:], k[:fp.Size])
 	P.y[fp.Size-1] &= 0x7F
 	p := fp.P()
@@ -77,7 +84,7 @@ func (P *pointR1) FromBytes(k []byte) bool {
 	return true
 }
 
-// double calculates 2P for curves with A=-1
+// double calculates 2P for curves with A=-1.
 func (P *pointR1) double() {
 	Px, Py, Pz, Pta, Ptb := &P.x, &P.y, &P.z, &P.ta, &P.tb
 	a, b, c, e, f, g, h := Px, Py, Pz, Pta, Px, Py, Ptb
@@ -106,7 +113,7 @@ func (P *pointR1) add(Q *pointR2) {
 	P.coreAddition(&Q.pointR3)
 }
 
-// coreAddition calculates P=P+Q for curves with A=-1
+// coreAddition calculates P=P+Q for curves with A=-1.
 func (P *pointR1) coreAddition(Q *pointR3) {
 	Px, Py, Pz, Pta, Ptb := &P.x, &P.y, &P.z, &P.ta, &P.tb
 	addYX2, subYX2, dt2 := &Q.addYX, &Q.subYX, &Q.dt2

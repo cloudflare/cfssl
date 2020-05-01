@@ -1,7 +1,11 @@
 // Package fp25519 provides prime field arithmetic over GF(2^255-19).
 package fp25519
 
-import "github.com/cloudflare/circl/internal/conv"
+import (
+	"errors"
+
+	"github.com/cloudflare/circl/internal/conv"
+)
 
 // Size in bytes of an element.
 const Size = 32
@@ -22,13 +26,14 @@ var p = Elt{
 // P returns the prime modulus 2^255-19.
 func P() Elt { return p }
 
-// ToBytes returns the little-endian byte representation of x.
-func ToBytes(b []byte, x *Elt) {
+// ToBytes stores in b the little-endian byte representation of x.
+func ToBytes(b []byte, x *Elt) error {
 	if len(b) != Size {
-		panic("wrong size")
+		return errors.New("wrong size")
 	}
 	Modp(x)
 	copy(b, x[:])
+	return nil
 }
 
 // IsZero returns true if x is equal to 0.
@@ -184,7 +189,7 @@ func Cswap(x, y *Elt, n uint) { cswap(x, y, n) }
 // Add calculates z = x+y mod p.
 func Add(z, x, y *Elt) { add(z, x, y) }
 
-// Sub calculates z = x-y mod p
+// Sub calculates z = x-y mod p.
 func Sub(z, x, y *Elt) { sub(z, x, y) }
 
 // AddSub calculates (x,y) = (x+y mod p, x-y mod p).
