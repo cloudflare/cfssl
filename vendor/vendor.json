@@ -1,0 +1,37 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "NkEfw6/RGoONSshZT1kMQslGnFs=",
+			"path": "github.com/cloudflare/circl/internal/conv",
+			"revision": "b95b1bb4fbee211a8425950b0c8d85bf63ca44b0",
+			"revisionTime": "2020-04-23T01:58:43Z"
+		},
+		{
+			"checksumSHA1": "fQKcKh4L6i2dklkDoRHPEnzqof0=",
+			"path": "github.com/cloudflare/circl/internal/test",
+			"revision": "b95b1bb4fbee211a8425950b0c8d85bf63ca44b0",
+			"revisionTime": "2020-04-23T01:58:43Z"
+		},
+		{
+			"checksumSHA1": "4TcBLI4BtVVEEoJK5+1k95e2BkA=",
+			"path": "github.com/cloudflare/circl/math",
+			"revision": "b95b1bb4fbee211a8425950b0c8d85bf63ca44b0",
+			"revisionTime": "2020-04-23T01:58:43Z"
+		},
+		{
+			"checksumSHA1": "N6ZIRgnTipuKM7d/4hiToFBR+rI=",
+			"path": "github.com/cloudflare/circl/math/fp25519",
+			"revision": "b95b1bb4fbee211a8425950b0c8d85bf63ca44b0",
+			"revisionTime": "2020-04-23T01:58:43Z"
+		},
+		{
+			"checksumSHA1": "VhTEXkOomDsSWdIkJNLak32BTYU=",
+			"path": "github.com/cloudflare/circl/sign/ed25519",
+			"revision": "b95b1bb4fbee211a8425950b0c8d85bf63ca44b0",
+			"revisionTime": "2020-04-23T01:58:43Z"
+		}
+	],
+	"rootPath": "github.com/cloudflare/cfssl"
+}
