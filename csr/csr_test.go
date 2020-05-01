@@ -3,6 +3,7 @@ package csr
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/circl/sign/ed25519"
 )
 
 //TestNew validate the CertificateRequest created to return with a KeyRequest

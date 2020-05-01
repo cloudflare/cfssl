@@ -7,7 +7,7 @@ require (
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261 // indirect
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
-	github.com/cloudflare/circl v1.0.1-0.20200423021231-b95b1bb4fbee
+	github.com/cloudflare/circl v1.0.1-0.20200429041708-9763a1b56ebf
 	github.com/cloudflare/go-metrics v0.0.0-20151117154305-6a9aea36fb41
 	github.com/cloudflare/redoctober v0.0.0-20171127175943-746a508df14c
 	github.com/getsentry/raven-go v0.0.0-20180121060056-563b81fc02b7 // indirect

@@ -18,7 +18,7 @@ github.com/certifi/gocertifi
 # github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 ## explicit
 github.com/cloudflare/backoff
-# github.com/cloudflare/circl v1.0.1-0.20200423021231-b95b1bb4fbee
+# github.com/cloudflare/circl v1.0.1-0.20200429041708-9763a1b56ebf
 ## explicit
 github.com/cloudflare/circl/internal/conv
 github.com/cloudflare/circl/math

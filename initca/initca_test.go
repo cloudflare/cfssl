@@ -23,7 +23,7 @@ var validKeyParams = []csr.KeyRequest{
 	{A: "ecdsa", S: 256},
 	{A: "ecdsa", S: 384},
 	{A: "ecdsa", S: 521},
-	{A: "ed25519",},
+	{A: "ed25519", S: 256},
 }
 
 var validCAConfigs = []csr.CAConfig{
