@@ -154,8 +154,6 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case ed25519.PublicKey:
-		return x509.PureEd25519
 	case *ecdsa.PublicKey:
 		switch pub.Curve {
 		case elliptic.P256():
@@ -167,6 +165,8 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case ed25519.PublicKey:
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -196,8 +196,8 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
-		Extensions:			csrv.Extensions,
-		ExtraExtensions:	[]pkix.Extension{},
+		Extensions:         csrv.Extensions,
+		ExtraExtensions:    []pkix.Extension{},
 	}
 
 	for _, val := range csrv.Extensions {
@@ -219,7 +219,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 			template.MaxPathLenZero = template.MaxPathLen == 0
 		} else {
 			// If the profile has 'copy_extensions' to true then lets add it
-			if (p.CopyExtensions) {
+			if p.CopyExtensions {
 				template.ExtraExtensions = append(template.ExtraExtensions, val)
 			}
 		}

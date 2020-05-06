@@ -41,10 +41,10 @@ func publicKey(priv interface{}) interface{} {
 	switch k := priv.(type) {
 	case *rsa.PrivateKey:
 		return &k.PublicKey
-	case *ed25519.PrivateKey:
-		return &k.Public()
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
+	case *ed25519.PrivateKey:
+		return &k.Public()
 	default:
 		return nil
 	}
@@ -83,9 +83,11 @@ func main() {
 	var priv interface{}
 	var err error
 	switch *ecdsaCurve {
+	// TODO: peharps not the best way to do this. It is weird that it takes
+	// rsa and ed25519 as part of ecdsa
 	case "":
 		priv, err = rsa.GenerateKey(rand.Reader, *rsaBits)
-	case "ED25519":
+	case "Ed25519":
 		_, priv, err = ed25519.GenerateKey(rand.Reader)
 	case "P224":
 		priv, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
