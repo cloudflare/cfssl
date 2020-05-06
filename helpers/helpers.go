@@ -54,7 +54,7 @@ var Jul2012 = InclusiveDate(2012, time.July, 01)
 // issuing certificates valid for more than 39 months.
 var Apr2015 = InclusiveDate(2015, time.April, 01)
 
-// KeyLength returns the bit size of ECDSA or RSA PublicKey
+// KeyLength returns the bit size of ECDSA, RSA or Ed25519 PublicKey
 func KeyLength(key interface{}) int {
 	if key == nil {
 		return 0
@@ -156,7 +156,7 @@ func SignatureString(alg x509.SignatureAlgorithm) string {
 	}
 }
 
-// HashAlgoString returns the hash algorithm name contains in the signature
+// HashAlgoString returns the hash algorithm name contained in the signature
 // method.
 func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	switch alg {

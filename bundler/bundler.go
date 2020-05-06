@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -20,8 +21,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/cloudflare/circl/sign/ed25519"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -554,7 +553,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 
 // Bundle takes an X509 certificate (already in the
 // Certificate structure), a private key as crypto.Signer in one of the appropriate
-// formats (i.e. *rsa.PrivateKey or *ecdsa.PrivateKey, or even a opaque key), using them to
+// formats (i.e. *rsa.PrivateKey, *ecdsa.PrivateKey or ed25519.PrivateKey, or even a opaque key), using them to
 // build a certificate bundle.
 func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor BundleFlavor) (*Bundle, error) {
 	log.Infof("bundling certificate for %+v", certs[0].Subject)

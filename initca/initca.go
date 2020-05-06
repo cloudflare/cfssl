@@ -94,7 +94,6 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	cert, err = s.Sign(signReq)
 
 	return
-
 }
 
 // NewFromPEM creates a new root certificate from the key file passed in.

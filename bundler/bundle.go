@@ -3,6 +3,7 @@ package bundler
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -11,8 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/cloudflare/circl/sign/ed25519"
 
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
@@ -107,12 +106,12 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	switch b.Cert.PublicKeyAlgorithm {
 	case x509.ECDSA:
 		keyType = fmt.Sprintf("%d-bit ECDSA", keyLength)
-	case x509.Ed25519:
-		keyType = "Ed25519"
 	case x509.RSA:
 		keyType = fmt.Sprintf("%d-bit RSA", keyLength)
 	case x509.DSA:
 		keyType = "DSA"
+	case x509.Ed25519:
+		keyType = "Ed25519"
 	default:
 		keyType = "Unknown"
 	}
