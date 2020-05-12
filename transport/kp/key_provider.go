@@ -26,11 +26,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
-
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/transport/core"
+	cEd25519 "github.com/cloudflare/circl/sign/ed25519"
 )
 
 const (
@@ -213,19 +213,6 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		}
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
-	case "ed25519":
-		_, priv, err := ed25519.GenerateKey(rand.Reader)
-
-		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-			return err
-		}
-		p := &pem.Block{
-			Type:  "Ed25519 PRIVATE KEY",
-			Bytes: keyPEM,
-		}
-		sp.internal.keyPEM = pem.EncodeToMemory(p)
-		sp.internal.priv = priv
 	case "ecdsa":
 		var priv *ecdsa.PrivateKey
 		var curve elliptic.Curve
@@ -257,6 +244,27 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		}
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 
+		sp.internal.priv = priv
+	case "ed25519":
+		if size != 256 {
+			return errors.New("transport: ed25519 keys must be 256 bits")
+		}
+
+		keypair, err := cEd25519.GenerateKey(rand.Reader)
+
+		priv := make(ed25519.PrivateKey, ed25519.PrivateKeySize)
+		copy(priv[:cEd25519.PrivateKeySize], keypair.GetPrivate())
+		copy(priv[cEd25519.PrivateKeySize:], keypair.GetPublic())
+
+		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			return err
+		}
+		p := &pem.Block{
+			Type:  "Ed25519 PRIVATE KEY",
+			Bytes: keyPEM,
+		}
+		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
 	default:
 		return errors.New("transport: invalid key algorithm; only RSA, ED25519 and ECDSA are supported")

@@ -26,6 +26,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	cEd25519 "github.com/cloudflare/circl/sign/ed25519"
 )
 
 var (
@@ -88,7 +90,13 @@ func main() {
 	case "":
 		priv, err = rsa.GenerateKey(rand.Reader, *rsaBits)
 	case "Ed25519":
-		_, priv, err = ed25519.GenerateKey(rand.Reader)
+		keypair, err := cEd25519.GenerateKey(rand.Reader)
+
+		tmp = make(ed25519.PrivateKey, ed25519.PrivateKeySize)
+		copy(tmp[:cEd25519.PrivateKeySize], keypair.GetPrivate())
+		copy(tmp[cEd25519.PrivateKeySize:], keypair.GetPublic())
+
+                priv = tmp
 	case "P224":
 		priv, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	case "P256":
