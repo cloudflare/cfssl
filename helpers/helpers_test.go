@@ -16,9 +16,8 @@ import (
 	"testing"
 	"time"
 
+	ct "github.com/google/certificate-transparency-go"
 	"golang.org/x/crypto/ocsp"
-
-	"github.com/google/certificate-transparency-go"
 )
 
 const (
@@ -230,7 +229,7 @@ func TestHashAlgoString(t *testing.T) {
 	if HashAlgoString(x509.ECDSAWithSHA512) != "SHA512" {
 		t.Fatal("standin")
 	}
-	if HashAlgoString(x509.PureEd25519) != "ED25519" {
+	if HashAlgoString(x509.PureEd25519) != "Ed25519" {
 		t.Fatal("standin")
 	}
 	if HashAlgoString(math.MaxInt32) != "Unknown Hash Algorithm" {
@@ -275,7 +274,7 @@ func TestSignatureString(t *testing.T) {
 	if SignatureString(x509.ECDSAWithSHA512) != "ECDSAWithSHA512" {
 		t.Fatal("Signature String functioning improperly")
 	}
-	if SignatureString(x509.PureEd25519) != "ED25519" {
+	if SignatureString(x509.PureEd25519) != "Ed25519" {
 		t.Fatal("Signature String functioning improperly")
 	}
 	if SignatureString(math.MaxInt32) != "Unknown Signature" {

@@ -150,7 +150,7 @@ func SignatureString(alg x509.SignatureAlgorithm) string {
 	case x509.ECDSAWithSHA512:
 		return "ECDSAWithSHA512"
 	case x509.PureEd25519:
-		return "ED25519"
+		return "Ed25519"
 	default:
 		return "Unknown Signature"
 	}
@@ -185,7 +185,7 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	case x509.ECDSAWithSHA512:
 		return "SHA512"
 	case x509.PureEd25519:
-		return "ED25519"
+		return "Ed25519"
 	default:
 		return "Unknown Hash Algorithm"
 	}
@@ -467,8 +467,6 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case ed25519.PublicKey:
-		return x509.PureEd25519
 	case *ecdsa.PublicKey:
 		switch pub.Curve {
 		case elliptic.P521():
@@ -480,6 +478,8 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case ed25519.PublicKey:
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}

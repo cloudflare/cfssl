@@ -267,7 +267,7 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
 	default:
-		return errors.New("transport: invalid key algorithm; only RSA, ED25519 and ECDSA are supported")
+		return errors.New("transport: invalid key algorithm; only RSA, Ed25519 and ECDSA are supported")
 	}
 
 	return nil
@@ -350,7 +350,7 @@ func (sp *StandardProvider) Load() (err error) {
 		}
 	case *ed25519.PublicKey:
 		if p.Type != "Ed25519 PRIVATE KEY" {
-			err = errors.New("transport: PEM type" + p.Type + "is invalid for an ED25519 key")
+			err = errors.New("transport: PEM type" + p.Type + "is invalid for an Ed25519 key")
 			return
 		}
 	default:
