@@ -1,6 +1,6 @@
 {
   "key": {
-    "algo": "ed25519"
+    "algo": "ed25519",
     "size": 256
   },
   "names": [
