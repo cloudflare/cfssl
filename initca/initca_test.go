@@ -150,7 +150,7 @@ func TestInitCA(t *testing.T) {
 			}
 			s.SetPolicy(CAPolicy())
 
-			// Sign RSA and ECDSA customer CSRs.
+			// Sign RSA, ECDSA and ed25519 customer CSRs.
 			for _, csrFile := range csrFiles {
 				csrBytes, err := ioutil.ReadFile(csrFile)
 				if err != nil {

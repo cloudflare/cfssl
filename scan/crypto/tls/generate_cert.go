@@ -45,7 +45,7 @@ func publicKey(priv interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return &k.Public()
 	default:
 		return nil
@@ -63,7 +63,7 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 			os.Exit(2)
 		}
 		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		b, err := derhelpers.MarshalEd25519PrivateKey(priv)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unable to marshal ED25519 private key: %v", err)

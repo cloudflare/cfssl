@@ -590,11 +590,11 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		case cert.PublicKeyAlgorithm == x509.Ed25519:
-			var ed25519PublicKey *ed25519.PublicKey
-			if ed25519PublicKey, ok = key.Public().(*ed25519.PublicKey); !ok {
+			var ed25519PublicKey ed25519.PublicKey
+			if ed25519PublicKey, ok = key.Public().(ed25519.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
-			if !(bytes.Equal(*cert.PublicKey.(*ed25519.PublicKey), *ed25519PublicKey)) {
+			if !(bytes.Equal(cert.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:

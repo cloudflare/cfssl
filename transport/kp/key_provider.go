@@ -348,7 +348,7 @@ func (sp *StandardProvider) Load() (err error) {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an ECDSA key")
 			return
 		}
-	case *ed25519.PublicKey:
+	case ed25519.PublicKey:
 		if p.Type != "Ed25519 PRIVATE KEY" {
 			err = errors.New("transport: PEM type" + p.Type + "is invalid for an Ed25519 key")
 			return
