@@ -11,7 +11,6 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -28,7 +27,6 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
-	cEd25519 "github.com/cloudflare/circl/sign/ed25519"
 )
 
 var (
@@ -46,8 +44,6 @@ func publicKey(priv interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
-	case ed25519.PrivateKey:
-		return &k.Public()
 	default:
 		return nil
 	}
@@ -64,13 +60,6 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 			os.Exit(2)
 		}
 		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
-	case ed25519.PrivateKey:
-		b, err := derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to marshal ED25519 private key: %v", err)
-			os.Exit(2)
-		}
-		return &pem.Block{Type: "Ed25519 PRIVATE KEY", Bytes: b}
 	default:
 		return nil
 	}
@@ -86,18 +75,8 @@ func main() {
 	var priv interface{}
 	var err error
 	switch *ecdsaCurve {
-	// TODO: peharps not the best way to do this. It is weird that it takes
-	// rsa and ed25519 as part of ecdsa
 	case "":
 		priv, err = rsa.GenerateKey(rand.Reader, *rsaBits)
-	case "Ed25519":
-		keypair, err := cEd25519.GenerateKey(rand.Reader)
-
-		tmp = make(ed25519.PrivateKey, ed25519.PrivateKeySize)
-		copy(tmp[:cEd25519.PrivateKeySize], keypair.GetPrivate())
-		copy(tmp[cEd25519.PrivateKeySize:], keypair.GetPublic())
-
-                priv = tmp
 	case "P224":
 		priv, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	case "P256":
