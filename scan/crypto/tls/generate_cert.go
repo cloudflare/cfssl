@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	cEd25519 "github.com/cloudflare/circl/sign/ed25519"
 )
 

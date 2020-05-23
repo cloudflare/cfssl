@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"io"
 	"io/ioutil"
 	"strings"
 
@@ -30,7 +31,6 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/transport/core"
-	cEd25519 "github.com/cloudflare/circl/sign/ed25519"
 )
 
 const (
@@ -246,15 +246,15 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 
 		sp.internal.priv = priv
 	case "ed25519":
-		if size != 256 {
+		if size != (ed25519.PublicKeySize * 8) {
 			return errors.New("transport: ed25519 keys must be 256 bits")
 		}
 
-		keypair, err := cEd25519.GenerateKey(rand.Reader)
-
-		priv := make(ed25519.PrivateKey, ed25519.PrivateKeySize)
-		copy(priv[:cEd25519.PrivateKeySize], keypair.GetPrivate())
-		copy(priv[cEd25519.PrivateKeySize:], keypair.GetPublic())
+		seed := make([]byte, ed25519.SeedSize)
+		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
+			return err
+		}
+		priv := ed25519.NewKeyFromSeed(seed)
 
 		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
 		if err != nil {

@@ -13,12 +13,11 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
+	"io"
 	"net"
 	"net/mail"
 	"net/url"
 	"strings"
-
-	cEd25519 "github.com/cloudflare/circl/sign/ed25519"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -90,16 +89,15 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
 	case "ed25519":
-		if kr.Size() != (cEd25519.PrivateKeySize * 8) { // TODO: check if 0 is needed
+		if kr.Size() != (ed25519.PublicKeySize * 8) {
 			return nil, errors.New("ED25519 keys should be 256 bit long")
 		}
-		keypair, err := cEd25519.GenerateKey(rand.Reader)
 
-		priv := make(ed25519.PrivateKey, ed25519.PrivateKeySize)
-		copy(priv[:cEd25519.PrivateKeySize], keypair.GetPrivate())
-		copy(priv[cEd25519.PrivateKeySize:], keypair.GetPublic())
-
-		return priv, err
+		seed := make([]byte, ed25519.SeedSize)
+		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
+			return nil, err
+		}
+		return ed25519.NewKeyFromSeed(seed), nil
 	default:
 		return nil, errors.New("invalid algorithm")
 	}
