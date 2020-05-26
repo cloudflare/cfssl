@@ -37,4 +37,7 @@ integration:
 code-lint:
 	golangci-lint run
 
-.PHONY: clean zlint zlint-gtld-update test integration code-lint
+testdata-lint:
+	./test/prepend_testcerts_openssl.sh && git diff --exit-code testdata/
+
+.PHONY: clean zlint zlint-gtld-update test integration code-lint testdata-lint

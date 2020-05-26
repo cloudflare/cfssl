@@ -78,6 +78,8 @@ github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf h1:Q9MiSA+G9DHe/TzG8p
 github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf/go.mod h1:w7kd3qXHh8FNaczNjslXqvFQiv5mMWRXlL9klTUAHc8=
 github.com/zmap/zlint/v2 v2.0.0 h1:Ve+1yR76LZhTXsxonKA35d5S8dIIW1pmIlr4ahrskhs=
 github.com/zmap/zlint/v2 v2.0.0/go.mod h1:0jpqZ7cVjm8ABh/PTOp74MK50bPiN+HW+NjjESDxLVA=
+github.com/zmap/zlint/v2 v2.1.0 h1:PU8w7/Cf1rr9jnCewH8i7cXDc5enHkhPE78KBkfsPnk=
+github.com/zmap/zlint/v2 v2.1.0/go.mod h1:0jpqZ7cVjm8ABh/PTOp74MK50bPiN+HW+NjjESDxLVA=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 h1:HuIa8hRrWRSrqYzx1qI49NNxhdi2PrY7gxVSq1JjLDc=

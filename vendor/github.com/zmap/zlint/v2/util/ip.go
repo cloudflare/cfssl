@@ -33,7 +33,7 @@ const (
 	as112
 	amt
 	orchidV2
-	lisp
+	_ // deprecated: lisp
 	thisHostOnThisNetwork
 	translatableAddress6to4
 	translatableAddress4to6
@@ -73,6 +73,19 @@ func IsIANAReserved(ip net.IP) bool {
 	return false
 }
 
+// IntersectsIANAReserved checks if a CIDR intersects any IANA reserved CIDRs
+func IntersectsIANAReserved(net net.IPNet) bool {
+	if !net.IP.IsGlobalUnicast() {
+		return true
+	}
+	for _, reserved := range reservedNetworks {
+		if reserved.Contains(net.IP) || net.Contains(reserved.IP) {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	var networks = map[subnetCategory][]string{
 		privateUse:                           {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"},
@@ -84,7 +97,6 @@ func init() {
 		as112:                                {"192.31.196.0/24", "192.175.48.0/24", "2001:4:112::/48", "2620:4f:8000::/48"},
 		amt:                                  {"192.52.193.0/24", "2001:3::/32"},
 		orchidV2:                             {"2001:20::/28"},
-		lisp:                                 {"2001:5::/32"}, // TODO: this could expire at 2019-09. Please check  https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml for updates
 		thisHostOnThisNetwork:                {"0.0.0.0/8"},
 		translatableAddress4to6:              {"2002::/16"},
 		translatableAddress6to4:              {"64:ff9b::/96", "64:ff9b:1::/48"},

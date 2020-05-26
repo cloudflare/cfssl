@@ -4381,7 +4381,7 @@ var tldMap = map[string]GTLDPeriod{
 	"nadex": {
 		GTLD:           "nadex",
 		DelegationDate: "2015-05-02",
-		RemovalDate:    "",
+		RemovalDate:    "2020-03-27",
 	},
 	"nagoya": {
 		GTLD:           "nagoya",
@@ -6676,7 +6676,7 @@ var tldMap = map[string]GTLDPeriod{
 	"vistaprint": {
 		GTLD:           "vistaprint",
 		DelegationDate: "2015-06-22",
-		RemovalDate:    "",
+		RemovalDate:    "2020-03-13",
 	},
 	"viva": {
 		GTLD:           "viva",
@@ -7201,7 +7201,7 @@ var tldMap = map[string]GTLDPeriod{
 	"xn--estv75g": {
 		GTLD:           "xn--estv75g",
 		DelegationDate: "2015-05-07",
-		RemovalDate:    "",
+		RemovalDate:    "2020-04-01",
 	},
 	"xn--fct429k": {
 		GTLD:           "xn--fct429k",
