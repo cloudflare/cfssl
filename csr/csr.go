@@ -16,6 +16,9 @@ import (
 	"net/mail"
 	"net/url"
 	"strings"
+	"fmt"
+	"io/ioutil"
+	"os"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -26,6 +29,8 @@ const (
 	curveP256 = 256
 	curveP384 = 384
 	curveP521 = 521
+  TypeLabelRSA   = "RSA PRIVATE KEY"
+  TypeLabelECDSA = "EC PRIVATE KEY"
 )
 
 // A Name contains the SubjectInfo fields.
@@ -228,6 +233,65 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	return
 }
 
+//Load a private key from file to crypto.Signer
+func load_private_key(path string) (crypto.Signer, []byte) {
+  if path == "" {
+    panic("No path to private key supplied!")
+  }
+
+  file, err := os.Open(path)
+  if err != nil {
+    panic(fmt.Sprintf("Error when opening private key: %s", err))
+  }
+  defer file.Close()
+
+  data, err := ioutil.ReadAll(file)
+  if err != nil {
+    panic(fmt.Sprintf("Error when reading private key: %s", err))
+  }
+
+  block, _ := pem.Decode(data)
+  if block.Type == TypeLabelRSA {
+    return load_private_key_rsa(block), data
+  } else if block.Type == TypeLabelECDSA {
+    return load_private_key_ecdsa(block), data
+  } else {
+    panic("No valid private key file! Only RSA and ECDSA keys are allowed!")
+    return nil, nil
+  }
+}
+
+func load_private_key_rsa(block *pem.Block) crypto.Signer {
+  key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+  if err != nil {
+    panic(fmt.Sprintf("Error parsing private key: %s", err))
+  }
+  return key
+}
+
+// parse ecdsa private key
+func load_private_key_ecdsa(block *pem.Block) crypto.Signer {
+  key, err := x509.ParseECPrivateKey(block.Bytes)
+  if err != nil {
+    panic(fmt.Sprintf("Error parsing private key: %s", err))
+  }
+  return key
+}
+
+// ParseRequestFromKey takes a certificate request and key file and
+// generates a CSR from them.
+func ParseRequestFromKey(req *CertificateRequest, key_path string) (csr, key []byte, err error) {
+	log.Info("received CSR")
+	priv, key := load_private_key(key_path)
+
+	csr, err = Generate(priv.(crypto.Signer), req)
+	if err != nil {
+		log.Errorf("failed to generate a CSR: %v", err)
+		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
+	}
+	return
+}
+
 // ExtractCertificateRequest extracts a CertificateRequest from
 // x509.Certificate. It is aimed to used for generating a new certificate
 // from an existing certificate. For a root certificate, the CA expiry
@@ -335,6 +399,24 @@ func (g *Generator) ProcessRequest(req *CertificateRequest) (csr, key []byte, er
 	return
 }
 
+// ProcessRequest validates and processes the incoming request,
+// with an existing Key from file
+func (g *Generator) ProcessRequestFromKey(req *CertificateRequest, key_path string) (csr, key []byte, err error) {
+
+	log.Info("generate received request")
+	err = g.Validator(req)
+	if err != nil {
+		log.Warningf("invalid request: %v", err)
+		return nil, nil, err
+	}
+
+	csr, key, err = ParseRequestFromKey(req, key_path)
+	if err != nil {
+		return nil, nil, err
+	}
+	return
+}
+
 // IsNameEmpty returns true if the name has no identifying information in it.
 func IsNameEmpty(n Name) bool {
 	empty := func(s string) bool { return strings.TrimSpace(s) == "" }
@@ -430,9 +512,9 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 	}
 
 	csr.ExtraExtensions = append(csr.ExtraExtensions, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},			
+			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
 			Value:    val,
-			Critical: true,		
+			Critical: true,
 		})
 
 		return nil
