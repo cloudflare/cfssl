@@ -262,11 +262,15 @@ func load_private_key(path string) (crypto.Signer, []byte) {
 }
 
 func load_private_key_rsa(block *pem.Block) crypto.Signer {
-  key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+  pkcs1_key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
   if err != nil {
-    panic(fmt.Sprintf("Error parsing private key: %s", err))
+		pkcs8_key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			panic(fmt.Sprintf("Error parsing private key: %s", err))
+		}
+		return pkcs8_key.(crypto.Signer)
   }
-  return key
+  return pkcs1_key
 }
 
 // parse ecdsa private key
