@@ -19,8 +19,8 @@ func init() {
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
-	VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (serial_number, subject, authority_key_identifier, ca_label, ca_profile, status, reason, created_at, expiry, revoked_at, pem, request)
+	VALUES (:serial_number, :subject, :authority_key_identifier, :ca_label, :ca_profile, :status, :reason, CURRENT_TIMESTAMP, :expiry, :revoked_at, :pem, :request);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -29,6 +29,14 @@ SELECT %s FROM certificates
 	selectAllUnexpiredSQL = `
 SELECT %s FROM certificates
 	WHERE CURRENT_TIMESTAMP < expiry;`
+
+	selectAllUnexpiredByAKISQL = `
+SELECT %s FROM certificates
+	WHERE (CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ?);`
+
+	selectAllUnexpiredRecentChangesOnlyByAKISQL = `
+SELECT %s FROM certificates
+	WHERE (CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ? AND ((created_at >= ?) OR (revoked_at >= ?)));`
 
 	selectAllRevokedAndUnexpiredWithLabelSQL = `
 SELECT %s FROM certificates
@@ -101,13 +109,16 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 
 	res, err := d.db.NamedExec(insertSQL, &certdb.CertificateRecord{
 		Serial:    cr.Serial,
+		Subject:   cr.Subject,
 		AKI:       cr.AKI,
 		CALabel:   cr.CALabel,
+		CAProfile: cr.CAProfile,
 		Status:    cr.Status,
 		Reason:    cr.Reason,
 		Expiry:    cr.Expiry.UTC(),
 		RevokedAt: cr.RevokedAt.UTC(),
 		PEM:       cr.PEM,
+		Request:   cr.Request,
 	})
 	if err != nil {
 		return wrapSQLError(err)
@@ -149,6 +160,36 @@ func (d *Accessor) GetUnexpiredCertificates() (crs []certdb.CertificateRecord, e
 	}
 
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredSQL), sqlstruct.Columns(certdb.CertificateRecord{})))
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetUnexpiredCertificatesByAKI gets all unexpired certificate from db, filtered by AKI
+func (d *Accessor) GetUnexpiredCertificatesByAKI(aki string) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredByAKISQL), sqlstruct.Columns(certdb.CertificateRecord{})), aki)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetUnexpiredCertificatesRecentChangesOnlyByAKI gets from db all unexpired certificates changed not earlier than specified age, filtered by AKI.
+func (d *Accessor) GetUnexpiredCertificatesRecentChangesOnlyByAKI(aki string, oldestChangeTimestamp time.Time) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredRecentChangesOnlyByAKISQL), sqlstruct.Columns(certdb.CertificateRecord{})), aki, oldestChangeTimestamp, oldestChangeTimestamp)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}

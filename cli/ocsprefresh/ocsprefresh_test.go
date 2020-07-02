@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"io/ioutil"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
 	"golang.org/x/crypto/ocsp"
-	"io/ioutil"
 )
 
 var dbAccessor certdb.Accessor
@@ -30,11 +31,12 @@ func TestOCSPRefreshMain(t *testing.T) {
 
 	expirationTime := time.Now().AddDate(1, 0, 0)
 	certRecord := certdb.CertificateRecord{
-		Serial: cert.SerialNumber.String(),
-		AKI:    hex.EncodeToString(cert.AuthorityKeyId),
-		Expiry: expirationTime,
-		PEM:    string(certPEM),
-		Status: "good",
+		Serial:  cert.SerialNumber.String(),
+		Subject: cert.Subject.String(),
+		AKI:     hex.EncodeToString(cert.AuthorityKeyId),
+		Expiry:  expirationTime,
+		PEM:     string(certPEM),
+		Status:  "good",
 	}
 
 	dbAccessor = sql.NewAccessor(db)

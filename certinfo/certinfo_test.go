@@ -19,6 +19,7 @@ import (
 
 const (
 	sqliteDBFile = "../certdb/testdb/certstore_development.db"
+	fakeSubject  = "/C=PL/CN=Test"
 	fakeAKI      = "fake_aki"
 	testSerial   = 1337
 )
@@ -36,8 +37,9 @@ func TestParseSerialNumber(t *testing.T) {
 	err = accessor.InsertCertificate(
 		certdb.CertificateRecord{
 			Serial: big.NewInt(testSerial).String(),
-			AKI:    fakeAKI,
-			PEM:    certificate,
+			Subject: fakeSubject,
+			AKI:     fakeAKI,
+			PEM:     certificate,
 		},
 	)
 

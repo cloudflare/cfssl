@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -29,7 +30,7 @@ import (
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 
@@ -504,16 +505,25 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	// AuthorityKeyId of certTBS.
 	parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
 
+	// Create JSON req representation for saving in DB.
+	var reqJSON []byte
+	if reqJSON, err = json.Marshal(req); err != nil {
+		return nil, err
+	}
+
 	if s.dbAccessor != nil {
 		var certRecord = certdb.CertificateRecord{
-			Serial: certTBS.SerialNumber.String(),
+			Serial:  certTBS.SerialNumber.String(),
+			Subject: certTBS.Subject.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
 			// which sets the AuthorityKeyId from the signer's SubjectKeyId
-			AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
-			CALabel: req.Label,
-			Status:  "good",
-			Expiry:  certTBS.NotAfter,
-			PEM:     string(signedCert),
+			AKI:       hex.EncodeToString(parsedCert.AuthorityKeyId),
+			CALabel:   req.Label,
+			CAProfile: req.Profile,
+			Status:    "good",
+			Expiry:    certTBS.NotAfter,
+			PEM:       string(signedCert),
+			Request:   string(reqJSON),
 		}
 
 		err = s.dbAccessor.InsertCertificate(certRecord)

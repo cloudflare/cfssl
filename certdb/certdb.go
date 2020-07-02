@@ -8,13 +8,17 @@ import (
 // that will be recorded in a database.
 type CertificateRecord struct {
 	Serial    string    `db:"serial_number"`
+	Subject   string    `db:"subject"`
 	AKI       string    `db:"authority_key_identifier"`
 	CALabel   string    `db:"ca_label"`
+	CAProfile string    `db:"ca_profile"`
 	Status    string    `db:"status"`
 	Reason    int       `db:"reason"`
+	CreatedAt time.Time `db:"created_at"`
 	Expiry    time.Time `db:"expiry"`
 	RevokedAt time.Time `db:"revoked_at"`
 	PEM       string    `db:"pem"`
+	Request   string    `db:"request"`
 }
 
 // OCSPRecord encodes a OCSP response body and its metadata
@@ -31,6 +35,7 @@ type Accessor interface {
 	InsertCertificate(cr CertificateRecord) error
 	GetCertificate(serial, aki string) ([]CertificateRecord, error)
 	GetUnexpiredCertificates() ([]CertificateRecord, error)
+	GetUnexpiredCertificatesByAKI( aki string) ([]CertificateRecord, error)
 	GetRevokedAndUnexpiredCertificates() ([]CertificateRecord, error)
 	GetRevokedAndUnexpiredCertificatesByLabel(label string) ([]CertificateRecord, error)
 	RevokeCertificate(serial, aki string, reasonCode int) error

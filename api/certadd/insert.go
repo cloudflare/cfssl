@@ -49,13 +49,16 @@ func NewHandler(dbAccessor certdb.Accessor, signer ocsp.Signer) http.Handler {
 // certificate into the database.
 type AddRequest struct {
 	Serial    string    `json:"serial_number"`
+	Subject   string    `json:"subject"`
 	AKI       string    `json:"authority_key_identifier"`
 	CALabel   string    `json:"ca_label"`
+	CAProfile string    `json:"ca_profile"`
 	Status    string    `json:"status"`
 	Reason    int       `json:"reason"`
 	Expiry    time.Time `json:"expiry"`
 	RevokedAt time.Time `json:"revoked_at"`
 	PEM       string    `json:"pem"`
+	Request   string    `json:"request"`
 }
 
 // Map of valid reason codes
@@ -139,13 +142,16 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	cr := certdb.CertificateRecord{
 		Serial:    req.Serial,
+		Subject:   req.Subject,
 		AKI:       req.AKI,
 		CALabel:   req.CALabel,
+		CAProfile: req.CAProfile,
 		Status:    req.Status,
 		Reason:    req.Reason,
 		Expiry:    req.Expiry,
 		RevokedAt: req.RevokedAt,
 		PEM:       req.PEM,
+		Request:   req.Request,
 	}
 
 	err = h.dbAccessor.InsertCertificate(cr)

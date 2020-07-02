@@ -3,14 +3,21 @@
 
 CREATE TABLE certificates (
   serial_number            varbinary(128) NOT NULL,
+  subject                  varchar(1024) NOT NULL,
   authority_key_identifier varbinary(128) NOT NULL,
   ca_label                 varbinary(128),
+  ca_profile               varbinary(128),
   status                   varbinary(128) NOT NULL,
   reason                   int,
+  created_at               timestamp DEFAULT '0000-00-00 00:00:00',
   expiry                   timestamp DEFAULT '0000-00-00 00:00:00',
   revoked_at               timestamp DEFAULT '0000-00-00 00:00:00',
   pem                      varbinary(4096) NOT NULL,
-  PRIMARY KEY(serial_number, authority_key_identifier)
+  request                  varbinary(8192),
+  PRIMARY KEY(serial_number, authority_key_identifier),
+  FULLTEXT INDEX certificates_subject (subject),
+  INDEX certificates_created_at (created_at),
+  INDEX certificates_revoked_at (revoked_at)
 );
 
 CREATE TABLE ocsp_responses (

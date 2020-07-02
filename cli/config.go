@@ -69,7 +69,9 @@ type Config struct {
 	AKI               string
 	DBConfigFile      string
 	CRLExpiration     time.Duration
-	Disable     	  string
+	Disable           string
+	Redis             string
+	RecentChangesOnly time.Duration
 }
 
 // registerFlags defines all cfssl command flags and associates their values with variables.
@@ -132,6 +134,8 @@ func registerFlags(c *Config, f *flag.FlagSet) {
 	f.DurationVar(&c.CRLExpiration, "expiry", 7*helpers.OneDay, "time from now after which the CRL will expire (default: one week)")
 	f.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 	f.StringVar(&c.Disable, "disable", "", "endpoints to disable")
+	f.StringVar(&c.Redis, "redis", "", "redis service address and port i.e. 127.0.0.1:6379")
+	f.DurationVar(&c.RecentChangesOnly, "recent-changes-only", 0, "process only certificates created or revoked no earlier than specified duration i.e. 1h (default: no limit)")
 }
 
 // RootFromConfig returns a universal signer Root structure that can

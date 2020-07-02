@@ -38,7 +38,7 @@ import (
 	"github.com/cloudflare/cfssl/cli/ocsprefresh"
 	"github.com/cloudflare/cfssl/cli/ocspserve"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
-	"github.com/cloudflare/cfssl/cli/printdefault"
+	printdefaults "github.com/cloudflare/cfssl/cli/printdefault"
 	"github.com/cloudflare/cfssl/cli/revoke"
 	"github.com/cloudflare/cfssl/cli/scan"
 	"github.com/cloudflare/cfssl/cli/selfsign"

@@ -3,15 +3,21 @@
 
 CREATE TABLE certificates (
   serial_number            blob NOT NULL,
+  subject                  blob NOT NULL,
   authority_key_identifier blob NOT NULL,
   ca_label                 blob,
+  ca_profile               blob,
   status                   blob NOT NULL,
   reason                   int,
+  created_at               timestamp,
   expiry                   timestamp,
   revoked_at               timestamp,
   pem                      blob NOT NULL,
+  request                  blob,
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
+CREATE INDEX certificates_created_at ON certificates (created_at);
+CREATE INDEX certificates_revoked_at ON certificates (revoked_at);
 
 CREATE TABLE ocsp_responses (
   serial_number            blob NOT NULL,
