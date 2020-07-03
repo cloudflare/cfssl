@@ -774,7 +774,7 @@ func newBundlerFromPEM(t *testing.T, caBundlePEM, intBundlePEM []byte) (b *Bundl
 }
 
 // newCustomizedBundleCreator is a helper function that returns a new Bundler
-// takes specified CA bundle, intermediate bundle, and any additional intermdiate certs to generate a bundler.
+// takes specified CA bundle, intermediate bundle, and any additional intermediate certs to generate a bundler.
 func newCustomizedBundlerFromFile(t *testing.T, caBundle, intBundle, adhocInters string) (b *Bundler) {
 	b, err := NewBundler(caBundle, intBundle)
 	if err != nil {

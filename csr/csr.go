@@ -272,7 +272,7 @@ func getHosts(cert *x509.Certificate) []string {
 // getNames returns an array of Names from the certificate
 // It onnly cares about Country, Organization, OrganizationalUnit, Locality, Province
 func getNames(sub pkix.Name) []Name {
-	// anonymous func for finding the max of a list of interger
+	// anonymous func for finding the max of a list of integer
 	max := func(v1 int, vn ...int) (max int) {
 		max = v1
 		for i := 0; i < len(vn); i++ {

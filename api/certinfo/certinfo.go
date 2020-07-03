@@ -58,7 +58,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) (err error) {
 		}
 	case "certificate":
 		if cert, err = certinfo.ParseCertificatePEM([]byte(blob["certificate"])); err != nil {
-			log.Warningf("bad PEM certifcate: %v", err)
+			log.Warningf("bad PEM certificate: %v", err)
 			return err
 		}
 	case "serial", "authority_key_id":

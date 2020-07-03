@@ -89,7 +89,7 @@ blank.
 	+ Key Usages
 		+ signing
 		+ digital signature
-		+ content committment
+		+ content commitment
 		+ key encipherment
 		+ key agreement
 		+ data encipherment

@@ -30,7 +30,7 @@ services:
 
 # Only build pull requests, pushes to the master branch, and branches
 # starting with `test-`. This is a convenient way to push branches to
-# your own fork of the repostiory to ensure Travis passes before submitting
+# your own fork of the repository to ensure Travis passes before submitting
 # a PR. For instance, you might run:
 # git push myremote branchname:test-branchname
 branches:
