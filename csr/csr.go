@@ -234,7 +234,8 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 	case ed25519.PrivateKey:
 		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
 		if err != nil {
-
+			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+			return
 		}
 		block := pem.Block{
 			Type:  "Ed25519 PRIVATE KEY",
