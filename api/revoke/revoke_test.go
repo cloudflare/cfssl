@@ -142,9 +142,9 @@ func TestOCSPGeneration(t *testing.T) {
 		Subject: pkix.Name{
 			Organization: []string{"cfssl unit test"},
 		},
-		AuthorityKeyId: []byte{42, 42, 42, 42},
-		KeyUsage:       x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		IsCA:           true,
+		AuthorityKeyId:        []byte{42, 42, 42, 42},
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 	issuerBytes, err := x509.CreateCertificate(rand.Reader, &issuerTemplate, &issuerTemplate, &privKey.PublicKey, privKey)

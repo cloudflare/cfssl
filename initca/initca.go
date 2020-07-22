@@ -12,6 +12,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -207,7 +208,18 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
 	default:
-		return nil, cferr.New(cferr.PrivateKeyError, cferr.NotRSAOrECC)
+		scheme := circl.SchemeByX509PublicKeyAlgorithm(ca.PublicKeyAlgorithm)
+		if scheme == nil {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.NotRSAOrECC)
+		}
+		publicKey, ok := priv.Public().(circl.PublicKey)
+		if !ok {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+		if !publicKey.Equal(ca.PublicKey) {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+
 	}
 
 	req := csr.ExtractCertificateRequest(ca)

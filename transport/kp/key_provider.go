@@ -22,9 +22,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/transport/core"
@@ -243,7 +245,22 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 
 		sp.internal.priv = priv
 	default:
-		return errors.New("transport: invalid key algorithm; only RSA and ECDSA are supported")
+		scheme := circl.SchemeByName(algo)
+		if scheme == nil {
+			return errors.New("transport: invalid key algorithm; only RSA and ECDSA are supported")
+		}
+
+		_, sk, err := scheme.GenerateKey()
+		if err != nil {
+			return err
+		}
+
+		sp.internal.keyPEM, err = circl.MarshalPEMPrivateKey(sk)
+		if err != nil {
+			return err
+		}
+
+		sp.internal.priv = sk
 	}
 
 	return nil
@@ -313,7 +330,7 @@ func (sp *StandardProvider) Load() (err error) {
 
 	p, _ := pem.Decode(sp.internal.keyPEM)
 
-	switch sp.internal.cert.PublicKey.(type) {
+	switch pk := sp.internal.cert.PublicKey.(type) {
 	case *rsa.PublicKey:
 		if p.Type != "RSA PRIVATE KEY" {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an RSA key")
@@ -321,6 +338,11 @@ func (sp *StandardProvider) Load() (err error) {
 		}
 	case *ecdsa.PublicKey:
 		if p.Type != "EC PRIVATE KEY" {
+			err = errors.New("transport: PEM type " + p.Type + " is invalid for an ECDSA key")
+			return
+		}
+	case circl.PublicKey:
+		if p.Type != fmt.Sprintf("%s PRIVATE KEY", pk.Scheme().Name()) {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an ECDSA key")
 			return
 		}

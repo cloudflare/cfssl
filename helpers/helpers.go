@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/crypto/pkcs7"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers/derhelpers"
@@ -62,6 +63,8 @@ func KeyLength(key interface{}) int {
 		return ecdsaKey.Curve.Params().BitSize
 	} else if rsaKey, ok := key.(*rsa.PublicKey); ok {
 		return rsaKey.N.BitLen()
+	} else if circlKey, ok := key.(circl.PublicKey); ok {
+		return int(circlKey.Scheme().PublicKeySize() * 8)
 	}
 
 	return 0
@@ -471,6 +474,8 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case circl.PublicKey:
+		return circl.X509SignatureAlgorithmByScheme(pub.Scheme())
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}

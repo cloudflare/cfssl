@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 
+	"github.com/cloudflare/cfssl/circl"
 	cferr "github.com/cloudflare/cfssl/errors"
 )
 
@@ -43,6 +44,8 @@ func ParsePrivateKeyDER(keyDER []byte) (key crypto.Signer, err error) {
 		return generalKey.(*ecdsa.PrivateKey), nil
 	case ed25519.PrivateKey:
 		return generalKey.(ed25519.PrivateKey), nil
+	case circl.PrivateKey:
+		return generalKey.(circl.PrivateKey), nil
 	}
 
 	// should never reach here

@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/multiroot/config"
 	"github.com/cloudflare/cfssl/signer"
@@ -24,7 +25,7 @@ import (
 func parseSigner(root *config.Root) (signer.Signer, error) {
 	privateKey := root.PrivateKey
 	switch priv := privateKey.(type) {
-	case *rsa.PrivateKey, *ecdsa.PrivateKey:
+	case *rsa.PrivateKey, *ecdsa.PrivateKey, circl.PrivateKey:
 		s, err := local.NewSigner(priv, root.Certificate, signer.DefaultSigAlgo(priv), nil)
 		if err != nil {
 			return nil, err

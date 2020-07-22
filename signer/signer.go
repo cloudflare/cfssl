@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -164,6 +165,8 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case circl.PublicKey:
+		return circl.X509SignatureAlgorithmByScheme(pub.Scheme())
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -193,8 +196,8 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
-		Extensions:			csrv.Extensions,
-		ExtraExtensions:	[]pkix.Extension{},
+		Extensions:         csrv.Extensions,
+		ExtraExtensions:    []pkix.Extension{},
 	}
 
 	for _, val := range csrv.Extensions {
@@ -216,7 +219,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 			template.MaxPathLenZero = template.MaxPathLen == 0
 		} else {
 			// If the profile has 'copy_extensions' to true then lets add it
-			if (p.CopyExtensions) {
+			if p.CopyExtensions {
 				template.ExtraExtensions = append(template.ExtraExtensions, val)
 			}
 		}

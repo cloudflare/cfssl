@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/cloudflare/cfssl/circl"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -86,7 +87,14 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
 	default:
-		return nil, errors.New("invalid algorithm")
+		// XXX do we want to add SchemeByShortNameAndSize() to Circl instead
+		//     of simply using the name?
+		scheme := circl.SchemeByName(kr.Algo())
+		if scheme == nil {
+			return nil, errors.New("invalid algorithm")
+		}
+		_, sk, err := scheme.GenerateKey()
+		return sk, err
 	}
 }
 
@@ -117,7 +125,11 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 			return x509.ECDSAWithSHA1
 		}
 	default:
-		return x509.UnknownSignatureAlgorithm
+		scheme := circl.SchemeByName(kr.Algo())
+		if scheme == nil {
+			return x509.UnknownSignatureAlgorithm
+		}
+		return circl.X509SignatureAlgorithmByScheme(scheme)
 	}
 }
 
@@ -132,12 +144,12 @@ type CAConfig struct {
 // A CertificateRequest encapsulates the API interface to the
 // certificate request functionality.
 type CertificateRequest struct {
-	CN           string     `json:"CN" yaml:"CN"`
-	Names        []Name     `json:"names" yaml:"names"`
-	Hosts        []string   `json:"hosts" yaml:"hosts"`
-	KeyRequest   *KeyRequest `json:"key,omitempty" yaml:"key,omitempty"`
-	CA           *CAConfig  `json:"ca,omitempty" yaml:"ca,omitempty"`
-	SerialNumber string     `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	CN           string           `json:"CN" yaml:"CN"`
+	Names        []Name           `json:"names" yaml:"names"`
+	Hosts        []string         `json:"hosts" yaml:"hosts"`
+	KeyRequest   *KeyRequest      `json:"key,omitempty" yaml:"key,omitempty"`
+	CA           *CAConfig        `json:"ca,omitempty" yaml:"ca,omitempty"`
+	SerialNumber string           `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
 	Extensions   []pkix.Extension `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 }
 
@@ -216,6 +228,12 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
+	case circl.PrivateKey:
+		key, err = circl.MarshalPEMPrivateKey(priv)
+		if err != nil {
+			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+			return
+		}
 	default:
 		panic("Generate should have failed to produce a valid key.")
 	}
@@ -430,12 +448,12 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 	}
 
 	csr.ExtraExtensions = append(csr.ExtraExtensions, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},			
-			Value:    val,
-			Critical: true,		
-		})
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
+		Value:    val,
+		Critical: true,
+	})
 
-		return nil
+	return nil
 }
 
 // appendCAInfoToCSR appends user-defined extension to a CSR
