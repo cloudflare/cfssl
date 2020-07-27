@@ -15,7 +15,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -25,6 +24,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // Server returns a new TLS server side connection

@@ -11,7 +11,6 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -25,6 +24,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 var (

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/asn1"
@@ -16,6 +15,8 @@ import (
 	"fmt"
 	"hash"
 	"io"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // verifyHandshakeSignature verifies a signature against pre-hashed
