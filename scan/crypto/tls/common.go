@@ -17,13 +17,14 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"internal/cpu"
 	"io"
 	"math/big"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/cpu"
 )
 
 const (
