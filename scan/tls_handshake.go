@@ -50,7 +50,7 @@ func getCipherIndex(ciphers []uint16, serverCipher uint16) (cipherIndex int, err
 			return
 		}
 	}
-	err = fmt.Errorf("server negotiated ciphersuite we didn't send: %s", tls.CipherSuites()[serverCipher])
+	err = fmt.Errorf("server negotiated ciphersuite we didn't send: %s", tls.CFCipherSuites[serverCipher])
 	return
 }
 
@@ -103,7 +103,7 @@ func sayHello(addr, hostname string, ciphers []uint16, curves []tls.CurveID, ver
 
 	cipherIndex, err = getCipherIndex(ciphers, serverCipher)
 
-	if tls.CipherSuites[serverCipher].EllipticCurve {
+	if tls.CFCipherSuites[serverCipher].EllipticCurve {
 		if curves == nil {
 			curves = allCurvesIDs()
 		}
@@ -118,15 +118,15 @@ func sayHello(addr, hostname string, ciphers []uint16, curves []tls.CurveID, ver
 }
 
 func allCiphersIDs() []uint16 {
-	ciphers := make([]uint16, 0, len(tls.CipherSuites))
-	for cipherID := range tls.CipherSuites {
+	ciphers := make([]uint16, 0, len(tls.CFCipherSuites))
+	for cipherID := range tls.CFCipherSuites {
 		ciphers = append(ciphers, cipherID)
 	}
 	return ciphers
 }
 
 func allECDHECiphersIDs() []uint16 {
-	var ecdheCiphers = map[uint16]tls.CipherSuite{
+	var ecdheCiphers = map[uint16]tls.CFCipherSuite{
 		0XC006: {Name: "TLS_ECDHE_ECDSA_WITH_NULL_SHA", ForwardSecret: true, EllipticCurve: true},
 		0XC007: {Name: "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", ShortName: "ECDHE-ECDSA-RC4-SHA", ForwardSecret: true, EllipticCurve: true},
 		0XC008: {Name: "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", ShortName: "ECDHE-ECDSA-DES-CBC3-SHA", ForwardSecret: true, EllipticCurve: true},
@@ -217,7 +217,7 @@ func (cvList cipherVersionList) String() string {
 			}
 			versStrings[j] = fmt.Sprintf("%s: [ %s ]", tls.Versions[d.versionID], strings.Join(curveStrings, ","))
 		}
-		cvStrings[i] = fmt.Sprintf("%s\t%s", tls.CipherSuites[c.cipherID], strings.Join(versStrings, ","))
+		cvStrings[i] = fmt.Sprintf("%s\t%s", tls.CFCipherSuites[c.cipherID], strings.Join(versStrings, ","))
 	}
 	return strings.Join(cvStrings, "\n")
 }
@@ -238,7 +238,7 @@ func (cvList cipherVersionList) MarshalJSON() ([]byte, error) {
 				versStrings[j] = fmt.Sprintf("\"%s\"", tls.Versions[d.versionID])
 			}
 		}
-		cvStrs[i] = fmt.Sprintf("{\"%s\":[%s]}", tls.CipherSuites[cv.cipherID].String(), strings.Join(versStrings, ","))
+		cvStrs[i] = fmt.Sprintf("{\"%s\":[%s]}", tls.CFCipherSuites[cv.cipherID].String(), strings.Join(versStrings, ","))
 	}
 	fmt.Fprintf(b, "[%s]", strings.Join(cvStrs, ","))
 	return b.Bytes(), nil
@@ -293,7 +293,7 @@ func cipherSuiteScan(addr, hostname string) (grade Grade, output Output, err err
 
 			// If this is an EC cipher suite, do a second scan for curve support
 			var supportedCurves []tls.CurveID
-			if tls.CipherSuites[cipherID].EllipticCurve {
+			if tls.CFCipherSuites[cipherID].EllipticCurve {
 				supportedCurves, err = doCurveScan(addr, hostname, vers, cipherID, ciphers)
 				if len(supportedCurves) == 0 {
 					err = errors.New("couldn't negotiate any curves")
@@ -375,7 +375,7 @@ func certSigAlgsScan(addr, hostname string) (grade Grade, output Output, err err
 // certSigAlgScan returns the server certificate with various ciphers in the ClientHello
 func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output, err error) {
 	var certSigAlgs = make(map[string]string)
-	for cipherID := range tls.CipherSuites {
+	for cipherID := range tls.CFCipherSuites {
 		_, _, derCerts, e := sayHello(addr, hostname, []uint16{cipherID}, nil, tls.VersionTLS12, []tls.SignatureAndHash{})
 		if e == nil {
 			if len(derCerts) == 0 {
@@ -386,7 +386,7 @@ func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output,
 				return Bad, nil, err
 			}
 
-			certSigAlgs[tls.CipherSuites[cipherID].Name] = helpers.SignatureString(certs[0].SignatureAlgorithm)
+			certSigAlgs[tls.CFCipherSuites[cipherID].Name] = helpers.SignatureString(certs[0].SignatureAlgorithm)
 			//certSigAlgs = append(certSigAlgs, certs[0].SignatureAlgorithm)
 		}
 	}
