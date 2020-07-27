@@ -50,7 +50,7 @@ func getCipherIndex(ciphers []uint16, serverCipher uint16) (cipherIndex int, err
 			return
 		}
 	}
-	err = fmt.Errorf("server negotiated ciphersuite we didn't send: %s", tls.CipherSuites[serverCipher])
+	err = fmt.Errorf("server negotiated ciphersuite we didn't send: %s", tls.CipherSuites()[serverCipher])
 	return
 }
 
