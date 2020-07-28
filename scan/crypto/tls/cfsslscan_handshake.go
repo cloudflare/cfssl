@@ -4,23 +4,36 @@ package tls
 // and returns the negotiated ciphersuite ID, and, if an EC cipher suite, the curve ID
 func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint16, curveID CurveID, version uint16, certs [][]byte, err error) {
 	// Set the supported signatures and hashes to the set `newSigAls`
-	supportedSignatureAlgorithms := make([]signatureAndHash, len(newSigAls))
+	supportedSignatureAlgorithms := make([]SignatureScheme, len(newSigAls))
 	for i := range newSigAls {
 		supportedSignatureAlgorithms[i] = newSigAls[i].internal()
 	}
 
+	supportedVersions := c.config.supportedVersions()
+	if len(supportedVersions) == 0 {
+		err = unexpectedMessageError(supportedVersions, "tls: no supported versions satisfy MinVersion and MaxVersion")
+		return
+	}
+
+	clientHelloVersion := supportedVersions[0]
+	// The version at the beginning of the ClientHello was capped at TLS 1.2
+	// for compatibility reasons. The supported_versions extension is used
+	// to negotiate versions now. See RFC 8446, Section 4.2.1.
+	if clientHelloVersion > VersionTLS12 {
+		clientHelloVersion = VersionTLS12
+	}
+
 	hello := &clientHelloMsg{
-		vers:                c.config.maxVersion(),
-		compressionMethods:  []uint8{compressionNone},
-		random:              make([]byte, 32),
-		ocspStapling:        true,
-		serverName:          c.config.ServerName,
-		supportedCurves:     c.config.curvePreferences(),
-		supportedPoints:     []uint8{pointFormatUncompressed},
-		nextProtoNeg:        len(c.config.NextProtos) > 0,
-		secureRenegotiation: true,
-		cipherSuites:        c.config.cipherSuites(),
-		signatureAndHashes:  supportedSignatureAlgorithms,
+		vers:                         clientHelloVersion,
+		compressionMethods:           []uint8{compressionNone},
+		random:                       make([]byte, 32),
+		ocspStapling:                 true,
+		serverName:                   c.config.ServerName,
+		supportedCurves:              c.config.curvePreferences(),
+		supportedPoints:              []uint8{pointFormatUncompressed},
+		secureRenegotiationSupported: true,
+		cipherSuites:                 c.config.cipherSuites(),
+		supportedSignatureAlgorithms: supportedSignatureAlgorithms,
 	}
 	serverHello, err := c.sayHello(hello)
 	if err != nil {
@@ -54,8 +67,7 @@ func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint1
 		}
 	}
 
-	if CipherSuites[serverHello.cipherSuite].EllipticCurve {
-
+	if CFCipherSuites[serverHello.cipherSuite].EllipticCurve {
 		var skx *serverKeyExchangeMsg
 		skx, err = c.exchangeKeys()
 		if err != nil {
