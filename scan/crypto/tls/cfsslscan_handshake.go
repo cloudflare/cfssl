@@ -68,7 +68,6 @@ func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint1
 	}
 
 	if CFCipherSuites[serverHello.cipherSuite].EllipticCurve {
-
 		var skx *serverKeyExchangeMsg
 		skx, err = c.exchangeKeys()
 		if err != nil {

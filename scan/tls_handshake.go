@@ -35,7 +35,7 @@ var TLSHandshake = &Family{
 			certSigAlgsScanByCipher,
 		},
 		"ECCurves": {
-			"Determines the host's ec curve support for TLS 1.2",
+			"Determines the host's ec curve support for TLS 1.2 or TLS 1.3",
 			ecCurveScan,
 		},
 	},
@@ -273,7 +273,7 @@ func cipherSuiteScan(addr, hostname string) (grade Grade, output Output, err err
 	allCiphers := allCiphersIDs()
 
 	var vers uint16
-	for vers = tls.VersionTLS12; vers >= tls.VersionSSL30; vers-- {
+	for vers = tls.VersionTLS13; vers >= tls.VersionSSL30; vers-- {
 		ciphers := make([]uint16, len(allCiphers))
 		copy(ciphers, allCiphers)
 		for len(ciphers) > 0 {

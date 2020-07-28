@@ -6,6 +6,7 @@ import (
 
 type hashAlgID uint8
 
+// Hash
 const (
 	HashNone hashAlgID = iota
 	HashMD5
@@ -45,6 +46,7 @@ const (
 	SigRSA
 	SigDSA
 	SigECDSA
+	SigEd25519
 )
 
 func (sig sigAlgID) String() string {
@@ -57,6 +59,8 @@ func (sig sigAlgID) String() string {
 		return "DSA"
 	case SigECDSA:
 		return "ECDSA"
+	case SigEd25519:
+		return "Ed25519"
 	default:
 		return "Unknown"
 	}
@@ -73,12 +77,13 @@ func (sigAlg SignatureAndHash) String() string {
 	return fmt.Sprintf("{%s,%s}", sigAlg.s, sigAlg.h)
 }
 
+// MarshalJSON encodes the signature and the hash
 func (sigAlg SignatureAndHash) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`{"signature":"%s","hash":"%s"}`, sigAlg.s, sigAlg.h)), nil
 }
 
 func (sigAlg SignatureAndHash) internal() SignatureScheme {
-	hashAndSig := uint16(sigAlg.h<<8) & uint16(sigAlg.s)
+	hashAndSig := uint16(sigAlg.h<<7) & uint16(sigAlg.s)
 	return SignatureScheme(hashAndSig)
 }
 
@@ -87,7 +92,7 @@ func (sigAlg SignatureAndHash) internal() SignatureScheme {
 var defaultSignatureAndHashAlgorithms []SignatureScheme
 
 // AllSignatureAndHashAlgorithms contains all possible signature and
-// hash algorithm pairs that the can be advertised in a TLS 1.2 ClientHello.
+// hash algorithm pairs that the can be advertised in a TLS 1.2/TLS 1.3 ClientHello.
 var AllSignatureAndHashAlgorithms []SignatureAndHash
 
 func init() {
@@ -100,7 +105,7 @@ func init() {
 	}
 }
 
-// TLSVersions is a list of the current SSL/TLS Versions implemented by Go
+//Versions is a list of the current SSL/TLS Versions implemented by Go
 var Versions = map[uint16]string{
 	VersionSSL30: "SSL 3.0",
 	VersionTLS10: "TLS 1.0",
@@ -455,6 +460,8 @@ var CFCipherSuites = map[uint16]CFCipherSuite{
 	0XCC15: {Name: "TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256", ForwardSecret: true, EllipticCurve: true},
 }
 
+// Curves are TLS Supported Groups, as defined here:
+// https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
 var Curves = map[CurveID]string{
 	0:     "Unassigned",
 	1:     "sect163k1",
