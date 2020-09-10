@@ -70,6 +70,15 @@ type SignRequest struct {
 	// be passed to SignFromPrecert with the SCTs in order to create a
 	// valid certificate.
 	ReturnPrecert bool
+
+	// Arbitrary tags describing the sign request / cert.
+	Tags []string `json:"tags"`
+	// Host which is initiating the sign request.
+	OriginatingHost string `json:"originating_host"`
+	// Filename that the resulting cert will be stored in/
+	Filename string `json:"filename"`
+	// Application that the resulting cert will be used for.
+	ApplicationName string `json:"application_name"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -193,8 +202,8 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
-		Extensions:			csrv.Extensions,
-		ExtraExtensions:	[]pkix.Extension{},
+		Extensions:         csrv.Extensions,
+		ExtraExtensions:    []pkix.Extension{},
 	}
 
 	for _, val := range csrv.Extensions {
@@ -216,7 +225,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 			template.MaxPathLenZero = template.MaxPathLen == 0
 		} else {
 			// If the profile has 'copy_extensions' to true then lets add it
-			if (p.CopyExtensions) {
+			if p.CopyExtensions {
 				template.ExtraExtensions = append(template.ExtraExtensions, val)
 			}
 		}

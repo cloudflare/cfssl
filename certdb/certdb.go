@@ -15,6 +15,15 @@ type CertificateRecord struct {
 	Expiry    time.Time `db:"expiry"`
 	RevokedAt time.Time `db:"revoked_at"`
 	PEM       string    `db:"pem"`
+	//new
+	IssuedAt        time.Time `db:"issued_at"`
+	NotBefore       time.Time `db:"not_before"`
+	OriginatingHost string    `db:"originating_host"`
+	SANs            string    `db:"sans"`
+	CommonName      string    `db:"common_name"`
+	Tags            string    `db:"tags"`
+	Filename        string    `db:"filename"`
+	ApplicationName string    `db:"application_name"`
 }
 
 // OCSPRecord encodes a OCSP response body and its metadata

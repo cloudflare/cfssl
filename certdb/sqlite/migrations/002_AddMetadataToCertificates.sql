@@ -1,0 +1,16 @@
+-- +goose Up
+-- SQL in section 'Up' is executed when this migration is applied
+
+ALTER TABLE certificates ADD COLUMN "issued_at" timestamp;
+ALTER TABLE certificates ADD COLUMN "not_before" timestamp;
+ALTER TABLE certificates ADD COLUMN "originating_host" text;
+ALTER TABLE certificates ADD COLUMN "sans" text;
+ALTER TABLE certificates ADD COLUMN "tags" text;
+ALTER TABLE certificates ADD COLUMN "common_name" text;
+ALTER TABLE certificates ADD COLUMN "filename" text;
+ALTER TABLE certificates ADD COLUMN "application_name" text;
+
+-- +goose Down
+-- SQL section 'Down' is executed when this migration is rolled back
+
+-- can't drop columns in sqlite

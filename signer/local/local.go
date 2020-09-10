@@ -21,6 +21,8 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
@@ -29,7 +31,7 @@ import (
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 
@@ -509,13 +511,20 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
 			// which sets the AuthorityKeyId from the signer's SubjectKeyId
-			AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
-			CALabel: req.Label,
-			Status:  "good",
-			Expiry:  certTBS.NotAfter,
-			PEM:     string(signedCert),
+			AKI:             hex.EncodeToString(parsedCert.AuthorityKeyId),
+			CALabel:         req.Label,
+			Status:          "good",
+			Expiry:          certTBS.NotAfter,
+			PEM:             string(signedCert),
+			IssuedAt:        time.Now(),
+			NotBefore:       certTBS.NotBefore,
+			OriginatingHost: req.OriginatingHost,
+			SANs:            strings.Join(certTBS.DNSNames, ","),
+			CommonName:      certTBS.Subject.CommonName,
+			Tags:            strings.Join(req.Tags, ","),
+			Filename:        req.Filename,
+			ApplicationName: req.ApplicationName,
 		}
-
 		err = s.dbAccessor.InsertCertificate(certRecord)
 		if err != nil {
 			return nil, err

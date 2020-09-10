@@ -19,8 +19,10 @@ func init() {
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
-	VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem,
+	issued_at, not_before, originating_host, sans, common_name, tags, filename, application_name)
+VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem,
+	:issued_at, :not_before, :originating_host, :sans, :common_name, :tags, :filename, :application_name);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -100,14 +102,22 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 	}
 
 	res, err := d.db.NamedExec(insertSQL, &certdb.CertificateRecord{
-		Serial:    cr.Serial,
-		AKI:       cr.AKI,
-		CALabel:   cr.CALabel,
-		Status:    cr.Status,
-		Reason:    cr.Reason,
-		Expiry:    cr.Expiry.UTC(),
-		RevokedAt: cr.RevokedAt.UTC(),
-		PEM:       cr.PEM,
+		Serial:          cr.Serial,
+		AKI:             cr.AKI,
+		CALabel:         cr.CALabel,
+		Status:          cr.Status,
+		Reason:          cr.Reason,
+		Expiry:          cr.Expiry.UTC(),
+		RevokedAt:       cr.RevokedAt.UTC(),
+		PEM:             cr.PEM,
+		IssuedAt:        cr.IssuedAt.UTC(),
+		NotBefore:       cr.NotBefore.UTC(),
+		OriginatingHost: cr.OriginatingHost,
+		SANs:            cr.SANs,
+		CommonName:      cr.CommonName,
+		Tags:            cr.Tags,
+		Filename:        cr.Filename,
+		ApplicationName: cr.ApplicationName,
 	})
 	if err != nil {
 		return wrapSQLError(err)
