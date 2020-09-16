@@ -511,22 +511,22 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
 			// which sets the AuthorityKeyId from the signer's SubjectKeyId
-			AKI:             hex.EncodeToString(parsedCert.AuthorityKeyId),
-			CALabel:         req.Label,
-			Status:          "good",
-			Expiry:          certTBS.NotAfter,
-			PEM:             string(signedCert),
-			IssuedAt:        time.Now(),
-			NotBefore:       certTBS.NotBefore,
-			OriginatingHost: req.OriginatingHost,
-			SANs:            strings.Join(certTBS.DNSNames, ","),
-			CommonName:      certTBS.Subject.CommonName,
-			Tags:            strings.Join(req.Tags, ","),
-			Filename:        req.Filename,
-			ApplicationName: req.ApplicationName,
+			AKI:        hex.EncodeToString(parsedCert.AuthorityKeyId),
+			CALabel:    req.Label,
+			Status:     "good",
+			Expiry:     certTBS.NotAfter,
+			PEM:        string(signedCert),
+			IssuedAt:   time.Now(),
+			NotBefore:  certTBS.NotBefore,
+			SANs:       strings.Join(certTBS.DNSNames, ","),
+			CommonName: certTBS.Subject.CommonName,
 		}
-		err = s.dbAccessor.InsertCertificate(certRecord)
-		if err != nil {
+
+		if err := certRecord.SetMetadata(req.Metadata); err != nil {
+			return nil, err
+		}
+
+		if err := s.dbAccessor.InsertCertificate(certRecord); err != nil {
 			return nil, err
 		}
 		log.Debug("saved certificate with serial number ", certTBS.SerialNumber)

@@ -71,14 +71,8 @@ type SignRequest struct {
 	// valid certificate.
 	ReturnPrecert bool
 
-	// Arbitrary tags describing the sign request / cert.
-	Tags []string `json:"tags"`
-	// Host which is initiating the sign request.
-	OriginatingHost string `json:"originating_host"`
-	// Filename that the resulting cert will be stored in/
-	Filename string `json:"filename"`
-	// Application that the resulting cert will be used for.
-	ApplicationName string `json:"application_name"`
+	// Arbitrary metadata to be stored in certdb.
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 // appendIf appends to a if s is not an empty string.

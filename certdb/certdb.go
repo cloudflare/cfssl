@@ -1,29 +1,45 @@
 package certdb
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/jmoiron/sqlx/types"
 )
 
 // CertificateRecord encodes a certificate and its metadata
 // that will be recorded in a database.
 type CertificateRecord struct {
-	Serial    string    `db:"serial_number"`
-	AKI       string    `db:"authority_key_identifier"`
-	CALabel   string    `db:"ca_label"`
-	Status    string    `db:"status"`
-	Reason    int       `db:"reason"`
-	Expiry    time.Time `db:"expiry"`
-	RevokedAt time.Time `db:"revoked_at"`
-	PEM       string    `db:"pem"`
-	//new
-	IssuedAt        time.Time `db:"issued_at"`
-	NotBefore       time.Time `db:"not_before"`
-	OriginatingHost string    `db:"originating_host"`
-	SANs            string    `db:"sans"`
-	CommonName      string    `db:"common_name"`
-	Tags            string    `db:"tags"`
-	Filename        string    `db:"filename"`
-	ApplicationName string    `db:"application_name"`
+	Serial       string         `db:"serial_number"`
+	AKI          string         `db:"authority_key_identifier"`
+	CALabel      string         `db:"ca_label"`
+	Status       string         `db:"status"`
+	Reason       int            `db:"reason"`
+	Expiry       time.Time      `db:"expiry"`
+	RevokedAt    time.Time      `db:"revoked_at"`
+	PEM          string         `db:"pem"`
+	IssuedAt     time.Time      `db:"issued_at"`
+	NotBefore    time.Time      `db:"not_before"`
+	MetadataJSON types.JSONText `db:"metadata"`
+	SANs         string         `db:"sans"`
+	CommonName   string         `db:"common_name"`
+}
+
+// SetMetadata sets the metadata json
+func (c *CertificateRecord) SetMetadata(meta map[string]interface{}) error {
+	marshaled, err := json.Marshal(meta)
+	if err != nil {
+		return err
+	}
+	c.MetadataJSON = types.JSONText(marshaled)
+	return nil
+}
+
+// GetMetadata returns the json metadata
+func (c *CertificateRecord) GetMetadata() (map[string]interface{}, error) {
+	var meta map[string]interface{}
+	err := c.MetadataJSON.Unmarshal(&meta)
+	return meta, err
 }
 
 // OCSPRecord encodes a OCSP response body and its metadata

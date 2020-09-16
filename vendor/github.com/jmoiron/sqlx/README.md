@@ -1,6 +1,6 @@
 # sqlx
 
-[![Build Status](https://drone.io/github.com/jmoiron/sqlx/status.png)](https://drone.io/github.com/jmoiron/sqlx/latest) [![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/jmoiron/sqlx) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/jmoiron/sqlx/master/LICENSE)
+[![Build Status](https://travis-ci.org/jmoiron/sqlx.svg?branch=master)](https://travis-ci.org/jmoiron/sqlx) [![Coverage Status](https://coveralls.io/repos/github/jmoiron/sqlx/badge.svg?branch=master)](https://coveralls.io/github/jmoiron/sqlx?branch=master) [![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/jmoiron/sqlx) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/jmoiron/sqlx/master/LICENSE)
 
 sqlx is a library which provides a set of extensions on go's standard
 `database/sql` library.  The sqlx versions of `sql.DB`, `sql.TX`, `sql.Stmt`,
@@ -19,6 +19,8 @@ there is also some [standard documentation](http://jmoiron.github.io/sqlx/) that
 explains how to use `database/sql` along with sqlx.
 
 ## Recent Changes
+
+* The [introduction](https://github.com/jmoiron/sqlx/pull/387) of `sql.ColumnType` sets the required minimum Go version to 1.8.
 
 * sqlx/types.JsonText has been renamed to JSONText to follow Go naming conventions.
 
