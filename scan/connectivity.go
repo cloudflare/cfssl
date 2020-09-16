@@ -34,7 +34,7 @@ var Connectivity = &Family{
 }
 
 // dnsLookupScan tests that DNS resolution of the host returns at least one address
-func dnsLookupScan(addr, hostname string) (grade Grade, output Output, err error) {
+func dnsLookupScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	addrs, err := net.LookupHost(hostname)
 	if err != nil {
 		return
@@ -96,14 +96,14 @@ func initOnCloudFlareScan() ([]*net.IPNet, error) {
 	return cfNets, nil
 }
 
-func onCloudFlareScan(addr, hostname string) (grade Grade, output Output, err error) {
+func onCloudFlareScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	var cloudflareNets []*net.IPNet
 	if cloudflareNets, err = initOnCloudFlareScan(); err != nil {
 		grade = Skipped
 		return
 	}
 
-	_, addrs, err := dnsLookupScan(addr, hostname)
+	_, addrs, err := dnsLookupScan(addr, hostname, token, verbosity)
 	if err != nil {
 		return
 	}
@@ -129,7 +129,7 @@ func onCloudFlareScan(addr, hostname string) (grade Grade, output Output, err er
 }
 
 // tcpDialScan tests that the host can be connected to through TCP.
-func tcpDialScan(addr, hostname string) (grade Grade, output Output, err error) {
+func tcpDialScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	conn, err := Dialer.Dial(Network, addr)
 	if err != nil {
 		return
@@ -141,7 +141,7 @@ func tcpDialScan(addr, hostname string) (grade Grade, output Output, err error) 
 
 // tlsDialScan tests that the host can perform a TLS Handshake
 // and warns if the server's certificate can't be verified.
-func tlsDialScan(addr, hostname string) (grade Grade, output Output, err error) {
+func tlsDialScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	var conn *tls.Conn
 	config := defaultTLSConfig(hostname)
 

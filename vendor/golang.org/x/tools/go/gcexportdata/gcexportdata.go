@@ -85,22 +85,18 @@ func Read(in io.Reader, fset *token.FileSet, imports map[string]*types.Package, 
 		return gcimporter.ImportData(imports, path, path, bytes.NewReader(data))
 	}
 
-	// The indexed export format starts with an 'i'; the older
-	// binary export format starts with a 'c', 'd', or 'v'
-	// (from "version"). Select appropriate importer.
-	if len(data) > 0 && data[0] == 'i' {
-		_, pkg, err := gcimporter.IImportData(fset, imports, data[1:], path)
-		return pkg, err
+	// The indexed export format starts with an 'i'.
+	if len(data) == 0 || data[0] != 'i' {
+		return nil, fmt.Errorf("unknown export data format")
 	}
-
-	_, pkg, err := gcimporter.BImportData(fset, imports, data, path)
+	_, pkg, err := gcimporter.IImportData(fset, imports, data[1:], path)
 	return pkg, err
 }
 
 // Write writes encoded type information for the specified package to out.
 // The FileSet provides file position information for named objects.
 func Write(out io.Writer, fset *token.FileSet, pkg *types.Package) error {
-	b, err := gcimporter.BExportData(fset, pkg)
+	b, err := gcimporter.IExportData(fset, pkg)
 	if err != nil {
 		return err
 	}

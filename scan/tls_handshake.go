@@ -268,7 +268,7 @@ func doCurveScan(addr, hostname string, vers, cipherID uint16, ciphers []uint16)
 
 // cipherSuiteScan returns, by TLS Version, the sort list of cipher suites
 // supported by the host
-func cipherSuiteScan(addr, hostname string) (grade Grade, output Output, err error) {
+func cipherSuiteScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	var cvList cipherVersionList
 	allCiphers := allCiphersIDs()
 
@@ -325,7 +325,7 @@ func cipherSuiteScan(addr, hostname string) (grade Grade, output Output, err err
 }
 
 // sigAlgsScan returns the accepted signature and hash algorithms of the host
-func sigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) {
+func sigAlgsScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	var supportedSigAlgs []tls.SignatureAndHash
 	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
 		_, _, _, e := sayHello(addr, hostname, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
@@ -344,7 +344,7 @@ func sigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) 
 }
 
 // certSigAlgScan returns the server certificate with various sigature and hash algorithms in the ClientHello
-func certSigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) {
+func certSigAlgsScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	var certSigAlgs = make(map[string]string)
 	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
 		_, _, derCerts, e := sayHello(addr, hostname, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
@@ -373,7 +373,7 @@ func certSigAlgsScan(addr, hostname string) (grade Grade, output Output, err err
 }
 
 // certSigAlgScan returns the server certificate with various ciphers in the ClientHello
-func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output, err error) {
+func certSigAlgsScanByCipher(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	var certSigAlgs = make(map[string]string)
 	for cipherID := range tls.CipherSuites {
 		_, _, derCerts, e := sayHello(addr, hostname, []uint16{cipherID}, nil, tls.VersionTLS12, []tls.SignatureAndHash{})
@@ -401,7 +401,7 @@ func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output,
 }
 
 // ecCurveScan returns the elliptic curves supported by the host.
-func ecCurveScan(addr, hostname string) (grade Grade, output Output, err error) {
+func ecCurveScan(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	allCurves := allCurvesIDs()
 	curves := make([]tls.CurveID, len(allCurves))
 	copy(curves, allCurves)

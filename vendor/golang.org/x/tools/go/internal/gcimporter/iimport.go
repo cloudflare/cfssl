@@ -18,11 +18,18 @@ import (
 	"go/types"
 	"io"
 	"sort"
+	"sync"
+	"unicode"
+	"unicode/utf8"
 )
 
 type intReader struct {
 	*bytes.Reader
 	path string
+}
+
+func errorf(format string, args ...interface{}) {
+	panic(fmt.Sprintf(format, args...))
 }
 
 func (r *intReader) int64() int64 {
@@ -63,8 +70,8 @@ const (
 // If the export data version is not recognized or the format is otherwise
 // compromised, an error is returned.
 func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []byte, path string) (_ int, pkg *types.Package, err error) {
-	const currentVersion = 0
-	version := -1
+	const currentVersion = 1
+	version := int64(-1)
 	defer func() {
 		if e := recover(); e != nil {
 			if version > currentVersion {
@@ -77,9 +84,9 @@ func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 
 	r := &intReader{bytes.NewReader(data), path}
 
-	version = int(r.uint64())
+	version = int64(r.uint64())
 	switch version {
-	case currentVersion:
+	case currentVersion, 0:
 	default:
 		errorf("unknown iexport format version %d", version)
 	}
@@ -93,7 +100,8 @@ func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 	r.Seek(sLen+dLen, io.SeekCurrent)
 
 	p := iimporter{
-		ipath: path,
+		ipath:   path,
+		version: int(version),
 
 		stringData:  stringData,
 		stringCache: make(map[uint64]string),
@@ -142,20 +150,18 @@ func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 		p.pkgIndex[pkg] = nameIndex
 		pkgList[i] = pkg
 	}
-	var localpkg *types.Package
-	for _, pkg := range pkgList {
-		if pkg.Path() == path {
-			localpkg = pkg
-		}
+	if len(pkgList) == 0 {
+		errorf("no packages found for %s", path)
+		panic("unreachable")
 	}
-
-	names := make([]string, 0, len(p.pkgIndex[localpkg]))
-	for name := range p.pkgIndex[localpkg] {
+	p.ipkg = pkgList[0]
+	names := make([]string, 0, len(p.pkgIndex[p.ipkg]))
+	for name := range p.pkgIndex[p.ipkg] {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		p.doDecl(localpkg, name)
+		p.doDecl(p.ipkg, name)
 	}
 
 	for _, typ := range p.interfaceList {
@@ -165,17 +171,19 @@ func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 	// record all referenced packages as imports
 	list := append(([]*types.Package)(nil), pkgList[1:]...)
 	sort.Sort(byPath(list))
-	localpkg.SetImports(list)
+	p.ipkg.SetImports(list)
 
 	// package was imported completely and without errors
-	localpkg.MarkComplete()
+	p.ipkg.MarkComplete()
 
 	consumed, _ := r.Seek(0, io.SeekCurrent)
-	return int(consumed), localpkg, nil
+	return int(consumed), p.ipkg, nil
 }
 
 type iimporter struct {
-	ipath string
+	ipath   string
+	ipkg    *types.Package
+	version int
 
 	stringData  []byte
 	stringCache map[uint64]string
@@ -226,6 +234,9 @@ func (p *iimporter) pkgAt(off uint64) *types.Package {
 		return pkg
 	}
 	path := p.stringAt(off)
+	if path == p.ipath {
+		return p.ipkg
+	}
 	errorf("missing package %q in %q", path, p.ipath)
 	return nil
 }
@@ -255,6 +266,7 @@ type importReader struct {
 	currPkg    *types.Package
 	prevFile   string
 	prevLine   int64
+	prevColumn int64
 }
 
 func (r *importReader) obj(name string) {
@@ -448,6 +460,19 @@ func (r *importReader) qualifiedIdent() (*types.Package, string) {
 }
 
 func (r *importReader) pos() token.Pos {
+	if r.p.version >= 1 {
+		r.posv1()
+	} else {
+		r.posv0()
+	}
+
+	if r.prevFile == "" && r.prevLine == 0 && r.prevColumn == 0 {
+		return token.NoPos
+	}
+	return r.p.fake.pos(r.prevFile, int(r.prevLine), int(r.prevColumn))
+}
+
+func (r *importReader) posv0() {
 	delta := r.int64()
 	if delta != deltaNewFile {
 		r.prevLine += delta
@@ -457,12 +482,18 @@ func (r *importReader) pos() token.Pos {
 		r.prevFile = r.string()
 		r.prevLine = l
 	}
+}
 
-	if r.prevFile == "" && r.prevLine == 0 {
-		return token.NoPos
+func (r *importReader) posv1() {
+	delta := r.int64()
+	r.prevColumn += delta >> 1
+	if delta&1 != 0 {
+		delta = r.int64()
+		r.prevLine += delta >> 1
+		if delta&1 != 0 {
+			r.prevFile = r.string()
+		}
 	}
-
-	return r.p.fake.pos(r.prevFile, int(r.prevLine))
 }
 
 func (r *importReader) typ() types.Type {
@@ -604,3 +635,166 @@ func (r *importReader) byte() byte {
 	}
 	return x
 }
+
+const deltaNewFile = -64 // see cmd/compile/internal/gc/bexport.go
+
+// Synthesize a token.Pos
+type fakeFileSet struct {
+	fset  *token.FileSet
+	files map[string]*token.File
+}
+
+func (s *fakeFileSet) pos(file string, line, column int) token.Pos {
+	// TODO(mdempsky): Make use of column.
+
+	// Since we don't know the set of needed file positions, we
+	// reserve maxlines positions per file.
+	const maxlines = 64 * 1024
+	f := s.files[file]
+	if f == nil {
+		f = s.fset.AddFile(file, -1, maxlines)
+		s.files[file] = f
+		// Allocate the fake linebreak indices on first use.
+		// TODO(adonovan): opt: save ~512KB using a more complex scheme?
+		fakeLinesOnce.Do(func() {
+			fakeLines = make([]int, maxlines)
+			for i := range fakeLines {
+				fakeLines[i] = i
+			}
+		})
+		f.SetLines(fakeLines)
+	}
+
+	if line > maxlines {
+		line = 1
+	}
+
+	// Treat the file as if it contained only newlines
+	// and column=1: use the line number as the offset.
+	return f.Pos(line - 1)
+}
+
+var (
+	fakeLines     []int
+	fakeLinesOnce sync.Once
+)
+
+func chanDir(d int) types.ChanDir {
+	// tag values must match the constants in cmd/compile/internal/gc/go.go
+	switch d {
+	case 1 /* Crecv */ :
+		return types.RecvOnly
+	case 2 /* Csend */ :
+		return types.SendOnly
+	case 3 /* Cboth */ :
+		return types.SendRecv
+	default:
+		errorf("unexpected channel dir %d", d)
+		return 0
+	}
+}
+
+func exported(name string) bool {
+	ch, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(ch)
+}
+
+// ----------------------------------------------------------------------------
+// Export format
+
+// Tags. Must be < 0.
+const (
+	// Objects
+	packageTag = -(iota + 1)
+	constTag
+	typeTag
+	varTag
+	funcTag
+	endTag
+
+	// Types
+	namedTag
+	arrayTag
+	sliceTag
+	dddTag
+	structTag
+	pointerTag
+	signatureTag
+	interfaceTag
+	mapTag
+	chanTag
+
+	// Values
+	falseTag
+	trueTag
+	int64Tag
+	floatTag
+	fractionTag // not used by gc
+	complexTag
+	stringTag
+	nilTag     // only used by gc (appears in exported inlined function bodies)
+	unknownTag // not used by gc (only appears in packages with errors)
+
+	// Type aliases
+	aliasTag
+)
+
+var predeclOnce sync.Once
+var predecl []types.Type // initialized lazily
+
+func predeclared() []types.Type {
+	predeclOnce.Do(func() {
+		// initialize lazily to be sure that all
+		// elements have been initialized before
+		predecl = []types.Type{ // basic types
+			types.Typ[types.Bool],
+			types.Typ[types.Int],
+			types.Typ[types.Int8],
+			types.Typ[types.Int16],
+			types.Typ[types.Int32],
+			types.Typ[types.Int64],
+			types.Typ[types.Uint],
+			types.Typ[types.Uint8],
+			types.Typ[types.Uint16],
+			types.Typ[types.Uint32],
+			types.Typ[types.Uint64],
+			types.Typ[types.Uintptr],
+			types.Typ[types.Float32],
+			types.Typ[types.Float64],
+			types.Typ[types.Complex64],
+			types.Typ[types.Complex128],
+			types.Typ[types.String],
+
+			// basic type aliases
+			types.Universe.Lookup("byte").Type(),
+			types.Universe.Lookup("rune").Type(),
+
+			// error
+			types.Universe.Lookup("error").Type(),
+
+			// untyped types
+			types.Typ[types.UntypedBool],
+			types.Typ[types.UntypedInt],
+			types.Typ[types.UntypedRune],
+			types.Typ[types.UntypedFloat],
+			types.Typ[types.UntypedComplex],
+			types.Typ[types.UntypedString],
+			types.Typ[types.UntypedNil],
+
+			// package unsafe
+			types.Typ[types.UnsafePointer],
+
+			// invalid type
+			types.Typ[types.Invalid], // only appears in packages with errors
+
+			// used internally by gc; never used by this package or in .a files
+			anyType{},
+		}
+	})
+	return predecl
+}
+
+type anyType struct{}
+
+func (t anyType) Underlying() types.Type { return t }
+func (t anyType) String() string         { return "any" }

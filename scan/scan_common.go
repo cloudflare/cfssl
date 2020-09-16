@@ -95,12 +95,12 @@ type Scanner struct {
 	// Description describes the nature of the scan to be performed.
 	Description string `json:"description"`
 	// scan is the function that scans the given host and provides a Grade and Output.
-	scan func(string, string) (Grade, Output, error)
+	scan func(string, string, string, bool) (Grade, Output, error)
 }
 
 // Scan performs the scan to be performed on the given host and stores its result.
-func (s *Scanner) Scan(addr, hostname string) (Grade, Output, error) {
-	grade, output, err := s.scan(addr, hostname)
+func (s *Scanner) Scan(addr, hostname string, token string, verbosity bool) (Grade, Output, error) {
+	grade, output, err := s.scan(addr, hostname, token, verbosity)
 	if err != nil {
 		log.Debugf("scan: %v", err)
 		return grade, output, err
@@ -126,6 +126,7 @@ var Default = FamilySet{
 	"TLSSession":   TLSSession,
 	"PKI":          PKI,
 	"Broad":        Broad,
+	"CT":           CertTransparency,
 }
 
 // ScannerResult contains the result for a single scan.
@@ -207,9 +208,9 @@ func (ctx *context) copyResults(timeout time.Duration) map[string]FamilyResult {
 	}
 }
 
-func (familyCtx *familyContext) runScanner(familyName, scannerName string, scanner *Scanner) {
+func (familyCtx *familyContext) runScanner(familyName, scannerName string, scanner *Scanner, token string, verbosity bool) {
 	if familyCtx.ctx.familyRegexp.MatchString(familyName) && familyCtx.ctx.scannerRegexp.MatchString(scannerName) {
-		grade, output, err := scanner.Scan(familyCtx.ctx.addr, familyCtx.ctx.hostname)
+		grade, output, err := scanner.Scan(familyCtx.ctx.addr, familyCtx.ctx.hostname, token, verbosity)
 		result := &Result{
 			familyName,
 			scannerName,
@@ -228,7 +229,7 @@ func (familyCtx *familyContext) runScanner(familyName, scannerName string, scann
 
 // RunScans iterates over AllScans, running each scan that matches the family
 // and scanner regular expressions concurrently.
-func (fs FamilySet) RunScans(host, ip, family, scanner string, timeout time.Duration) (map[string]FamilyResult, error) {
+func (fs FamilySet) RunScans(host, ip, family, scanner string, timeout time.Duration, token string, verbosity bool) (map[string]FamilyResult, error) {
 	hostname, port, err := net.SplitHostPort(host)
 	if err != nil {
 		hostname = host
@@ -256,7 +257,7 @@ func (fs FamilySet) RunScans(host, ip, family, scanner string, timeout time.Dura
 	for familyName, family := range fs {
 		familyCtx := ctx.newfamilyContext(len(family.Scanners))
 		for scannerName, scanner := range family.Scanners {
-			go familyCtx.runScanner(familyName, scannerName, scanner)
+			go familyCtx.runScanner(familyName, scannerName, scanner, token, verbosity)
 		}
 	}
 

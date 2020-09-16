@@ -56,7 +56,7 @@ func (e expiration) String() string {
 	return time.Time(e).Format("Jan 2 15:04:05 2006 MST")
 }
 
-func chainExpiration(addr, hostname string) (grade Grade, output Output, err error) {
+func chainExpiration(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	chain, err := getChain(addr, defaultTLSConfig(hostname))
 	if err != nil {
 		return
@@ -79,7 +79,7 @@ func chainExpiration(addr, hostname string) (grade Grade, output Output, err err
 	return
 }
 
-func chainValidation(addr, hostname string) (grade Grade, output Output, err error) {
+func chainValidation(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	chain, err := getChain(addr, defaultTLSConfig(hostname))
 	if err != nil {
 		return
@@ -135,7 +135,7 @@ func chainValidation(addr, hostname string) (grade Grade, output Output, err err
 	return
 }
 
-func multipleCerts(addr, hostname string) (grade Grade, output Output, err error) {
+func multipleCerts(addr, hostname string, token string, verbosity bool) (grade Grade, output Output, err error) {
 	config := defaultTLSConfig(hostname)
 
 	firstChain, err := getChain(addr, config)

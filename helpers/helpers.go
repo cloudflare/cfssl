@@ -596,3 +596,14 @@ func ReadBytes(valFile string) ([]byte, error) {
 			strings.Join(splitVal[:len(splitVal)-1], ", "))
 	}
 }
+
+// ParseASN1Bytes reads a []byte of non armored bytes of certificate encoded in ASN.1
+// and returns an *x509.Certificate when parsing is successful.
+// On any failure to parse the data it returns an error.
+func ParseASN1Bytes(data []byte) (*x509.Certificate, error) {
+	cert, err := x509.ParseCertificate(data)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to Convert bytes into Certificate %v", err)
+	}
+	return cert, nil
+}
