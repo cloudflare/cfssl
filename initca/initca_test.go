@@ -64,6 +64,7 @@ var invalidCryptoParams = []csr.KeyRequest{
 func TestInitCA(t *testing.T) {
 	var req *csr.CertificateRequest
 	hostname := "cloudflare.com"
+	crl := "http://crl.cloudflare.com/655c6a9b-01c6-4eea-bf21-be690cc315e0.crl" //cert_uuid.crl
 	for _, param := range validKeyParams {
 		for _, caconfig := range validCAConfigs {
 			req = &csr.CertificateRequest{
@@ -80,6 +81,7 @@ func TestInitCA(t *testing.T) {
 				Hosts:      []string{hostname, "www." + hostname},
 				KeyRequest: &param,
 				CA:         &caconfig,
+				CRL:        crl,
 			}
 			certBytes, _, keyBytes, err := New(req)
 			if err != nil {
@@ -92,6 +94,18 @@ func TestInitCA(t *testing.T) {
 			cert, err := helpers.ParseCertificatePEM(certBytes)
 			if err != nil {
 				t.Fatal("InitCA cert parsing failed:", err)
+			}
+
+			// Verify if the CRL is set
+			crlSet := false
+			for _, certCrl := range cert.CRLDistributionPoints {
+				if certCrl == crl {
+					crlSet = true
+					break
+				}
+			}
+			if !crlSet {
+				t.Fatal("Missing CRL on certificate")
 			}
 
 			// Verify key parameters.
@@ -126,7 +140,7 @@ func TestInitCA(t *testing.T) {
 				}
 			}
 
-			// Replace the default CAPolicy with a test (short expiry) version.
+			// Replace the default CAPolicy with a test (short expiry) version and add a crl
 			CAPolicy = func() *config.Signing {
 				return &config.Signing{
 					Default: &config.SigningProfile{
@@ -134,6 +148,7 @@ func TestInitCA(t *testing.T) {
 						ExpiryString: "300s",
 						Expiry:       300 * time.Second,
 						CAConstraint: config.CAConstraint{IsCA: true},
+						CRL:          crl,
 					},
 				}
 			}

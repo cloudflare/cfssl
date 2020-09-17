@@ -139,6 +139,7 @@ type CertificateRequest struct {
 	CA           *CAConfig        `json:"ca,omitempty" yaml:"ca,omitempty"`
 	SerialNumber string           `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
 	Extensions   []pkix.Extension `json:"extensions,omitempty" yaml:"extensions,omitempty"`
+	CRL          string           `json:"crl_url,omitempty" yaml:"crl_url,omitempty"`
 }
 
 // New returns a new, empty CertificateRequest with a
