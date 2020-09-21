@@ -1,7 +1,7 @@
 -- +goose Up
 -- SQL in section 'Up' is executed when this migration is applied
 
-CREATE TABLE certificates (
+CREATE TABLE IF NOT EXISTS certificates (
   serial_number            bytea NOT NULL,
   authority_key_identifier bytea NOT NULL,
   ca_label                 bytea,
@@ -13,7 +13,7 @@ CREATE TABLE certificates (
   PRIMARY KEY(serial_number, authority_key_identifier)
 );
 
-CREATE TABLE ocsp_responses (
+CREATE TABLE IF NOT EXISTS ocsp_responses (
   serial_number            bytea NOT NULL,
   authority_key_identifier bytea NOT NULL,
   body                     bytea NOT NULL,
