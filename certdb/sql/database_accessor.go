@@ -113,7 +113,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		IssuedAt:     cr.IssuedAt.UTC(),
 		NotBefore:    cr.NotBefore.UTC(),
 		MetadataJSON: cr.MetadataJSON,
-		SANs:         cr.SANs,
+		SANsJSON:     cr.SANsJSON,
 		CommonName:   cr.CommonName,
 	})
 	if err != nil {

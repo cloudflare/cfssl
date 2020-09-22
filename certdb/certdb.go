@@ -21,7 +21,7 @@ type CertificateRecord struct {
 	IssuedAt     time.Time      `db:"issued_at"`
 	NotBefore    time.Time      `db:"not_before"`
 	MetadataJSON types.JSONText `db:"metadata"`
-	SANs         string         `db:"sans"`
+	SANsJSON     types.JSONText `db:"sans"`
 	CommonName   string         `db:"common_name"`
 }
 
@@ -40,6 +40,23 @@ func (c *CertificateRecord) GetMetadata() (map[string]interface{}, error) {
 	var meta map[string]interface{}
 	err := c.MetadataJSON.Unmarshal(&meta)
 	return meta, err
+}
+
+// SetSANs sets the list of sans
+func (c *CertificateRecord) SetSANs(meta []string) error {
+	marshaled, err := json.Marshal(meta)
+	if err != nil {
+		return err
+	}
+	c.SANsJSON = types.JSONText(marshaled)
+	return nil
+}
+
+// GetSANs returns the json SANs
+func (c *CertificateRecord) GetSANs() ([]string, error) {
+	var sans []string
+	err := c.SANsJSON.Unmarshal(&sans)
+	return sans, err
 }
 
 // OCSPRecord encodes a OCSP response body and its metadata

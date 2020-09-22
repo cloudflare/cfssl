@@ -4,7 +4,7 @@ ALTER TABLE certificates
 ADD COLUMN issued_at timestamptz,
     ADD COLUMN not_before timestamptz,
     ADD COLUMN metadata jsonb,
-    ADD COLUMN sans TEXT,
+    ADD COLUMN sans jsonb,
     ADD COLUMN common_name TEXT;
 -- +goose Down
 -- SQL section 'Down' is executed when this migration is rolled back

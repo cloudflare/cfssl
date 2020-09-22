@@ -21,7 +21,6 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
@@ -518,11 +517,13 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			PEM:        string(signedCert),
 			IssuedAt:   time.Now(),
 			NotBefore:  certTBS.NotBefore,
-			SANs:       strings.Join(certTBS.DNSNames, ","),
 			CommonName: certTBS.Subject.CommonName,
 		}
 
 		if err := certRecord.SetMetadata(req.Metadata); err != nil {
+			return nil, err
+		}
+		if err := certRecord.SetSANs(certTBS.DNSNames); err != nil {
 			return nil, err
 		}
 
