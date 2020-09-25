@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -70,7 +71,7 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		Reason: 0,
 		Expiry: expiry,
 	}
-
+	want.SetMetadata(map[string]interface{}{"k": "v"})
 	if err := ta.Accessor.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
@@ -92,6 +93,9 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
+	gotMeta, err := got.GetMetadata()
+	require.NoError(t, err)
+	require.Equal(t, map[string]interface{}{"k": "v"}, gotMeta)
 
 	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
 

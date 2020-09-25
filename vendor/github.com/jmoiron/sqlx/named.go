@@ -259,6 +259,10 @@ func compileNamedQuery(qs []byte, bindType int) (query string, names []string, e
 			}
 			inName = true
 			name = []byte{}
+		} else if inName && i > 0 && b == '=' {
+			rebound = append(rebound, ':', '=')
+			inName = false
+			continue
 			// if we're in a name, and this is an allowed character, continue
 		} else if inName && (unicode.IsOneOf(allowedBindRunes, rune(b)) || b == '_' || b == '.') && i != last {
 			// append the byte to the name if we are in a name and not on the last byte
@@ -283,6 +287,12 @@ func compileNamedQuery(qs []byte, bindType int) (query string, names []string, e
 				rebound = append(rebound, '?')
 			case DOLLAR:
 				rebound = append(rebound, '$')
+				for _, b := range strconv.Itoa(currentVar) {
+					rebound = append(rebound, byte(b))
+				}
+				currentVar++
+			case AT:
+				rebound = append(rebound, '@', 'p')
 				for _, b := range strconv.Itoa(currentVar) {
 					rebound = append(rebound, byte(b))
 				}

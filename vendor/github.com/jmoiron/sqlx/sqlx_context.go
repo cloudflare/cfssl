@@ -217,8 +217,6 @@ func (tx *Tx) StmtxContext(ctx context.Context, stmt interface{}) *Stmt {
 		s = v.Stmt
 	case *Stmt:
 		s = v.Stmt
-	case sql.Stmt:
-		s = &v
 	case *sql.Stmt:
 		s = v
 	default:
@@ -235,6 +233,19 @@ func (tx *Tx) NamedStmtContext(ctx context.Context, stmt *NamedStmt) *NamedStmt 
 		Params:      stmt.Params,
 		Stmt:        tx.StmtxContext(ctx, stmt.Stmt),
 	}
+}
+
+// PreparexContext returns an sqlx.Stmt instead of a sql.Stmt.
+//
+// The provided context is used for the preparation of the statement, not for
+// the execution of the statement.
+func (tx *Tx) PreparexContext(ctx context.Context, query string) (*Stmt, error) {
+	return PreparexContext(ctx, tx, query)
+}
+
+// PrepareNamedContext returns an sqlx.NamedStmt
+func (tx *Tx) PrepareNamedContext(ctx context.Context, query string) (*NamedStmt, error) {
+	return prepareNamedContext(ctx, tx, query)
 }
 
 // MustExecContext runs MustExecContext within a transaction.

@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"bytes"
+	"database/sql/driver"
 	"errors"
 	"reflect"
 	"strconv"
@@ -16,12 +17,13 @@ const (
 	QUESTION
 	DOLLAR
 	NAMED
+	AT
 )
 
 // BindType returns the bindtype for a given database given a drivername.
 func BindType(driverName string) int {
 	switch driverName {
-	case "postgres", "pgx", "pq-timeouts":
+	case "postgres", "pgx", "pq-timeouts", "cloudsqlpostgres":
 		return DOLLAR
 	case "mysql":
 		return QUESTION
@@ -29,6 +31,8 @@ func BindType(driverName string) int {
 		return QUESTION
 	case "oci8", "ora", "goracle":
 		return NAMED
+	case "sqlserver":
+		return AT
 	}
 	return UNKNOWN
 }
@@ -56,6 +60,8 @@ func Rebind(bindType int, query string) string {
 			rqb = append(rqb, '$')
 		case NAMED:
 			rqb = append(rqb, ':', 'a', 'r', 'g')
+		case AT:
+			rqb = append(rqb, '@', 'p')
 		}
 
 		j++
@@ -110,10 +116,14 @@ func In(query string, args ...interface{}) (string, []interface{}, error) {
 	meta := make([]argMeta, len(args))
 
 	for i, arg := range args {
+		if a, ok := arg.(driver.Valuer); ok {
+			arg, _ = a.Value()
+		}
 		v := reflect.ValueOf(arg)
 		t := reflectx.Deref(v.Type())
 
-		if t.Kind() == reflect.Slice {
+		// []byte is a driver.Value type so it should not be expanded
+		if t.Kind() == reflect.Slice && t != reflect.TypeOf([]byte{}) {
 			meta[i].length = v.Len()
 			meta[i].v = v
 
@@ -136,7 +146,7 @@ func In(query string, args ...interface{}) (string, []interface{}, error) {
 	}
 
 	newArgs := make([]interface{}, 0, flatArgsCount)
-	buf := bytes.NewBuffer(make([]byte, 0, len(query)+len(", ?")*flatArgsCount))
+	buf := make([]byte, 0, len(query)+len(", ?")*flatArgsCount)
 
 	var arg, offset int
 
@@ -162,10 +172,10 @@ func In(query string, args ...interface{}) (string, []interface{}, error) {
 		}
 
 		// write everything up to and including our ? character
-		buf.WriteString(query[:offset+i+1])
+		buf = append(buf, query[:offset+i+1]...)
 
 		for si := 1; si < argMeta.length; si++ {
-			buf.WriteString(", ?")
+			buf = append(buf, ", ?"...)
 		}
 
 		newArgs = appendReflectSlice(newArgs, argMeta.v, argMeta.length)
@@ -176,13 +186,13 @@ func In(query string, args ...interface{}) (string, []interface{}, error) {
 		offset = 0
 	}
 
-	buf.WriteString(query)
+	buf = append(buf, query...)
 
 	if arg < len(meta) {
 		return "", nil, errors.New("number of bindVars less than number arguments")
 	}
 
-	return buf.String(), newArgs, nil
+	return string(buf), newArgs, nil
 }
 
 func appendReflectSlice(args []interface{}, v reflect.Value, vlen int) []interface{} {

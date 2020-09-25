@@ -39,14 +39,15 @@ github.com/cloudflare/redoctober/report
 github.com/cloudflare/redoctober/symcrypt
 # github.com/daaku/go.zipexe v1.0.0
 github.com/daaku/go.zipexe
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
 # github.com/getsentry/raven-go v0.0.0-20180121060056-563b81fc02b7
 ## explicit
 github.com/getsentry/raven-go
-# github.com/go-sql-driver/mysql v1.3.0
+# github.com/go-sql-driver/mysql v1.4.0
 ## explicit
 github.com/go-sql-driver/mysql
 # github.com/golang/protobuf v1.3.1
-## explicit
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -67,10 +68,11 @@ github.com/jessevdk/go-flags
 # github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548
 ## explicit
 github.com/jmhodges/clock
-# github.com/jmoiron/sqlx v0.0.0-20180124204410-05cef0741ade
+# github.com/jmoiron/sqlx v1.2.0
 ## explicit
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
+github.com/jmoiron/sqlx/types
 # github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49
 ## explicit
 github.com/kisielk/sqlstruct
@@ -93,6 +95,12 @@ github.com/nkovacs/streamquote
 # github.com/pkg/errors v0.8.0
 ## explicit
 github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/stretchr/testify v1.3.0
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
 # github.com/valyala/fasttemplate v1.0.1
@@ -145,7 +153,6 @@ golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/idna
 # golang.org/x/text v0.3.2
-## explicit
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -154,3 +161,6 @@ golang.org/x/text/unicode/norm
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
+# google.golang.org/appengine v1.6.6
+## explicit
+google.golang.org/appengine/cloudsql
