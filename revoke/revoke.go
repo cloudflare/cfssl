@@ -133,13 +133,13 @@ func getIssuer(cert *x509.Certificate) *x509.Certificate {
 // check a cert against a specific CRL. Returns the same bool pair
 // as revCheck, plus an error if one occurred.
 func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool, err error) {
+	crlLock.Lock()
 	crl, ok := CRLSet[url]
 	if ok && crl == nil {
 		ok = false
-		crlLock.Lock()
 		delete(CRLSet, url)
-		crlLock.Unlock()
 	}
+	crlLock.Unlock()
 
 	var shouldFetchCRL = true
 	if ok {
