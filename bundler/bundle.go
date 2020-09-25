@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/helpers"
 )
 
@@ -109,7 +110,12 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	case x509.DSA:
 		keyType = "DSA"
 	default:
-		keyType = "Unknown"
+		scheme := circl.SchemeByX509PublicKeyAlgorithm(b.Cert.PublicKeyAlgorithm)
+		if scheme != nil {
+			keyType = scheme.Name()
+		} else {
+			keyType = "Unknown"
+		}
 	}
 
 	switch key := b.Key.(type) {
@@ -121,6 +127,10 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		keyString = PemBlockToString(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes})
 	case fmt.Stringer:
 		keyString = key.String()
+
+	case circl.PrivateKey:
+		keyBytes, _ = circl.MarshalPEMPrivateKey(key)
+		keyString = string(keyBytes)
 	}
 
 	if len(b.Hostnames) == 0 {

@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -590,12 +591,23 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			scheme := circl.SchemeByX509PublicKeyAlgorithm(cert.PublicKeyAlgorithm)
+			if scheme == nil {
+				return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			}
+			circlKey, ok := key.Public().(circl.PublicKey)
+			if !ok {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
+			if !circlKey.Equal(cert.PublicKey) {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
 		}
 	} else {
 		switch {
 		case cert.PublicKeyAlgorithm == x509.RSA:
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
+		case circl.SchemeByX509PublicKeyAlgorithm(cert.PublicKeyAlgorithm) != nil:
 		default:
 			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
 		}

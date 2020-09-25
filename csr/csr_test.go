@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 )
@@ -43,6 +44,10 @@ func TestKeyRequest(t *testing.T) {
 	case *ecdsa.PrivateKey:
 		if kr.Algo() != "ecdsa" {
 			t.Fatal("ECDSA key generated, but expected", kr.Algo())
+		}
+	case circl.PrivateKey:
+		if kr.Algo() != priv.(circl.PrivateKey).Scheme().Name() {
+			t.Fatal()
 		}
 	}
 }
@@ -113,7 +118,7 @@ func TestParseRequest(t *testing.T) {
 		KeyRequest: NewKeyRequest(),
 		Extensions: []pkix.Extension{
 			pkix.Extension{
-				Id: asn1.ObjectIdentifier{1, 2, 3, 4, 5},
+				Id:    asn1.ObjectIdentifier{1, 2, 3, 4, 5},
 				Value: []byte("AgEB"),
 			},
 		},
@@ -123,7 +128,7 @@ func TestParseRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	
+
 	block, _ := pem.Decode(csrBytes)
 	if block == nil {
 		t.Fatalf("%v", err)
@@ -329,6 +334,17 @@ func TestRSAKeyGeneration(t *testing.T) {
 	}
 }
 
+func TestCirclKeyGeneration(t *testing.T) {
+	schemes := circl.AllSchemes()
+	for _, scheme := range schemes {
+		kr := &KeyRequest{scheme.Name(), 0}
+		_, err := kr.Generate()
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+	}
+}
+
 // TestBadKeyRequest ensures that generating a key from a KeyRequest
 // fails with an invalid algorithm, or an invalid RSA or ECDSA key
 // size. An invalid ECDSA key size is any size other than 256, 384, or
@@ -426,6 +442,30 @@ func TestRSACertRequest(t *testing.T) {
 	_, _, err := ParseRequest(req)
 	if err != nil {
 		t.Fatalf("%v", err)
+	}
+}
+
+func TestCirclCertRequest(t *testing.T) {
+	schemes := circl.AllSchemes()
+	for _, scheme := range schemes {
+		var req = &CertificateRequest{
+			Names: []Name{
+				{
+					C:  "US",
+					ST: "California",
+					L:  "San Francisco",
+					O:  "CloudFlare",
+					OU: "Systems Engineering",
+				},
+			},
+			CN:         "cloudflare.com",
+			Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com", "https://www.cloudflare.com"},
+			KeyRequest: &KeyRequest{scheme.Name(), 0},
+		}
+		_, _, err := ParseRequest(req)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
 	}
 }
 

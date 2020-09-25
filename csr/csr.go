@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/cloudflare/cfssl/circl"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
@@ -86,7 +87,14 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
 	default:
-		return nil, errors.New("invalid algorithm")
+		// XXX do we want to add SchemeByShortNameAndSize() to Circl instead
+		//     of simply using the name?
+		scheme := circl.SchemeByName(kr.Algo())
+		if scheme == nil {
+			return nil, errors.New("invalid algorithm")
+		}
+		_, sk, err := scheme.GenerateKey()
+		return sk, err
 	}
 }
 
@@ -117,7 +125,11 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 			return x509.ECDSAWithSHA1
 		}
 	default:
-		return x509.UnknownSignatureAlgorithm
+		scheme := circl.SchemeByName(kr.Algo())
+		if scheme == nil {
+			return x509.UnknownSignatureAlgorithm
+		}
+		return circl.X509SignatureAlgorithmByScheme(scheme)
 	}
 }
 
@@ -217,6 +229,12 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
+	case circl.PrivateKey:
+		key, err = circl.MarshalPEMPrivateKey(priv)
+		if err != nil {
+			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+			return
+		}
 	default:
 		panic("Generate should have failed to produce a valid key.")
 	}

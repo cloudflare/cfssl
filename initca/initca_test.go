@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/circl"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
@@ -396,5 +397,13 @@ func TestRenew(t *testing.T) {
 
 	if !bytes.Equal(newCert.RawIssuer, cert.RawIssuer) {
 		t.Fatal("Update returned a certificate with different issuer info")
+	}
+}
+
+func init() {
+	schemes := circl.AllSchemes()
+	for _, scheme := range schemes {
+		validKeyParams = append(validKeyParams, csr.KeyRequest{
+			A: scheme.Name(), S: 0})
 	}
 }
