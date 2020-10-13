@@ -507,6 +507,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
 
 	if s.dbAccessor != nil {
+		now := time.Now()
 		var certRecord = certdb.CertificateRecord{
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
@@ -516,8 +517,8 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			Status:     "good",
 			Expiry:     certTBS.NotAfter,
 			PEM:        string(signedCert),
-			IssuedAt:   time.Now(),
-			NotBefore:  certTBS.NotBefore,
+			IssuedAt:   &now,
+			NotBefore:  &certTBS.NotBefore,
 			CommonName: sql.NullString{String: certTBS.Subject.CommonName, Valid: true},
 		}
 
