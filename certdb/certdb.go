@@ -1,6 +1,7 @@
 package certdb
 
 import (
+	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -22,7 +23,7 @@ type CertificateRecord struct {
 	NotBefore    time.Time      `db:"not_before"`
 	MetadataJSON types.JSONText `db:"metadata"`
 	SANsJSON     types.JSONText `db:"sans"`
-	CommonName   string         `db:"common_name"`
+	CommonName   sql.NullString `db:"common_name"`
 }
 
 // SetMetadata sets the metadata json
