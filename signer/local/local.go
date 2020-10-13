@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
 	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
@@ -517,7 +518,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			PEM:        string(signedCert),
 			IssuedAt:   time.Now(),
 			NotBefore:  certTBS.NotBefore,
-			CommonName: certTBS.Subject.CommonName,
+			CommonName: sql.NullString{String: certTBS.Subject.CommonName, Valid: true},
 		}
 
 		if err := certRecord.SetMetadata(req.Metadata); err != nil {
