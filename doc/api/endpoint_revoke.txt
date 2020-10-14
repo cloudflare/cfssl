@@ -9,6 +9,7 @@ Required parameters:
     * authority_key_id: a string specifying the authority key identifier
       of the certificate to be revoked; this is used to distinguish
       which private key was used to sign the certificate.
+      the string needs to be without colon and lower case.
     * reason: a string identifying why the certificate was revoked; see,
       for example, ReasonStringToCode in the ocsp package or section
       4.2.1.13 of RFC 5280. The "reasons" used here are the ReasonFlag
@@ -21,6 +22,6 @@ Result:
 Example:
 
     $ curl -d '{"serial": "7961067322630364137",        \
-            "authority_key_id": "00:01:02:03:04:05:07",              \
+            "authority_key_id": "a4f12359c3d114e476b1",              \
             "reason": "superseded"}'                    \
           ${CFSSL_HOST}/api/v1/cfssl/revoke
