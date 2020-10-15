@@ -821,6 +821,10 @@ type Certificate struct {
 	// CT
 	SignedCertificateTimestampList []*ct.SignedCertificateTimestamp
 
+	// QWACS
+	CABFOrganizationIdentifier *CABFOrganizationIdentifier
+	QCStatements               *QCStatements
+
 	// Used to speed up the zlint checks. Populated by the GetParsedDNSNames method.
 	parsedDNSNames []ParsedDomainName
 	// Used to speed up the zlint checks. Populated by the GetParsedCommonName method
@@ -1925,6 +1929,29 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 				return nil, err
 			}
 			out.TorServiceDescriptors = descs
+		} else if e.Id.Equal(oidExtCABFOrganizationID) {
+			cabf := CABFOrganizationIDASN{}
+			_, err := asn1.Unmarshal(e.Value, &cabf)
+			if err != nil {
+				return nil, err
+			}
+			out.CABFOrganizationIdentifier = &CABFOrganizationIdentifier{
+				Scheme:    cabf.RegistrationSchemeIdentifier,
+				Country:   cabf.RegistrationCountry,
+				Reference: cabf.RegistrationReference,
+				State:     cabf.RegistrationStateOrProvince,
+			}
+		} else if e.Id.Equal(oidExtQCStatements) {
+			rawStatements := QCStatementsASN{}
+			_, err := asn1.Unmarshal(e.Value, &rawStatements.QCStatements)
+			if err != nil {
+				return nil, err
+			}
+			qcStatements := QCStatements{}
+			if err := qcStatements.Parse(&rawStatements); err != nil {
+				return nil, err
+			}
+			out.QCStatements = &qcStatements
 		}
 
 		//if e.Critical {

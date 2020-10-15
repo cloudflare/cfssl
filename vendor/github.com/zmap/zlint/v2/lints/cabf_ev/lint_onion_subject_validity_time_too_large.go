@@ -61,7 +61,7 @@ func init() {
 		Description: fmt.Sprintf(
 			"certificates with .onion names can not be valid for more than %d months",
 			maxOnionValidityMonths),
-		Citation:      "CABF EV Guidelines: Appendix F",
+		Citation:      "EVGs: Appendix F",
 		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.OnionOnlyEVDate,
 		Lint:          &torValidityTooLarge{},

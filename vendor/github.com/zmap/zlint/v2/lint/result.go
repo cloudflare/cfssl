@@ -42,10 +42,10 @@ const (
 )
 
 var (
-	// statusLabelToLintStatus is used to work backwards from
+	// StatusLabelToLintStatus is used to work backwards from
 	// a LintStatus.String() to the LintStatus. This is used by
 	// LintStatus.Unmarshal.
-	statusLabelToLintStatus = map[string]LintStatus{
+	StatusLabelToLintStatus = map[string]LintStatus{
 		Reserved.String(): Reserved,
 		NA.String():       NA,
 		NE.String():       NE,
@@ -73,7 +73,7 @@ func (e LintStatus) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (e *LintStatus) UnmarshalJSON(data []byte) error {
 	key := strings.ReplaceAll(string(data), `"`, "")
-	if status, ok := statusLabelToLintStatus[key]; ok {
+	if status, ok := StatusLabelToLintStatus[key]; ok {
 		*e = status
 	} else {
 		return fmt.Errorf("bad LintStatus JSON value: %s", string(data))

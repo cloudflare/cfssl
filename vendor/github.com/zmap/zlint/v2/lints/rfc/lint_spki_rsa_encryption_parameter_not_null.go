@@ -25,8 +25,6 @@ import (
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v2/lint"
 	"github.com/zmap/zlint/v2/util"
-	"golang.org/x/crypto/cryptobyte"
-	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
 )
 
 type rsaSPKIEncryptionParamNotNULL struct{}
@@ -41,21 +39,15 @@ func (l *rsaSPKIEncryptionParamNotNULL) CheckApplies(c *x509.Certificate) bool {
 }
 
 func (l *rsaSPKIEncryptionParamNotNULL) Execute(c *x509.Certificate) *lint.LintResult {
-	input := cryptobyte.String(c.RawSubjectPublicKeyInfo)
-
-	var publicKeyInfo cryptobyte.String
-	if !input.ReadASN1(&publicKeyInfo, cryptobyte_asn1.SEQUENCE) {
-		return &lint.LintResult{Status: lint.Fatal, Details: "error reading pkixPublicKey"}
+	encodedPublicKeyAid, err := util.GetPublicKeyAidEncoded(c)
+	if err != nil {
+		return &lint.LintResult{
+			Status:  lint.Error,
+			Details: fmt.Sprintf("error reading public key algorithm identifier: %v", err),
+		}
 	}
 
-	var algorithm cryptobyte.String
-	var tag cryptobyte_asn1.Tag
-	// use ReadAnyElement to preserve tag and length octets
-	if !publicKeyInfo.ReadAnyASN1Element(&algorithm, &tag) {
-		return &lint.LintResult{Status: lint.Fatal, Details: "error reading pkixPublicKey"}
-	}
-
-	if err := util.CheckAlgorithmIDParamNotNULL(algorithm, util.OidRSAEncryption); err != nil {
+	if err := util.CheckAlgorithmIDParamNotNULL(encodedPublicKeyAid, util.OidRSAEncryption); err != nil {
 		return &lint.LintResult{Status: lint.Error, Details: fmt.Sprintf("certificate pkixPublicKey %s", err.Error())}
 	}
 

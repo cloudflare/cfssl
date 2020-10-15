@@ -428,6 +428,39 @@ type JSONCertificate struct {
 	Redacted                  bool                         `json:"redacted"`
 }
 
+// CollectAllNames - Collect and validate all DNS / URI / IP Address names for a given certificate
+func (c *Certificate) CollectAllNames() []string {
+	var names []string
+
+	if isValidName(c.Subject.CommonName) {
+		names = append(names, c.Subject.CommonName)
+	}
+
+	for _, name := range c.DNSNames {
+		if isValidName(name) {
+			names = append(names, name)
+		} else if !strings.Contains(name, ".") { //just a TLD
+			names = append(names, name)
+		}
+
+	}
+
+	for _, name := range c.URIs {
+		if util.IsURL(name) {
+			names = append(names, name)
+		}
+	}
+
+	for _, name := range c.IPAddresses {
+		str := name.String()
+		if util.IsURL(str) {
+			names = append(names, str)
+		}
+	}
+
+	return purgeNameDuplicates(names)
+}
+
 func (c *Certificate) MarshalJSON() ([]byte, error) {
 	// Fill out the certificate
 	jc := new(JSONCertificate)
@@ -441,34 +474,7 @@ func (c *Certificate) MarshalJSON() ([]byte, error) {
 	jc.Validity.ValidityPeriod = c.ValidityPeriod
 	jc.Subject = c.Subject
 	jc.SubjectDN = c.Subject.String()
-
-	if isValidName(c.Subject.CommonName) {
-		jc.Names = append(jc.Names, c.Subject.CommonName)
-	}
-
-	for _, name := range c.DNSNames {
-		if isValidName(name) {
-			jc.Names = append(jc.Names, name)
-		} else if !strings.Contains(name, ".") { //just a TLD
-			jc.Names = append(jc.Names, name)
-		}
-
-	}
-
-	for _, name := range c.URIs {
-		if util.IsURL(name) {
-			jc.Names = append(jc.Names, name)
-		}
-	}
-
-	for _, name := range c.IPAddresses {
-		str := name.String()
-		if util.IsURL(str) {
-			jc.Names = append(jc.Names, str)
-		}
-	}
-
-	jc.Names = purgeNameDuplicates(jc.Names)
+	jc.Names = c.CollectAllNames()
 	jc.Redacted = false
 	for _, name := range jc.Names {
 		if strings.HasPrefix(name, "?") {
