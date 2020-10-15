@@ -20,11 +20,11 @@ require (
 	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/pkg/errors v0.8.0 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/weppos/publicsuffix-go v0.5.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
-	github.com/zmap/zlint/v2 v2.0.0
+	github.com/zmap/zcrypto v0.0.0-20200513165325-16679db567ff
+	github.com/zmap/zlint/v2 v2.2.1
 	golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859

@@ -1,4 +1,4 @@
-package cabf_br
+package cabf_ev
 
 /*
  * ZLint Copyright 2020 Regents of the University of Michigan
@@ -27,11 +27,16 @@ func (l *evValidTooLong) Initialize() error {
 }
 
 func (l *evValidTooLong) CheckApplies(c *x509.Certificate) bool {
-	return util.IsEV(c.PolicyIdentifiers) && util.IsSubscriberCert(c)
+	// CA/Browser Forum Ballot 193 changed the maximum validity period to be
+	// 825 days, which is more permissive than 27-month certificates, as that
+	// is 823 days.
+	return c.NotBefore.Before(util.SubCert825Days) &&
+		util.IsSubscriberCert(c) &&
+		util.IsEV(c.PolicyIdentifiers)
 }
 
 func (l *evValidTooLong) Execute(c *x509.Certificate) *lint.LintResult {
-	if c.NotBefore.AddDate(0, 0, 825).Before(c.NotAfter) {
+	if c.NotBefore.AddDate(0, 27, 0).Before(c.NotAfter) {
 		return &lint.LintResult{Status: lint.Error}
 	}
 	return &lint.LintResult{Status: lint.Pass}
@@ -40,9 +45,9 @@ func (l *evValidTooLong) Execute(c *x509.Certificate) *lint.LintResult {
 func init() {
 	lint.RegisterLint(&lint.Lint{
 		Name:          "e_ev_valid_time_too_long",
-		Description:   "EV certificates must be 825 days in validity or less",
-		Citation:      "BRs: 6.3.2",
-		Source:        lint.CABFBaselineRequirements,
+		Description:   "EV certificates must be 27 months in validity or less",
+		Citation:      "EVGs 1.0: 8(a), EVGs 1.6.1: 9.4",
+		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.ZeroDate,
 		Lint:          &evValidTooLong{},
 	})

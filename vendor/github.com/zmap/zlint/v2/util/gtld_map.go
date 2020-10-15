@@ -196,7 +196,7 @@ var tldMap = map[string]GTLDPeriod{
 	"aigo": {
 		GTLD:           "aigo",
 		DelegationDate: "2016-08-16",
-		RemovalDate:    "",
+		RemovalDate:    "2020-06-26",
 	},
 	"airbus": {
 		GTLD:           "airbus",
@@ -266,6 +266,11 @@ var tldMap = map[string]GTLDPeriod{
 	"am": {
 		GTLD:           "am",
 		DelegationDate: "1985-01-01",
+		RemovalDate:    "",
+	},
+	"amazon": {
+		GTLD:           "amazon",
+		DelegationDate: "2020-06-02",
 		RemovalDate:    "",
 	},
 	"americanexpress": {
@@ -2046,7 +2051,7 @@ var tldMap = map[string]GTLDPeriod{
 	"esurance": {
 		GTLD:           "esurance",
 		DelegationDate: "2016-07-23",
-		RemovalDate:    "",
+		RemovalDate:    "2020-05-26",
 	},
 	"et": {
 		GTLD:           "et",
@@ -3186,7 +3191,7 @@ var tldMap = map[string]GTLDPeriod{
 	"intel": {
 		GTLD:           "intel",
 		DelegationDate: "2016-07-28",
-		RemovalDate:    "",
+		RemovalDate:    "2020-10-07",
 	},
 	"international": {
 		GTLD:           "international",
@@ -4091,7 +4096,7 @@ var tldMap = map[string]GTLDPeriod{
 	"metlife": {
 		GTLD:           "metlife",
 		DelegationDate: "2016-05-11",
-		RemovalDate:    "",
+		RemovalDate:    "2020-09-07",
 	},
 	"mg": {
 		GTLD:           "mg",
@@ -4381,7 +4386,7 @@ var tldMap = map[string]GTLDPeriod{
 	"nadex": {
 		GTLD:           "nadex",
 		DelegationDate: "2015-05-02",
-		RemovalDate:    "",
+		RemovalDate:    "2020-03-27",
 	},
 	"nagoya": {
 		GTLD:           "nagoya",
@@ -5316,7 +5321,7 @@ var tldMap = map[string]GTLDPeriod{
 	"rightathome": {
 		GTLD:           "rightathome",
 		DelegationDate: "2016-07-21",
-		RemovalDate:    "",
+		RemovalDate:    "2020-07-28",
 	},
 	"ril": {
 		GTLD:           "ril",
@@ -5576,7 +5581,7 @@ var tldMap = map[string]GTLDPeriod{
 	"scor": {
 		GTLD:           "scor",
 		DelegationDate: "2015-06-23",
-		RemovalDate:    "",
+		RemovalDate:    "2020-05-27",
 	},
 	"scot": {
 		GTLD:           "scot",
@@ -6091,7 +6096,7 @@ var tldMap = map[string]GTLDPeriod{
 	"symantec": {
 		GTLD:           "symantec",
 		DelegationDate: "2015-12-03",
-		RemovalDate:    "",
+		RemovalDate:    "2020-07-17",
 	},
 	"systems": {
 		GTLD:           "systems",
@@ -6676,7 +6681,7 @@ var tldMap = map[string]GTLDPeriod{
 	"vistaprint": {
 		GTLD:           "vistaprint",
 		DelegationDate: "2015-06-22",
-		RemovalDate:    "",
+		RemovalDate:    "2020-03-13",
 	},
 	"viva": {
 		GTLD:           "viva",
@@ -7148,6 +7153,11 @@ var tldMap = map[string]GTLDPeriod{
 		DelegationDate: "2016-02-19",
 		RemovalDate:    "",
 	},
+	"xn--cckwcxetd": {
+		GTLD:           "xn--cckwcxetd",
+		DelegationDate: "2020-06-02",
+		RemovalDate:    "",
+	},
 	"xn--cg4bki": {
 		GTLD:           "xn--cg4bki",
 		DelegationDate: "2014-02-21",
@@ -7201,7 +7211,7 @@ var tldMap = map[string]GTLDPeriod{
 	"xn--estv75g": {
 		GTLD:           "xn--estv75g",
 		DelegationDate: "2015-05-07",
-		RemovalDate:    "",
+		RemovalDate:    "2020-04-01",
 	},
 	"xn--fct429k": {
 		GTLD:           "xn--fct429k",
@@ -7328,6 +7338,11 @@ var tldMap = map[string]GTLDPeriod{
 		DelegationDate: "1985-01-01",
 		RemovalDate:    "",
 	},
+	"xn--jlq480n2rg": {
+		GTLD:           "xn--jlq480n2rg",
+		DelegationDate: "2020-06-02",
+		RemovalDate:    "",
+	},
 	"xn--jlq61u9w7b": {
 		GTLD:           "xn--jlq61u9w7b",
 		DelegationDate: "2015-12-18",
@@ -7356,7 +7371,7 @@ var tldMap = map[string]GTLDPeriod{
 	"xn--kpu716f": {
 		GTLD:           "xn--kpu716f",
 		DelegationDate: "2015-12-15",
-		RemovalDate:    "",
+		RemovalDate:    "2020-06-26",
 	},
 	"xn--kput3i": {
 		GTLD:           "xn--kput3i",
@@ -7566,7 +7581,7 @@ var tldMap = map[string]GTLDPeriod{
 	"xn--pbt977c": {
 		GTLD:           "xn--pbt977c",
 		DelegationDate: "2015-12-15",
-		RemovalDate:    "",
+		RemovalDate:    "2020-06-26",
 	},
 	"xn--pgbs0dh": {
 		GTLD:           "xn--pgbs0dh",

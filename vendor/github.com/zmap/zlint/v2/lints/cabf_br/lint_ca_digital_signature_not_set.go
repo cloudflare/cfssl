@@ -15,7 +15,11 @@ package cabf_br
  */
 
 /************************************************
-BRs: 7.1.2.1b
+BRs: 7.1.2.1b: Root CA Certificate keyUsage
+This extension MUST be present and MUST be marked critical. Bit positions for keyCertSign and cRLSign MUST be set.
+If the Root CA Private Key is used for signing OCSP responses, then the digitalSignature bit MUST be set.
+
+BRs: 7.1.2.2e: Subordinate CA Certificate keyUsage
 This extension MUST be present and MUST be marked critical. Bit positions for keyCertSign and cRLSign MUST be set.
 If the Root CA Private Key is used for signing OCSP responses, then the digitalSignature bit MUST be set.
 ************************************************/

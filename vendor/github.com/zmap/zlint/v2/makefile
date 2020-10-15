@@ -12,7 +12,6 @@ INT_FLAGS :=
 
 CMDS = zlint zlint-gtld-update
 CMD_PREFIX = ./cmd/
-GO_ENV = GO111MODULE="on" GOFLAGS="-mod=vendor"
 BUILD = $(GO_ENV) go build
 TEST = $(GO_ENV) GORACE=halt_on_error=1 go test -race
 INT_TEST = $(GO_ENV) go test -v -tags integration -timeout 20m ./integration/... -parallelism $(PARALLELISM) $(INT_FLAGS)
@@ -37,4 +36,7 @@ integration:
 code-lint:
 	golangci-lint run
 
-.PHONY: clean zlint zlint-gtld-update test integration code-lint
+testdata-lint:
+	./test/prepend_testcerts_openssl.sh && git diff --exit-code testdata/
+
+.PHONY: clean zlint zlint-gtld-update test integration code-lint testdata-lint

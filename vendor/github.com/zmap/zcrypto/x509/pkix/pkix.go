@@ -56,6 +56,7 @@ type Name struct {
 	SerialNumber, CommonName                   string
 	SerialNumbers, CommonNames                 []string
 	GivenName, Surname                         []string
+	OrganizationIDs                            []string
 	// EV Components
 	JurisdictionLocality, JurisdictionProvince, JurisdictionCountry []string
 
@@ -110,6 +111,8 @@ func (n *Name) FillFromRDNSequence(rdns *RDNSequence) {
 				n.PostalCode = append(n.PostalCode, value)
 			case 42:
 				n.GivenName = append(n.GivenName, value)
+			case 97:
+				n.OrganizationIDs = append(n.OrganizationIDs, value)
 			}
 		} else if t.Equal(oidDomainComponent) {
 			n.DomainComponent = append(n.DomainComponent, value)
@@ -144,6 +147,8 @@ var (
 	oidJurisdictionLocality = []int{1, 3, 6, 1, 4, 1, 311, 60, 2, 1, 1}
 	oidJurisdictionProvince = []int{1, 3, 6, 1, 4, 1, 311, 60, 2, 1, 2}
 	oidJurisdictionCountry  = []int{1, 3, 6, 1, 4, 1, 311, 60, 2, 1, 3}
+	// QWACS
+	oidOrganizationID = []int{2, 5, 4, 97}
 )
 
 // appendRDNs appends a relativeDistinguishedNameSET to the given RDNSequence
@@ -218,6 +223,8 @@ func (n Name) ToRDNSequence() (ret RDNSequence) {
 	ret = n.appendRDNs(ret, n.JurisdictionLocality, oidJurisdictionLocality)
 	ret = n.appendRDNs(ret, n.JurisdictionProvince, oidJurisdictionProvince)
 	ret = n.appendRDNs(ret, n.JurisdictionCountry, oidJurisdictionCountry)
+	// QWACS
+	ret = n.appendRDNs(ret, n.OrganizationIDs, oidOrganizationID)
 	if len(n.SerialNumber) > 0 {
 		ret = n.appendRDNs(ret, []string{n.SerialNumber}, oidSerialNumber)
 	}

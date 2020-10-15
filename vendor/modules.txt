@@ -97,7 +97,7 @@ github.com/nkovacs/streamquote
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/stretchr/testify v1.3.0
+# github.com/stretchr/testify v1.4.0
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -113,14 +113,14 @@ github.com/weppos/publicsuffix-go/publicsuffix
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-# github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
+# github.com/zmap/zcrypto v0.0.0-20200513165325-16679db567ff
 ## explicit
 github.com/zmap/zcrypto/json
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v2 v2.0.0
+# github.com/zmap/zlint/v2 v2.2.1
 ## explicit
 github.com/zmap/zlint/v2
 github.com/zmap/zlint/v2/lint
@@ -152,7 +152,7 @@ golang.org/x/lint/golint
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/idna
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.3
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -164,3 +164,5 @@ golang.org/x/tools/go/internal/gcimporter
 # google.golang.org/appengine v1.6.6
 ## explicit
 google.golang.org/appengine/cloudsql
+# gopkg.in/yaml.v2 v2.2.2
+gopkg.in/yaml.v2

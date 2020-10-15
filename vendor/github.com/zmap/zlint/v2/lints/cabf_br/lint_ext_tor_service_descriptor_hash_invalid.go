@@ -24,8 +24,6 @@ import (
 	"github.com/zmap/zlint/v2/util"
 )
 
-const onionTLD = ".onion"
-
 type torServiceDescHashInvalid struct{}
 
 func (l *torServiceDescHashInvalid) Initialize() error {
@@ -33,10 +31,14 @@ func (l *torServiceDescHashInvalid) Initialize() error {
 	return nil
 }
 
-// CheckApplies returns true if the certificate is a subscriber certificate that
-// contains a subject name ending in `.onion`.
+// CheckApplies returns true if the TorServiceDescriptor extension is present
+// or if the certificate is an EV subscriber certificate with one or more
+// subject names ending in `.onion`.
 func (l *torServiceDescHashInvalid) CheckApplies(c *x509.Certificate) bool {
-	return util.IsSubscriberCert(c) && util.CertificateSubjInTLD(c, onionTLD)
+	ext := util.GetExtFromCert(c, util.BRTorServiceDescriptor)
+	return ext != nil || (util.IsSubscriberCert(c) &&
+		util.CertificateSubjInTLD(c, util.OnionTLD) &&
+		util.IsEV(c.PolicyIdentifiers))
 }
 
 // failResult is a small utility function for creating a failed lint result.
@@ -86,7 +88,7 @@ func lintOnionURL(onion string) *lint.LintResult {
 // Execute will lint the provided certificate. An lint.Error lint.LintResult will be
 // returned if:
 //
-//   1) There is no TorServiceDescriptor extension present.
+//   1) There is no TorServiceDescriptor extension present and it's required
 //   2) There were no TorServiceDescriptors parsed by zcrypto
 //   3) There are TorServiceDescriptorHash entries with an invalid Onion URL.
 //   4) There are TorServiceDescriptorHash entries with an unknown hash
@@ -94,17 +96,17 @@ func lintOnionURL(onion string) *lint.LintResult {
 //   5) There is a TorServiceDescriptorHash entry that doesn't correspond to
 //      an onion subject in the cert.
 //   6) There is an onion subject in the cert that doesn't correspond to
-//      a TorServiceDescriptorHash.
+//      a TorServiceDescriptorHash, if required.
 func (l *torServiceDescHashInvalid) Execute(c *x509.Certificate) *lint.LintResult {
-	// If the BRTorServiceDescriptor extension is missing return a lint error. We
-	// know the cert contains one or more `.onion` subjects because of
-	// `CheckApplies` and all such certs are expected to have this extension after
-	// util.CABV201Date.
+	// If the certificate is EV, the BRTorServiceDescriptor extension is required.
+	// We know that `CheckApplies` will only apply if the certificate has the
+	// extension or that it's required, so this will only fail when it's
+	// required.
 	if ext := util.GetExtFromCert(c, util.BRTorServiceDescriptor); ext == nil {
 		return failResult(
 			"certificate contained a %s domain but is missing a TorServiceDescriptor "+
 				"extension (oid %s)",
-			onionTLD, util.BRTorServiceDescriptor.String())
+			util.OnionTLD, util.BRTorServiceDescriptor.String())
 	}
 
 	// The certificate should have at least one TorServiceDescriptorHash in the
@@ -114,21 +116,21 @@ func (l *torServiceDescHashInvalid) Execute(c *x509.Certificate) *lint.LintResul
 		return failResult(
 			"certificate contained a %s domain but TorServiceDescriptor "+
 				"extension (oid %s) had no TorServiceDescriptorHash objects",
-			onionTLD, util.BRTorServiceDescriptor.String())
+			util.OnionTLD, util.BRTorServiceDescriptor.String())
 	}
 
 	// Build a map of all the eTLD+1 onion subjects in the cert to compare against
 	// the service descriptors.
 	onionETLDPlusOneMap := make(map[string]string)
 	for _, subj := range append(c.DNSNames, c.Subject.CommonName) {
-		if !strings.HasSuffix(subj, onionTLD) {
+		if !strings.HasSuffix(subj, util.OnionTLD) {
 			continue
 		}
 		labels := strings.Split(subj, ".")
 		if len(labels) < 2 {
 			return failResult("certificate contained a %s domain with too few "+
 				"labels: %q",
-				onionTLD, subj)
+				util.OnionTLD, subj)
 		}
 		eTLDPlusOne := strings.Join(labels[len(labels)-2:], ".")
 		onionETLDPlusOneMap[eTLDPlusOne] = subj
@@ -184,14 +186,19 @@ func (l *torServiceDescHashInvalid) Execute(c *x509.Certificate) *lint.LintResul
 		descriptorMap[hostname] = descriptor
 	}
 
-	// Check if any of the onion subjects in the certificate don't have
-	// a TorServiceDescriptorHash for the eTLD+1 in the descriptorMap.
-	for eTLDPlusOne, subjDomain := range onionETLDPlusOneMap {
-		if _, found := descriptorMap[eTLDPlusOne]; !found {
-			return failResult(
-				"%s subject domain name %q does not have a corresponding "+
-					"TorServiceDescriptorHash for its eTLD+1",
-				onionTLD, subjDomain)
+	// For EV certificates, every `.onion` name is required to have a
+	// TorServiceDescriptorHash, so check if any of the onion subjects in the
+	// certificate don't have a TorServiceDescriptorHash for the eTLD+1 in the
+	// descriptorMap.
+	// See also https://github.com/cabforum/documents/issues/190
+	if util.IsEV(c.PolicyIdentifiers) {
+		for eTLDPlusOne, subjDomain := range onionETLDPlusOneMap {
+			if _, found := descriptorMap[eTLDPlusOne]; !found {
+				return failResult(
+					"%s subject domain name %q does not have a corresponding "+
+						"TorServiceDescriptorHash for its eTLD+1",
+					util.OnionTLD, subjDomain)
+			}
 		}
 	}
 
@@ -204,8 +211,8 @@ func (l *torServiceDescHashInvalid) Execute(c *x509.Certificate) *lint.LintResul
 func init() {
 	lint.RegisterLint(&lint.Lint{
 		Name:          "e_ext_tor_service_descriptor_hash_invalid",
-		Description:   "certificates with .onion names need valid TorServiceDescriptors in extension",
-		Citation:      "BRS: Ballot 201",
+		Description:   "certificates with v2 .onion names need valid TorServiceDescriptors in extension",
+		Citation:      "BRs: Ballot 201, Ballot SC27",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV201Date,
 		Lint:          &torServiceDescHashInvalid{},
