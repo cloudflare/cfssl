@@ -172,7 +172,12 @@ func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccess
 	}
 
 	// simulate situation where there are rows before migrate 002 has been run
-	ta.DB.MustExec("update certificates set common_name = NULL")
+	ta.DB.MustExec(`update certificates
+	set issued_at = NULL,
+	not_before = NULL,
+	metadata = NULL,
+	sans = NULL,
+	common_name = NULL;`)
 
 	rets, err := ta.Accessor.GetCertificate(want.Serial, want.AKI)
 	if err != nil {

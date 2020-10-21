@@ -11,16 +11,17 @@ import (
 // CertificateRecord encodes a certificate and its metadata
 // that will be recorded in a database.
 type CertificateRecord struct {
-	Serial       string         `db:"serial_number"`
-	AKI          string         `db:"authority_key_identifier"`
-	CALabel      string         `db:"ca_label"`
-	Status       string         `db:"status"`
-	Reason       int            `db:"reason"`
-	Expiry       time.Time      `db:"expiry"`
-	RevokedAt    time.Time      `db:"revoked_at"`
-	PEM          string         `db:"pem"`
-	IssuedAt     time.Time      `db:"issued_at"`
-	NotBefore    time.Time      `db:"not_before"`
+	Serial    string    `db:"serial_number"`
+	AKI       string    `db:"authority_key_identifier"`
+	CALabel   string    `db:"ca_label"`
+	Status    string    `db:"status"`
+	Reason    int       `db:"reason"`
+	Expiry    time.Time `db:"expiry"`
+	RevokedAt time.Time `db:"revoked_at"`
+	PEM       string    `db:"pem"`
+	// the following fields will be empty for data inserted before migrate 002 has been run.
+	IssuedAt     *time.Time     `db:"issued_at"`
+	NotBefore    *time.Time     `db:"not_before"`
 	MetadataJSON types.JSONText `db:"metadata"`
 	SANsJSON     types.JSONText `db:"sans"`
 	CommonName   sql.NullString `db:"common_name"`
