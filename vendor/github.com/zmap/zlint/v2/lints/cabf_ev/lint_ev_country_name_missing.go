@@ -1,4 +1,4 @@
-package cabf_br
+package cabf_ev
 
 /*
  * ZLint Copyright 2020 Regents of the University of Michigan
@@ -20,30 +20,31 @@ import (
 	"github.com/zmap/zlint/v2/util"
 )
 
-type evSNMissing struct{}
+type evCountryMissing struct{}
 
-func (l *evSNMissing) Initialize() error {
+func (l *evCountryMissing) Initialize() error {
 	return nil
 }
 
-func (l *evSNMissing) CheckApplies(c *x509.Certificate) bool {
+func (l *evCountryMissing) CheckApplies(c *x509.Certificate) bool {
 	return util.IsEV(c.PolicyIdentifiers) && util.IsSubscriberCert(c)
 }
 
-func (l *evSNMissing) Execute(c *x509.Certificate) *lint.LintResult {
-	if len(c.Subject.SerialNumber) == 0 {
+func (l *evCountryMissing) Execute(c *x509.Certificate) *lint.LintResult {
+	if util.TypeInName(&c.Subject, util.CountryNameOID) {
+		return &lint.LintResult{Status: lint.Pass}
+	} else {
 		return &lint.LintResult{Status: lint.Error}
 	}
-	return &lint.LintResult{Status: lint.Pass}
 }
 
 func init() {
 	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ev_serial_number_missing",
-		Description:   "EV certificates must include serialNumber in subject",
-		Citation:      "EV gudelines: 9.2.6",
-		Source:        lint.CABFBaselineRequirements,
+		Name:          "e_ev_country_name_missing",
+		Description:   "EV certificates must include countryName in subject",
+		Citation:      "EVGs: 9.2.4",
+		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &evSNMissing{},
+		Lint:          &evCountryMissing{},
 	})
 }

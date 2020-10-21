@@ -34,6 +34,7 @@ func init() {
 	oidDotNotationToNames["2.5.4.8"] = OIDName{ShortName: "ST", LongName: "stateOrProvinceName"}
 	oidDotNotationToNames["2.5.4.10"] = OIDName{ShortName: "O", LongName: "organizationName"}
 	oidDotNotationToNames["2.5.4.11"] = OIDName{ShortName: "OU", LongName: "organizationalUnitName"}
+	oidDotNotationToNames["2.5.4.97"] = OIDName{ShortName: "organizationIdentifier", LongName: "organizationIdentifier"}
 	oidDotNotationToNames["2.5.8.1.1"] = OIDName{ShortName: "RSA", LongName: "rsa"}
 	oidDotNotationToNames["1.2.840.113549.1.7"] = OIDName{ShortName: "pkcs7", LongName: "pkcs7"}
 	oidDotNotationToNames["1.2.840.113549.1.7.1"] = OIDName{ShortName: "pkcs7-data", LongName: "pkcs7-data"}

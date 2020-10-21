@@ -53,7 +53,7 @@ func (l *caSubjectEmpty) Execute(c *x509.Certificate) *lint.LintResult {
 func init() {
 	lint.RegisterLint(&lint.Lint{
 		Name:          "e_ca_subject_field_empty",
-		Description:   "CA Certificates subject field MUST not be empty and MUST have a non-empty distingushed name",
+		Description:   "CA Certificates subject field MUST not be empty and MUST have a non-empty distinguished name",
 		Citation:      "RFC 5280: 4.1.2.6",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,

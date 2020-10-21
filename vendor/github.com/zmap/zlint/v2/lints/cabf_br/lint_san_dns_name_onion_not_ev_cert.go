@@ -24,15 +24,16 @@ import (
 
 type onionNotEV struct{}
 
-// Initialize for an onionNotEV linter is a NOP.
 func (l *onionNotEV) Initialize() error {
 	return nil
 }
 
-// CheckApplies returns true if the certificate is a subscriber certificate that
-// contains a subject name ending in `.onion`.
+// This lint only applies for certificates issued before CA/Browser Forum
+// Ballot SC27, which permitted .onion within non-EV certificates
 func (l *onionNotEV) CheckApplies(c *x509.Certificate) bool {
-	return util.IsSubscriberCert(c) && util.CertificateSubjInTLD(c, util.OnionTLD)
+	return c.NotBefore.Before(util.CABFBRs_1_6_9_Date) &&
+		util.IsSubscriberCert(c) &&
+		util.CertificateSubjInTLD(c, util.OnionTLD)
 }
 
 // Execute returns an lint.Error lint.LintResult if the certificate is not an EV
