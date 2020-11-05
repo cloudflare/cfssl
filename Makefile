@@ -62,10 +62,20 @@ __check_defined = \
 snapshot:
 	docker run --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist --snapshot --skip-publish
 
-.PHONY: release
-release:
+.PHONY: github-release
+github-release:
 	@:$(call check_defined, GITHUB_TOKEN)
 	docker run -e GITHUB_TOKEN=$(GITHUB_TOKEN) --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist
+
+.PHONY: docker-build
+docker-build:
+	docker build -f Dockerfile -t cfssl/cfssl:$(VERSION) .
+.PHONY: docker-push
+docker-push:
+	docker push cfssl/cfssl:$(VERSION)
+
+.PHONY: release
+release: github-release docker-build docker-push
 
 BUILD_PATH   := $(CURDIR)/build
 INSTALL_PATH := $(BUILD_PATH)/usr/local/bin
