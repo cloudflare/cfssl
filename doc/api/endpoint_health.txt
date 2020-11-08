@@ -1,0 +1,14 @@
+THE HEALTH ENDPOINT
+
+Endpoint: /api/v1/cfssl/health
+Method:   GET
+
+Result:
+
+    The returned result is a JSON object with a single key:
+
+    * healthy: a bool indicating if the API server is healthy
+
+Example:
+
+    $ curl ${CFSSL_HOST}/api/v1/cfssl/health
