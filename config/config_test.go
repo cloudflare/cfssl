@@ -401,9 +401,9 @@ func TestParse(t *testing.T) {
 	for _, p := range invalidProfiles {
 		if p.populate(nil) == nil {
 			if p != nil {
-				t.Fatalf("ExpiryString=%s should not be parseable", p.ExpiryString)
+				t.Fatalf("ExpiryString=%s should not be parsable", p.ExpiryString)
 			}
-			t.Fatalf("Nil profile should not be parseable")
+			t.Fatalf("Nil profile should not be parsable")
 		}
 	}
 

@@ -328,7 +328,7 @@ func (ar *AuthRemote) Sign(req []byte) ([]byte, error) {
 	return ar.AuthSign(req, nil, ar.provider)
 }
 
-// nomalizeURL checks for http/https protocol, appends "http" as default protocol if not defiend in url
+// normalizeURL checks for http/https protocol, appends "http" as default protocol if not defined in url
 func normalizeURL(addr string) (*url.URL, error) {
 	addr = strings.TrimSpace(addr)
 

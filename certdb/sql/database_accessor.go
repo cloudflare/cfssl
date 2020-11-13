@@ -327,7 +327,7 @@ func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error 
 // We didn't implement 'upsert' with SQL statement and we lost race condition
 // prevention provided by underlying DBMS.
 // Reasoning:
-// 1. it's diffcult to support multiple DBMS backends in the same time, the
+// 1. it's difficult to support multiple DBMS backends in the same time, the
 // SQL syntax differs from one to another.
 // 2. we don't need a strict simultaneous consistency between OCSP and certificate
 // status. It's OK that a OCSP response still shows 'good' while the

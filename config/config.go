@@ -85,7 +85,7 @@ type SigningProfile struct {
 	BackdateString      string       `json:"backdate"`
 	AuthKeyName         string       `json:"auth_key"`
 	CopyExtensions      bool         `json:"copy_extensions"`
-	PrevAuthKeyName     string       `json:"prev_auth_key"` // to suppport key rotation
+	PrevAuthKeyName     string       `json:"prev_auth_key"` // to support key rotation
 	RemoteName          string       `json:"remote"`
 	NotBefore           time.Time    `json:"not_before"`
 	NotAfter            time.Time    `json:"not_after"`

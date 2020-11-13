@@ -62,7 +62,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	case "certificate":
 		bundle, err := h.bundler.BundleFromPEMorDER([]byte(blob["certificate"]), []byte(blob["private_key"]), bf, "")
 		if err != nil {
-			log.Warning("bad PEM certifcate or private key")
+			log.Warning("bad PEM certificate or private key")
 			return err
 		}
 
