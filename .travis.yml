@@ -1,6 +1,5 @@
 sudo: false
 language: go
-
 matrix:
   include:
     - go: 1.12.x
@@ -11,6 +10,12 @@ matrix:
     - arch: s390x
       go: 1.13.x
     - arch: s390x
+      go: 1.14.x
+    - arch: ppc64le
+      go: 1.12.x
+    - arch: ppc64le
+      go: 1.13.x
+    - arch: ppc64le
       go: 1.14.x
 
 # Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
@@ -40,8 +45,8 @@ branches:
 
 before_script:
   - make bin/golint
-  #Setup postgresql for s390x environment
-  - if [[ $(uname -m) == 's390x' ]]; then
+  #Setup postgresql for s390x environment or power support
+  - if [[ $(uname -m) == 's390x' || $(uname -m) == 'ppc64le' ]]; then
       sudo apt-get --purge remove postgresql-*;
       sudo rm -Rf /etc/postgresql /var/lib/postgresql;
       sudo apt-get update;
@@ -49,7 +54,7 @@ before_script:
       sudo sed -i -e '/local.*peer/s/postgres/all/' -e 's/peer\|md5/trust/g' /etc/postgresql/9.5/main/pg_hba.conf;
       sudo service postgresql restart;
       sudo -u postgres createuser travis;
-    fi  
+    fi 
   # Setup DBs + run migrations
   # The sql_mode adjustment is to remove a sql_mode that was added in MySQL 5.7, this mode applies a rule that does:
   # > The NO_ZERO_DATE mode affects whether the server permits '0000-00-00' as a valid date.
