@@ -15,6 +15,15 @@ matrix:
       go: 1.14.x
     - arch: s390x
       go: 1.15.x
+    - arch: ppc64le
+      go: 1.12.x
+    - arch: ppc64le
+      go: 1.13.x
+    - arch: ppc64le
+      go: 1.14.x
+    - arch: ppc64le
+      go: 1.15.x
+      
 # Install g++-4.8 to support std=c++11 for github.com/google/certificate-transparency/go/merkletree
 addons:
   apt:
@@ -42,8 +51,8 @@ branches:
 
 before_script:
   - make bin/golint
-  #Setup postgresql for s390x environment
-  - if [[ $(uname -m) == 's390x' ]]; then
+  #Setup postgresql for s390x environment or Power Support environment
+  - if [[ $(uname -m) == 's390x' || $(uname -m) == 'ppc64le' ]]; then
       sudo apt-get --purge remove postgresql-*;
       sudo rm -Rf /etc/postgresql /var/lib/postgresql;
       sudo apt-get update;
