@@ -32,7 +32,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/google/certificate-transparency-go"
-	"github.com/zmap/zlint/v2/lint"
+	"github.com/zmap/zlint/v3/lint"
 )
 
 const (
