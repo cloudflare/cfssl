@@ -23,10 +23,10 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/weppos/publicsuffix-go v0.13.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	github.com/zmap/zcrypto v0.0.0-20200911161511-43ff0ea04f21
-	github.com/zmap/zlint/v2 v2.2.1
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	github.com/zmap/zcrypto v0.0.0-20201128221613-3719af1573cf
+	github.com/zmap/zlint/v3 v3.0.0
+	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	google.golang.org/appengine v1.6.6 // indirect
 )

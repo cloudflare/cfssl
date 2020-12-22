@@ -113,26 +113,26 @@ github.com/weppos/publicsuffix-go/publicsuffix
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-# github.com/zmap/zcrypto v0.0.0-20200911161511-43ff0ea04f21
+# github.com/zmap/zcrypto v0.0.0-20201128221613-3719af1573cf
 ## explicit
 github.com/zmap/zcrypto/json
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v2 v2.2.1
+# github.com/zmap/zlint/v3 v3.0.0
 ## explicit
-github.com/zmap/zlint/v2
-github.com/zmap/zlint/v2/lint
-github.com/zmap/zlint/v2/lints/apple
-github.com/zmap/zlint/v2/lints/cabf_br
-github.com/zmap/zlint/v2/lints/cabf_ev
-github.com/zmap/zlint/v2/lints/community
-github.com/zmap/zlint/v2/lints/etsi
-github.com/zmap/zlint/v2/lints/mozilla
-github.com/zmap/zlint/v2/lints/rfc
-github.com/zmap/zlint/v2/util
-# golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+github.com/zmap/zlint/v3
+github.com/zmap/zlint/v3/lint
+github.com/zmap/zlint/v3/lints/apple
+github.com/zmap/zlint/v3/lints/cabf_br
+github.com/zmap/zlint/v3/lints/cabf_ev
+github.com/zmap/zlint/v3/lints/community
+github.com/zmap/zlint/v3/lints/etsi
+github.com/zmap/zlint/v3/lints/mozilla
+github.com/zmap/zlint/v3/lints/rfc
+github.com/zmap/zlint/v3/util
+# golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
 ## explicit
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
@@ -147,12 +147,12 @@ golang.org/x/crypto/scrypt
 ## explicit
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
+# golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/idna
-# golang.org/x/text v0.3.3
+# golang.org/x/text v0.3.4
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
