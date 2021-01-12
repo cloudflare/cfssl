@@ -32,6 +32,9 @@ import (
 // When unspecified, downloaded intermediates are not saved.
 var IntermediateStash string
 
+// HTTPClient is an instance of http.Client that will be used for all HTTP requests.
+var HTTPClient = http.DefaultClient
+
 // BundleFlavor is named optimization strategy on certificate chain selection when bundling.
 type BundleFlavor string
 
@@ -333,7 +336,7 @@ type fetchedIntermediate struct {
 func fetchRemoteCertificate(certURL string) (fi *fetchedIntermediate, err error) {
 	log.Debugf("fetching remote certificate: %s", certURL)
 	var resp *http.Response
-	resp, err = http.Get(certURL)
+	resp, err = HTTPClient.Get(certURL)
 	if err != nil {
 		log.Debugf("failed HTTP get: %v", err)
 		return

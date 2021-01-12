@@ -25,6 +25,9 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
+// HTTPClient is an instance of http.Client that will be used for all HTTP requests.
+var HTTPClient = http.DefaultClient
+
 // HardFail determines whether the failure to check the revocation
 // status of a certificate (i.e. due to network failure) causes
 // verification to fail (a hard failure).
@@ -99,7 +102,7 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 
 // fetchCRL fetches and parses a CRL.
 func fetchCRL(url string) (*pkix.CertificateList, error) {
-	resp, err := http.Get(url)
+	resp, err := HTTPClient.Get(url)
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode >= 300 {
@@ -205,7 +208,7 @@ func VerifyCertificateError(cert *x509.Certificate) (revoked, ok bool, err error
 }
 
 func fetchRemote(url string) (*x509.Certificate, error) {
-	resp, err := http.Get(url)
+	resp, err := HTTPClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -278,10 +281,10 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	var err error
 	if len(req) > 256 {
 		buf := bytes.NewBuffer(req)
-		resp, err = http.Post(server, "application/ocsp-request", buf)
+		resp, err = HTTPClient.Post(server, "application/ocsp-request", buf)
 	} else {
 		reqURL := server + "/" + neturl.QueryEscape(base64.StdEncoding.EncodeToString(req))
-		resp, err = http.Get(reqURL)
+		resp, err = HTTPClient.Get(reqURL)
 	}
 
 	if err != nil {
