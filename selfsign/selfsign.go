@@ -32,8 +32,7 @@ func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x50
 		return
 	}
 
-	csr.CheckSignature()
-	if err != nil {
+	if err = csr.CheckSignature(); err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.KeyMismatch, err)
 		return
 	}
