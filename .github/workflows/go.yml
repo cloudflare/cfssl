@@ -1,0 +1,43 @@
+name: Go
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.18", "1.19"]
+    env:
+      GOFLAGS: "-mod=vendor"
+      GODEBUG: "x509sha1=1"
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: ./test.sh
+      # todo: these Actions tests still need to be updated to run the database tests
+      # that used to run in travis
+      - uses: codecov/codecov-action@v3
+
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3

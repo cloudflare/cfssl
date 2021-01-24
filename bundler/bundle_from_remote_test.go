@@ -103,6 +103,7 @@ var remoteTests = []remoteTest{
 
 // TestBundleFromRemote goes through the test cases defined in remoteTests and run them through. See above for test case definitions.
 func TestBundleFromRemote(t *testing.T) {
+	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
 		for _, test := range remoteTests {
 			b := test.bundlerConstructor(t)
@@ -163,6 +164,7 @@ var remoteSNITests = []remoteTest{
 
 // TestBundleFromRemoteSNI goes through the test cases defined in remoteSNITests and run them through. See above for test case definitions.
 func TestBundleFromRemoteSNI(t *testing.T) {
+	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	for _, bf := range []BundleFlavor{Ubiquitous, Optimal} {
 		for _, test := range remoteSNITests {
 			b := test.bundlerConstructor(t)
