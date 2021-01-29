@@ -160,6 +160,7 @@ func appendIf(s string, a *[]string) {
 	}
 }
 
+// OIDFromString creates an ASN1 ObjectIdentifier from its string representation
 func OIDFromString(s string) (asn1.ObjectIdentifier, error) {
 	var oid []int
 	parts := strings.Split(s, ".")
@@ -260,7 +261,6 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 // from an existing certificate. For a root certificate, the CA expiry
 // length is calculated as the duration between cert.NotAfter and cert.NotBefore.
 func ExtractCertificateRequest(cert *x509.Certificate) *CertificateRequest {
-	fmt.Printf("ExctractCertificateRequest %+v\n", *cert)
 	req := New()
 	req.CN = cert.Subject.CommonName
 	req.Names = getNames(cert.Subject)
