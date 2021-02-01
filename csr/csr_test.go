@@ -72,7 +72,10 @@ func TestPKIXName(t *testing.T) {
 		KeyRequest: NewKeyRequest(),
 	}
 
-	name := cr.Name()
+	name, err := cr.Name()
+	if err != nil {
+		t.Fatalf("Error getting name: %s", err.Error())
+	}
 	if len(name.Country) != 2 {
 		t.Fatal("Expected two countries in SubjInfo.")
 	} else if len(name.Province) != 2 {
@@ -113,7 +116,7 @@ func TestParseRequest(t *testing.T) {
 		KeyRequest: NewKeyRequest(),
 		Extensions: []pkix.Extension{
 			pkix.Extension{
-				Id: asn1.ObjectIdentifier{1, 2, 3, 4, 5},
+				Id:    asn1.ObjectIdentifier{1, 2, 3, 4, 5},
 				Value: []byte("AgEB"),
 			},
 		},
@@ -123,7 +126,7 @@ func TestParseRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	
+
 	block, _ := pem.Decode(csrBytes)
 	if block == nil {
 		t.Fatalf("%v", err)

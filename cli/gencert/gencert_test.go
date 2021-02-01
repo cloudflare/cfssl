@@ -3,6 +3,7 @@ package gencert
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -214,4 +215,18 @@ func TestBadGencertMain(t *testing.T) {
 		t.Fatal("Invalid remote, should reort error")
 	}
 
+}
+
+func TestOidMain(t *testing.T) {
+	c := cli.Config{
+		CAFile:    "../testdata/ca.pem",
+		CAKeyFile: "../testdata/ca-key.pem",
+	}
+	err := gencertMain([]string{"../testdata/bad_oid_csr.json"}, c)
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+	if !strings.Contains(err.Error(), "invalid OID part abc") {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
 }
