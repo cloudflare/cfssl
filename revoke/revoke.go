@@ -105,7 +105,10 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	resp, err := HTTPClient.Get(url)
 	if err != nil {
 		return nil, err
-	} else if resp.StatusCode >= 300 {
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
 		return nil, errors.New("failed to retrieve CRL")
 	}
 
@@ -113,8 +116,6 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
-
 	return x509.ParseCRL(body)
 }
 
@@ -212,12 +213,12 @@ func fetchRemote(url string) (*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	in, err := remoteRead(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
 
 	p, _ := pem.Decode(in)
 	if p != nil {
@@ -290,6 +291,7 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("failed to retrieve OSCP")
@@ -299,7 +301,6 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
 
 	switch {
 	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse):
