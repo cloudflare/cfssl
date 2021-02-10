@@ -13,7 +13,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/whitelist"
-	metrics "github.com/cloudflare/go-metrics"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // A SignatureResponse contains only a certificate, as there is no other
@@ -25,56 +26,36 @@ type SignatureResponse struct {
 type filter func(string, *signer.SignRequest) bool
 
 var filters = map[string][]filter{}
+var (
+	requests = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "requests_total",
+			Help: "How many requests for each operation type and signer were succesfully processed.",
+		},
+		[]string{"operation", "signer"},
+	)
+	erroredRequests = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "requests_errored_total",
+			Help: "How many requests for each operation type resulted in an error.",
+		},
+		[]string{"operation", "signer"},
+	)
+	badInputs = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "bad_inputs_total",
+			Help: "How many times the input was malformed or not allowed.",
+		},
+		[]string{"operation"},
+	)
+)
 
-type signerStats struct {
-	Counter metrics.Counter
-	Rate    metrics.Meter
-}
-
-var stats struct {
-	Registry         metrics.Registry
-	Requests         map[string]signerStats
-	TotalRequestRate metrics.Meter
-	ErrorPercent     metrics.GaugeFloat64
-	ErrorRate        metrics.Meter
-}
-
-func initStats() {
-	stats.Registry = metrics.NewRegistry()
-
-	stats.Requests = map[string]signerStats{}
-
-	// signers is defined in ca.go
-	for k := range signers {
-		stats.Requests[k] = signerStats{
-			Counter: metrics.NewRegisteredCounter("requests:"+k, stats.Registry),
-			Rate:    metrics.NewRegisteredMeter("request-rate:"+k, stats.Registry),
-		}
-	}
-
-	stats.TotalRequestRate = metrics.NewRegisteredMeter("total-request-rate", stats.Registry)
-	stats.ErrorPercent = metrics.NewRegisteredGaugeFloat64("error-percent", stats.Registry)
-	stats.ErrorRate = metrics.NewRegisteredMeter("error-rate", stats.Registry)
-}
-
-// incError increments the error count and updates the error percentage.
-func incErrors() {
-	stats.ErrorRate.Mark(1)
-	eCtr := float64(stats.ErrorRate.Count())
-	rCtr := float64(stats.TotalRequestRate.Count())
-	stats.ErrorPercent.Update(eCtr / rCtr * 100)
-}
-
-// incRequests increments the request count and updates the error percentage.
-func incRequests() {
-	stats.TotalRequestRate.Mark(1)
-	eCtr := float64(stats.ErrorRate.Count())
-	rCtr := float64(stats.TotalRequestRate.Count())
-	stats.ErrorPercent.Update(eCtr / rCtr * 100)
-}
+const (
+	signOperation = "sign"
+)
 
 func fail(w http.ResponseWriter, req *http.Request, status, code int, msg, ad string) {
-	incErrors()
+	badInputs.WithLabelValues(signOperation).Inc()
 
 	if ad != "" {
 		ad = " (" + ad + ")"
@@ -95,8 +76,6 @@ func fail(w http.ResponseWriter, req *http.Request, status, code int, msg, ad st
 }
 
 func dispatchRequest(w http.ResponseWriter, req *http.Request) {
-	incRequests()
-
 	if req.Method != "POST" {
 		fail(w, req, http.StatusMethodNotAllowed, 1, "only POST is permitted", "")
 		return
@@ -146,10 +125,7 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 		fail(w, req, http.StatusBadRequest, 1, "bad request", "request is for non-existent label "+sigRequest.Label)
 		return
 	}
-
-	stats.Requests[sigRequest.Label].Counter.Inc(1)
-	stats.Requests[sigRequest.Label].Rate.Mark(1)
-
+	requests.WithLabelValues(signOperation, sigRequest.Label).Inc()
 	// Sanity checks to ensure that we have a valid policy. This
 	// should have been checked in NewAuthSignHandler.
 	policy := s.Policy()
@@ -195,12 +171,14 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 
 	cert, err := s.Sign(sigRequest)
 	if err != nil {
+		erroredRequests.WithLabelValues(signOperation, sigRequest.Label).Inc()
 		fail(w, req, http.StatusBadRequest, 1, "bad request", "signature failed: "+err.Error())
 		return
 	}
 
 	x509Cert, err := helpers.ParseCertificatePEM(cert)
 	if err != nil {
+		erroredRequests.WithLabelValues(signOperation, sigRequest.Label).Inc()
 		fail(w, req, http.StatusInternalServerError, 1, "bad certificate", err.Error())
 	}
 
@@ -218,23 +196,4 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 func metricsDisallowed(w http.ResponseWriter, req *http.Request) {
 	log.Warning("attempt to access metrics endpoint from external address ", req.RemoteAddr)
 	http.NotFound(w, req)
-}
-
-func dumpMetrics(w http.ResponseWriter, req *http.Request) {
-	log.Info("whitelisted requested for metrics endpoint")
-	var statsOut = struct {
-		Metrics metrics.Registry `json:"metrics"`
-		Signers []string         `json:"signers"`
-	}{stats.Registry, make([]string, 0, len(signers))}
-
-	for signer := range signers {
-		statsOut.Signers = append(statsOut.Signers, signer)
-	}
-
-	out, err := json.Marshal(statsOut)
-	if err != nil {
-		log.Errorf("failed to dump metrics: %v", err)
-	}
-
-	w.Write(out)
 }
