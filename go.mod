@@ -7,7 +7,6 @@ require (
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261 // indirect
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
-	github.com/cloudflare/go-metrics v0.0.0-20151117154305-6a9aea36fb41
 	github.com/cloudflare/redoctober v0.0.0-20171127175943-746a508df14c
 	github.com/getsentry/raven-go v0.0.0-20180121060056-563b81fc02b7 // indirect
 	github.com/go-sql-driver/mysql v1.4.0
@@ -19,9 +18,8 @@ require (
 	github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28 // indirect
 	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v1.10.0
-	github.com/pkg/errors v0.8.0 // indirect
+	github.com/prometheus/client_golang v1.9.0
 	github.com/stretchr/testify v1.4.0
-	github.com/weppos/publicsuffix-go v0.13.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	github.com/zmap/zcrypto v0.0.0-20201128221613-3719af1573cf
 	github.com/zmap/zlint/v3 v3.0.0
