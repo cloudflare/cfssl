@@ -37,6 +37,7 @@ type Name struct {
 	L            string            `json:"L,omitempty" yaml:"L,omitempty"`   // Locality
 	O            string            `json:"O,omitempty" yaml:"O,omitempty"`   // OrganisationName
 	OU           string            `json:"OU,omitempty" yaml:"OU,omitempty"` // OrganisationalUnitName
+    E            string            `json:"E,omitempty" yaml:"E,omitempty"`
 	SerialNumber string            `json:"SerialNumber,omitempty" yaml:"SerialNumber,omitempty"`
 	OID          map[string]string `json:"OID,omitempty", yaml:"OID,omitempty"`
 }
@@ -195,6 +196,9 @@ func (cr *CertificateRequest) Name() (pkix.Name, error) {
 			}
 			name.ExtraNames = append(name.ExtraNames, pkix.AttributeTypeAndValue{Type: oid, Value: v})
 		}
+        if n.E != "" {
+            name.ExtraNames = append(name.ExtraNames, pkix.AttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, Value: n.E})
+        }
 	}
 	name.SerialNumber = cr.SerialNumber
 	return name, nil
