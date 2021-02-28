@@ -80,9 +80,8 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 		}
 
 		if revoked, ok, err := certIsRevokedCRL(cert, url); !ok {
-			log.Warning("error checking revocation via CRL %v", err.Error())
+			log.Warning("error checking revocation via CRL")
 			if NoFailOnUnreachableCRLHost && strings.Contains(err.Error(), "no such host") {
-				log.Warning("skipped error checking revocation via CRL %v", err.Error())
 				continue
 			}
 			if HardFail {
