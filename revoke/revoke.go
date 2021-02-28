@@ -33,6 +33,9 @@ var HTTPClient = http.DefaultClient
 // verification to fail (a hard failure).
 var HardFail = false
 
+//
+var ValidateSingleCrlStatus = false
+
 // CRLSet associates a PKIX certificate list with the URL the CRL is
 // fetched from.
 var CRLSet = map[string]*pkix.CertificateList{}
@@ -68,6 +71,7 @@ func ldapURL(url string) bool {
 //  true, false:  failure to check revocation status causes
 //                  verification to fail
 func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
+	oneSuccessfulCRLCheck := false
 	for _, url := range cert.CRLDistributionPoints {
 		if ldapURL(url) {
 			log.Infof("skipping LDAP CRL: %s", url)
@@ -76,6 +80,9 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 
 		if revoked, ok, err := certIsRevokedCRL(cert, url); !ok {
 			log.Warning("error checking revocation via CRL")
+			if ValidateSingleCrlStatus {
+				continue
+			}
 			if HardFail {
 				return true, false, err
 			}
@@ -83,7 +90,13 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 		} else if revoked {
 			log.Info("certificate is revoked via CRL")
 			return true, true, err
+		} else {
+			oneSuccessfulCRLCheck = true
 		}
+	}
+
+	if ValidateSingleCrlStatus && oneSuccessfulCRLCheck {
+		return oneSuccessfulCRLCheck, true, nil
 	}
 
 	if revoked, ok, err := certIsRevokedOCSP(cert, HardFail); !ok {
