@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,8 +34,8 @@ var HTTPClient = http.DefaultClient
 // verification to fail (a hard failure).
 var HardFail = false
 
-//
-var ValidateSingleCrlStatus = false
+// NoFailOnUnreachableCRLHost is to define whether the CRL check should fail on unreachable host.
+var NoFailOnUnreachableCRLHost = false
 
 // CRLSet associates a PKIX certificate list with the URL the CRL is
 // fetched from.
@@ -79,8 +80,9 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 		}
 
 		if revoked, ok, err := certIsRevokedCRL(cert, url); !ok {
-			log.Warning("error checking revocation via CRL")
-			if ValidateSingleCrlStatus {
+			log.Warning("error checking revocation via CRL %v", err.Error())
+			if NoFailOnUnreachableCRLHost && strings.Contains(err.Error(), "no such host") {
+				log.Warning("skipped error checking revocation via CRL %v", err.Error())
 				continue
 			}
 			if HardFail {
@@ -95,8 +97,8 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 		}
 	}
 
-	if ValidateSingleCrlStatus && oneSuccessfulCRLCheck {
-		return oneSuccessfulCRLCheck, true, nil
+	if NoFailOnUnreachableCRLHost && oneSuccessfulCRLCheck {
+		return false, true, nil
 	}
 
 	if revoked, ok, err := certIsRevokedOCSP(cert, HardFail); !ok {
