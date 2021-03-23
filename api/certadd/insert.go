@@ -60,8 +60,8 @@ type AddRequest struct {
 	PEM          string         `json:"pem"`
 	IssuedAt     *time.Time     `json:"issued_at"`
 	NotBefore    *time.Time     `json:"not_before"`
-	MetadataJson types.JSONText `json:"metadata"`
-	SansJson     types.JSONText `json:"sans"`
+	MetadataJSON types.JSONText `json:"metadata"`
+	SansJSON     types.JSONText `json:"sans"`
 	CommonName   string         `json:"common_name"`
 }
 
@@ -163,8 +163,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		PEM:          req.PEM,
 		IssuedAt:     req.IssuedAt,
 		NotBefore:    req.NotBefore,
-		MetadataJSON: req.MetadataJson,
-		SANsJSON:     req.SansJson,
+		MetadataJSON: req.MetadataJSON,
+		SANsJSON:     req.SansJSON,
 		CommonName:   sql.NullString{String: req.CommonName, Valid: req.CommonName != ""},
 	}
 
