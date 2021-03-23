@@ -2,6 +2,7 @@ package certadd
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/ocsp"
+	"github.com/jmoiron/sqlx/types"
 
 	"encoding/base64"
 
@@ -48,14 +50,19 @@ func NewHandler(dbAccessor certdb.Accessor, signer ocsp.Signer) http.Handler {
 // AddRequest describes a request from a client to insert a
 // certificate into the database.
 type AddRequest struct {
-	Serial    string    `json:"serial_number"`
-	AKI       string    `json:"authority_key_identifier"`
-	CALabel   string    `json:"ca_label"`
-	Status    string    `json:"status"`
-	Reason    int       `json:"reason"`
-	Expiry    time.Time `json:"expiry"`
-	RevokedAt time.Time `json:"revoked_at"`
-	PEM       string    `json:"pem"`
+	Serial       string         `json:"serial_number"`
+	AKI          string         `json:"authority_key_identifier"`
+	CALabel      string         `json:"ca_label"`
+	Status       string         `json:"status"`
+	Reason       int            `json:"reason"`
+	Expiry       time.Time      `json:"expiry"`
+	RevokedAt    time.Time      `json:"revoked_at"`
+	PEM          string         `json:"pem"`
+	IssuedAt     *time.Time     `json:"issued_at"`
+	NotBefore    *time.Time     `json:"not_before"`
+	MetadataJson types.JSONText `json:"metadata"`
+	SansJson     types.JSONText `json:"sans"`
+	CommonName   string         `json:"common_name"`
 }
 
 // Map of valid reason codes
@@ -113,6 +120,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("The provided certificate is empty")
 	}
 
+	if req.Expiry.IsZero() {
+		return errors.NewBadRequestString("Expiry is required but not provided")
+	}
+
 	// Parse the certificate and validate that it matches
 	cert, err := helpers.ParseCertificatePEM([]byte(req.PEM))
 	if err != nil {
@@ -120,7 +131,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	serialBigInt := new(big.Int)
-	if _, success := serialBigInt.SetString(req.Serial, 16); !success {
+	if _, success := serialBigInt.SetString(req.Serial, 10); !success {
 		return errors.NewBadRequestString("Unable to parse serial key of request")
 	}
 
@@ -137,15 +148,24 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("Authority key identifier of request and certificate do not match")
 	}
 
+	if req.Expiry != cert.NotAfter {
+		return errors.NewBadRequestString("Expiry of request and certificate do not match")
+	}
+
 	cr := certdb.CertificateRecord{
-		Serial:    req.Serial,
-		AKI:       req.AKI,
-		CALabel:   req.CALabel,
-		Status:    req.Status,
-		Reason:    req.Reason,
-		Expiry:    req.Expiry,
-		RevokedAt: req.RevokedAt,
-		PEM:       req.PEM,
+		Serial:       req.Serial,
+		AKI:          req.AKI,
+		CALabel:      req.CALabel,
+		Status:       req.Status,
+		Reason:       req.Reason,
+		Expiry:       req.Expiry,
+		RevokedAt:    req.RevokedAt,
+		PEM:          req.PEM,
+		IssuedAt:     req.IssuedAt,
+		NotBefore:    req.NotBefore,
+		MetadataJSON: req.MetadataJson,
+		SANsJSON:     req.SansJson,
+		CommonName:   sql.NullString{String: req.CommonName, Valid: req.CommonName != ""},
 	}
 
 	err = h.dbAccessor.InsertCertificate(cr)

@@ -73,6 +73,7 @@ func makeCertificate() (serialNumber *big.Int, cert *x509.Certificate, pemBytes 
 			Organization: []string{"Cornell CS 5152"},
 		},
 		AuthorityKeyId: []byte{42, 42, 42, 42},
+		NotAfter:       time.Now(),
 	}
 	cert = &template
 
@@ -91,9 +92,9 @@ func makeCertificate() (serialNumber *big.Int, cert *x509.Certificate, pemBytes 
 		Subject: pkix.Name{
 			Organization: []string{"Cornell CS 5152"},
 		},
-		AuthorityKeyId: []byte{42, 42, 42, 42},
-		KeyUsage:       x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		IsCA:           true,
+		AuthorityKeyId:        []byte{42, 42, 42, 42},
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 	issuerBytes, err := x509.CreateCertificate(rand.Reader, &issuerTemplate, &issuerTemplate, &privKey.PublicKey, privKey)
@@ -153,10 +154,11 @@ func TestInsertValidCertificate(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "good",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusOK {
@@ -179,7 +181,7 @@ func TestInsertValidCertificate(t *testing.T) {
 		t.Fatal("Could not parse returned OCSP response", err)
 	}
 
-	ocsps, err := dbAccessor.GetOCSP(serialNumber.Text(16), hex.EncodeToString(cert.AuthorityKeyId))
+	ocsps, err := dbAccessor.GetOCSP(serialNumber.Text(10), hex.EncodeToString(cert.AuthorityKeyId))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,6 +225,7 @@ func TestInsertMissingSerial(t *testing.T) {
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "good",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -236,16 +239,41 @@ func TestInsertMissingAKI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serialNumber, _, pemBytes, signer, err := makeCertificate()
+	serialNumber, cert, pemBytes, signer, err := makeCertificate()
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number": serialNumber.Text(16),
+		"serial_number": serialNumber.Text(10),
 		"status":        "good",
 		"pem":           string(pemBytes),
+		"expiry":        cert.NotAfter.UTC().Format(time.RFC3339),
+	})
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatal("Expected HTTP Bad Request", resp.StatusCode, string(body))
+	}
+}
+
+func TestInsertMissingExpiry(t *testing.T) {
+	dbAccessor, err := prepDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serialNumber, cert, pemBytes, signer, err := makeCertificate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
+		"serial_number":            serialNumber.Text(10),
+		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
+		"status":                   "good",
+		"pem":                      string(pemBytes),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -266,9 +294,10 @@ func TestInsertMissingPEM(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "good",
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -293,6 +322,7 @@ func TestInsertInvalidSerial(t *testing.T) {
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "good",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -306,17 +336,18 @@ func TestInsertInvalidAKI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serialNumber, _, pemBytes, signer, err := makeCertificate()
+	serialNumber, cert, pemBytes, signer, err := makeCertificate()
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": "this is not an AKI",
 		"status":                   "good",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -337,10 +368,11 @@ func TestInsertInvalidStatus(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "invalid",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -361,10 +393,36 @@ func TestInsertInvalidPEM(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "good",
 		"pem":                      "this is not a PEM certificate",
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
+	})
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatal("Expected HTTP Bad Request, got", resp.StatusCode, string(body))
+	}
+}
+
+func TestInsertInvalidExpiry(t *testing.T) {
+	dbAccessor, err := prepDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serialNumber, cert, pemBytes, signer, err := makeCertificate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
+		"serial_number":            serialNumber.Text(10),
+		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
+		"status":                   "good",
+		"pem":                      string(pemBytes),
+		"expiry":                   "this is not an expiry",
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -385,10 +443,11 @@ func TestInsertWrongSerial(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            big.NewInt(1).Text(16),
+		"serial_number":            big.NewInt(1).Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "good",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -402,6 +461,31 @@ func TestInsertWrongAKI(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	serialNumber, cert, pemBytes, signer, err := makeCertificate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
+		"serial_number":            serialNumber.Text(10),
+		"authority_key_identifier": hex.EncodeToString([]byte{7, 7}),
+		"status":                   "good",
+		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
+	})
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatal("Expected HTTP Bad Request", resp.StatusCode, string(body))
+	}
+}
+
+func TestInsertWrongExpiry(t *testing.T) {
+	dbAccessor, err := prepDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	serialNumber, _, pemBytes, signer, err := makeCertificate()
 
 	if err != nil {
@@ -409,10 +493,11 @@ func TestInsertWrongAKI(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString([]byte{7, 7}),
 		"status":                   "good",
 		"pem":                      string(pemBytes),
+		"expiry":                   time.Now().UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -433,18 +518,19 @@ func TestInsertRevokedCertificate(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "revoked",
 		"pem":                      string(pemBytes),
 		"revoked_at":               time.Now(),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 	})
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatal("Expected HTTP OK", resp.StatusCode, string(body))
 	}
 
-	ocsps, err := dbAccessor.GetOCSP(serialNumber.Text(16), hex.EncodeToString(cert.AuthorityKeyId))
+	ocsps, err := dbAccessor.GetOCSP(serialNumber.Text(10), hex.EncodeToString(cert.AuthorityKeyId))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -477,10 +563,11 @@ func TestInsertRevokedCertificateWithoutTime(t *testing.T) {
 	}
 
 	resp, body := makeRequest(t, dbAccessor, signer, map[string]interface{}{
-		"serial_number":            serialNumber.Text(16),
+		"serial_number":            serialNumber.Text(10),
 		"authority_key_identifier": hex.EncodeToString(cert.AuthorityKeyId),
 		"status":                   "revoked",
 		"pem":                      string(pemBytes),
+		"expiry":                   cert.NotAfter.UTC().Format(time.RFC3339),
 		// Omit RevokedAt
 	})
 
