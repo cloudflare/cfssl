@@ -16,6 +16,7 @@ import (
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/bundle"
+	"github.com/cloudflare/cfssl/api/certadd"
 	"github.com/cloudflare/cfssl/api/certinfo"
 	"github.com/cloudflare/cfssl/api/crl"
 	"github.com/cloudflare/cfssl/api/gencrl"
@@ -250,6 +251,10 @@ var endpoints = map[string]func() (http.Handler, error){
 
 	"health": func() (http.Handler, error) {
 		return health.NewHealthCheck(), nil
+	},
+
+	"certadd": func() (http.Handler, error) {
+		return certadd.NewHandler(certsql.NewAccessor(db), nil), nil
 	},
 }
 
