@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/letsencrypt/pkcs11key"
+
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
@@ -25,7 +27,7 @@ import (
 func parseSigner(root *config.Root) (signer.Signer, error) {
 	privateKey := root.PrivateKey
 	switch priv := privateKey.(type) {
-	case *rsa.PrivateKey, *ecdsa.PrivateKey:
+	case *rsa.PrivateKey, *ecdsa.PrivateKey, *pkcs11key.Key:
 		s, err := local.NewSigner(priv, root.Certificate, signer.DefaultSigAlgo(priv), nil)
 		if err != nil {
 			return nil, err
@@ -48,12 +50,18 @@ var (
 )
 
 func main() {
+	flagLogLevel := flag.Int("loglevel", log.LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 	flagAddr := flag.String("a", ":8888", "listening address")
 	flagRootFile := flag.String("roots", "", "configuration file specifying root keys")
 	flagDefaultLabel := flag.String("l", "", "specify a default label")
 	flagEndpointCert := flag.String("tls-cert", "", "server certificate")
 	flagEndpointKey := flag.String("tls-key", "", "server private key")
+
 	flag.Parse()
+
+	if *flagLogLevel >= 0 && *flagLogLevel <= 5 {
+		log.Level = *flagLogLevel
+	}
 
 	if *flagRootFile == "" {
 		log.Fatal("no root file specified")
