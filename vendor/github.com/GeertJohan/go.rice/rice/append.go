@@ -87,10 +87,12 @@ func operationAppend(pkgs []*build.Package) {
 				zipFileName := filepath.Join(appendedBoxName, strings.TrimPrefix(path, boxPath))
 				// write directories as empty file with comment "dir"
 				if info.IsDir() {
-					_, err := zipWriter.CreateHeader(&zip.FileHeader{
-						Name:    zipFileName,
-						Comment: "dir",
-					})
+					header := &zip.FileHeader{
+						Name:     zipFileName,
+						Comment:  "dir",
+					}
+					header.SetModTime(info.ModTime())
+					_, err := zipWriter.CreateHeader(header)
 					if err != nil {
 						fmt.Printf("Error creating dir in tmp zip: %s\n", err)
 						os.Exit(1)

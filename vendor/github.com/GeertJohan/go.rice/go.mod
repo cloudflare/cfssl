@@ -8,6 +8,6 @@ require (
 	github.com/daaku/go.zipexe v1.0.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/jessevdk/go-flags v1.4.0
-	github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229
+	github.com/nkovacs/streamquote v1.0.0
 	github.com/valyala/fasttemplate v1.0.1
 )

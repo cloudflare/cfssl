@@ -61,21 +61,21 @@ func New(records *passvault.Records, cache *keycache.Cache, config *config.Confi
 // both, then he can decrypt it alone).  If a predicate is present, it must be
 // satisfied to decrypt.
 type AccessStructure struct {
-	Minimum int
-	Names   []string
+	Minimum    int
+	Names      []string
 
 	LeftNames  []string
 	RightNames []string
 
-	Predicate string
+	Predicate  string
 }
 
 // Implements msp.UserDatabase
 type UserDatabase struct {
-	names *[]string
+	names    *[]string
 
-	records *passvault.Records
-	cache   *keycache.Cache
+	records  *passvault.Records
+	cache    *keycache.Cache
 
 	user     string
 	labels   []string
@@ -129,6 +129,9 @@ type EncryptedData struct {
 	Version   int
 	VaultId   int                         `json:",omitempty"`
 	Labels    []string                    `json:",omitempty"`
+	// Usages list the endpoints which may use this data
+	// If empty, only decryption in permitted
+	Usages    []string                    `json:",omitempty"`
 	Predicate string                      `json:",omitempty"`
 	KeySet    []MultiWrappedKey           `json:",omitempty"`
 	KeySetRSA map[string]SingleWrappedKey `json:",omitempty"`
@@ -146,8 +149,8 @@ type pair struct {
 type mwkSlice []MultiWrappedKey
 type swkSlice []pair
 
-func (s mwkSlice) Len() int             { return len(s) }
-func (s mwkSlice) Swap(i, j int)        { s[i], s[j] = s[j], s[i] }
+func (s mwkSlice) Len() int           { return len(s) }
+func (s mwkSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s mwkSlice) Less(i, j int) bool { // Alphabetic order
 	var shorter = i
 	if len(s[i].Name) > len(s[j].Name) {
@@ -184,8 +187,9 @@ func (encrypted *EncryptedData) computeHmac(key []byte) []byte {
 	}
 	sort.Sort(&swks)
 
-	// sort the labels
+	// sort the labels and usages
 	sort.Strings(encrypted.Labels)
+	sort.Strings(encrypted.Usages)
 
 	// start hashing
 	mac.Write([]byte(strconv.Itoa(encrypted.Version)))
@@ -210,8 +214,13 @@ func (encrypted *EncryptedData) computeHmac(key []byte) []byte {
 	mac.Write(encrypted.Data)
 
 	// hash the labels
-	for index := range encrypted.Labels {
-		mac.Write([]byte(encrypted.Labels[index]))
+	for _, label := range encrypted.Labels {
+		mac.Write([]byte(label))
+	}
+
+	// hash the usages
+	for _, usage := range encrypted.Usages {
+		mac.Write([]byte(usage))
 	}
 
 	return mac.Sum(nil)
@@ -493,7 +502,7 @@ func (encrypted *EncryptedData) unwrapKey(cache *keycache.Cache, user string) (u
 // Encrypt encrypts data with the keys associated with names. This
 // requires a minimum of min keys to decrypt.  NOTE: as currently
 // implemented, the maximum value for min is 2.
-func (c *Cryptor) Encrypt(in []byte, labels []string, access AccessStructure) (resp []byte, err error) {
+func (c *Cryptor) Encrypt(in []byte, labels []string, usages []string, access AccessStructure) (resp []byte, err error) {
 	var encrypted EncryptedData
 	encrypted.Version = DEFAULT_VERSION
 	if encrypted.VaultId, err = c.records.GetVaultID(); err != nil {
@@ -530,6 +539,7 @@ func (c *Cryptor) Encrypt(in []byte, labels []string, access AccessStructure) (r
 
 	encrypted.Data = encryptedFile
 	encrypted.Labels = labels
+	encrypted.Usages = usages
 
 	hmacKey, err := c.records.GetHMACKey()
 	if err != nil {
@@ -542,18 +552,18 @@ func (c *Cryptor) Encrypt(in []byte, labels []string, access AccessStructure) (r
 }
 
 // Decrypt decrypts a file using the keys in the key cache.
-func (c *Cryptor) Decrypt(in []byte, user string) (resp []byte, labels, names []string, secure bool, err error) {
+func (c *Cryptor) Decrypt(in []byte, user string) (resp []byte, labels, names []string, usages []string, secure bool, err error) {
 	return c.decrypt(c.cache, in, user)
 }
 
-func (c *Cryptor) decrypt(cache *keycache.Cache, in []byte, user string) (resp []byte, labels, names []string, secure bool, err error) {
+func (c *Cryptor) decrypt(cache *keycache.Cache, in []byte, user string) (resp []byte, labels, names []string, usages []string, secure bool, err error) {
 	// unwrap encrypted file
 	var encrypted EncryptedData
 	if err = json.Unmarshal(in, &encrypted); err != nil {
 		return
 	}
 	if encrypted.Version != DEFAULT_VERSION && encrypted.Version != -1 {
-		return nil, nil, nil, secure, errors.New("Unknown version")
+		return nil, nil, nil, nil, secure, errors.New("Unknown version")
 	}
 
 	secure = encrypted.Version == -1
@@ -573,7 +583,7 @@ func (c *Cryptor) decrypt(cache *keycache.Cache, in []byte, user string) (resp [
 		return
 	}
 	if encrypted.VaultId != vaultId {
-		return nil, nil, nil, secure, errors.New("Wrong vault")
+		return nil, nil, nil, nil, secure, errors.New("Wrong vault")
 	}
 
 	// compute HMAC
@@ -602,6 +612,7 @@ func (c *Cryptor) decrypt(cache *keycache.Cache, in []byte, user string) (resp [
 
 	resp, err = padding.RemovePadding(clearData)
 	labels = encrypted.Labels
+	usages = encrypted.Usages
 	return
 }
 
@@ -726,7 +737,7 @@ func (c *Cryptor) store() error {
 		Predicate: c.persist.Policy(),
 	}
 
-	cache, err = c.Encrypt(cache, persist.Labels, access)
+	cache, err = c.Encrypt(cache, persist.Labels, persist.Usages, access)
 	if err != nil {
 		return err
 	}
@@ -764,7 +775,7 @@ func (c *Cryptor) Restore(name, password string, uses int, slot, durationString 
 	// just means there aren't enough delegations yet; the
 	// sentinal value ErrRestoreDelegations is returned to
 	// indicate this. However, the error
-	cache, _, names, _, err := c.decrypt(c.persist.Cache(), c.persist.Blob(), name)
+	cache, _, _, names, _, err := c.decrypt(c.persist.Cache(), c.persist.Blob(), name)
 	if err != nil {
 		if err == msp.ErrNotEnoughShares {
 			return ErrRestoreDelegations

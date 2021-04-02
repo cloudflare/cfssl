@@ -4,6 +4,7 @@
 package core
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/cloudflare/redoctober/passvault"
 	"github.com/cloudflare/redoctober/persist"
 	"github.com/cloudflare/redoctober/report"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -88,6 +90,7 @@ type EncryptRequest struct {
 	Data []byte
 
 	Labels []string
+	Usages []string
 }
 
 type ReEncryptRequest EncryptRequest
@@ -97,6 +100,21 @@ type DecryptRequest struct {
 	Password string
 
 	Data []byte
+}
+
+type SSHSignWithRequest struct {
+	Name     string
+	Password string
+
+	Data    []byte
+	TBSData []byte
+}
+
+type SSHSignatureWithDelegates struct {
+	SignatureFormat string
+	Signature       []byte
+	Secure          bool
+	Delegates       []string
 }
 
 type OwnersRequest struct {
@@ -160,8 +178,15 @@ type ResponseData struct {
 type SummaryData struct {
 	Status string
 	State  string
-	Live   map[string]keycache.ActiveUser
+	Live   map[string]ActiveUser
 	All    map[string]passvault.Summary
+}
+
+type ActiveUser struct {
+	keycache.Usage
+	AltNames map[string]string
+	Admin    bool
+	Type     string
 }
 
 type DecryptWithDelegates struct {
@@ -191,7 +216,7 @@ func jsonStatusError(err error) ([]byte, error) {
 }
 func jsonSummary() ([]byte, error) {
 	state := crypt.Status()
-	return json.Marshal(SummaryData{Status: "ok", State: state.State, Live: crypt.LiveSummary(), All: records.GetSummary()})
+	return json.Marshal(SummaryData{Status: "ok", State: state.State, Live: liveSummary(), All: records.GetSummary()})
 }
 func jsonResponse(resp []byte) ([]byte, error) {
 	return json.Marshal(ResponseData{Status: "ok", Response: resp})
@@ -233,6 +258,24 @@ func validateName(name, password string) error {
 	}
 
 	return nil
+}
+
+// liveSummary creates a sanitized version of cryptor.LiveSummary() without any key material
+func liveSummary() map[string]ActiveUser {
+	currLiveSummary := crypt.LiveSummary()
+	summaryData := make(map[string]ActiveUser)
+
+	for summaryInfo, activeUser := range currLiveSummary {
+		sanitizedActiveUser := ActiveUser{
+			Usage:    activeUser.Usage,
+			AltNames: activeUser.AltNames,
+			Admin:    activeUser.Admin,
+			Type:     activeUser.Type,
+		}
+		summaryData[summaryInfo] = sanitizedActiveUser
+	}
+
+	return summaryData
 }
 
 // Init reads the records from disk from a given path
@@ -607,7 +650,7 @@ func Encrypt(jsonIn []byte) ([]byte, error) {
 		Predicate:  s.Predicate,
 	}
 
-	resp, err := crypt.Encrypt(s.Data, s.Labels, access)
+	resp, err := crypt.Encrypt(s.Data, s.Labels, s.Usages, access)
 	if err != nil {
 		return jsonStatusError(err)
 	}
@@ -636,7 +679,7 @@ func ReEncrypt(jsonIn []byte) ([]byte, error) {
 		return jsonStatusError(err)
 	}
 
-	data, _, _, secure, err := crypt.Decrypt(s.Data, s.Name)
+	data, _, _, usages, secure, err := crypt.Decrypt(s.Data, s.Name)
 	if err != nil {
 		return jsonStatusError(err)
 	}
@@ -652,7 +695,7 @@ func ReEncrypt(jsonIn []byte) ([]byte, error) {
 		Predicate:  s.Predicate,
 	}
 
-	resp, err := crypt.Encrypt(data, s.Labels, access)
+	resp, err := crypt.Encrypt(data, s.Labels, usages, access)
 	if err != nil {
 		return jsonStatusError(err)
 	}
@@ -685,15 +728,104 @@ func Decrypt(jsonIn []byte) ([]byte, error) {
 		return jsonStatusError(err)
 	}
 
-	data, allLabels, names, secure, err := crypt.Decrypt(s.Data, s.Name)
+	data, allLabels, names, usages, secure, err := crypt.Decrypt(s.Data, s.Name)
 	if err != nil {
 		return jsonStatusError(err)
+	}
+
+	if len(usages) != 0 {
+		// a file must be marked as usable for "decrypt" before we will decrypt
+		// it for the user. If no usages are provided, we permit decryption
+		foundDecrypt := false
+		for _, usage := range usages {
+			if usage == "decrypt" {
+				foundDecrypt = true
+				break
+			}
+		}
+		if !foundDecrypt {
+			return jsonStatusError(errors.New("cannot decrypt this file"))
+		}
 	}
 
 	resp := &DecryptWithDelegates{
 		Data:      data,
 		Secure:    secure,
 		Delegates: names,
+	}
+
+	tags["delegates"] = strings.Join(names, ", ")
+
+	out, err := json.Marshal(resp)
+	if err != nil {
+		return jsonStatusError(err)
+	}
+
+	// Cleanup any orders that have been fulfilled and notify the room.
+	if orderKey, found := orders.FindOrder(s.Name, allLabels); found {
+		delete(orders.Orders, orderKey)
+		orders.NotifyOrderFulfilled(s.Name, orderKey)
+	}
+	return jsonResponse(out)
+}
+
+// SSHSignWith signs a message with an SSH key
+func SSHSignWith(jsonIn []byte) ([]byte, error) {
+	var s SSHSignWithRequest
+	var err error
+	var tags = map[string]string{"function": "core.SSHSignWith"}
+
+	defer func() {
+		if err != nil {
+			tags["ssh-sign-with.user"] = s.Name
+			report.Check(err, tags)
+			log.Printf("core.ssh-sign-with failed: user=%s %v", s.Name, err)
+		} else {
+			log.Printf("core.ssh-sign-with success: user=%s", s.Name)
+		}
+	}()
+
+	err = json.Unmarshal(jsonIn, &s)
+	if err != nil {
+		return jsonStatusError(err)
+	}
+
+	err = validateUser(s.Name, s.Password, false)
+	if err != nil {
+		return jsonStatusError(err)
+	}
+
+	data, allLabels, names, usages, secure, err := crypt.Decrypt(s.Data, s.Name)
+	if err != nil {
+		return jsonStatusError(err)
+	}
+
+	// a file must be marked as usable for "ssh-sign-with" before we will try to sign with it
+	foundSign := false
+	for _, usage := range usages {
+		if usage == "ssh-sign-with" {
+			foundSign = true
+			break
+		}
+	}
+	if !foundSign {
+		return jsonStatusError(errors.New("cannot sign with this file"))
+	}
+
+	var signer ssh.Signer
+	// TODO ParsePrivateKeyWithPassphrase
+	signer, err = ssh.ParsePrivateKey(data)
+	if err != nil {
+		return jsonStatusError(err)
+	}
+
+	var signature *ssh.Signature
+	signature, err = signer.Sign(rand.Reader, s.TBSData)
+	resp := &SSHSignatureWithDelegates{
+		SignatureFormat: signature.Format,
+		Signature:       signature.Blob,
+		Secure:          secure,
+		Delegates:       names,
 	}
 
 	tags["delegates"] = strings.Join(names, ", ")

@@ -37,7 +37,6 @@ var (
 	ErrPacketDropped         = errors.New("raven: packet dropped")
 	ErrUnableToUnmarshalJSON = errors.New("raven: unable to unmarshal JSON")
 	ErrMissingUser           = errors.New("raven: dsn missing public key and/or password")
-	ErrMissingPrivateKey     = errors.New("raven: dsn missing private key")
 	ErrMissingProjectID      = errors.New("raven: dsn missing project id")
 	ErrInvalidSampleRate     = errors.New("raven: sample rate should be between 0 and 1")
 )
@@ -69,6 +68,11 @@ func (timestamp *Timestamp) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (timestamp Timestamp) Format(format string) string {
+	t := time.Time(timestamp)
+	return t.Format(format)
+}
+
 // An Interface is a Sentry interface that will be serialized as JSON.
 // It must implement json.Marshaler or use json struct tags.
 type Interface interface {
@@ -83,6 +87,8 @@ type Culpriter interface {
 type Transport interface {
 	Send(url, authHeader string, packet *Packet) error
 }
+
+type Extra map[string]interface{}
 
 type outgoingPacket struct {
 	packet *Packet
@@ -150,32 +156,50 @@ type Packet struct {
 	Logger    string    `json:"logger"`
 
 	// Optional
-	Platform    string                 `json:"platform,omitempty"`
-	Culprit     string                 `json:"culprit,omitempty"`
-	ServerName  string                 `json:"server_name,omitempty"`
-	Release     string                 `json:"release,omitempty"`
-	Environment string                 `json:"environment,omitempty"`
-	Tags        Tags                   `json:"tags,omitempty"`
-	Modules     map[string]string      `json:"modules,omitempty"`
-	Fingerprint []string               `json:"fingerprint,omitempty"`
-	Extra       map[string]interface{} `json:"extra,omitempty"`
+	Platform    string            `json:"platform,omitempty"`
+	Culprit     string            `json:"culprit,omitempty"`
+	ServerName  string            `json:"server_name,omitempty"`
+	Release     string            `json:"release,omitempty"`
+	Environment string            `json:"environment,omitempty"`
+	Tags        Tags              `json:"tags,omitempty"`
+	Modules     map[string]string `json:"modules,omitempty"`
+	Fingerprint []string          `json:"fingerprint,omitempty"`
+	Extra       Extra             `json:"extra,omitempty"`
 
 	Interfaces []Interface `json:"-"`
 }
 
 // NewPacket constructs a packet with the specified message and interfaces.
 func NewPacket(message string, interfaces ...Interface) *Packet {
-	extra := map[string]interface{}{
-		"runtime.Version":      runtime.Version(),
-		"runtime.NumCPU":       runtime.NumCPU(),
-		"runtime.GOMAXPROCS":   runtime.GOMAXPROCS(0), // 0 just returns the current value
-		"runtime.NumGoroutine": runtime.NumGoroutine(),
-	}
+	extra := Extra{}
+	setExtraDefaults(extra)
 	return &Packet{
 		Message:    message,
 		Interfaces: interfaces,
 		Extra:      extra,
 	}
+}
+
+// NewPacketWithExtra constructs a packet with the specified message, extra information, and interfaces.
+func NewPacketWithExtra(message string, extra Extra, interfaces ...Interface) *Packet {
+	if extra == nil {
+		extra = Extra{}
+	}
+	setExtraDefaults(extra)
+
+	return &Packet{
+		Message:    message,
+		Interfaces: interfaces,
+		Extra:      extra,
+	}
+}
+
+func setExtraDefaults(extra Extra) Extra {
+	extra["runtime.Version"] = runtime.Version()
+	extra["runtime.NumCPU"] = runtime.NumCPU()
+	extra["runtime.GOMAXPROCS"] = runtime.GOMAXPROCS(0) // 0 just returns the current value
+	extra["runtime.NumGoroutine"] = runtime.NumGoroutine()
+	return extra
 }
 
 // Init initializes required fields in a packet. It is typically called by
@@ -337,6 +361,8 @@ func newClient(tags map[string]string) *Client {
 		queue:      make(chan *outgoingPacket, MaxQueueBuffer),
 	}
 	client.SetDSN(os.Getenv("SENTRY_DSN"))
+	client.SetRelease(os.Getenv("SENTRY_RELEASE"))
+	client.SetEnvironment(os.Getenv("SENTRY_ENVIRONMENT"))
 	return client
 }
 
@@ -444,10 +470,7 @@ func (client *Client) SetDSN(dsn string) error {
 		return ErrMissingUser
 	}
 	publicKey := uri.User.Username()
-	secretKey, ok := uri.User.Password()
-	if !ok {
-		return ErrMissingPrivateKey
-	}
+	secretKey, hasSecretKey := uri.User.Password()
 	uri.User = nil
 
 	if idx := strings.LastIndex(uri.Path, "/"); idx != -1 {
@@ -460,7 +483,11 @@ func (client *Client) SetDSN(dsn string) error {
 
 	client.url = uri.String()
 
-	client.authHeader = fmt.Sprintf("Sentry sentry_version=4, sentry_key=%s, sentry_secret=%s", publicKey, secretKey)
+	if hasSecretKey {
+		client.authHeader = fmt.Sprintf("Sentry sentry_version=4, sentry_key=%s, sentry_secret=%s", publicKey, secretKey)
+	} else {
+		client.authHeader = fmt.Sprintf("Sentry sentry_version=4, sentry_key=%s", publicKey)
+	}
 
 	return nil
 }
@@ -679,9 +706,10 @@ func (client *Client) CaptureError(err error, tags map[string]string, interfaces
 		return ""
 	}
 
+	extra := extractExtra(err)
 	cause := pkgErrors.Cause(err)
 
-	packet := NewPacket(cause.Error(), append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
+	packet := NewPacketWithExtra(err.Error(), extra, append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
 	eventID, _ := client.Capture(packet, tags)
 
 	return eventID
@@ -703,9 +731,10 @@ func (client *Client) CaptureErrorAndWait(err error, tags map[string]string, int
 		return ""
 	}
 
+	extra := extractExtra(err)
 	cause := pkgErrors.Cause(err)
 
-	packet := NewPacket(cause.Error(), append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
+	packet := NewPacketWithExtra(err.Error(), extra, append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
 	eventID, ch := client.Capture(packet, tags)
 	if eventID != "" {
 		<-ch
@@ -916,7 +945,7 @@ func (t *HTTPTransport) Send(url, authHeader string, packet *Packet) error {
 	io.Copy(ioutil.Discard, res.Body)
 	res.Body.Close()
 	if res.StatusCode != 200 {
-		return fmt.Errorf("raven: got http status %d", res.StatusCode)
+		return fmt.Errorf("raven: got http status %d - x-sentry-error: %s", res.StatusCode, res.Header.Get("X-Sentry-Error"))
 	}
 	return nil
 }

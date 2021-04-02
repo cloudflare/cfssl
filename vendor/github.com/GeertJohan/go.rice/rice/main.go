@@ -25,6 +25,7 @@ func main() {
 	var pkgs []*build.Package
 	for _, importPath := range flags.ImportPaths {
 		pkg := pkgForPath(importPath)
+		pkg.AllTags = flags.Tags
 		pkgs = append(pkgs, pkg)
 	}
 
@@ -36,9 +37,7 @@ func main() {
 		}
 	case "embed-syso":
 		log.Println("WARNING: embedding .syso is experimental..")
-		for _, pkg := range pkgs {
-			operationEmbedSyso(pkg)
-		}
+		log.Fatalln("FATAL: embed-syso is broken and will remain unusable until further notice. Please see https://github.com/GeertJohan/go.rice/issues/162")
 	case "append":
 		operationAppend(pkgs)
 	case "clean":
