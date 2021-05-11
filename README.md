@@ -60,11 +60,11 @@ You can set the `GOOS` and `GOARCH` environment variables to have Go cross compi
 
 ### Installation
 
-Installation requires a
-[working Go 1.12+ installation](http://golang.org/doc/install).
+Installation requires a [working Go 1.14+ installation](http://golang.org/doc/install).
+Alternatively, [prebuilt binaries are available](https://github.com/cloudflare/cfssl/releases)
 
 ```
-$ go get -u github.com/cloudflare/cfssl/cmd/cfssl
+$ go get github.com/cloudflare/cfssl/cmd/cfssl
 ```
 
 will download, build, and install the CFSSL tool.
@@ -73,7 +73,7 @@ To install any of the other utility programs that are
 in this repo (for instance `cfssljson` in this case):
 
 ```
-$ go get -u github.com/cloudflare/cfssl/cmd/cfssljson
+$ go get github.com/cloudflare/cfssl/cmd/cfssljson
 ```
 
 This will download, build, and install the CFSSLJSON tool.
@@ -81,7 +81,7 @@ This will download, build, and install the CFSSLJSON tool.
 And to simply install __all__ of the programs in this repo:
 
 ```
-$ go get -u github.com/cloudflare/cfssl/cmd/...
+$ go get github.com/cloudflare/cfssl/cmd/...
 ```
 
 This will download, build, and install all of the utility programs
@@ -353,7 +353,7 @@ for configuring and running the CA.
 verifying certificates. It can be installed with
 
 ```
-go get -u github.com/cloudflare/cfssl/cmd/mkbundle
+go get github.com/cloudflare/cfssl/cmd/mkbundle
 ```
 
 It takes a collection of certificates, checks for CRL revocation (OCSP
