@@ -53,6 +53,7 @@ func main() {
 	flagDefaultLabel := flag.String("l", "", "specify a default label")
 	flagEndpointCert := flag.String("tls-cert", "", "server certificate")
 	flagEndpointKey := flag.String("tls-key", "", "server private key")
+	flag.IntVar(&log.Level, "loglevel", log.LevelInfo, "Log level (0 = DEBUG, 5 = FATAL)")
 	flag.Parse()
 
 	if *flagRootFile == "" {
