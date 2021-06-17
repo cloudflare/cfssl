@@ -280,6 +280,17 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		want.PEM != got.PEM {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
+
+	rets, err = ta.Accessor.GetRevokedAndUnexpiredCertificatesByLabelSelectColumns("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got = rets[0]
+	// reflection comparison with zero time objects are not stable as it seems
+	if want.Serial != got.Serial || got.RevokedAt.IsZero() {
+		t.Errorf("want Certificate %+v, got %+v", want, got)
+	}
 }
 
 func testInsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
