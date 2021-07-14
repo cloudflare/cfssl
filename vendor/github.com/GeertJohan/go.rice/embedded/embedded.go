@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	EmbedTypeGo   = 0
-	EmbedTypeSyso = 1
+	EmbedTypeGo = 0
 )
 
 // EmbeddedBox defines an embedded box

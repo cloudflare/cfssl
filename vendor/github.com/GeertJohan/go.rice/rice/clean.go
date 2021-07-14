@@ -5,7 +5,6 @@ import (
 	"go/build"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func operationClean(pkg *build.Package) {
@@ -18,9 +17,7 @@ func operationClean(pkg *build.Package) {
 			return nil
 		}
 		verbosef("checking file '%s'\n", filename)
-		if filepath.Base(filename) == "rice-box.go" ||
-			strings.HasSuffix(filename, ".rice-box.go") ||
-			strings.HasSuffix(filename, ".rice-box.syso") {
+		if generated(filename) {
 			err := os.Remove(filename)
 			if err != nil {
 				fmt.Printf("error removing file (%s): %s\n", filename, err)

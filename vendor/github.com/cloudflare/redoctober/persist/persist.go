@@ -16,6 +16,9 @@ var defaultStore Store = &File{}
 // Labels are the labels that the keycache should be encrypted with.
 var Labels = []string{"restore"}
 
+// Usages indicate whether encrypted data can be decrypted or only used for signing
+var Usages = []string{}
+
 const (
 	// Disabled indicates that the persistence store will never
 	// persist active delegations.

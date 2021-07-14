@@ -90,19 +90,6 @@ go build
 
 *A Note on Symbolic Links*: `embed-go` uses the `os.Walk` function from the standard library.  The `os.Walk` function does **not** follow symbolic links. When creating a box, be aware that any symbolic links inside your box's directory are not followed. When the box itself is a symbolic link, the rice tool resolves its actual location before adding the contents.
 
-### `rice embed-syso`: Embed resources by generating a coff .syso file and some .go source code
-
-** This method is experimental. Do not use for production systems. **
-
-Execute this method before building. It generates a COFF .syso file and Go source file. The Go compiler then compiles these files into the binary.
-
-Execute the following commands:
-
-```bash
-rice embed-syso
-go build
-```
-
 ### `rice append`: Append resources to executable as zip file
 
 This method changes an already built executable. It appends the resources as zip file to the binary. It makes compilation a lot faster. Using the append method works great for adding large assets to an executable binary.
