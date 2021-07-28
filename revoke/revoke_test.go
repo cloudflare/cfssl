@@ -194,7 +194,7 @@ func TestBadCRLSet(t *testing.T) {
 	ldapCert := mustParse(goodComodoCA)
 	ldapCert.CRLDistributionPoints[0] = ""
 	CRLSet[""] = nil
-	certIsRevokedCRL(ldapCert, "")
+	certIsRevokedCRL(HTTPClient, ldapCert, "")
 	if _, ok := CRLSet[""]; ok {
 		t.Fatalf("key emptystring should be deleted from CRLSet")
 	}
@@ -213,7 +213,7 @@ func TestRemoteFetchError(t *testing.T) {
 
 	badurl := ":"
 
-	if _, err := fetchRemote(badurl); err == nil {
+	if _, err := fetchRemote(HTTPClient, badurl); err == nil {
 		t.Fatalf("fetching bad url should result in non-nil error")
 	}
 
@@ -222,10 +222,10 @@ func TestRemoteFetchError(t *testing.T) {
 func TestNoOCSPServers(t *testing.T) {
 	badIssuer := goodCert
 	badIssuer.IssuingCertificateURL = []string{" "}
-	certIsRevokedOCSP(badIssuer, true)
+	certIsRevokedOCSP(HTTPClient, badIssuer, true)
 	noOCSPCert := goodCert
 	noOCSPCert.OCSPServer = make([]string, 0)
-	if revoked, ok, _ := certIsRevokedOCSP(noOCSPCert, true); revoked || !ok {
+	if revoked, ok, _ := certIsRevokedOCSP(HTTPClient, noOCSPCert, true); revoked || !ok {
 		t.Fatalf("OCSP falsely registered as enabled for this certificate")
 	}
 }

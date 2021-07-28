@@ -67,14 +67,14 @@ func ldapURL(url string) bool {
 //
 //  true, false:  failure to check revocation status causes
 //                  verification to fail
-func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
+func revCheck(httpClient *http.Client, cert *x509.Certificate) (revoked, ok bool, err error) {
 	for _, url := range cert.CRLDistributionPoints {
 		if ldapURL(url) {
 			log.Infof("skipping LDAP CRL: %s", url)
 			continue
 		}
 
-		if revoked, ok, err := certIsRevokedCRL(cert, url); !ok {
+		if revoked, ok, err := certIsRevokedCRL(httpClient, cert, url); !ok {
 			log.Warning("error checking revocation via CRL")
 			if HardFail {
 				return true, false, err
@@ -86,7 +86,7 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 		}
 	}
 
-	if revoked, ok, err := certIsRevokedOCSP(cert, HardFail); !ok {
+	if revoked, ok, err := certIsRevokedOCSP(httpClient, cert, HardFail); !ok {
 		log.Warning("error checking revocation via OCSP")
 		if HardFail {
 			return true, false, err
@@ -101,8 +101,8 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 }
 
 // fetchCRL fetches and parses a CRL.
-func fetchCRL(url string) (*pkix.CertificateList, error) {
-	resp, err := HTTPClient.Get(url)
+func fetchCRL(httpClient *http.Client, url string) (*pkix.CertificateList, error) {
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +119,11 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	return x509.ParseCRL(body)
 }
 
-func getIssuer(cert *x509.Certificate) *x509.Certificate {
+func getIssuer(httpClient *http.Client, cert *x509.Certificate) *x509.Certificate {
 	var issuer *x509.Certificate
 	var err error
 	for _, issuingCert := range cert.IssuingCertificateURL {
-		issuer, err = fetchRemote(issuingCert)
+		issuer, err = fetchRemote(httpClient, issuingCert)
 		if err != nil {
 			continue
 		}
@@ -136,7 +136,7 @@ func getIssuer(cert *x509.Certificate) *x509.Certificate {
 
 // check a cert against a specific CRL. Returns the same bool pair
 // as revCheck, plus an error if one occurred.
-func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool, err error) {
+func certIsRevokedCRL(httpClient *http.Client, cert *x509.Certificate, url string) (revoked, ok bool, err error) {
 	crlLock.Lock()
 	crl, ok := CRLSet[url]
 	if ok && crl == nil {
@@ -152,11 +152,11 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool, err
 		}
 	}
 
-	issuer := getIssuer(cert)
+	issuer := getIssuer(httpClient, cert)
 
 	if shouldFetchCRL {
 		var err error
-		crl, err = fetchCRL(url)
+		crl, err = fetchCRL(httpClient, url)
 		if err != nil {
 			log.Warningf("failed to fetch CRL: %v", err)
 			return false, false, err
@@ -196,6 +196,12 @@ func VerifyCertificate(cert *x509.Certificate) (revoked, ok bool) {
 // VerifyCertificateError ensures that the certificate passed in hasn't
 // expired and checks the CRL for the server.
 func VerifyCertificateError(cert *x509.Certificate) (revoked, ok bool, err error) {
+	return VerifyCertificateWithClientAndError(nil, cert)
+}
+
+// VerifyCertificateError ensures that the certificate passed in hasn't
+// expired and checks the CRL for the server.
+func VerifyCertificateWithClientAndError(httpClient *http.Client, cert *x509.Certificate) (revoked, ok bool, err error) {
 	if !time.Now().Before(cert.NotAfter) {
 		msg := fmt.Sprintf("Certificate expired %s\n", cert.NotAfter)
 		log.Info(msg)
@@ -205,11 +211,14 @@ func VerifyCertificateError(cert *x509.Certificate) (revoked, ok bool, err error
 		log.Info(msg)
 		return true, true, fmt.Errorf(msg)
 	}
-	return revCheck(cert)
+	if httpClient == nil {
+		httpClient = HTTPClient
+	}
+	return revCheck(httpClient, cert)
 }
 
-func fetchRemote(url string) (*x509.Certificate, error) {
-	resp, err := HTTPClient.Get(url)
+func fetchRemote(httpClient *http.Client, url string) (*x509.Certificate, error) {
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +241,7 @@ var ocspOpts = ocsp.RequestOptions{
 	Hash: crypto.SHA1,
 }
 
-func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool, e error) {
+func certIsRevokedOCSP(httpClient *http.Client, leaf *x509.Certificate, strict bool) (revoked, ok bool, e error) {
 	var err error
 
 	ocspURLs := leaf.OCSPServer
@@ -241,7 +250,7 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool, e
 		return false, true, nil
 	}
 
-	issuer := getIssuer(leaf)
+	issuer := getIssuer(httpClient, leaf)
 
 	if issuer == nil {
 		return false, false, nil
@@ -253,7 +262,7 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool, e
 	}
 
 	for _, server := range ocspURLs {
-		resp, err := sendOCSPRequest(server, ocspRequest, leaf, issuer)
+		resp, err := sendOCSPRequest(httpClient, server, ocspRequest, leaf, issuer)
 		if err != nil {
 			if strict {
 				return revoked, ok, err
@@ -277,15 +286,15 @@ func certIsRevokedOCSP(leaf *x509.Certificate, strict bool) (revoked, ok bool, e
 // sendOCSPRequest attempts to request an OCSP response from the
 // server. The error only indicates a failure to *fetch* the
 // certificate, and *does not* mean the certificate is valid.
-func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) (*ocsp.Response, error) {
+func sendOCSPRequest(httpClient *http.Client, server string, req []byte, leaf, issuer *x509.Certificate) (*ocsp.Response, error) {
 	var resp *http.Response
 	var err error
 	if len(req) > 256 {
 		buf := bytes.NewBuffer(req)
-		resp, err = HTTPClient.Post(server, "application/ocsp-request", buf)
+		resp, err = httpClient.Post(server, "application/ocsp-request", buf)
 	} else {
 		reqURL := server + "/" + neturl.QueryEscape(base64.StdEncoding.EncodeToString(req))
-		resp, err = HTTPClient.Get(reqURL)
+		resp, err = httpClient.Get(reqURL)
 	}
 
 	if err != nil {
