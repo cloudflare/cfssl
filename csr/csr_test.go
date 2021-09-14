@@ -786,3 +786,50 @@ func TestExtractCertificateRequest(t *testing.T) {
 		t.Fatal("Bad Certificate Request!")
 	}
 }
+
+// TestDelegationCSR tests that we create requests with the DC extension
+func TestDelegationCSR(t *testing.T) {
+	var cr = &CertificateRequest{
+		CN: "Test Common Name",
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare, Inc.",
+				OU: "Systems Engineering",
+			},
+			{
+				C:  "GB",
+				ST: "London",
+				L:  "London",
+				O:  "CloudFlare, Inc",
+				OU: "Systems Engineering",
+			},
+		},
+		DelegationEnabled: true,
+		Hosts:             []string{"cloudflare.com", "www.cloudflare.com"},
+		KeyRequest:        NewKeyRequest(),
+	}
+	csr, _, err := ParseRequest(cr)
+	if err != nil {
+		t.Fatal("could not generate csr")
+	}
+	unPem, _ := pem.Decode(csr)
+	if unPem == nil {
+		t.Fatal("Failed to decode pem")
+	}
+	res, err := x509.ParseCertificateRequest(unPem.Bytes)
+	if err != nil {
+		t.Fatalf("spat out nonsense as a csr: %v", err)
+	}
+	found := false
+	for _, ext := range res.Extensions {
+		if ext.Id.Equal(helpers.DelegationUsage) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("generated csr has no extension")
+	}
+}
