@@ -2,11 +2,11 @@ package client
 
 import (
 	"crypto/tls"
-	"github.com/cloudflare/cfssl/auth"
-	"github.com/cloudflare/cfssl/helpers"
-	"net"
 	"strings"
 	"testing"
+
+	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 var (
@@ -27,28 +27,28 @@ func TestNewServer(t *testing.T) {
 
 	}
 
-	_, port, _ := net.SplitHostPort("")
-	if port != "" {
-		t.Fatalf("%v", port)
-
+	tests := []struct {
+		url  string
+		want string
+	}{
+		{url: "http://127.0.0.1:8888", want: "http://127.0.0.1:8888"},
+		{url: "http://1.1.1.1:9999", want: "http://1.1.1.1:9999"},
+		{url: "https://1.1.1.1:8080", want: "https://1.1.1.1:8080"},
+		{url: "https://1.1.1.1:8181/  ", want: "https://1.1.1.1:8181/"},
+		{url: "https://1.1.1.1/foo", want: "https://1.1.1.1/foo"},
+		{url: " some.host/path", want: "http://some.host/path"},
+		{url: "https://some.host:8888", want: "https://some.host:8888"},
+		{url: "1.1.1.1:8/foo", want: "http://1.1.1.1:8/foo"},
+		{url: " 1.1.1.1/", want: "http://1.1.1.1/"},
+		{url: "1.1.1.1", want: "http://1.1.1.1"},
+		{url: "ca1.local", want: "http://ca1.local"},
 	}
-
-	s = NewServer("http://127.0.0.1:8888")
-	hosts := s.Hosts()
-	if len(hosts) != 1 || hosts[0] != "http://127.0.0.1:8888" {
-		t.Fatalf("expected [http://127.0.0.1:8888], but have %v", hosts)
-	}
-
-	s = NewServer("http://1.1.1.1:9999")
-	hosts = s.Hosts()
-	if len(hosts) != 1 || hosts[0] != "http://1.1.1.1:9999" {
-		t.Fatalf("expected [http://1.1.1.1:9999], but have %v", hosts)
-	}
-
-	s = NewServer("https://1.1.1.1:8080")
-	hosts = s.Hosts()
-	if len(hosts) != 1 || hosts[0] != "https://1.1.1.1:8080" {
-		t.Fatalf("expected [https://1.1.1.1:8080], but have %v", hosts)
+	for _, tt := range tests {
+		s := NewServer(tt.url)
+		hosts := s.Hosts()
+		if len(hosts) != 1 || hosts[0] != tt.want {
+			t.Errorf("expected [%s], but got %v", tt.want, hosts)
+		}
 	}
 }
 
@@ -60,7 +60,7 @@ func TestInvalidPort(t *testing.T) {
 }
 
 func TestAuthSign(t *testing.T) {
-	s := NewServer(".X")
+	s := NewServer("1.1.1.1")
 	testProvider, _ = auth.New(testKey, nil)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.AuthSign(testRequest, testAD, testProvider)
@@ -71,7 +71,7 @@ func TestAuthSign(t *testing.T) {
 
 func TestDefaultAuthSign(t *testing.T) {
 	testProvider, _ = auth.New(testKey, nil)
-	s := NewAuthServer(".X", nil, testProvider)
+	s := NewAuthServer("1.1.1.1", nil, testProvider)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.Sign(testRequest)
 	if as != nil || err == nil {
@@ -80,7 +80,7 @@ func TestDefaultAuthSign(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
-	s := NewServer(".X")
+	s := NewServer("1.1.1.1")
 	sign, err := s.Sign([]byte{5, 5, 5, 5})
 	if sign != nil || err == nil {
 		t.Fatalf("expected error with sign function")
@@ -103,7 +103,7 @@ func TestNewMutualTLSServer(t *testing.T) {
 }
 
 func TestNewServerGroup(t *testing.T) {
-	s := NewServer("cfssl1.local:8888, cfssl2.local:8888, http://cfssl3.local:8888, http://cfssl4.local:8888")
+	s := NewServer("cfssl1.local:8888, cfssl2.local:8888/, http://cfssl3.local:8888, http://cfssl4.local:8888")
 
 	ogl, ok := s.(*orderedListGroup)
 	if !ok {
@@ -124,8 +124,8 @@ func TestNewServerGroup(t *testing.T) {
 			hosts[0])
 	}
 
-	if hosts[1] != "http://cfssl2.local:8888" {
-		t.Fatalf("expected to see http://cfssl2.local:8888, but saw %s",
+	if hosts[1] != "http://cfssl2.local:8888/" {
+		t.Fatalf("expected to see http://cfssl2.local:8888/, but saw %s",
 			hosts[1])
 	}
 
@@ -187,7 +187,7 @@ func TestNewOGLGroup(t *testing.T) {
 		t.Fatalf("expected StrategyOrderedList (%d) but have %d", StrategyOrderedList, strategy)
 	}
 
-	rem, err := NewGroup([]string{"ca1.local,", "ca2.local"}, nil, strategy)
+	rem, err := NewGroup([]string{"ca1.local", "ca2.local"}, nil, strategy)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

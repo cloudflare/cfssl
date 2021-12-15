@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/goware/urlx"
 )
 
 // A server points to a single remote CFSSL instance.
@@ -329,43 +329,8 @@ func (ar *AuthRemote) Sign(req []byte) ([]byte, error) {
 	return ar.AuthSign(req, nil, ar.provider)
 }
 
-// normalizeURL checks for http/https protocol, appends "http" as default protocol if not defined in url
+// normalizeURL trims spaces and appends "http" as default protocol if not defined in url
 func normalizeURL(addr string) (*url.URL, error) {
 	addr = strings.TrimSpace(addr)
-
-	u, err := url.Parse(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	if u.Opaque != "" {
-		u.Host = net.JoinHostPort(u.Scheme, u.Opaque)
-		u.Opaque = ""
-	} else if u.Path != "" && !strings.Contains(u.Path, ":") {
-		u.Host = net.JoinHostPort(u.Path, "8888")
-		u.Path = ""
-	} else if u.Scheme == "" {
-		u.Host = u.Path
-		u.Path = ""
-	}
-
-	if u.Scheme != "https" {
-		u.Scheme = "http"
-	}
-
-	_, port, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		_, port, err = net.SplitHostPort(u.Host + ":8888")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if port != "" {
-		_, err = strconv.Atoi(port)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return u, nil
+	return urlx.Parse(addr)
 }
