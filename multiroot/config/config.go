@@ -102,6 +102,7 @@ func (c *RawMap) SectionInConfig(section string) bool {
 type Root struct {
 	PrivateKey  crypto.Signer
 	Certificate *x509.Certificate
+	RootCA      *x509.Certificate
 	Config      *config.Signing
 	ACL         whitelist.NetACL
 	DB          *sqlx.DB
@@ -124,6 +125,21 @@ func LoadRoot(cfg map[string]string) (*Root, error) {
 	configPath, ok := cfg["config"]
 	if !ok {
 		return nil, ErrMissingConfigPath
+	}
+
+	// ca is optional
+	// will be added to the root pool of the bundler if set
+	caPath, ok := cfg["ca"]
+	if ok {
+		in, err := ioutil.ReadFile(caPath)
+		if err != nil {
+			return nil, err
+		}
+
+		root.RootCA, err = helpers.ParseCertificatePEM(in)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	root.PrivateKey, err = parsePrivateKeySpec(spec, cfg)
