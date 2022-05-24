@@ -84,6 +84,12 @@ And to simply install __all__ of the programs in this repo:
 $ go get github.com/cloudflare/cfssl/cmd/...
 ```
 
+if you are above go 1.18:
+
+```
+$ go install github.com/cloudflare/cfssl/cmd/...@latest
+```
+
 This will download, build, and install all of the utility programs
 (including `cfssl`, `cfssljson`, and `mkbundle` among others).
 
