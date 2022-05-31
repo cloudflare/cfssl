@@ -47,7 +47,7 @@ import (
 var serverUsageText = `cfssl serve -- set up a HTTP server handles CF SSL requests
 
 Usage of serve:
-        cfssl serve [-address address] [-min-tls-version version] [-ca cert] [-ca-bundle bundle] \
+        cfssl serve [-address address] [-min-tls-version version] [cipher-suites ciphers] [-ca cert] [-ca-bundle bundle] \
                     [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
                     [-metadata file] [-remote remote_host] [-config config] \
                     [-responder cert] [-responder-key key] \
@@ -59,7 +59,7 @@ Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "min-tls-version", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir",
+var serverFlags = []string{"address", "port", "min-tls-version", "cipher-suites", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir",
 	"metadata", "remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca",
 	"mutual-tls-cn", "tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable"}
 
@@ -331,6 +331,14 @@ func serverMain(args []string, c cli.Config) error {
 	if conf.TLSCertFile == "" || conf.TLSKeyFile == "" {
 		log.Info("Now listening on ", addr)
 		return http.ListenAndServe(addr, nil)
+	}
+	if conf.CipherSuites != "" {
+		log.Info("CipherSuites selected : ", conf.CipherSuites)
+		cipherSuites, err := helpers.LoadCipherSuites(conf.CipherSuites)
+		if err != nil {
+			return fmt.Errorf("failed to load cipher-suites: %s", err)
+		}
+		tlscfg.CipherSuites = cipherSuites
 	}
 	if conf.MutualTLSCAFile != "" {
 		clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)

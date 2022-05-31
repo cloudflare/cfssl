@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -659,5 +660,38 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 	}
 	if !sctEquals(zeroSCT, lst[0]) {
 		t.Fatal("SCTs don't match")
+	}
+}
+
+const cipherSuitesString = //"TLS_AES_128_GCM_SHA256," +
+//"TLS_AES_256_GCM_SHA384," +
+//"TLS_CHACHA20_POLY1305_SHA256," +
+"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256," +
+	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384," +
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA," +
+	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA," +
+	"TLS_RSA_WITH_AES_128_GCM_SHA256," +
+	"TLS_RSA_WITH_AES_256_GCM_SHA384," +
+	"TLS_RSA_WITH_AES_128_CBC_SHA," +
+	"TLS_RSA_WITH_AES_256_CBC_SHA," +
+	"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA," +
+	"TLS_NOT_A CIPHER_SUITE"
+
+func TestLoadCipherSuites(t *testing.T) {
+	cipherSuites, err := LoadCipherSuites(cipherSuitesString)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cipherSuites == nil {
+		t.Fatal("cipher suites not read")
+	}
+	if len(cipherSuites) != 9 {
+		t.Fatalf("Cipher suites count %d is not 9", len(cipherSuites))
+	}
+}
+
+func TestGetCipherSuitesForNames(t *testing.T) {
+	if GetCipherSuitesForNames()[tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256] != "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256" {
+		t.Fatalf("cipher-suite should have been found")
 	}
 }
