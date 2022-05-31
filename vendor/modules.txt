@@ -11,6 +11,10 @@ github.com/GeertJohan/go.incremental
 github.com/GeertJohan/go.rice
 github.com/GeertJohan/go.rice/embedded
 github.com/GeertJohan/go.rice/rice
+# github.com/PuerkitoBio/purell v1.1.1
+github.com/PuerkitoBio/purell
+# github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
+github.com/PuerkitoBio/urlesc
 # github.com/akavel/rsrc v0.8.0
 github.com/akavel/rsrc/binutil
 github.com/akavel/rsrc/coff
@@ -172,6 +176,9 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
+# github.com/goware/urlx v0.3.1
+## explicit
+github.com/goware/urlx
 # github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 ## explicit
 github.com/grpc-ecosystem/go-grpc-middleware
@@ -502,6 +509,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
+golang.org/x/text/width
 # golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 ## explicit
 golang.org/x/time/rate
