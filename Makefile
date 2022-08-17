@@ -7,13 +7,9 @@ export GOPROXY := off
 .PHONY: all
 all: bin/cfssl bin/cfssl-bundle bin/cfssl-certinfo bin/cfssl-newkey bin/cfssl-scan bin/cfssljson bin/mkbundle bin/multirootca
 
-bin/%: $(shell find . -type f -name '*.go') cli/serve/rice-box.go
+bin/%: $(shell find . -type f -name '*.go')
 	@mkdir -p $(dir $@)
 	go build -ldflags $(LDFLAGS) -o $@ ./cmd/$(@F)
-
-cli/serve/rice-box.go: bin/rice $(shell find cli/serve/static -type f)
-cli/serve/rice-box.go:
-	./bin/rice embed-go -i=./cli/serve
 
 .PHONY: install
 install: install-cfssl install-cfssl-bundle install-cfssl-certinfo install-cfssl-newkey install-cfssl-scan install-cfssljson install-mkbundle install-multirootca
@@ -26,10 +22,6 @@ install-%:
 serve: bin/cfssl
 serve:
 	./bin/cfssl serve
-
-bin/rice: $(shell find vendor -type f -name '*.go')
-	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/github.com/GeertJohan/go.rice/rice
 
 bin/golint: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)

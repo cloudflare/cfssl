@@ -8,7 +8,6 @@ RUN set -x && \
 
 RUN git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
     make clean && \
-    make bin/rice && ./bin/rice embed-go -i=./cli/serve && \
     make all
 
 FROM alpine:3.11

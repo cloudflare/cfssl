@@ -4,14 +4,12 @@ go 1.16
 
 require (
 	bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c
-	github.com/GeertJohan/go.rice v1.0.2
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/redoctober v0.0.0-20201013214028-99c99a8e7544
 	github.com/cncf/udpa/go v0.0.0-20210322005330-6414d713912e // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/daaku/go.zipexe v1.0.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.1 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.6.0

@@ -4,16 +4,6 @@ bitbucket.org/liamstask/goose/cmd/goose
 bitbucket.org/liamstask/goose/lib/goose
 # cloud.google.com/go v0.81.0
 cloud.google.com/go/compute/metadata
-# github.com/GeertJohan/go.incremental v1.0.0
-github.com/GeertJohan/go.incremental
-# github.com/GeertJohan/go.rice v1.0.2
-## explicit
-github.com/GeertJohan/go.rice
-github.com/GeertJohan/go.rice/embedded
-github.com/GeertJohan/go.rice/rice
-# github.com/akavel/rsrc v0.8.0
-github.com/akavel/rsrc/binutil
-github.com/akavel/rsrc/coff
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/bgentry/speakeasy v0.1.0
@@ -59,9 +49,6 @@ github.com/coreos/go-semver/semver
 github.com/coreos/go-systemd/v22/journal
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/daaku/go.zipexe v1.0.1
-## explicit
-github.com/daaku/go.zipexe
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/dustin/go-humanize v1.0.0
@@ -184,8 +171,6 @@ github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/jessevdk/go-flags v1.4.0
-github.com/jessevdk/go-flags
 # github.com/jhump/protoreflect v1.8.2
 github.com/jhump/protoreflect/codec
 github.com/jhump/protoreflect/desc
@@ -237,8 +222,6 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-# github.com/nkovacs/streamquote v1.0.0
-github.com/nkovacs/streamquote
 # github.com/olekukonko/tablewriter v0.0.5
 ## explicit
 github.com/olekukonko/tablewriter
@@ -290,10 +273,6 @@ github.com/tmc/grpc-websocket-proxy/wsproxy
 # github.com/urfave/cli v1.22.5
 ## explicit
 github.com/urfave/cli
-# github.com/valyala/bytebufferpool v1.0.0
-github.com/valyala/bytebufferpool
-# github.com/valyala/fasttemplate v1.0.1
-github.com/valyala/fasttemplate
 # github.com/weppos/publicsuffix-go v0.15.1-0.20210511084619-b1f36a2d6c0b
 github.com/weppos/publicsuffix-go/publicsuffix
 # github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2
