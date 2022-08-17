@@ -1,4 +1,4 @@
-FROM golang:1.14.1@sha256:08d16c1e689e86df1dae66d8ef4cec49a9d822299ec45e68a810c46cb705628d
+FROM golang:1.16.15@sha256:35fa3cfd4ec01a520f6986535d8f70a5eeef2d40fb8019ff626da24989bdd4f1
 
 WORKDIR /workdir
 COPY . /workdir
