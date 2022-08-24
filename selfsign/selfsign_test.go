@@ -46,6 +46,7 @@ func TestDefaultSign(t *testing.T) {
 }
 
 func TestSANs(t *testing.T) {
+	t.Skip("broken relating to https://github.com/cloudflare/cfssl/issues/1230")
 	csrBytes, err := ioutil.ReadFile(csr2File)
 	if err != nil {
 		t.Fatal(err)

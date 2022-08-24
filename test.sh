@@ -27,11 +27,3 @@ for package in $(go list ./...); do
     fi
 done
 
-for package in $(go list ./...); do
-    if echo "$package" | grep -q "/scan/crypto"; then
-        continue
-    fi
-
-    echo "./bin/golint -set_exit_status=1 $package"
-    ./bin/golint -set_exit_status=1 "$package"
-done

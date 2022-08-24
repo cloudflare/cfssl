@@ -21,6 +21,7 @@ import (
 )
 
 func TestStapleSCTList(t *testing.T) {
+	t.Skip("broken relating to https://github.com/cloudflare/cfssl/issues/1230")
 	// issuer is a CA certificate.
 	issuer, issuerPrivKey, err := makeCert(nil)
 	if err != nil {

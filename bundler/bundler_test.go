@@ -249,6 +249,7 @@ func TestBundleHostnamesMarshalJSON(t *testing.T) {
 
 // Tests on verifying the rebundle flag and error code in Bundle.Status when rebundling.
 func TestRebundleFromPEM(t *testing.T) {
+	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	newBundler := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, interL1, "")
 	newBundle, err := newBundler.BundleFromPEMorDER(expiredBundlePEM, nil, Optimal, "")
 	if err != nil {
@@ -871,6 +872,7 @@ func ExpectBundleLength(expectedLen int) func(*testing.T, *Bundle) {
 }
 
 func TestBundlerWithEmptyRootInfo(t *testing.T) {
+	t.Skip("broken relating to https://github.com/cloudflare/cfssl/issues/1230")
 	b := newBundlerWithoutRootsAndInters(t)
 
 	// "force" bundle should be ok
@@ -914,6 +916,7 @@ func TestBundlerWithEmptyRootInfo(t *testing.T) {
 }
 
 func TestBundlerClientAuth(t *testing.T) {
+	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	b, err := NewBundler("testdata/client-auth/root.pem", "testdata/client-auth/int.pem")
 	if err != nil {
 		t.Fatal(err)
