@@ -16,6 +16,7 @@ under the name `endpoint_<endpoint>`. These nine endpoints are:
       - info: obtain information about the CA, including the CA
         certificate
       - init_ca: initialise a new certificate authority
+      - health: return health status
       - newkey: generate a new private key and certificate signing
         request
       - newcert: generate a new private key and certificate
