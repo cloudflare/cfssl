@@ -295,6 +295,7 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
 archives:
   - format: binary
+    allow_different_binary_count: true # https://github.com/goreleaser/goreleaser/pull/1841
 release:
   github:
     owner: cloudflare

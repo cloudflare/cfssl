@@ -5,4 +5,4 @@ bin
 *.deb
 *.rpm
 test
-
+.DS_Store

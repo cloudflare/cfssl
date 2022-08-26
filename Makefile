@@ -57,7 +57,13 @@ snapshot:
 .PHONY: github-release
 github-release:
 	@:$(call check_defined, GITHUB_TOKEN)
-	docker run -e GITHUB_TOKEN=$(GITHUB_TOKEN) --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist
+
+	docker run --rm --privileged \
+	 -e GITHUB_TOKEN=$(GITHUB_TOKEN) \
+    -v $(PWD):/cross \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -w /cross \
+    ghcr.io/gythialy/golang-cross:v1.18 --rm-dist
 
 .PHONY: docker-build
 docker-build:
