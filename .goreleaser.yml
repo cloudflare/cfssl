@@ -6,9 +6,6 @@ env:
 builds:
   - id: cfssl-darwin
     binary: cfssl
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -27,13 +24,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: cfssl-windows
     binary: cfssl
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -43,9 +35,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: cfssl-bundle-darwin
     binary: cfssl-bundle
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -63,13 +52,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: cfssl-bundle-windows
     binary: cfssl-bundle
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -79,9 +63,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: cfssl-certinfo-darwin
     binary: cfssl-certinfo
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -99,13 +80,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: cfssl-certinfo-windows
     binary: cfssl-certinfo
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -115,9 +91,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: cfssl-newkey-darwin
     binary: cfssl-newkey
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -135,13 +108,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: cfssl-newkey-windows
     binary: cfssl-newkey
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -151,9 +119,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: cfssl-scan-darwin
     binary: cfssl-scan
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -171,13 +136,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: cfssl-scan-windows
     binary: cfssl-scan
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -187,9 +147,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: cfssljson-darwin
     binary: cfssljson
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -207,13 +164,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: cfssljson-windows
     binary: cfssljson
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -223,9 +175,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: mkbundle-darwin
     binary: mkbundle
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -243,13 +192,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: mkbundle-windows
     binary: mkbundle
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
@@ -259,9 +203,6 @@ builds:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
   - id: multirootca-darwin
     binary: multirootca
-    env:
-      - CC=o64-clang
-      - CXX=o64-clang++
     goos:
       - darwin
     goarch:
@@ -279,13 +220,8 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
   - id: multirootca-windows
     binary: multirootca
-    env:
-      - CC=x86_64-w64-mingw32-gcc
-      - CXX=x86_64-w64-mingw32-g++
     goos:
       - windows
     goarch:
