@@ -1,0 +1,46 @@
+{
+	"signing": {
+		"default": {
+			"usages": [
+				"digital signature",
+				"email protection"
+			],
+			"ca_constraint": {
+				"is_ca": true,
+				"max_path_len_zero": true,
+				"permitted_dns_domains_critical": true,
+				"permitted_dns_domains": [
+					".example.com"
+				],
+				"excluded_dns_domains": [
+					".example.com"
+				],
+				"permitted_ip_ranges": [
+					{
+						"IP": "192.168.0.0",
+						"Mask": "//8AAA=="
+					}
+				],
+				"excluded_ip_ranges": [
+					{
+						"IP": "172.16.0.0",
+						"Mask": "//AAAA=="
+					}
+				],
+				"permitted_email_addresses": [
+					"foo@bar.com"
+				],
+				"excluded_email_addresses": [
+					"hinz@kunz.com"
+				],
+				"permitted_uri_domains": [
+					".example.com"
+				],
+				"excluded_uri_domains": [
+					"host.hurzel.com"
+				]
+			},
+			"expiry": "8000h"
+		}
+	}
+}
