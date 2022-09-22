@@ -6,7 +6,7 @@ tools for
       * bundling certificates
       * create private keys, certificate signing requests, and certificates
       * signing certificate signing requests
-      * scanning a host to evaluate it's TLS security
+      * scanning a host to evaluate its TLS security
       * signing OCSP requests
       * running a CA server
       * running an OCSP server
@@ -125,7 +125,7 @@ blank.
       constraint of the returned certificates. For example, in order
       to issue a intermediate CA certificate with pathlen = 1, we put
       {"is_ca": true, "max_path_len":1}. For another example, to
-      issue a intermediate CA certificate with pathlen = 0, we put
+      issue an intermediate CA certificate with pathlen = 0, we put
       {"is_ca": true, "max_path_len":0, "max_path_len_zero": true}.
       Notice the extra "max_path_len_zero" field: Without it, the
       intermediate CA certificate will have no pathlen constraint.
