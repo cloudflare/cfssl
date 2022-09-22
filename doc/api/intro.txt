@@ -5,21 +5,23 @@ over an unauthenticated HTTP connection. By default, the API is
 unauthenticated, it is important to understand that the CFSSL API
 server must be running in a trusted environment in this case.
 
-There are currently nine endpoints, each of which may be found under
+There are currently thirteen endpoints, each of which may be found under
 the path `/api/v1/cfssl/<endpoint>`. The documentation for each
 endpoint is found in the `doc/api` directory in the project source
-under the name `endpoint_<endpoint>`. These nine endpoints are:
+under the name `endpoint_<endpoint>`. These thirteen endpoints are:
 
       - authsign: authenticated signing endpoint
       - bundle: build certificate bundles
+      - certinfo: lookup a certificate's info
       - crl: generates a CRL out of the certificate DB
+      - health: return health status
       - info: obtain information about the CA, including the CA
         certificate
       - init_ca: initialise a new certificate authority
-      - health: return health status
+      - newcert: generate a new private key and certificate
       - newkey: generate a new private key and certificate signing
         request
-      - newcert: generate a new private key and certificate
+      - revoke: revoke a certificate
       - scan: scan servers to determine the quality of their TLS set up
       - scaninfo: list options for scanning
       - sign: sign a certificate
