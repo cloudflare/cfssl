@@ -114,12 +114,13 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 
 	expiry := time.Now().Add(time.Minute)
 	want := certdb.CertificateRecord{
-		PEM:    "fake cert data",
-		Serial: "fake serial 2",
-		AKI:    fakeAKI,
-		Status: "good",
-		Reason: 0,
-		Expiry: expiry,
+		PEM:     "fake cert data",
+		Serial:  "fake serial 2",
+		AKI:     fakeAKI,
+		Status:  "good",
+		Reason:  0,
+		Expiry:  expiry,
+		CALabel: "foo",
 	}
 
 	if err := ta.Accessor.InsertCertificate(want); err != nil {
@@ -153,6 +154,14 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 	if len(unexpired) != 1 {
 		t.Error("Should have 1 unexpired certificate record:", len(unexpired))
 	}
+
+	unexpiredFiltered, err := ta.Accessor.GetUnexpiredCertificatesByLabel([]string{"foo"})
+	require.NoError(t, err)
+	require.Len(t, unexpiredFiltered, 1)
+	unexpiredFiltered, err = ta.Accessor.GetUnexpiredCertificatesByLabel([]string{"bar"})
+	require.NoError(t, err)
+	require.Len(t, unexpiredFiltered, 0)
+
 }
 func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
