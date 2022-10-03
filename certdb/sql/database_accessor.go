@@ -72,6 +72,8 @@ type Accessor struct {
 	db *sqlx.DB
 }
 
+var _ certdb.Accessor = &Accessor{}
+
 func wrapSQLError(err error) error {
 	if err != nil {
 		return cferr.Wrap(cferr.CertStoreError, cferr.Unknown, err)
@@ -169,6 +171,29 @@ func (d *Accessor) GetUnexpiredCertificates() (crs []certdb.CertificateRecord, e
 	}
 
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllUnexpiredSQL), sqlstruct.Columns(certdb.CertificateRecord{})))
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetUnexpiredCertificatesByLabel gets all unexpired certificate from db that have the provided label.
+func (d *Accessor) GetUnexpiredCertificatesByLabel(labels []string) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	query, args, err := sqlx.In(
+		fmt.Sprintf(`SELECT %s FROM certificates WHERE CURRENT_TIMESTAMP < expiry AND ca_label IN (?)`,
+			sqlstruct.Columns(certdb.CertificateRecord{}),
+		), labels)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	err = d.db.Select(&crs, d.db.Rebind(query), args...)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
