@@ -60,7 +60,7 @@ func MySQLDB() *sqlx.DB {
 
 // PostgreSQLDB returns a PostgreSQL db instance for certdb testing.
 func PostgreSQLDB() *sqlx.DB {
-	connStr := "dbname=certdb_development sslmode=disable"
+	connStr := "dbname=certdb_development sslmode=disable user=postgres"
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
 		connStr = dbURL
