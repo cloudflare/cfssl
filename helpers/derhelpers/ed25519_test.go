@@ -2,10 +2,9 @@ package derhelpers
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/pem"
 	"testing"
-
-	"golang.org/x/crypto/ed25519"
 )
 
 var testPubKey = `-----BEGIN PUBLIC KEY-----
