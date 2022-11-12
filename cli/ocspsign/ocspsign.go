@@ -2,6 +2,7 @@
 package ocspsign
 
 import (
+	"github.com/jmoiron/sqlx"
 	"io/ioutil"
 	"time"
 
@@ -62,7 +63,7 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 		}
 	}
 
-	s, err := SignerFromConfig(c)
+	s, err := SignerFromConfig(c, nil)
 	if err != nil {
 		log.Critical("Unable to create OCSP signer: ", err)
 		return
@@ -79,14 +80,15 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 }
 
 // SignerFromConfig creates a signer from a cli.Config as a helper for cli and serve
-func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
+func SignerFromConfig(c cli.Config, db *sqlx.DB) (ocsp.Signer, error) {
 	//if this is called from serve then we need to use the specific responder key file
 	//fallback to key for backwards-compatibility
 	k := c.ResponderKeyFile
 	if k == "" {
 		k = c.KeyFile
 	}
-	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval))
+
+	return ocsp.NewSignerFromFile(c.CAFile, c.ResponderFile, k, time.Duration(c.Interval), db)
 }
 
 // Command assembles the definition of Command 'ocspsign'

@@ -47,5 +47,5 @@ func NewAuthHandler(caFile, caKeyFile string, policy *config.Signing) (http.Hand
 		return nil, err
 	}
 
-	return signhandler.NewAuthHandlerFromSigner(s)
+	return signhandler.NewAuthHandlerFromSigner(s, nil)
 }

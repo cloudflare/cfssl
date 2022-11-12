@@ -3,6 +3,8 @@ package signhandler
 
 import (
 	"encoding/json"
+	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/ocsp"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -171,12 +173,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 // An AuthHandler verifies and signs incoming signature requests.
 type AuthHandler struct {
 	signer  signer.Signer
+	ocspSigner ocsp.Signer
 	bundler *bundler.Bundler
 }
 
 // NewAuthHandlerFromSigner creates a new AuthHandler from the signer
 // that is passed in.
-func NewAuthHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
+func NewAuthHandlerFromSigner(signer signer.Signer, ocspSigner ocsp.Signer) (http.Handler, error) {
 	policy := signer.Policy()
 	if policy == nil {
 		return nil, errors.New(errors.PolicyError, errors.InvalidPolicy)
@@ -204,6 +207,7 @@ func NewAuthHandlerFromSigner(signer signer.Signer) (http.Handler, error) {
 	return &api.HTTPHandler{
 		Handler: &AuthHandler{
 			signer: signer,
+			ocspSigner: ocspSigner,
 		},
 		Methods: []string{"POST"},
 	}, nil
@@ -279,6 +283,20 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		log.Errorf("signature failed: %v", err)
 		return err
+	}
+	if h.ocspSigner != nil {
+		parsedCert, err := helpers.ParseCertificatePEM(cert)
+		if err != nil {
+			log.Errorf("couldn't parse cert: %v", err)
+		}
+		ocspSignReq := ocsp.SignRequest{
+			Certificate: parsedCert,
+			Status:      "good",
+		}
+		_, err = h.ocspSigner.Sign(ocspSignReq)
+		if err != nil {
+			return err
+		}
 	}
 
 	result := map[string]interface{}{"certificate": string(cert)}

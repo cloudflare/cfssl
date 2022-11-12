@@ -12,6 +12,10 @@ import (
 	"crypto"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
+	"github.com/cloudflare/cfssl/certdb"
+	certsql "github.com/cloudflare/cfssl/certdb/sql"
+	"github.com/jmoiron/sqlx"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -68,6 +72,7 @@ type SignRequest struct {
 // responsible for populating all fields in the OCSP response that
 // are not reflected in the SignRequest.
 type Signer interface {
+	SetDBAccessor(certdb.Accessor)
 	Sign(req SignRequest) ([]byte, error)
 }
 
@@ -81,6 +86,7 @@ type StandardSigner struct {
 	responder *x509.Certificate
 	key       crypto.Signer
 	interval  time.Duration
+	dbAccessor certdb.Accessor
 }
 
 // ReasonStringToCode tries to convert a reason string to an integer code
@@ -106,7 +112,7 @@ func ReasonStringToCode(reason string) (reasonCode int, err error) {
 
 // NewSignerFromFile reads the issuer cert, the responder cert and the responder key
 // from PEM files, and takes an interval in seconds
-func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval time.Duration) (Signer, error) {
+func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval time.Duration, db *sqlx.DB) (Signer, error) {
 	log.Debug("Loading issuer cert: ", issuerFile)
 	issuerBytes, err := helpers.ReadBytes(issuerFile)
 	if err != nil {
@@ -139,23 +145,28 @@ func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval time.
 		return nil, err
 	}
 
-	return NewSigner(issuerCert, responderCert, key, interval)
+	return NewSigner(issuerCert, responderCert, key, interval, db)
 }
 
 // NewSigner simply constructs a new StandardSigner object from the inputs,
 // taking the interval in seconds
-func NewSigner(issuer, responder *x509.Certificate, key crypto.Signer, interval time.Duration) (Signer, error) {
-	return &StandardSigner{
+func NewSigner(issuer, responder *x509.Certificate, key crypto.Signer, interval time.Duration, db *sqlx.DB) (Signer, error) {
+	ss := &StandardSigner{
 		issuer:    issuer,
 		responder: responder,
 		key:       key,
 		interval:  interval,
-	}, nil
+	}
+	if db != nil {
+		dbAccessor := certsql.NewAccessor(db)
+		ss.SetDBAccessor(dbAccessor)
+	}
+	return ss, nil
 }
 
 // Sign is used with an OCSP signer to request the issuance of
 // an OCSP response.
-func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
+func (s *StandardSigner) Sign(req SignRequest) ([]byte, error) {
 	if req.Certificate == nil {
 		return nil, cferr.New(cferr.OCSPError, cferr.ReadFailed)
 	}
@@ -211,5 +222,22 @@ func (s StandardSigner) Sign(req SignRequest) ([]byte, error) {
 		template.RevocationReason = req.Reason
 	}
 
-	return ocsp.CreateResponse(s.issuer, s.responder, template, s.key)
+	resp, err := ocsp.CreateResponse(s.issuer, s.responder, template, s.key)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.dbAccessor != nil {
+		err := s.dbAccessor.UpsertOCSP(req.Certificate.SerialNumber.String(), hex.EncodeToString(req.Certificate.AuthorityKeyId), string(resp), nextUpdate)
+		if err != nil {
+			log.Critical("Unable to save OCSP response: ", err)
+			return nil, err
+		}
+	}
+
+	return resp, nil
+}
+
+func (s *StandardSigner) SetDBAccessor(dba certdb.Accessor) {
+	s.dbAccessor = dba
 }
