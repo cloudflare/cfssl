@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	ocspConfig "github.com/cloudflare/cfssl/ocsp/config"
+
 	// empty import of zlint/v3 required to have lints registered.
 	_ "github.com/zmap/zlint/v3"
 	"github.com/zmap/zlint/v3/lint"
@@ -67,9 +69,18 @@ type AuthRemote struct {
 // CAConstraint would verify against (and override) the CA
 // extensions in the given CSR.
 type CAConstraint struct {
-	IsCA           bool `json:"is_ca"`
-	MaxPathLen     int  `json:"max_path_len"`
-	MaxPathLenZero bool `json:"max_path_len_zero"`
+	IsCA                        bool         `json:"is_ca"`
+	MaxPathLen                  int          `json:"max_path_len"`
+	MaxPathLenZero              bool         `json:"max_path_len_zero"`
+	PermittedDNSDomainsCritical bool         `json:"permitted_dns_domains_critical"`
+	PermittedDNSDomains         []string     `json:"permitted_dns_domains"`
+	ExcludedDNSDomains          []string     `json:"excluded_dns_domains"`
+	PermittedIPRanges           []*net.IPNet `json:"permitted_ip_ranges"`
+	ExcludedIPRanges            []*net.IPNet `json:"excluded_ip_ranges"`
+	PermittedEmailAddresses     []string     `json:"permitted_email_addresses"`
+	ExcludedEmailAddresses      []string     `json:"excluded_email_addresses"`
+	PermittedURIDomains         []string     `json:"permitted_uri_domains"`
+	ExcludedURIDomains          []string     `json:"excluded_uri_domains"`
 }
 
 // A SigningProfile stores information that the CA needs to store

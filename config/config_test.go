@@ -255,6 +255,49 @@ var validLocalConfigsWithCAConstraint = []string{
 			}
 		}
 	}`,
+	`{
+		"signing": {
+			"default": {
+				"usages": ["digital signature", "email protection"],
+				"ca_constraint": {
+					"is_ca": true,
+					"max_path_len_zero": true,
+					"permitted_dns_domains_critical": true,
+					"permitted_dns_domains": [
+						".example.com"
+					],
+					"excluded_dns_domains": [
+						".example.com"
+					],
+					"permitted_ip_ranges": [
+						{
+							"IP": "192.168.0.0",
+							"Mask": "//8AAA=="
+						}
+					],
+					"excluded_ip_ranges": [
+						{
+							"IP": "172.16.0.0",
+							"Mask": "//AAAA=="
+						}
+					],
+					"permitted_email_addresses": [
+						"foo@bar.com"
+					],
+					"excluded_email_addresses": [
+						"hinz@kunz.com"
+					],
+					"permitted_uri_domains": [
+						".example.com"
+					],
+					"excluded_uri_domains": [
+						"host.hurzel.com"
+					]
+				},
+				"expiry": "8000h"
+			}
+		}
+	}`,
 }
 
 var copyExtensionWantedlLocalConfig = `
@@ -443,6 +486,7 @@ func TestLoadFile(t *testing.T) {
 		"testdata/valid_config.json",
 		"testdata/valid_config_auth.json",
 		"testdata/valid_config_no_default.json",
+		"testdata/valid_config_ca_constraints.json",
 		"testdata/valid_config_auth_no_default.json",
 	}
 

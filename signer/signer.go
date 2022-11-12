@@ -358,6 +358,15 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		template.DNSNames = nil
 		template.EmailAddresses = nil
 		template.URIs = nil
+		template.PermittedDNSDomainsCritical = profile.CAConstraint.PermittedDNSDomainsCritical
+		template.PermittedDNSDomains = profile.CAConstraint.PermittedDNSDomains
+		template.ExcludedDNSDomains = profile.CAConstraint.ExcludedDNSDomains
+		template.PermittedIPRanges = profile.CAConstraint.PermittedIPRanges
+		template.ExcludedIPRanges = profile.CAConstraint.ExcludedIPRanges
+		template.PermittedEmailAddresses = profile.CAConstraint.PermittedEmailAddresses
+		template.ExcludedEmailAddresses = profile.CAConstraint.ExcludedEmailAddresses
+		template.PermittedURIDomains = profile.CAConstraint.PermittedURIDomains
+		template.ExcludedURIDomains = profile.CAConstraint.ExcludedURIDomains
 	}
 	template.SubjectKeyId = ski
 

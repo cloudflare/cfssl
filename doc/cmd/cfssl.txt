@@ -130,6 +130,17 @@ blank.
       Notice the extra "max_path_len_zero" field: Without it, the
       intermediate CA certificate will have no pathlen constraint.
 
+          + RFC 5280 4.2.1.10 Name Constraints
+              + permitted_dns_domains_critical
+              + permitted_dns_domains
+              + excluded_dns_domains
+              + permitted_ip_ranges
+              + excluded_ip_ranges
+              + permitted_email_addresses
+              + excluded_email_addresses
+              + permitted_uri_domains
+              + excluded_uri_domains
+
     + ocsp_no_check: this should be true if the id-pkix-ocsp-nocheck
       extension should be used (RFC 2560 4.2.2.2.1).
 

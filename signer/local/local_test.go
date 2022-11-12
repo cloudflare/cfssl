@@ -31,7 +31,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	"github.com/zmap/zlint/v3/lint"
 )
 
@@ -961,6 +961,119 @@ func TestCASignPathlen(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCAConstraints(t *testing.T) {
+	var caCerts = []string{testCaFile, testECDSACaFile}
+	var caKeys = []string{testCaKeyFile, testECDSACaKeyFile}
+	var interCSRs = []string{ecdsaInterCSR, rsaInterCSR}
+	var interKeys = []string{ecdsaInterKey, rsaInterKey}
+	var CAPolicy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"cert sign", "crl sign"},
+			ExpiryString: "1h",
+			Expiry:       1 * time.Hour,
+			CAConstraint: config.CAConstraint{
+				IsCA:                        true,
+				MaxPathLenZero:              true,
+				PermittedDNSDomainsCritical: true,
+				PermittedDNSDomains:         []string{".sub.cloudflare-inter.com"},
+				ExcludedDNSDomains:          []string{".forbidden.cloudflare-inter.com"},
+				PermittedIPRanges: []*net.IPNet{{
+					IP:   net.IP{0xc0, 0xa8, 0x0, 0x0},
+					Mask: net.IPMask{0xff, 0xff, 0x0, 0x0}}},
+				ExcludedIPRanges: []*net.IPNet{{
+					IP:   net.IP{172, 16, 0x0, 0x0},
+					Mask: net.IPMask{0xff, 0xf0, 0x0, 0x0}}},
+				PermittedEmailAddresses: []string{"root@example.com"},
+				ExcludedEmailAddresses:  []string{".illegal.com"},
+				PermittedURIDomains:     []string{".example.com"},
+				ExcludedURIDomains:      []string{"host.illegal.com"}},
+		},
+	}
+	var hostname = "cloudflare-inter.com"
+	// Each RSA or ECDSA root CA issues two intermediate CAs (one ECDSA and one RSA).
+	// For each intermediate CA, use it to issue additional RSA and ECDSA intermediate CSRs.
+	for i, caFile := range caCerts {
+		caKeyFile := caKeys[i]
+		s := newCustomSigner(t, caFile, caKeyFile)
+		s.policy = CAPolicy
+		for j, csr := range interCSRs {
+			csrBytes, _ := ioutil.ReadFile(csr)
+			certBytes, err := s.Sign(signer.SignRequest{Hosts: signer.SplitHosts(hostname), Request: string(csrBytes)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			interCert, err := helpers.ParseCertificatePEM(certBytes)
+			if err != nil {
+				t.Fatal(err)
+			}
+			keyBytes, _ := ioutil.ReadFile(interKeys[j])
+			interKey, _ := helpers.ParsePrivateKeyPEM(keyBytes)
+			interSigner := &Signer{
+				ca:      interCert,
+				priv:    interKey,
+				policy:  CAPolicy,
+				sigAlgo: signer.DefaultSigAlgo(interKey),
+			}
+			for _, anotherCSR := range interCSRs {
+				anotherCSRBytes, _ := ioutil.ReadFile(anotherCSR)
+				bytes, err := interSigner.Sign(
+					signer.SignRequest{
+						Hosts:   signer.SplitHosts(hostname),
+						Request: string(anotherCSRBytes),
+					})
+				if err != nil {
+					t.Fatal(err)
+				}
+				cert, err := helpers.ParseCertificatePEM(bytes)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if cert.SignatureAlgorithm != interSigner.SigAlgo() {
+					t.Fatal("Cert Signature Algorithm does not match the issuer.")
+				}
+				if cert.MaxPathLen != 0 {
+					t.Fatal("CA Cert Max Path is not zero.")
+				}
+				if cert.MaxPathLenZero != true {
+					t.Fatal("CA Cert Max Path is not zero.")
+				}
+				if cert.PermittedDNSDomainsCritical != true {
+					t.Fatal("CA Cert Permitted DNS Domains Critical is not true..")
+				}
+				if !reflect.DeepEqual(cert.PermittedDNSDomains, []string{".sub.cloudflare-inter.com"}) {
+					t.Fatal("CA Cert Permitted DNS Domains is not equal.")
+				}
+				if !reflect.DeepEqual(cert.ExcludedDNSDomains, []string{".forbidden.cloudflare-inter.com"}) {
+					t.Fatal("CA Cert Excluded DNS Domains is not equal.")
+				}
+				if !reflect.DeepEqual(cert.PermittedIPRanges, []*net.IPNet{{
+					IP:   net.IP{0xc0, 0xa8, 0x0, 0x0},
+					Mask: net.IPMask{0xff, 0xff, 0x0, 0x0}}}) {
+					t.Fatal("CA Cert Permitted IP Ranges is not equal.")
+				}
+				if !reflect.DeepEqual(cert.ExcludedIPRanges, []*net.IPNet{{
+					IP:   net.IP{172, 16, 0x0, 0x0},
+					Mask: net.IPMask{0xff, 0xf0, 0x0, 0x0}}}) {
+					t.Fatal("CA Cert Excluded IP Ranges is not equal.")
+				}
+				if !reflect.DeepEqual(cert.PermittedEmailAddresses, []string{"root@example.com"}) {
+					t.Fatal("CA Cert Permitted Email Addresses is not equal.")
+				}
+				if !reflect.DeepEqual(cert.ExcludedEmailAddresses, []string{".illegal.com"}) {
+					t.Fatal("CA Cert Excluded Email Addresses is not equal.")
+				}
+				if !reflect.DeepEqual(cert.PermittedURIDomains, []string{".example.com"}) {
+					t.Fatal("CA Cert Permitted URI Domains is not equal.")
+				}
+				if !reflect.DeepEqual(cert.ExcludedURIDomains, []string{"host.illegal.com"}) {
+					t.Fatal("CA Cert Excluded URI Domains is not equal.")
+				}
+			}
+		}
+	}
+
 }
 
 func TestNoWhitelistSign(t *testing.T) {
