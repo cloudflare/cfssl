@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"time"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
@@ -66,14 +67,18 @@ func (h *Handler) SetBundler(caBundleFile, intBundleFile string) (err error) {
 // hostname field in the API
 // TODO: Change the API such that the normal struct can be used.
 type jsonSignRequest struct {
-	Hostname string          `json:"hostname"`
-	Hosts    []string        `json:"hosts"`
-	Request  string          `json:"certificate_request"`
-	Subject  *signer.Subject `json:"subject,omitempty"`
-	Profile  string          `json:"profile"`
-	Label    string          `json:"label"`
-	Serial   *big.Int        `json:"serial,omitempty"`
-	Bundle   bool            `json:"bundle"`
+	Hostname		string          `json:"hostname"`
+	Hosts			[]string        `json:"hosts"`
+	Request			string          `json:"certificate_request"`
+	Subject			*signer.Subject `json:"subject,omitempty"`
+	Profile			string          `json:"profile"`
+	Label			string          `json:"label"`
+	Serial			*big.Int        `json:"serial,omitempty"`
+	Bundle			bool            `json:"bundle"`
+	ExpiryString		string		`json:"expiry"`
+	Expiry			time.Duration
+	NotBefore		time.Time
+	NotAfter		time.Time
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -93,6 +98,8 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 			Profile: js.Profile,
 			Label:   js.Label,
 			Serial:  js.Serial,
+			NotAfter: js.NotAfter,
+			NotBefore: js.NotBefore,
 		}
 	}
 
@@ -103,8 +110,11 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 		Profile: js.Profile,
 		Label:   js.Label,
 		Serial:  js.Serial,
+		NotAfter: js.NotAfter,
+		NotBefore: js.NotBefore,
 	}
 }
+
 
 // Handle responds to requests for the CA to sign the certificate request
 // present in the "certificate_request" parameter for the host named
@@ -113,6 +123,8 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 // in place of the subject information from the CSR.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("signature request received")
+
+	policy := h.signer.Policy()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -125,6 +137,27 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return errors.NewBadRequestString("Unable to parse sign request")
+	}
+
+	if req.NotAfter.IsZero() {
+		if req.ExpiryString != "" {
+			
+			dur, err := time.ParseDuration(req.ExpiryString)
+			if err != nil {
+				return errors.NewBadRequestString("Unable to parse sign request")
+			}
+			log.Debugf("expiry is valid")
+
+			if policy.Default.Expiry < dur {
+				dur = policy.Default.Expiry
+			}
+			req.Expiry = dur
+
+			if req.NotBefore.IsZero() {
+				req.NotBefore = time.Now()
+			}
+			req.NotAfter = req.NotBefore.Add(req.Expiry)
+		}
 	}
 
 	signReq := jsonReqToTrue(req)
