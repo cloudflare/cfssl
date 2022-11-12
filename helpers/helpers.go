@@ -303,7 +303,7 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 	} else if cert == nil {
 		return nil, cferr.New(cferr.CertificateError, cferr.DecodeFailed)
 	} else if len(rest) > 0 {
-		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("the PEM file should contain only one object"))
+		log.Debugf("Multiple PEM blocks found, using the first one")
 	} else if len(cert) > 1 {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, errors.New("the PKCS7 object in the PEM file should contain only one certificate"))
 	}
@@ -315,8 +315,19 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 // multiple certificates, from the top of certsPEM, which itself may
 // contain multiple PEM encoded certificate objects.
 func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, error) {
+	rest := certsPEM
+	var block *pem.Block
+	for true {
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
 
-	block, rest := pem.Decode(certsPEM)
+		if block.Type == "CERTIFICATE" {
+			break
+		}
+	}
+
 	if block == nil {
 		return nil, rest, nil
 	}
