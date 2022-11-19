@@ -23,10 +23,6 @@ serve: bin/cfssl
 serve:
 	./bin/cfssl serve
 
-bin/golint: $(shell find vendor -type f -name '*.go')
-	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/golang.org/x/lint/golint
-
 bin/goose: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)
 	go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose

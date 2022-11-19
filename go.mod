@@ -19,7 +19,6 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20210511125630-18f1e0152cfc
 	github.com/zmap/zlint/v3 v3.1.0
 	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
-	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 )
 
@@ -92,6 +91,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c // indirect
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
