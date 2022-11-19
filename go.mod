@@ -19,7 +19,7 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20210511125630-18f1e0152cfc
 	github.com/zmap/zlint/v3 v3.1.0
 	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
-	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+	golang.org/x/net v0.2.0
 )
 
 require (
@@ -38,8 +38,8 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/weppos/publicsuffix-go v0.15.1-0.20210511084619-b1f36a2d6c0b // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
