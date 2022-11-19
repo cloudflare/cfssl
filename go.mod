@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/zmap/zcrypto v0.0.0-20210511125630-18f1e0152cfc
 	github.com/zmap/zlint/v3 v3.1.0
-	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
+	golang.org/x/crypto v0.3.0
 	golang.org/x/net v0.2.0
 )
 
