@@ -5,17 +5,14 @@ bitbucket.org/liamstask/goose/lib/goose
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
-# github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d
-## explicit; go 1.12
-github.com/certifi/gocertifi
 # github.com/cespare/xxhash/v2 v2.1.2
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
 # github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 ## explicit
 github.com/cloudflare/backoff
-# github.com/cloudflare/redoctober v0.0.0-20201013214028-99c99a8e7544
-## explicit
+# github.com/cloudflare/redoctober v0.0.0-20211013234631-6a74ccc611f6
+## explicit; go 1.16
 github.com/cloudflare/redoctober/client
 github.com/cloudflare/redoctober/config
 github.com/cloudflare/redoctober/core
@@ -33,9 +30,12 @@ github.com/cloudflare/redoctober/symcrypt
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/getsentry/raven-go v0.2.0
-## explicit
-github.com/getsentry/raven-go
+# github.com/getsentry/sentry-go v0.11.0
+## explicit; go 1.14
+github.com/getsentry/sentry-go
+github.com/getsentry/sentry-go/internal/crypto/randutil
+github.com/getsentry/sentry-go/internal/debug
+github.com/getsentry/sentry-go/internal/ratelimit
 # github.com/go-logr/logr v1.2.0
 ## explicit; go 1.16
 github.com/go-logr/logr
@@ -86,9 +86,6 @@ github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 ## explicit
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/pkg/errors v0.9.1
-## explicit
-github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
