@@ -56,8 +56,8 @@ github.com/google/certificate-transparency-go/jsonclient
 github.com/google/certificate-transparency-go/tls
 github.com/google/certificate-transparency-go/x509
 github.com/google/certificate-transparency-go/x509/pkix
-# github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548
-## explicit
+# github.com/jmhodges/clock v1.2.0
+## explicit; go 1.17
 github.com/jmhodges/clock
 # github.com/jmoiron/sqlx v1.3.3
 ## explicit; go 1.10
