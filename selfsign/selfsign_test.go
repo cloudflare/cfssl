@@ -3,9 +3,9 @@ package selfsign
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -22,11 +22,11 @@ const (
 )
 
 func TestDefaultSign(t *testing.T) {
-	csrBytes, err := ioutil.ReadFile(csrFile)
+	csrBytes, err := os.ReadFile(csrFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	keyBytes, err := ioutil.ReadFile(keyFile)
+	keyBytes, err := os.ReadFile(keyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,11 +47,11 @@ func TestDefaultSign(t *testing.T) {
 
 func TestSANs(t *testing.T) {
 	t.Skip("broken relating to https://github.com/cloudflare/cfssl/issues/1230")
-	csrBytes, err := ioutil.ReadFile(csr2File)
+	csrBytes, err := os.ReadFile(csr2File)
 	if err != nil {
 		t.Fatal(err)
 	}
-	keyBytes, err := ioutil.ReadFile(keyFile)
+	keyBytes, err := os.ReadFile(keyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
