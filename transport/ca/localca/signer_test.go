@@ -7,11 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/initca"
-	"github.com/cloudflare/cfssl/selfsign"
 )
 
 func tempName() (string, error) {
@@ -23,53 +21,6 @@ func tempName() (string, error) {
 	name := tmpf.Name()
 	tmpf.Close()
 	return name, nil
-}
-
-func testGenerateKeypair(req *csr.CertificateRequest) (keyFile, certFile string, err error) {
-	fail := func(err error) (string, string, error) {
-		if keyFile != "" {
-			os.Remove(keyFile)
-		}
-		if certFile != "" {
-			os.Remove(certFile)
-		}
-		return "", "", err
-	}
-
-	keyFile, err = tempName()
-	if err != nil {
-		return fail(err)
-	}
-
-	certFile, err = tempName()
-	if err != nil {
-		return fail(err)
-	}
-
-	csrPEM, keyPEM, err := csr.ParseRequest(req)
-	if err != nil {
-		return fail(err)
-	}
-
-	if err = ioutil.WriteFile(keyFile, keyPEM, 0644); err != nil {
-		return fail(err)
-	}
-
-	priv, err := helpers.ParsePrivateKeyPEM(keyPEM)
-	if err != nil {
-		return fail(err)
-	}
-
-	cert, err := selfsign.Sign(priv, csrPEM, config.DefaultConfig())
-	if err != nil {
-		return fail(err)
-	}
-
-	if err = ioutil.WriteFile(certFile, cert, 0644); err != nil {
-		return fail(err)
-	}
-
-	return
 }
 
 func TestEncodePEM(t *testing.T) {
