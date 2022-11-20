@@ -2,6 +2,7 @@ package localca
 
 import (
 	"encoding/pem"
+	"errors"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/selfsign"
-	"github.com/kisom/goutils/assert"
 )
 
 func tempName() (string, error) {
@@ -83,30 +83,46 @@ func TestEncodePEM(t *testing.T) {
 func TestLoadSigner(t *testing.T) {
 	lca := &CA{}
 	certPEM, csrPEM, keyPEM, err := initca.New(ExampleRequest())
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	_, err = lca.CACertificate()
-	assert.ErrorEqT(t, errNotSetup, err)
+	if !errors.Is(err, errNotSetup) {
+		t.Fatalf("expected an errNotSetup (%v), got: %v", errNotSetup, err)
+	}
 
 	_, err = lca.SignCSR(csrPEM)
-	assert.ErrorEqT(t, errNotSetup, err)
+	if !errors.Is(err, errNotSetup) {
+		t.Fatalf("expected an errNotSetup (%v), got: %v", errNotSetup, err)
+	}
 
 	lca.KeyFile, err = tempName()
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.Remove(lca.KeyFile)
 
 	lca.CertFile, err = tempName()
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.Remove(lca.CertFile)
 
 	err = ioutil.WriteFile(lca.KeyFile, keyPEM, 0644)
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	err = ioutil.WriteFile(lca.CertFile, certPEM, 0644)
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	err = Load(lca, ExampleSigningConfig())
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 var testRequest = &csr.CertificateRequest{
@@ -121,33 +137,50 @@ var testRequest = &csr.CertificateRequest{
 func TestNewSigner(t *testing.T) {
 	req := ExampleRequest()
 	lca, err := New(req, ExampleSigningConfig())
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	csrPEM, _, err := csr.ParseRequest(testRequest)
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	certPEM, err := lca.SignCSR(csrPEM)
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	_, err = helpers.ParseCertificatePEM(certPEM)
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	certPEM, err = lca.CACertificate()
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cert, err := helpers.ParseCertificatePEM(certPEM)
-	assert.NoErrorT(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	assert.BoolT(t, cert.Subject.CommonName == req.CN,
-		"common names don't match")
+	if cert.Subject.CommonName != req.CN {
+		t.Fatalf("common names don't match: '%s' != '%s'", cert.Subject.CommonName, req.CN)
+	}
 
 	lca.Toggle()
 	_, err = lca.SignCSR(csrPEM)
-	assert.ErrorEqT(t, errDisabled, err)
+	if !errors.Is(err, errDisabled) {
+		t.Fatalf("expected an errDisabled (%v), got: %v", errDisabled, err)
+	}
 	lca.Toggle()
 
 	_, err = lca.SignCSR(certPEM)
-	assert.ErrorT(t, err, "shouldn't be able to sign non-CSRs")
+	if err == nil {
+		t.Fatal("shouldn't be able to sign non-CSRs")
+	}
 
 	p := &pem.Block{
 		Type:  "CERTIFICATE REQUEST",
@@ -156,6 +189,8 @@ func TestNewSigner(t *testing.T) {
 	junkCSR := pem.EncodeToMemory(p)
 
 	_, err = lca.SignCSR(junkCSR)
-	assert.ErrorT(t, err, "signing a junk CSR should fail")
+	if err == nil {
+		t.Fatal("signing a junk CSR should fail")
+	}
 	t.Logf("error: %s", err)
 }
