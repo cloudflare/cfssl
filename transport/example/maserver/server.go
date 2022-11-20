@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"net"
+	"os"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/transport"
@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 
 	var id = new(core.Identity)
-	data, err := ioutil.ReadFile(conf)
+	data, err := os.ReadFile(conf)
 	if err != nil {
 		exlib.Err(1, err, "reading config file")
 	}
