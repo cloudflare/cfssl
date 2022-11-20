@@ -9,18 +9,16 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 )
 
-//TestNew validate the CertificateRequest created to return with a KeyRequest
-//in KeyRequest field
-
+// TestNew validate the CertificateRequest created to return with a KeyRequest
+// in KeyRequest field
 func TestNew(t *testing.T) {
-
 	if cr := New(); cr.KeyRequest == nil {
 		t.Fatalf("Should create a new, empty certificate request with KeyRequest")
 	}
@@ -755,7 +753,7 @@ func TestBadReGenerate(t *testing.T) {
 var testECDSACertificateFile = "testdata/test-ecdsa-ca.pem"
 
 func TestExtractCertificateRequest(t *testing.T) {
-	certPEM, err := ioutil.ReadFile(testECDSACertificateFile)
+	certPEM, err := os.ReadFile(testECDSACertificateFile)
 	if err != nil {
 		t.Fatal(err)
 	}
