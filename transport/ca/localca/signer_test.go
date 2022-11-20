@@ -3,25 +3,14 @@ package localca
 import (
 	"encoding/pem"
 	"errors"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/initca"
 )
-
-func tempName() (string, error) {
-	tmpf, err := ioutil.TempFile("", "transport_cachedkp_")
-	if err != nil {
-		return "", err
-	}
-
-	name := tmpf.Name()
-	tmpf.Close()
-	return name, nil
-}
 
 func TestEncodePEM(t *testing.T) {
 	p := &pem.Block{
@@ -48,24 +37,16 @@ func TestLoadSigner(t *testing.T) {
 		t.Fatalf("expected an errNotSetup (%v), got: %v", errNotSetup, err)
 	}
 
-	lca.KeyFile, err = tempName()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(lca.KeyFile)
+	tmpDir := t.TempDir()
+	lca.KeyFile = filepath.Join(tmpDir, "KeyFile")
+	lca.CertFile = filepath.Join(tmpDir, "CertFile")
 
-	lca.CertFile, err = tempName()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(lca.CertFile)
-
-	err = ioutil.WriteFile(lca.KeyFile, keyPEM, 0644)
+	err = os.WriteFile(lca.KeyFile, keyPEM, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(lca.CertFile, certPEM, 0644)
+	err = os.WriteFile(lca.CertFile, certPEM, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
