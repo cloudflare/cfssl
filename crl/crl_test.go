@@ -2,7 +2,7 @@ package crl
 
 import (
 	"crypto/x509"
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -16,17 +16,17 @@ const (
 
 func TestNewCRLFromFile(t *testing.T) {
 
-	tryTwoKeyBytes, err := ioutil.ReadFile(tryTwoKey)
+	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tryTwoCertBytes, err := ioutil.ReadFile(tryTwoCert)
+	tryTwoCertBytes, err := os.ReadFile(tryTwoCert)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	serialListBytes, err := ioutil.ReadFile(serialList)
+	serialListBytes, err := os.ReadFile(serialList)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,12 +49,12 @@ func TestNewCRLFromFile(t *testing.T) {
 }
 
 func TestNewCRLFromFileWithoutRevocations(t *testing.T) {
-	tryTwoKeyBytes, err := ioutil.ReadFile(tryTwoKey)
+	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tryTwoCertBytes, err := ioutil.ReadFile(tryTwoCert)
+	tryTwoCertBytes, err := os.ReadFile(tryTwoCert)
 	if err != nil {
 		t.Fatal(err)
 	}
