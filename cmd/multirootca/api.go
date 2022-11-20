@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httputil"
 
@@ -82,7 +82,7 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	defer req.Body.Close()
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		fail(w, req, http.StatusInternalServerError, 1, err.Error(), "while reading request body")
 		return

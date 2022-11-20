@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/cloudflare/cfssl/cli/version"
@@ -15,13 +15,13 @@ import (
 
 func readFile(filespec string) ([]byte, error) {
 	if filespec == "-" {
-		return ioutil.ReadAll(os.Stdin)
+		return io.ReadAll(os.Stdin)
 	}
-	return ioutil.ReadFile(filespec)
+	return os.ReadFile(filespec)
 }
 
 func writeFile(filespec, contents string, perms os.FileMode) {
-	err := ioutil.WriteFile(filespec, []byte(contents), perms)
+	err := os.WriteFile(filespec, []byte(contents), perms)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
@@ -184,7 +184,7 @@ func main() {
 	}
 
 	if contents, ok := input["ocspResponse"]; ok {
-		//ocspResponse is base64 encoded
+		// ocspResponse is base64 encoded
 		resp, err := base64.StdEncoding.DecodeString(contents.(string))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to parse ocspResponse: %v\n", err)

@@ -2,6 +2,7 @@
 // All certificates in the input file paths are checked for revocation and bundled together.
 //
 // Usage:
+//
 //	mkbundle -f bundle_file -nw number_of_workers certificate_file_path ...
 package main
 
@@ -9,7 +10,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -32,7 +32,7 @@ func worker(paths chan string, bundler chan *x509.Certificate, pool *sync.WaitGr
 
 		log.Infof("Loading %s", path)
 
-		fileData, err := ioutil.ReadFile(path)
+		fileData, err := os.ReadFile(path)
 		if err != nil {
 			log.Warningf("%v", err)
 			continue
