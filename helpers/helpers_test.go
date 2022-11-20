@@ -10,14 +10,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"io/ioutil"
 	"math"
+	"os"
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/ocsp"
-
 	"github.com/google/certificate-transparency-go"
+	"golang.org/x/crypto/ocsp"
 )
 
 const (
@@ -52,7 +51,7 @@ const (
 func TestParseCertificatesDER(t *testing.T) {
 	var password = []string{"password", "", ""}
 	for i, testFile := range []string{testPKCS12Passwordispassword, testPKCS12EmptyPswd, testCertDERFile} {
-		testDER, err := ioutil.ReadFile(testFile)
+		testDER, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -65,7 +64,7 @@ func TestParseCertificatesDER(t *testing.T) {
 		}
 	}
 
-	testDER, err := ioutil.ReadFile(testEmptyPKCS7DER)
+	testDER, err := os.ReadFile(testEmptyPKCS7DER)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +88,7 @@ func TestKeyLength(t *testing.T) {
 		t.Fatal("KeyLength malfunctioning on nonsense input")
 	}
 
-	//test the ecdsa branch
+	// test the ecdsa branch
 	ecdsaPriv, _ := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	ecdsaIn, _ := ecdsaPriv.Public().(*ecdsa.PublicKey)
 	expEcdsa := ecdsaIn.Curve.Params().BitSize
@@ -98,7 +97,7 @@ func TestKeyLength(t *testing.T) {
 		t.Fatal("KeyLength malfunctioning on ecdsa input")
 	}
 
-	//test the rsa branch
+	// test the rsa branch
 	rsaPriv, _ := rsa.GenerateKey(rand.Reader, 256)
 	rsaIn, _ := rsaPriv.Public().(*rsa.PublicKey)
 	expRsa := rsaIn.N.BitLen()
@@ -118,8 +117,8 @@ func TestExpiryTime(t *testing.T) {
 		t.Fatal("Expiry time is malfunctioning on empty input")
 	}
 
-	//read a pem file and use that expiry date
-	bytes, _ := ioutil.ReadFile(testBundleFile)
+	// read a pem file and use that expiry date
+	bytes, _ := os.ReadFile(testBundleFile)
 	certs, err := ParseCertificatesPEM(bytes)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -269,7 +268,7 @@ func TestSignatureString(t *testing.T) {
 
 func TestParseCertificatePEM(t *testing.T) {
 	for _, testFile := range []string{testCertFile, testExtraWSCertFile, testSinglePKCS7} {
-		certPEM, err := ioutil.ReadFile(testFile)
+		certPEM, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -280,7 +279,7 @@ func TestParseCertificatePEM(t *testing.T) {
 		}
 	}
 	for _, testFile := range []string{testBundleFile, testMessedUpCertFile, testEmptyPKCS7PEM, testEmptyCertFile, testMultiplePKCS7} {
-		certPEM, err := ioutil.ReadFile(testFile)
+		certPEM, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -294,7 +293,7 @@ func TestParseCertificatePEM(t *testing.T) {
 func TestParseCertificatesPEM(t *testing.T) {
 	// expected cases
 	for _, testFile := range []string{testBundleFile, testExtraWSBundleFile, testSinglePKCS7, testMultiplePKCS7} {
-		bundlePEM, err := ioutil.ReadFile(testFile)
+		bundlePEM, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -308,7 +307,7 @@ func TestParseCertificatesPEM(t *testing.T) {
 	// test failure cases
 	// few lines deleted, then headers removed
 	for _, testFile := range []string{testMessedUpBundleFile, testEmptyPKCS7PEM, testNoHeaderCert} {
-		bundlePEM, err := ioutil.ReadFile(testFile)
+		bundlePEM, err := os.ReadFile(testFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -320,7 +319,7 @@ func TestParseCertificatesPEM(t *testing.T) {
 }
 
 func TestSelfSignedCertificatePEM(t *testing.T) {
-	testPEM, err := ioutil.ReadFile(testCertFile)
+	testPEM, err := os.ReadFile(testCertFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +329,7 @@ func TestSelfSignedCertificatePEM(t *testing.T) {
 	}
 
 	// a few lines deleted from the pem file
-	wrongPEM, err := ioutil.ReadFile(testMessedUpCertFile)
+	wrongPEM, err := os.ReadFile(testMessedUpCertFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +352,7 @@ func TestSelfSignedCertificatePEM(t *testing.T) {
 func TestParsePrivateKeyPEM(t *testing.T) {
 
 	// expected cases
-	testRSAPEM, err := ioutil.ReadFile(testPrivateRSAKey)
+	testRSAPEM, err := os.ReadFile(testPrivateRSAKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,7 +361,7 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testECDSAPEM, err := ioutil.ReadFile(testPrivateECDSAKey)
+	testECDSAPEM, err := os.ReadFile(testPrivateECDSAKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,7 +370,7 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testEd25519PEM, err := ioutil.ReadFile(testPrivateEd25519Key)
+	testEd25519PEM, err := os.ReadFile(testPrivateEd25519Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +380,7 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testOpenSSLECKey, err := ioutil.ReadFile(testPrivateOpenSSLECKey)
+	testOpenSSLECKey, err := os.ReadFile(testPrivateOpenSSLECKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,7 +399,7 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 	}
 
 	for _, fname := range errCases {
-		testPEM, _ := ioutil.ReadFile(fname)
+		testPEM, _ := os.ReadFile(fname)
 		_, err = ParsePrivateKeyPEM(testPEM)
 		if err == nil {
 			t.Fatal("Incorrect private key failed to produce an error")
@@ -413,7 +412,7 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 const ecdsaTestCSR = "testdata/ecdsa256.csr"
 
 func TestParseCSRPEM(t *testing.T) {
-	in, err := ioutil.ReadFile(ecdsaTestCSR)
+	in, err := os.ReadFile(ecdsaTestCSR)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -432,7 +431,7 @@ func TestParseCSRPEM(t *testing.T) {
 }
 
 func TestParseCSRPEMMore(t *testing.T) {
-	csrPEM, err := ioutil.ReadFile(testCSRPEM)
+	csrPEM, err := os.ReadFile(testCSRPEM)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -441,7 +440,7 @@ func TestParseCSRPEMMore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	csrPEM, err = ioutil.ReadFile(testCSRPEMBad)
+	csrPEM, err = os.ReadFile(testCSRPEMBad)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,7 +458,7 @@ func TestParseCSRPEMMore(t *testing.T) {
 const rsaOldTestCSR = "testdata/rsa-old.csr"
 
 func TestParseOldCSR(t *testing.T) {
-	in, err := ioutil.ReadFile(rsaOldTestCSR)
+	in, err := os.ReadFile(rsaOldTestCSR)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -508,7 +507,7 @@ func TestLoadPEMCertPool(t *testing.T) {
 		t.Fatal("Empty file name should not generate error or a cert pool")
 	}
 
-	in, err := ioutil.ReadFile(testEmptyPem)
+	in, err := os.ReadFile(testEmptyPem)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -519,7 +518,7 @@ func TestLoadPEMCertPool(t *testing.T) {
 		t.Fatal("Expected error for empty file")
 	}
 
-	in, err = ioutil.ReadFile(testEmptyCertFile)
+	in, err = os.ReadFile(testEmptyCertFile)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -530,7 +529,7 @@ func TestLoadPEMCertPool(t *testing.T) {
 		t.Fatal("Expected error for empty cert")
 	}
 
-	in, err = ioutil.ReadFile(clientCertFile)
+	in, err = os.ReadFile(clientCertFile)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
