@@ -11,8 +11,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -156,7 +156,7 @@ func parseTestData(r io.Reader) (flows [][]byte, err error) {
 
 // tempFile creates a temp file containing contents and returns its path.
 func tempFile(contents string) string {
-	file, err := ioutil.TempFile("", "go-tls-test")
+	file, err := os.CreateTemp("", "go-tls-test")
 	if err != nil {
 		panic("failed to create temp file: " + err.Error())
 	}
