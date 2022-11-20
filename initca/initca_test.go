@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -64,7 +64,7 @@ var invalidCryptoParams = []csr.KeyRequest{
 func TestInitCA(t *testing.T) {
 	var req *csr.CertificateRequest
 	hostname := "cloudflare.com"
-	crl := "http://crl.cloudflare.com/655c6a9b-01c6-4eea-bf21-be690cc315e0.crl" //cert_uuid.crl
+	crl := "http://crl.cloudflare.com/655c6a9b-01c6-4eea-bf21-be690cc315e0.crl" // cert_uuid.crl
 	for _, param := range validKeyParams {
 		for _, caconfig := range validCAConfigs {
 			req = &csr.CertificateRequest{
@@ -162,7 +162,7 @@ func TestInitCA(t *testing.T) {
 
 			// Sign RSA and ECDSA customer CSRs.
 			for _, csrFile := range csrFiles {
-				csrBytes, err := ioutil.ReadFile(csrFile)
+				csrBytes, err := os.ReadFile(csrFile)
 				if err != nil {
 					t.Fatal("CSR loading error:", err)
 				}
@@ -356,7 +356,7 @@ func TestRenewMismatch(t *testing.T) {
 }
 
 func TestRenew(t *testing.T) {
-	in, err := ioutil.ReadFile(testECDSACAFile)
+	in, err := os.ReadFile(testECDSACAFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +366,7 @@ func TestRenew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	in, err = ioutil.ReadFile(testECDSACAKeyFile)
+	in, err = os.ReadFile(testECDSACAKeyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
