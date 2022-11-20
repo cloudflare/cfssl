@@ -27,9 +27,11 @@ type fileTest struct {
 	bundleChecking func(*testing.T, *Bundle)
 }
 
-/* ========== BundleFromFile Test Setup =============
+/*
+	========== BundleFromFile Test Setup =============
 
 For each pair of crypto algorithm X and key size Y, a CA chain is constructed:
+
 	Test_root_CA -> inter-L1 -> inter-L2--> cfssl-leaf-ecdsa256
 	                                    |-> cfssl-leaf-ecdsa384
 	                                    |-> cfssl-leaf-ecdsa521
@@ -44,8 +46,10 @@ Two inter-* certs are assembled in intermediates.crt
 
 There is also an expired L1 cert, sharing the same CSR with inter-L1. Also the
 root CA processes the inter-L2 CSR directly to generate inter-L2-direct cert.
-*	Test_root_CA--> inter-L1-expired
+
+	Test_root_CA--> inter-L1-expired
 	            |-> inter-L2-direct
+
 Using inter-L2-direct as additional intermediate cert should shorten the
 bundle chain.
 */

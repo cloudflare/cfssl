@@ -2,6 +2,7 @@
 // All certificates in the input file paths are checked for revocation and bundled together.
 //
 // Usage:
+//
 //	mkbundle -f bundle_file -nw number_of_workers certificate_file_path ...
 package main
 

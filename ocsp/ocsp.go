@@ -1,9 +1,7 @@
 /*
-
 Package ocsp exposes OCSP signing functionality, much like the signer
 package does for certificate signing.  It also provies a basic OCSP
 responder stack for serving pre-signed OCSP responses.
-
 */
 package ocsp
 
