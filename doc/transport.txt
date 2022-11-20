@@ -79,7 +79,7 @@ configuration. The example programs use the code
         // conf is a string contain the path to a JSON configuration
         // file.
         var id = new(core.Identity)
-        data, err := ioutil.ReadFile(conf)
+        data, err := os.ReadFile(conf)
         if err != nil {
                 exlib.Err(1, err, "reading config file")
         }
