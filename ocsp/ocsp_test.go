@@ -1,13 +1,13 @@
 package ocsp
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/ocsp"
-
 	"github.com/cloudflare/cfssl/helpers"
+
+	"golang.org/x/crypto/ocsp"
 )
 
 const (
@@ -65,7 +65,7 @@ func TestNewSignerFromFile(t *testing.T) {
 
 func setup(t *testing.T) (SignRequest, time.Duration) {
 	dur, _ := time.ParseDuration("1ms")
-	certPEM, err := ioutil.ReadFile(otherCertFile)
+	certPEM, err := os.ReadFile(otherCertFile)
 	if err != nil {
 		t.Fatal(err)
 	}
