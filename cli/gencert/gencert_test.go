@@ -1,7 +1,6 @@
 package gencert
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -86,8 +85,8 @@ func TestGencertFile(t *testing.T) {
 }
 
 func TestGencertEnv(t *testing.T) {
-	tempCaCert, _ := ioutil.ReadFile("../testdata/ca.pem")
-	tempCaKey, _ := ioutil.ReadFile("../testdata/ca-key.pem")
+	tempCaCert, _ := os.ReadFile("../testdata/ca.pem")
+	tempCaKey, _ := os.ReadFile("../testdata/ca-key.pem")
 	os.Setenv("ca", string(tempCaCert))
 	os.Setenv("ca_key", string(tempCaKey))
 
@@ -124,8 +123,8 @@ func TestGencertEnv(t *testing.T) {
 }
 
 func TestBadGencertEnv(t *testing.T) {
-	tempCaCert, _ := ioutil.ReadFile("../testdata/ca.pem")
-	tempCaKey, _ := ioutil.ReadFile("../testdata/ca-key.pem")
+	tempCaCert, _ := os.ReadFile("../testdata/ca.pem")
+	tempCaKey, _ := os.ReadFile("../testdata/ca-key.pem")
 	os.Setenv("ca", string(tempCaCert))
 	os.Setenv("ca_key", string(tempCaKey))
 

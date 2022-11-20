@@ -2,6 +2,7 @@ package ocsprefresh
 
 import (
 	"encoding/hex"
+	"os"
 	"testing"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/helpers"
 	"golang.org/x/crypto/ocsp"
-	"io/ioutil"
 )
 
 var dbAccessor certdb.Accessor
@@ -19,7 +19,7 @@ var dbAccessor certdb.Accessor
 func TestOCSPRefreshMain(t *testing.T) {
 	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 
-	certPEM, err := ioutil.ReadFile("../../ocsp/testdata/cert.pem")
+	certPEM, err := os.ReadFile("../../ocsp/testdata/cert.pem")
 	if err != nil {
 		t.Fatal(err)
 	}
