@@ -3,9 +3,10 @@ package bundle
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/api"
@@ -39,14 +40,14 @@ func testBundleFile(t *testing.T, domain, ip, certFile, keyFile, flavor string) 
 	var certPEM, keyPEM []byte
 	if certFile != "" {
 		var err error
-		certPEM, err = ioutil.ReadFile(certFile)
+		certPEM, err = os.ReadFile(certFile)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	if keyFile != "" {
 		var err error
-		keyPEM, err = ioutil.ReadFile(keyFile)
+		keyPEM, err = os.ReadFile(keyFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -75,7 +76,7 @@ func testBundleFile(t *testing.T, domain, ip, certFile, keyFile, flavor string) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
