@@ -3,11 +3,10 @@ package ocsp
 
 import (
 	"crypto"
-	"net/http"
-
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/cloudflare/cfssl/api"
@@ -56,7 +55,7 @@ var nameToHash = map[string]crypto.Hash{
 // is revoked then it also adds reason and revoked_at. The response is
 // base64 encoded.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}

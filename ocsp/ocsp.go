@@ -1,9 +1,7 @@
 /*
-
 Package ocsp exposes OCSP signing functionality, much like the signer
 package does for certificate signing.  It also provies a basic OCSP
 responder stack for serving pre-signed OCSP responses.
-
 */
 package ocsp
 
@@ -12,7 +10,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -113,12 +111,12 @@ func NewSignerFromFile(issuerFile, responderFile, keyFile string, interval time.
 		return nil, err
 	}
 	log.Debug("Loading responder cert: ", responderFile)
-	responderBytes, err := ioutil.ReadFile(responderFile)
+	responderBytes, err := os.ReadFile(responderFile)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("Loading responder key: ", keyFile)
-	keyBytes, err := ioutil.ReadFile(keyFile)
+	keyBytes, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.ReadFailed, err)
 	}

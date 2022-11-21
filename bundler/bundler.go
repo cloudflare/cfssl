@@ -12,7 +12,7 @@ import (
 	"encoding/pem"
 	goerr "errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -99,7 +99,7 @@ func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, er
 
 	if caBundleFile != "" {
 		log.Debug("Loading CA bundle: ", caBundleFile)
-		caBundle, err = ioutil.ReadFile(caBundleFile)
+		caBundle, err = os.ReadFile(caBundleFile)
 		if err != nil {
 			log.Errorf("root bundle failed to load: %v", err)
 			return nil, errors.Wrap(errors.RootError, errors.ReadFailed, err)
@@ -108,7 +108,7 @@ func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, er
 
 	if intBundleFile != "" {
 		log.Debug("Loading Intermediate bundle: ", intBundleFile)
-		intBundle, err = ioutil.ReadFile(intBundleFile)
+		intBundle, err = os.ReadFile(intBundleFile)
 		if err != nil {
 			log.Errorf("intermediate bundle failed to load: %v", err)
 			return nil, errors.Wrap(errors.IntermediatesError, errors.ReadFailed, err)
@@ -199,7 +199,7 @@ func (b *Bundler) VerifyOptions() x509.VerifyOptions {
 // and returns the bundle built from that key and the certificate(s).
 func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor, password string) (*Bundle, error) {
 	log.Debug("Loading Certificate: ", bundleFile)
-	certsRaw, err := ioutil.ReadFile(bundleFile)
+	certsRaw, err := os.ReadFile(bundleFile)
 	if err != nil {
 		return nil, errors.Wrap(errors.CertificateError, errors.ReadFailed, err)
 	}
@@ -208,7 +208,7 @@ func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor
 	// Load private key PEM only if a file is given
 	if keyFile != "" {
 		log.Debug("Loading private key: ", keyFile)
-		keyPEM, err = ioutil.ReadFile(keyFile)
+		keyPEM, err = os.ReadFile(keyFile)
 		if err != nil {
 			log.Debugf("failed to read private key: ", err)
 			return nil, errors.Wrap(errors.PrivateKeyError, errors.ReadFailed, err)
@@ -344,7 +344,7 @@ func fetchRemoteCertificate(certURL string) (fi *fetchedIntermediate, err error)
 
 	defer resp.Body.Close()
 	var certData []byte
-	certData, err = ioutil.ReadAll(resp.Body)
+	certData, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Debugf("failed to read response body: %v", err)
 		return
@@ -442,7 +442,7 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 
 			log.Debugf("write intermediate to stash directory: %s", fileName)
 			// If the write fails, verification should not fail.
-			err = ioutil.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
+			err = os.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
 			if err != nil {
 				log.Errorf("failed to write new intermediate: %v", err)
 			} else {

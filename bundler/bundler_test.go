@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -176,14 +176,14 @@ func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 	}
 
 	key := obj["key"].(string)
-	keyBytes, _ := ioutil.ReadFile(leafKeyECDSA256)
+	keyBytes, _ := os.ReadFile(leafKeyECDSA256)
 	keyBytes = bytes.Trim(keyBytes, " \n")
 	if key != string(keyBytes) {
 		t.Fatal("key is not recovered.")
 	}
 
 	cert := obj["crt"].(string)
-	certBytes, _ := ioutil.ReadFile(leafECDSA256)
+	certBytes, _ := os.ReadFile(leafECDSA256)
 	certBytes = bytes.Trim(certBytes, " \n")
 	if cert != string(certBytes) {
 		t.Fatal("cert is not recovered.")
@@ -212,7 +212,7 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 	}
 
 	key := obj["key"].(string)
-	keyBytes, _ := ioutil.ReadFile(leafKeyRSA2048)
+	keyBytes, _ := os.ReadFile(leafKeyRSA2048)
 	keyBytes = bytes.Trim(keyBytes, " \n")
 	if key != string(keyBytes) {
 		t.Error("key is", key)
@@ -221,7 +221,7 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 	}
 
 	cert := obj["crt"].(string)
-	certBytes, _ := ioutil.ReadFile(leafRSA2048)
+	certBytes, _ := os.ReadFile(leafRSA2048)
 	certBytes = bytes.Trim(certBytes, " \n")
 	if cert != string(certBytes) {
 		t.Fatal("cert is not recovered.")
@@ -373,7 +373,7 @@ func TestForceBundle(t *testing.T) {
 	interL1Bytes := signCSRFile(caSigner, interL1CSR, t)
 
 	// create a inter L1 signer
-	interL1KeyBytes, err := ioutil.ReadFile(interL1Key)
+	interL1KeyBytes, err := os.ReadFile(interL1Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestForceBundle(t *testing.T) {
 	interL2Bytes := signCSRFile(interL1Signer, interL2CSR, t)
 
 	// create a inter L2 signer
-	interL2KeyBytes, err := ioutil.ReadFile(interL2Key)
+	interL2KeyBytes, err := os.ReadFile(interL2Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,7 +396,7 @@ func TestForceBundle(t *testing.T) {
 
 	// create two platforms
 	// both trust the CA cert and L1 intermediate
-	caBytes, err := ioutil.ReadFile(testCAFile)
+	caBytes, err := os.ReadFile(testCAFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -476,7 +476,7 @@ func TestUpdateIntermediate(t *testing.T) {
 	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
 	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
 
-	interKeyBytes, err := ioutil.ReadFile(interL1Key)
+	interKeyBytes, err := os.ReadFile(interL1Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,7 +487,7 @@ func TestUpdateIntermediate(t *testing.T) {
 	leafBytes := signCSRFile(sha2InterSigner, leafCSR, t)
 
 	// read CA cert bytes
-	caCertBytes, err := ioutil.ReadFile(testCAFile)
+	caCertBytes, err := os.ReadFile(testCAFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -522,7 +522,7 @@ func TestForceBundleNoFallback(t *testing.T) {
 	caSigner := makeCASignerFromFile(testCAFile, testCAKeyFile, x509.SHA256WithRSA, t)
 	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
 
-	interKeyBytes, err := ioutil.ReadFile(interL1Key)
+	interKeyBytes, err := os.ReadFile(interL1Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,7 +533,7 @@ func TestForceBundleNoFallback(t *testing.T) {
 	leafBytes := signCSRFile(sha2InterSigner, leafCSR, t)
 
 	// read CA cert bytes
-	caCertBytes, err := ioutil.ReadFile(testCAFile)
+	caCertBytes, err := os.ReadFile(testCAFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -566,7 +566,7 @@ func TestSHA2HomogeneityAgainstUbiquity(t *testing.T) {
 	interL1Bytes := signCSRFile(caSigner, interL1CSR, t)
 
 	// create a inter L1 signer
-	interL1KeyBytes, err := ioutil.ReadFile(interL1Key)
+	interL1KeyBytes, err := os.ReadFile(interL1Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -577,7 +577,7 @@ func TestSHA2HomogeneityAgainstUbiquity(t *testing.T) {
 	interL2Bytes := signCSRFile(interL1Signer, interL2CSR, t)
 
 	// create a inter L2 signer
-	interL2KeyBytes, err := ioutil.ReadFile(interL2Key)
+	interL2KeyBytes, err := os.ReadFile(interL2Key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -590,7 +590,7 @@ func TestSHA2HomogeneityAgainstUbiquity(t *testing.T) {
 	// create two platforms
 	// platform A trusts the CA cert and L1 intermediate
 	// platform B trusts the CA cert
-	caBytes, err := ioutil.ReadFile(testCAFile)
+	caBytes, err := os.ReadFile(testCAFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -708,7 +708,7 @@ func TestSHA2Warning(t *testing.T) {
 	sha2InterBytes := signCSRFile(caSigner, interL1CSR, t)
 
 	// read CA cert bytes
-	caCertBytes, err := ioutil.ReadFile(testCAFile)
+	caCertBytes, err := os.ReadFile(testCAFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -752,7 +752,7 @@ func TestECDSAWarning(t *testing.T) {
 
 // readCert read a PEM file and returns a cert.
 func readCert(filename string) *x509.Certificate {
-	bytes, _ := ioutil.ReadFile(filename)
+	bytes, _ := os.ReadFile(filename)
 	cert, _ := helpers.ParseCertificatePEM(bytes)
 	return cert
 }
@@ -784,7 +784,7 @@ func newCustomizedBundlerFromFile(t *testing.T, caBundle, intBundle, adhocInters
 		t.Fatal(err)
 	}
 	if adhocInters != "" {
-		moreIntersPEM, err := ioutil.ReadFile(adhocInters)
+		moreIntersPEM, err := os.ReadFile(adhocInters)
 		if err != nil {
 			t.Fatalf("Read additional intermediates failed. %v",
 				err)

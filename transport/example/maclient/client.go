@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/cloudflare/cfssl/transport"
 	"github.com/cloudflare/cfssl/transport/core"
@@ -25,7 +25,7 @@ func main() {
 	flag.Parse()
 
 	var id = new(core.Identity)
-	data, err := ioutil.ReadFile(conf)
+	data, err := os.ReadFile(conf)
 	if err != nil {
 		exlib.Err(1, err, "reading config file")
 	}

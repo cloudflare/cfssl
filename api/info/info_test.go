@@ -3,7 +3,7 @@ package info
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -92,7 +92,7 @@ func testInfoFile(t *testing.T, req map[string]interface{}) (resp *http.Response
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func testMultiInfoFile(t *testing.T, req map[string]interface{}) (resp *http.Res
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

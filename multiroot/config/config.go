@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -131,7 +130,7 @@ func LoadRoot(cfg map[string]string) (*Root, error) {
 		return nil, err
 	}
 
-	in, err := ioutil.ReadFile(certPath)
+	in, err := os.ReadFile(certPath)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +181,7 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 		// stored in the Path field.
 		log.Debug("loading private key file", specURL.Path)
 		path := filepath.Join(specURL.Host, specURL.Path)
-		in, err := ioutil.ReadFile(path)
+		in, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +201,7 @@ func parsePrivateKeySpec(spec string, cfg map[string]string) (crypto.Signer, err
 	case "rofile":
 		log.Warning("Red October support is currently experimental")
 		path := filepath.Join(specURL.Host, specURL.Path)
-		in, err := ioutil.ReadFile(path)
+		in, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}

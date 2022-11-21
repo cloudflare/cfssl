@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build dragonfly || freebsd || linux || nacl || netbsd || openbsd || solaris
 // +build dragonfly freebsd linux nacl netbsd openbsd solaris
 
 package system
 
 import (
 	"crypto/x509"
-	"io/ioutil"
+	"os"
 )
 
 // Possible directories with certificate files; stop after successfully
@@ -20,7 +21,7 @@ var certDirectories = []string{
 func initSystemRoots() []*x509.Certificate {
 	var roots []*x509.Certificate
 	for _, file := range certFiles {
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		if err == nil {
 			roots, _ = appendPEM(roots, data)
 			return roots
@@ -28,14 +29,14 @@ func initSystemRoots() []*x509.Certificate {
 	}
 
 	for _, directory := range certDirectories {
-		fis, err := ioutil.ReadDir(directory)
+		fis, err := os.ReadDir(directory)
 		if err != nil {
 			continue
 		}
 		rootsAdded := false
 		for _, fi := range fis {
 			var ok bool
-			data, err := ioutil.ReadFile(directory + "/" + fi.Name())
+			data, err := os.ReadFile(directory + "/" + fi.Name())
 			if err == nil {
 				if roots, ok = appendPEM(roots, data); ok {
 					rootsAdded = true

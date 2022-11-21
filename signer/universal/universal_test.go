@@ -2,10 +2,10 @@ package universal
 
 import (
 	"bytes"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -300,7 +300,7 @@ func checkInfo(t *testing.T, s signer.Signer, name string, profile *config.Signi
 		t.Fatalf("Expected usage for profile %s to be %+v, got %+v", name, profile.Usage, resp.Usage)
 	}
 
-	caBytes, err := ioutil.ReadFile(testCaFile)
+	caBytes, err := os.ReadFile(testCaFile)
 	caBytes = bytes.TrimSpace(caBytes)
 	if err != nil {
 		t.Fatal("fail to read test CA cert:", err)
@@ -375,7 +375,7 @@ func TestUniversalRemoteAndLocalSign(t *testing.T) {
 	checkSign := func(name string, profile *config.SigningProfile) {
 		hosts := []string{"cloudflare.com"}
 		for _, test := range testsuite.CSRTests {
-			csr, err := ioutil.ReadFile(test.File)
+			csr, err := os.ReadFile(test.File)
 			if err != nil {
 				t.Fatalf("CSR loading error (%s): %v", name, err)
 			}

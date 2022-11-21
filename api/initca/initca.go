@@ -3,7 +3,7 @@ package initca
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
@@ -26,7 +26,7 @@ type NewCA struct {
 // suitable for creating intermediate certificates.
 func initialCAHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Info("setting up initial CA handler")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)

@@ -3,11 +3,13 @@ package gencrl
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/cloudflare/cfssl/api"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
+
+	"github.com/cloudflare/cfssl/api"
 )
 
 const (
@@ -55,7 +57,7 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 	obj := map[string]interface{}{}
 
 	if certFile != "" {
-		c, err := ioutil.ReadFile(certFile)
+		c, err := os.ReadFile(certFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -65,7 +67,7 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 	obj["serialNumber"] = serialList
 
 	if issuingKey != "" {
-		c, err := ioutil.ReadFile(issuingKey)
+		c, err := os.ReadFile(issuingKey)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,7 +85,7 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,5 +105,4 @@ func TestCRL(t *testing.T) {
 		t.Logf("failed to read response body: %v", err)
 		t.Fatal(resp.Status, tester.ExpectedHTTPStatus, message)
 	}
-
 }

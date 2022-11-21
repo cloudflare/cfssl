@@ -3,7 +3,6 @@ package testsuite
 import (
 	"crypto/x509"
 	"encoding/json"
-	"io/ioutil"
 	"math"
 	"math/rand"
 	"os"
@@ -154,7 +153,7 @@ func TestCreateCertificateChain(t *testing.T) {
 	// the same request data.
 
 	CLIOutputFile := preMadeOutput
-	CLIOutput, err := ioutil.ReadFile(CLIOutputFile)
+	CLIOutput, err := os.ReadFile(CLIOutputFile)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -291,7 +290,7 @@ func TestCreateSelfSignedCert(t *testing.T) {
 	// and is called ca_csr.json.
 
 	CLIOutputFile := preMadeOutput
-	CLIOutput, err := ioutil.ReadFile(CLIOutputFile)
+	CLIOutput, err := os.ReadFile(CLIOutputFile)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

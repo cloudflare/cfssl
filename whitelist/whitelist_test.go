@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -199,7 +199,7 @@ func TestNetConn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	body, err := ioutil.ReadAll(conn)
+	body, err := io.ReadAll(conn)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -213,7 +213,7 @@ func TestNetConn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	body, err = ioutil.ReadAll(conn)
+	body, err = io.ReadAll(conn)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

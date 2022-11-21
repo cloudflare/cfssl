@@ -3,7 +3,7 @@ package ubiquity
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -24,7 +24,7 @@ const (
 var rsa1024Cert, rsa2048Cert, rsa3072Cert, rsa4096Cert, ecdsa256Cert, ecdsa384Cert, ecdsa521Cert *x509.Certificate
 
 func readCert(filename string) *x509.Certificate {
-	bytes, _ := ioutil.ReadFile(filename)
+	bytes, _ := os.ReadFile(filename)
 	cert, _ := helpers.ParseCertificatePEM(bytes)
 	return cert
 }

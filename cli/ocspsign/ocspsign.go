@@ -2,7 +2,7 @@
 package ocspsign
 
 import (
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -27,7 +27,7 @@ var ocspSignerFlags = []string{"ca", "responder", "responder-key", "reason", "st
 // ocspSignerMain is the main CLI of OCSP signer functionality.
 func ocspSignerMain(args []string, c cli.Config) (err error) {
 	// Read the cert to be revoked from file
-	certBytes, err := ioutil.ReadFile(c.CertFile)
+	certBytes, err := os.ReadFile(c.CertFile)
 	if err != nil {
 		log.Critical("Unable to read certificate: ", err)
 		return
@@ -80,8 +80,8 @@ func ocspSignerMain(args []string, c cli.Config) (err error) {
 
 // SignerFromConfig creates a signer from a cli.Config as a helper for cli and serve
 func SignerFromConfig(c cli.Config) (ocsp.Signer, error) {
-	//if this is called from serve then we need to use the specific responder key file
-	//fallback to key for backwards-compatibility
+	// if this is called from serve then we need to use the specific responder key file
+	// fallback to key for backwards-compatibility
 	k := c.ResponderKeyFile
 	if k == "" {
 		k = c.KeyFile

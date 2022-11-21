@@ -3,7 +3,7 @@ package dbconf
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"os"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -26,7 +26,7 @@ func LoadFile(path string) (cfg *DBConfig, err error) {
 	}
 
 	var body []byte
-	body, err = ioutil.ReadFile(path)
+	body, err = os.ReadFile(path)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, errors.New("could not read configuration file"))
 	}

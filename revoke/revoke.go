@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	neturl "net/url"
 	"sync"
@@ -318,21 +317,21 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	return ocsp.ParseResponseForCert(body, leaf, issuer)
 }
 
-var crlRead = ioutil.ReadAll
+var crlRead = io.ReadAll
 
 // SetCRLFetcher sets the function to use to read from the http response body
 func SetCRLFetcher(fn func(io.Reader) ([]byte, error)) {
 	crlRead = fn
 }
 
-var remoteRead = ioutil.ReadAll
+var remoteRead = io.ReadAll
 
 // SetRemoteFetcher sets the function to use to read from the http response body
 func SetRemoteFetcher(fn func(io.Reader) ([]byte, error)) {
 	remoteRead = fn
 }
 
-var ocspRead = ioutil.ReadAll
+var ocspRead = io.ReadAll
 
 // SetOCSPFetcher sets the function to use to read from the http response body
 func SetOCSPFetcher(fn func(io.Reader) ([]byte, error)) {

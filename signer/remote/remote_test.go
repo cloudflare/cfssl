@@ -5,10 +5,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -130,7 +130,7 @@ func verifyRemoteInfo(t *testing.T, remoteConfig *config.Config) {
 		t.Fatal("remote info failed:", err)
 	}
 
-	caBytes, err := ioutil.ReadFile(testCaFile)
+	caBytes, err := os.ReadFile(testCaFile)
 	caBytes = bytes.TrimSpace(caBytes)
 	if err != nil {
 		t.Fatal("fail to read test CA cert:", err)
@@ -187,7 +187,7 @@ func verifyRemoteSign(t *testing.T, remoteConfig *config.Config) {
 
 	hosts := []string{"cloudflare.com"}
 	for _, test := range testsuite.CSRTests {
-		csr, err := ioutil.ReadFile(test.File)
+		csr, err := os.ReadFile(test.File)
 		if err != nil {
 			t.Fatal("CSR loading error:", err)
 		}
@@ -224,7 +224,7 @@ func TestRemoteSignBadServerAndOverride(t *testing.T) {
 	s := newRemoteSigner(t, remoteConfig.Signing)
 
 	hosts := []string{"cloudflare.com"}
-	csr, err := ioutil.ReadFile("../local/testdata/rsa2048.csr")
+	csr, err := os.ReadFile("../local/testdata/rsa2048.csr")
 	if err != nil {
 		t.Fatal("CSR loading error:", err)
 	}

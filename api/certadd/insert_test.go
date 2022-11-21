@@ -6,10 +6,11 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -20,8 +21,6 @@ import (
 	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/certdb/testdb"
 	"github.com/cloudflare/cfssl/ocsp"
-
-	"encoding/base64"
 
 	stdocsp "golang.org/x/crypto/ocsp"
 )
@@ -47,7 +46,7 @@ func makeRequest(t *testing.T, dbAccessor certdb.Accessor, signer ocsp.Signer, r
 		t.Fatal(err)
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

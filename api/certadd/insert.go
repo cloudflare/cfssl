@@ -3,9 +3,10 @@ package certadd
 import (
 	"bytes"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"time"
@@ -16,8 +17,6 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/jmoiron/sqlx/types"
-
-	"encoding/base64"
 
 	stdocsp "golang.org/x/crypto/ocsp"
 )
@@ -81,7 +80,7 @@ var validReasons = map[int]bool{
 
 // Handle handles HTTP requests to add certificates
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}

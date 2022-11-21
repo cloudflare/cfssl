@@ -3,7 +3,7 @@ package revoke
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -55,7 +55,7 @@ type jsonRevokeRequest struct {
 // Handle responds to revocation requests. It attempts to revoke
 // a certificate with a given serial number
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}

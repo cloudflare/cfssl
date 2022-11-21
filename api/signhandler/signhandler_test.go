@@ -3,9 +3,10 @@ package signhandler
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/api"
@@ -67,7 +68,7 @@ func TestSignerDBPersistence(t *testing.T) {
 	defer ts.Close()
 
 	var csrPEM, body []byte
-	csrPEM, err = ioutil.ReadFile(testCSRFile)
+	csrPEM, err = os.ReadFile(testCSRFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +84,7 @@ func TestSignerDBPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
