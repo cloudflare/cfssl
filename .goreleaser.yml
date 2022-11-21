@@ -1,6 +1,6 @@
 env:
   - GO111MODULE=on
-  - CGO_ENABLED=1
+  - CGO_ENABLED=0
   - GOFLAGS=-mod=vendor
   - GOPROXY=off
 builds:
@@ -9,6 +9,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -47,6 +48,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -61,6 +63,8 @@ builds:
     goarch:
       - amd64
     main: ./cmd/cfssl-bundle
+    flags:
+      - -trimpath
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
       - -linkmode external -extldflags "-static"
@@ -83,6 +87,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -119,6 +124,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -155,6 +161,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -191,6 +198,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -263,6 +271,7 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
