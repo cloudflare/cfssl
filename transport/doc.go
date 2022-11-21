@@ -3,26 +3,24 @@
 //
 // Clients should build an identity (of the core.identity) type, such as
 //
-//     var id = &core.Identity{
-//              Request: &csr.CertificateRequest{
-//                      CN: "localhost test certificate",
-//              },
-//              Profiles: map[string]map[string]string{
-//                      "paths": map[string]string{
-//                              "private_key": "client.key",
-//                              "certificate": "client.pem",
-//                      },
-//                      "cfssl": {
-//                              "label":     "",
-//                              "profile":   "client-ca",
-//                              "remote":    "ca.example.net",
-//                              "auth-type": "standard",
-//                              "auth-key":  "000102030405060708090a0b0c0d0e0f",
-//                      },
-//              },
-//     }
-//
-//
+//	var id = &core.Identity{
+//	         Request: &csr.CertificateRequest{
+//	                 CN: "localhost test certificate",
+//	         },
+//	         Profiles: map[string]map[string]string{
+//	                 "paths": map[string]string{
+//	                         "private_key": "client.key",
+//	                         "certificate": "client.pem",
+//	                 },
+//	                 "cfssl": {
+//	                         "label":     "",
+//	                         "profile":   "client-ca",
+//	                         "remote":    "ca.example.net",
+//	                         "auth-type": "standard",
+//	                         "auth-key":  "000102030405060708090a0b0c0d0e0f",
+//	                 },
+//	         },
+//	}
 //
 // The New function will return a transport built using the
 // NewKeyProvider and NewCA functions. These functions may be changed

@@ -90,12 +90,12 @@ func TestSANs(t *testing.T) {
 		t.Errorf("cert should have contained DNSNames %#v but had %#v", expectedDNSNames, cert.DNSNames)
 	}
 
-	expectedIPAddresses := []net.IP{net.IP{0xc0, 0xa8, 0x0, 0x1}}
+	expectedIPAddresses := []net.IP{{0xc0, 0xa8, 0x0, 0x1}}
 	if !reflect.DeepEqual(cert.IPAddresses, expectedIPAddresses) {
 		t.Errorf("cert should have contained IPAddresses %#v but had %#v", expectedIPAddresses, cert.IPAddresses)
 	}
 
-	expectedURIs := []*url.URL{&url.URL{Scheme: "https", Host: "www.cloudflare.com"}}
+	expectedURIs := []*url.URL{{Scheme: "https", Host: "www.cloudflare.com"}}
 	if !reflect.DeepEqual(cert.URIs, expectedURIs) {
 		t.Errorf("cert should have contained URIs %#v but had %#v", expectedURIs, cert.URIs)
 	}

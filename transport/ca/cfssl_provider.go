@@ -216,7 +216,7 @@ func (cap *CFSSL) SignCSR(csrPEM []byte) (cert []byte, err error) {
 	for i := range csr.URIs {
 		hosts = append(hosts, csr.URIs[i].String())
 	}
-	
+
 	sreq := &signer.SignRequest{
 		Hosts:   hosts,
 		Request: string(csrPEM),

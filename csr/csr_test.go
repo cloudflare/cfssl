@@ -113,7 +113,7 @@ func TestParseRequest(t *testing.T) {
 		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com", "https://www.cloudflare.com"},
 		KeyRequest: NewKeyRequest(),
 		Extensions: []pkix.Extension{
-			pkix.Extension{
+			{
 				Id:    asn1.ObjectIdentifier{1, 2, 3, 4, 5},
 				Value: []byte("AgEB"),
 			},

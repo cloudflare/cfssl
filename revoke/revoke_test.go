@@ -2,7 +2,7 @@ package revoke
 
 import (
 	"crypto/x509"
-	//"crypto/x509/pkix"
+	// "crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -48,7 +48,7 @@ sESPRwHkcMUNdAp37FLweUw=
 -----END CERTIFICATE-----`)
 
 // 2014/05/22 14:18:31 Serial number match: intermediate is revoked.
-//	2014/05/22 14:18:31 certificate is revoked via CRL
+// 2014/05/22 14:18:31 certificate is revoked via CRL
 // 2014/05/22 14:18:31 Revoked certificate: misc/intermediate_ca/MobileArmorEnterpriseCA.crt
 var revokedCert = mustParse(`-----BEGIN CERTIFICATE-----
 MIIEEzCCAvugAwIBAgILBAAAAAABGMGjftYwDQYJKoZIhvcNAQEFBQAwcTEoMCYG

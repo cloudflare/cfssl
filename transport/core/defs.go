@@ -7,7 +7,6 @@
 // authentication for servers, and a general-purpose server
 // configuration applicable where mutual authentication is not
 // appropriate.
-//
 package core
 
 import (

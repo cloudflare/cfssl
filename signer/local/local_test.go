@@ -1569,8 +1569,8 @@ func TestLint(t *testing.T) {
 			lintErrLevel: lint.Notice,
 			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
 			expectedErrResults: map[string]lint.LintResult{
-				"e_sub_cert_aia_does_not_contain_ocsp_url": lint.LintResult{Status: 6},
-				"e_dnsname_not_valid_tld":                  lint.LintResult{Status: 6},
+				"e_sub_cert_aia_does_not_contain_ocsp_url": {Status: 6},
+				"e_dnsname_not_valid_tld":                  {Status: 6},
 			},
 		},
 		{
@@ -1579,8 +1579,8 @@ func TestLint(t *testing.T) {
 			lintErrLevel: lint.Warn,
 			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
 			expectedErrResults: map[string]lint.LintResult{
-				"e_sub_cert_aia_does_not_contain_ocsp_url": lint.LintResult{Status: 6},
-				"e_dnsname_not_valid_tld":                  lint.LintResult{Status: 6},
+				"e_sub_cert_aia_does_not_contain_ocsp_url": {Status: 6},
+				"e_dnsname_not_valid_tld":                  {Status: 6},
 			},
 		},
 		{
@@ -1590,7 +1590,7 @@ func TestLint(t *testing.T) {
 			lintRegistry: ignoredLintNameRegistry,
 			expectedErr:  errors.New("pre-issuance linting found 1 error results"),
 			expectedErrResults: map[string]lint.LintResult{
-				"e_sub_cert_aia_does_not_contain_ocsp_url": lint.LintResult{Status: 6},
+				"e_sub_cert_aia_does_not_contain_ocsp_url": {Status: 6},
 			},
 		},
 		{
