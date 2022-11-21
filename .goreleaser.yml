@@ -23,6 +23,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     main: ./cmd/cfssl
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
