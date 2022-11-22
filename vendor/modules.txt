@@ -67,9 +67,6 @@ github.com/jmoiron/sqlx/types
 # github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
 ## explicit
 github.com/kisielk/sqlstruct
-# github.com/kisom/goutils v1.4.3
-## explicit; go 1.13
-github.com/kisom/goutils/assert
 # github.com/kr/text v0.2.0
 ## explicit
 # github.com/kylelemons/go-gypsy v1.0.0

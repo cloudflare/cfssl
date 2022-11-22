@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -15,7 +16,6 @@ import (
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
-	"github.com/kisom/goutils/assert"
 )
 
 // CA is a local transport CertificateAuthority that is useful for
@@ -146,13 +146,19 @@ func New(req *csr.CertificateRequest, profiles *config.Signing) (*CA, error) {
 	// CFSSL has become inconsistent, and it can't be trusted.
 
 	priv, err := helpers.ParsePrivateKeyPEM(keyPEM)
-	assert.NoError(err, "CFSSL-generated private key can't be parsed")
+	if err != nil {
+		return nil, fmt.Errorf("CFSSL-generated private key can't be parsed: %w", err)
+	}
 
 	cert, err := helpers.ParseCertificatePEM(certPEM)
-	assert.NoError(err, "CFSSL-generated certificate can't be parsed")
+	if err != nil {
+		return nil, fmt.Errorf("CFSSL-generated private key can't be parsed: %w", err)
+	}
 
 	s, err := local.NewSigner(priv, cert, helpers.SignerAlgo(priv), profiles)
-	assert.NoError(err, "a signer could not be constructed")
+	if err != nil {
+		return nil, fmt.Errorf("a signer could not be constructed: %w", err)
+	}
 
 	return NewFromSigner(s), nil
 }
