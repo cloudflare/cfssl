@@ -48,7 +48,8 @@ __check_defined = \
 
 .PHONY: snapshot
 snapshot:
-	docker run --rm --privileged \
+	docker run \
+	--rm \
     -v $(PWD):/cross \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -w /cross \
@@ -58,8 +59,9 @@ snapshot:
 github-release:
 	@:$(call check_defined, GITHUB_TOKEN)
 
-	docker run --rm --privileged \
-	 -e GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	docker run \
+	--rm \
+	-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
     -v $(PWD):/cross \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -w /cross \
