@@ -3,8 +3,9 @@ package ocspserve
 
 import (
 	"errors"
-	"fmt"
+	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
@@ -53,7 +54,7 @@ func ocspServerMain(args []string, c cli.Config) error {
 	log.Info("Registering OCSP responder handler")
 	http.Handle(c.Path, ocsp.NewResponder(src, nil))
 
-	addr := fmt.Sprintf("%s:%d", c.Address, c.Port)
+	addr := net.JoinHostPort(c.Address, strconv.Itoa(c.Port))
 	log.Info("Now listening on ", addr)
 	return http.ListenAndServe(addr, nil)
 }
