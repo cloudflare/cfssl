@@ -48,16 +48,20 @@ __check_defined = \
 
 .PHONY: snapshot
 snapshot:
-	docker run --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist --snapshot --skip-publish
+	docker run \
+	--rm \
+    -v $(PWD):/cross \
+    -w /cross \
+    ghcr.io/gythialy/golang-cross:v1.18 --rm-dist --snapshot --skip-publish
 
 .PHONY: github-release
 github-release:
 	@:$(call check_defined, GITHUB_TOKEN)
 
-	docker run --rm --privileged \
-	 -e GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	docker run \
+	--rm \
+	-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
     -v $(PWD):/cross \
-    -v /var/run/docker.sock:/var/run/docker.sock \
     -w /cross \
     ghcr.io/gythialy/golang-cross:v1.18 --rm-dist
 
