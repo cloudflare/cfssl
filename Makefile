@@ -9,7 +9,7 @@ all: bin/cfssl bin/cfssl-bundle bin/cfssl-certinfo bin/cfssl-newkey bin/cfssl-sc
 
 bin/%: $(shell find . -type f -name '*.go')
 	@mkdir -p $(dir $@)
-	go build -ldflags $(LDFLAGS) -o $@ ./cmd/$(@F)
+	GOOS=$(TARGETOS) GOARCH=$(TARGETARCH) go build -ldflags $(LDFLAGS) -o $@ ./cmd/$(@F)
 
 .PHONY: install
 install: install-cfssl install-cfssl-bundle install-cfssl-certinfo install-cfssl-newkey install-cfssl-scan install-cfssljson install-mkbundle install-multirootca
@@ -25,7 +25,7 @@ serve:
 
 bin/goose: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose
+	GOOS=$(TARGETOS) GOARCH=$(TARGETARCH) go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose
 
 .PHONY: clean
 clean:
