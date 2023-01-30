@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
@@ -127,10 +128,12 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 
 // CAConfig is a section used in the requests initialising a new CA.
 type CAConfig struct {
-	PathLength  int    `json:"pathlen" yaml:"pathlen"`
-	PathLenZero bool   `json:"pathlenzero" yaml:"pathlenzero"`
-	Expiry      string `json:"expiry" yaml:"expiry"`
-	Backdate    string `json:"backdate" yaml:"backdate"`
+	PathLength  int       `json:"pathlen" yaml:"pathlen"`
+	PathLenZero bool      `json:"pathlenzero" yaml:"pathlenzero"`
+	Expiry      string    `json:"expiry" yaml:"expiry"`
+	Backdate    string    `json:"backdate" yaml:"backdate"`
+	NotBefore   time.Time `json:"not_before" yaml:"not_before"`
+	NotAfter    time.Time `json:"not_after" yaml:"not_after"`
 }
 
 // A CertificateRequest encapsulates the API interface to the
