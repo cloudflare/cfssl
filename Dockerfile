@@ -1,4 +1,7 @@
-FROM --platform=${BUILDPLATFORM} golang:1.19.3
+FROM --platform=${BUILDPLATFORM} golang:1.20
+
+LABEL org.opencontainers.image.source https://github.com/cloudflare/cfssl
+LABEL org.opencontainers.image.description "Cloudflare's PKI toolkit"
 
 ARG TARGETOS
 ARG TARGETARCH
