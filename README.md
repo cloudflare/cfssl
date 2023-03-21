@@ -304,7 +304,7 @@ OCSP server.
 ### Starting the API Server
 
 CFSSL comes with an HTTP-based API server; the endpoints are
-documented in `doc/api/intro.txt`. The server is started with the `serve`
+documented in [`doc/api/intro.txt`](doc/api/intro.txt). The server is started with the `serve`
 command:
 
 ```
@@ -417,4 +417,4 @@ Then building with `go build` will use the embedded resources.
 
 Additional documentation can be found in the "doc" directory:
 
-* `api/intro.txt`: documents the API endpoints
+* [doc/api/intro.txt](doc/api/intro.txt): documents the API endpoints
