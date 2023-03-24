@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/cloudflare/cfssl/cli/version"
 )
@@ -26,6 +27,16 @@ func writeFile(filespec, contents string, perms os.FileMode) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+}
+
+// isDirectory returns true if the given path leads to a directory.
+func isDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, fmt.Errorf("failed to stat the directory (--output=%s): %v", path, err)
+	}
+
+	return fileInfo.IsDir(), nil
 }
 
 // ResponseMessage represents the format of a CFSSL output for an error or message
@@ -54,11 +65,21 @@ func main() {
 	inFile := flag.String("f", "-", "JSON input")
 	output := flag.Bool("stdout", false, "output the response instead of saving to a file")
 	printVersion := flag.Bool("version", false, "print version and exit")
+	outputDirectory := flag.String("output", "./", "place output files in a specific directory. Must be a folder")
 	flag.Parse()
 
 	if *printVersion {
 		fmt.Printf("%s", version.FormatVersion())
 		return
+	}
+
+	if ok, err := isDirectory(*outputDirectory); !ok {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to ensure directory: %v", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "output argument is not a folder (path=%s)", *outputDirectory)
+		}
+		os.Exit(1)
 	}
 
 	var baseName string
@@ -205,7 +226,8 @@ func main() {
 			}
 			fmt.Fprintf(os.Stdout, "%s\n", e.Contents)
 		} else {
-			writeFile(e.Filename, e.Contents, e.Perms)
+			p := filepath.Join(*outputDirectory, e.Filename)
+			writeFile(p, e.Contents, e.Perms)
 		}
 	}
 }
