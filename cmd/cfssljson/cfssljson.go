@@ -33,7 +33,7 @@ func writeFile(filespec, contents string, perms os.FileMode) {
 func isDirectory(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return false, fmt.Errorf("failed to stat the directory (--output=%s): %v", path, err)
+		return false, fmt.Errorf("failed to stat the directory (--output=%s): %v\n", path, err)
 	}
 
 	return fileInfo.IsDir(), nil
