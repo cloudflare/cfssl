@@ -46,6 +46,7 @@ func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x50
 		EmailAddresses:     csr.EmailAddresses,
 		IPAddresses:        csr.IPAddresses,
 		URIs:               csr.URIs,
+		ExtraExtensions:    csr.Extensions,
 	}
 
 	return
