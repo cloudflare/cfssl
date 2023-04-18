@@ -24,6 +24,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/cfssl
@@ -60,6 +61,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/cfssl-bundle
@@ -96,6 +98,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/cfssl-certinfo
@@ -132,6 +135,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/cfssl-newkey
@@ -168,6 +172,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/cfssl-scan
@@ -204,6 +209,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/cfssljson
@@ -240,6 +246,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/mkbundle
@@ -276,6 +283,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm
       - arm64
       - s390x
     main: ./cmd/multirootca
