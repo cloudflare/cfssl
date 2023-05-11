@@ -60,7 +60,7 @@ snapshot:
 	--rm \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/gythialy/golang-cross:v1.18 --rm-dist --snapshot --skip-publish
+    ghcr.io/gythialy/golang-cross:latest --clean --snapshot --skip-publish
 
 .PHONY: github-release
 github-release:
@@ -71,7 +71,7 @@ github-release:
 	-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/gythialy/golang-cross:v1.18 --rm-dist
+    ghcr.io/gythialy/golang-cross:latest --clean
 
 .PHONY: docker-build
 docker-build:
