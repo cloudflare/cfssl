@@ -40,12 +40,12 @@ func init() {
 		Citation:      "RFC 5280, Section 4.1.1.2",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &mismatchingSigAlg{},
+		Lint:          NewMismatchingSigAlg,
 	})
 }
 
-func (l *mismatchingSigAlg) Initialize() error {
-	return nil
+func NewMismatchingSigAlg() lint.LintInterface {
+	return &mismatchingSigAlg{}
 }
 
 func (l *mismatchingSigAlg) CheckApplies(_ *x509.Certificate) bool {

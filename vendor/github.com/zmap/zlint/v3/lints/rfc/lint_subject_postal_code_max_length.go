@@ -39,12 +39,12 @@ func init() {
 		Citation:      "RFC 5280: A.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &subjectPostalCodeMaxLength{},
+		Lint:          NewSubjectPostalCodeMaxLength,
 	})
 }
 
-func (l *subjectPostalCodeMaxLength) Initialize() error {
-	return nil
+func NewSubjectPostalCodeMaxLength() lint.LintInterface {
+	return &subjectPostalCodeMaxLength{}
 }
 
 func (l *subjectPostalCodeMaxLength) CheckApplies(c *x509.Certificate) bool {

@@ -31,12 +31,12 @@ func init() {
 		Citation:      "awslabs certlint",
 		Source:        lint.Community,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &rsaExpNegative{},
+		Lint:          NewRsaExpNegative,
 	})
 }
 
-func (l *rsaExpNegative) Initialize() error {
-	return nil
+func NewRsaExpNegative() lint.LintInterface {
+	return &rsaExpNegative{}
 }
 
 func (l *rsaExpNegative) CheckApplies(c *x509.Certificate) bool {

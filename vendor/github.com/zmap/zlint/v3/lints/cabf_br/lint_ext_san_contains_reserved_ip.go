@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &SANReservedIP{},
+		Lint:          NewSANReservedIP,
 	})
 }
 
-func (l *SANReservedIP) Initialize() error {
-	return nil
+func NewSANReservedIP() lint.LintInterface {
+	return &SANReservedIP{}
 }
 
 func (l *SANReservedIP) CheckApplies(c *x509.Certificate) bool {

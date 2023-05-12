@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV116Date,
-		Lint:          &subCAEKUValidFields{},
+		Lint:          NewSubCAEKUValidFields,
 	})
 }
 
-func (l *subCAEKUValidFields) Initialize() error {
-	return nil
+func NewSubCAEKUValidFields() lint.LintInterface {
+	return &subCAEKUValidFields{}
 }
 
 func (l *subCAEKUValidFields) CheckApplies(c *x509.Certificate) bool {

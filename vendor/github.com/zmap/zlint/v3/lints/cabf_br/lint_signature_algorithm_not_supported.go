@@ -61,12 +61,12 @@ func init() {
 		Citation:      "BRs: 6.1.5",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &signatureAlgorithmNotSupported{},
+		Lint:          NewSignatureAlgorithmNotSupported,
 	})
 }
 
-func (l *signatureAlgorithmNotSupported) Initialize() error {
-	return nil
+func NewSignatureAlgorithmNotSupported() lint.LintInterface {
+	return &signatureAlgorithmNotSupported{}
 }
 
 func (l *signatureAlgorithmNotSupported) CheckApplies(c *x509.Certificate) bool {

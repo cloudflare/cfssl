@@ -43,12 +43,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.7",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &SANURIHost{},
+		Lint:          NewSANURIHost,
 	})
 }
 
-func (l *SANURIHost) Initialize() error {
-	return nil
+func NewSANURIHost() lint.LintInterface {
+	return &SANURIHost{}
 }
 
 func (l *SANURIHost) CheckApplies(c *x509.Certificate) bool {

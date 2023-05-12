@@ -15,10 +15,11 @@
 package util
 
 import (
-	"encoding/asn1"
+	"github.com/zmap/zcrypto/encoding/asn1"
 )
 
 var evoids = map[string]bool{
+	"2.23.140.1.1":                     true,
 	"1.3.159.1.17.1":                   true,
 	"1.3.6.1.4.1.34697.2.1":            true,
 	"1.3.6.1.4.1.34697.2.2":            true,

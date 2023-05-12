@@ -33,14 +33,15 @@ func init() {
 		Citation:      "RFC 5480 Section 3",
 		Source:        lint.RFC5480,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &ecdsaInvalidKU{},
+		Lint:          NewEcdsaInvalidKU,
 	})
 }
 
-// Initialize is a no-op for this lint.
-func (l *ecdsaInvalidKU) Initialize() error {
-	return nil
+func NewEcdsaInvalidKU() lint.LintInterface {
+	return &ecdsaInvalidKU{}
 }
+
+// Initialize is a no-op for this lint.
 
 // CheckApplies returns true when the certificate is a subscriber cert using an
 // ECDSA public key algorithm.

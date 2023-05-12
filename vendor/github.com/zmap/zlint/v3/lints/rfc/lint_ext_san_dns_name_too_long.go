@@ -29,12 +29,12 @@ func init() {
 		Citation:      "RFC 5280",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &SANDNSTooLong{},
+		Lint:          NewSANDNSTooLong,
 	})
 }
 
-func (l *SANDNSTooLong) Initialize() error {
-	return nil
+func NewSANDNSTooLong() lint.LintInterface {
+	return &SANDNSTooLong{}
 }
 
 func (l *SANDNSTooLong) CheckApplies(c *x509.Certificate) bool {

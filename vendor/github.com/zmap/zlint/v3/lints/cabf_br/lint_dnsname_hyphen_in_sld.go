@@ -31,12 +31,12 @@ func init() {
 		Citation:      "BRs 7.1.4.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &DNSNameHyphenInSLD{},
+		Lint:          NewDNSNameHyphenInSLD,
 	})
 }
 
-func (l *DNSNameHyphenInSLD) Initialize() error {
-	return nil
+func NewDNSNameHyphenInSLD() lint.LintInterface {
+	return &DNSNameHyphenInSLD{}
 }
 
 func (l *DNSNameHyphenInSLD) CheckApplies(c *x509.Certificate) bool {

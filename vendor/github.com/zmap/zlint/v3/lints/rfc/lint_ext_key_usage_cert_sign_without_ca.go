@@ -40,12 +40,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.3 & 4.2.1.9",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC3280Date,
-		Lint:          &keyUsageCertSignNoCa{},
+		Lint:          NewKeyUsageCertSignNoCa,
 	})
 }
 
-func (l *keyUsageCertSignNoCa) Initialize() error {
-	return nil
+func NewKeyUsageCertSignNoCa() lint.LintInterface {
+	return &keyUsageCertSignNoCa{}
 }
 
 func (l *keyUsageCertSignNoCa) CheckApplies(c *x509.Certificate) bool {

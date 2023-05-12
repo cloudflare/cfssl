@@ -15,8 +15,7 @@ package rfc
  */
 
 import (
-	"encoding/asn1"
-
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zcrypto/x509/pkix"
 	"github.com/zmap/zlint/v3/lint"
@@ -56,12 +55,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.13",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC3280Date,
-		Lint:          &dpIncomplete{},
+		Lint:          NewDpIncomplete,
 	})
 }
 
-func (l *dpIncomplete) Initialize() error {
-	return nil
+func NewDpIncomplete() lint.LintInterface {
+	return &dpIncomplete{}
 }
 
 func (l *dpIncomplete) CheckApplies(c *x509.Certificate) bool {

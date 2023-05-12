@@ -44,12 +44,12 @@ func init() {
 		Citation:      "RFC 6818: 3",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC6818Date,
-		Lint:          &explicitTextUtf8{},
+		Lint:          NewExplicitTextUtf8,
 	})
 }
 
-func (l *explicitTextUtf8) Initialize() error {
-	return nil
+func NewExplicitTextUtf8() lint.LintInterface {
+	return &explicitTextUtf8{}
 }
 
 func (l *explicitTextUtf8) CheckApplies(c *x509.Certificate) bool {

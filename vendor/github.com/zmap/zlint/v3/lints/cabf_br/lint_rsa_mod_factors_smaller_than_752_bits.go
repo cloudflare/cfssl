@@ -36,12 +36,12 @@ func init() {
 		Citation:      "BRs: 6.1.6",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV113Date,
-		Lint:          &rsaModSmallFactor{},
+		Lint:          NewRsaModSmallFactor,
 	})
 }
 
-func (l *rsaModSmallFactor) Initialize() error {
-	return nil
+func NewRsaModSmallFactor() lint.LintInterface {
+	return &rsaModSmallFactor{}
 }
 
 func (l *rsaModSmallFactor) CheckApplies(c *x509.Certificate) bool {

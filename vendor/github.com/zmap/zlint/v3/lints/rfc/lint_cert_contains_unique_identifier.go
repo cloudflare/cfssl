@@ -42,12 +42,12 @@ func init() {
 		Source:        lint.RFC5280,
 		Citation:      "RFC 5280: 4.1.2.8",
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &CertContainsUniqueIdentifier{},
+		Lint:          NewCertContainsUniqueIdentifier,
 	})
 }
 
-func (l *CertContainsUniqueIdentifier) Initialize() error {
-	return nil
+func NewCertContainsUniqueIdentifier() lint.LintInterface {
+	return &CertContainsUniqueIdentifier{}
 }
 
 func (l *CertContainsUniqueIdentifier) CheckApplies(cert *x509.Certificate) bool {

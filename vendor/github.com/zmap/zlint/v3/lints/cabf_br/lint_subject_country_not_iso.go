@@ -39,12 +39,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &countryNotIso{},
+		Lint:          NewCountryNotIso,
 	})
 }
 
-func (l *countryNotIso) Initialize() error {
-	return nil
+func NewCountryNotIso() lint.LintInterface {
+	return &countryNotIso{}
 }
 
 func (l *countryNotIso) CheckApplies(c *x509.Certificate) bool {

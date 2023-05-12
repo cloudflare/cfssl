@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 6.1.5",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &publicKeyAllowed{},
+		Lint:          NewPublicKeyAllowed,
 	})
 }
 
-func (l *publicKeyAllowed) Initialize() error {
-	return nil
+func NewPublicKeyAllowed() lint.LintInterface {
+	return &publicKeyAllowed{}
 }
 
 func (l *publicKeyAllowed) CheckApplies(c *x509.Certificate) bool {

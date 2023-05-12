@@ -38,7 +38,7 @@ func (z *ResultSet) execute(cert *x509.Certificate, registry lint.Registry) {
 	z.Results = make(map[string]*lint.LintResult, len(registry.Names()))
 	// Run each lints from the registry.
 	for _, name := range registry.Names() {
-		res := registry.ByName(name).Execute(cert)
+		res := registry.ByName(name).Execute(cert, registry.GetConfiguration())
 		z.Results[name] = res
 		z.updateErrorStatePresent(res)
 	}

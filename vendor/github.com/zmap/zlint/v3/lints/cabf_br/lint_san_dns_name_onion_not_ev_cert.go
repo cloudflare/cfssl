@@ -31,12 +31,12 @@ func init() {
 		Citation:      "CABF Ballot 144",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          &onionNotEV{},
+		Lint:          NewOnionNotEV,
 	})
 }
 
-func (l *onionNotEV) Initialize() error {
-	return nil
+func NewOnionNotEV() lint.LintInterface {
+	return &onionNotEV{}
 }
 
 // This lint only applies for certificates issued before CA/Browser Forum

@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABGivenNameDate,
-		Lint:          &subCertProvinceMustNotAppear{},
+		Lint:          NewSubCertProvinceMustNotAppear,
 	})
 }
 
-func (l *subCertProvinceMustNotAppear) Initialize() error {
-	return nil
+func NewSubCertProvinceMustNotAppear() lint.LintInterface {
+	return &subCertProvinceMustNotAppear{}
 }
 
 func (l *subCertProvinceMustNotAppear) CheckApplies(c *x509.Certificate) bool {

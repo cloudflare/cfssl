@@ -45,12 +45,12 @@ func init() {
 		Citation:      "RFC 5280: A.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &subjectEmailMaxLength{},
+		Lint:          NewSubjectEmailMaxLength,
 	})
 }
 
-func (l *subjectEmailMaxLength) Initialize() error {
-	return nil
+func NewSubjectEmailMaxLength() lint.LintInterface {
+	return &subjectEmailMaxLength{}
 }
 
 func (l *subjectEmailMaxLength) CheckApplies(c *x509.Certificate) bool {

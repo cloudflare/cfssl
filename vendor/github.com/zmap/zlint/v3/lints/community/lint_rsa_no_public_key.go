@@ -31,12 +31,12 @@ func init() {
 		Citation:      "awslabs certlint",
 		Source:        lint.Community,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &rsaParsedPubKeyExist{},
+		Lint:          NewRsaParsedPubKeyExist,
 	})
 }
 
-func (l *rsaParsedPubKeyExist) Initialize() error {
-	return nil
+func NewRsaParsedPubKeyExist() lint.LintInterface {
+	return &rsaParsedPubKeyExist{}
 }
 
 func (l *rsaParsedPubKeyExist) CheckApplies(c *x509.Certificate) bool {

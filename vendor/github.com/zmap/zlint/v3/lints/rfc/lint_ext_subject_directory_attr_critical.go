@@ -37,12 +37,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.8",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &subDirAttrCrit{},
+		Lint:          NewSubDirAttrCrit,
 	})
 }
 
-func (l *subDirAttrCrit) Initialize() error {
-	return nil
+func NewSubDirAttrCrit() lint.LintInterface {
+	return &subDirAttrCrit{}
 }
 
 func (l *subDirAttrCrit) CheckApplies(c *x509.Certificate) bool {

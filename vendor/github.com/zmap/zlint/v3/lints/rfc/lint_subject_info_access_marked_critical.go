@@ -33,12 +33,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.2.2",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC3280Date,
-		Lint:          &siaCrit{},
+		Lint:          NewSiaCrit,
 	})
 }
 
-func (l *siaCrit) Initialize() error {
-	return nil
+func NewSiaCrit() lint.LintInterface {
+	return &siaCrit{}
 }
 
 func (l *siaCrit) CheckApplies(c *x509.Certificate) bool {

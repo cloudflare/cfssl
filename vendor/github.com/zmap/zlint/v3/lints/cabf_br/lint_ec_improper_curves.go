@@ -38,12 +38,12 @@ func init() {
 		Source:      lint.CABFBaselineRequirements,
 		// Refer to BRs: 6.1.5, taking the statement "Before 31 Dec 2010" literally
 		EffectiveDate: util.ZeroDate,
-		Lint:          &ecImproperCurves{},
+		Lint:          NewEcImproperCurves,
 	})
 }
 
-func (l *ecImproperCurves) Initialize() error {
-	return nil
+func NewEcImproperCurves() lint.LintInterface {
+	return &ecImproperCurves{}
 }
 
 func (l *ecImproperCurves) CheckApplies(c *x509.Certificate) bool {

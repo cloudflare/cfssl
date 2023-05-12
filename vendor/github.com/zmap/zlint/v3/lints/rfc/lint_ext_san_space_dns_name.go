@@ -45,12 +45,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.6",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &SANIsSpaceDNS{},
+		Lint:          NewSANIsSpaceDNS,
 	})
 }
 
-func (l *SANIsSpaceDNS) Initialize() error {
-	return nil
+func NewSANIsSpaceDNS() lint.LintInterface {
+	return &SANIsSpaceDNS{}
 }
 
 func (l *SANIsSpaceDNS) CheckApplies(c *x509.Certificate) bool {

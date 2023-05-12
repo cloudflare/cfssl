@@ -35,12 +35,12 @@ func init() {
 		Citation:      "RFC6181 3",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC6818Date,
-		Lint:          &ExtCertPolicyExplicitTextNotNFC{},
+		Lint:          NewExtCertPolicyExplicitTextNotNFC,
 	})
 }
 
-func (l *ExtCertPolicyExplicitTextNotNFC) Initialize() error {
-	return nil
+func NewExtCertPolicyExplicitTextNotNFC() lint.LintInterface {
+	return &ExtCertPolicyExplicitTextNotNFC{}
 }
 
 func (l *ExtCertPolicyExplicitTextNotNFC) CheckApplies(c *x509.Certificate) bool {

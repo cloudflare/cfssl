@@ -16,9 +16,10 @@ package util
 
 import (
 	"bytes"
-	"encoding/asn1"
 	"fmt"
 	"reflect"
+
+	"github.com/zmap/zcrypto/encoding/asn1"
 )
 
 type anyContent struct {

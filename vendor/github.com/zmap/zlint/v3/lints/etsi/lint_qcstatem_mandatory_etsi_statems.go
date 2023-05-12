@@ -15,8 +15,7 @@
 package etsi
 
 import (
-	"encoding/asn1"
-
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
 	"github.com/zmap/zlint/v3/util"
@@ -31,12 +30,12 @@ func init() {
 		Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 5",
 		Source:        lint.EtsiEsi,
 		EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
-		Lint:          &qcStatemQcmandatoryEtsiStatems{},
+		Lint:          NewQcStatemQcmandatoryEtsiStatems,
 	})
 }
 
-func (l *qcStatemQcmandatoryEtsiStatems) Initialize() error {
-	return nil
+func NewQcStatemQcmandatoryEtsiStatems() lint.LintInterface {
+	return &qcStatemQcmandatoryEtsiStatems{}
 }
 
 func (l *qcStatemQcmandatoryEtsiStatems) CheckApplies(c *x509.Certificate) bool {

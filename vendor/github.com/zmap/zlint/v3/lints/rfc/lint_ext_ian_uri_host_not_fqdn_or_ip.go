@@ -43,12 +43,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.6",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &IANURIFQDNOrIP{},
+		Lint:          NewIANURIFQDNOrIP,
 	})
 }
 
-func (l *IANURIFQDNOrIP) Initialize() error {
-	return nil
+func NewIANURIFQDNOrIP() lint.LintInterface {
+	return &IANURIFQDNOrIP{}
 }
 
 func (l *IANURIFQDNOrIP) CheckApplies(c *x509.Certificate) bool {

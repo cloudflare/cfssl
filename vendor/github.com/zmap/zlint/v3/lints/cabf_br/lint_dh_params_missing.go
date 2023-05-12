@@ -15,7 +15,7 @@ package cabf_br
  */
 
 import (
-	"crypto/dsa"
+	"github.com/zmap/zcrypto/dsa"
 
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
@@ -26,17 +26,18 @@ type dsaParamsMissing struct{}
 
 func init() {
 	lint.RegisterLint(&lint.Lint{
-		Name:          "e_dsa_params_missing",
-		Description:   "DSA: Certificates MUST include all domain parameters",
-		Citation:      "BRs v1.7.0: 6.1.6",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &dsaParamsMissing{},
+		Name:            "e_dsa_params_missing",
+		Description:     "DSA: Certificates MUST include all domain parameters",
+		Citation:        "BRs v1.7.0: 6.1.6",
+		Source:          lint.CABFBaselineRequirements,
+		EffectiveDate:   util.CABEffectiveDate,
+		IneffectiveDate: util.CABFBRs_1_7_1_Date,
+		Lint:            NewDsaParamsMissing,
 	})
 }
 
-func (l *dsaParamsMissing) Initialize() error {
-	return nil
+func NewDsaParamsMissing() lint.LintInterface {
+	return &dsaParamsMissing{}
 }
 
 func (l *dsaParamsMissing) CheckApplies(c *x509.Certificate) bool {

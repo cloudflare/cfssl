@@ -40,12 +40,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV102Date,
-		Lint:          &SubCANameConstraintsNotCritical{},
+		Lint:          NewSubCANameConstraintsNotCritical,
 	})
 }
 
-func (l *SubCANameConstraintsNotCritical) Initialize() error {
-	return nil
+func NewSubCANameConstraintsNotCritical() lint.LintInterface {
+	return &SubCANameConstraintsNotCritical{}
 }
 
 func (l *SubCANameConstraintsNotCritical) CheckApplies(cert *x509.Certificate) bool {

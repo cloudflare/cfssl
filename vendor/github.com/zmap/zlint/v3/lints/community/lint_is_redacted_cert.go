@@ -31,12 +31,12 @@ func init() {
 		Source:        lint.Community,
 		Citation:      "IETF Draft: https://tools.ietf.org/id/draft-strad-trans-redaction-00.html",
 		EffectiveDate: util.ZeroDate,
-		Lint:          &DNSNameRedacted{},
+		Lint:          NewDNSNameRedacted,
 	})
 }
 
-func (l *DNSNameRedacted) Initialize() error {
-	return nil
+func NewDNSNameRedacted() lint.LintInterface {
+	return &DNSNameRedacted{}
 }
 
 func (l *DNSNameRedacted) CheckApplies(c *x509.Certificate) bool {

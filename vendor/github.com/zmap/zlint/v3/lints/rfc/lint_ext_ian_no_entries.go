@@ -41,12 +41,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.7",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &IANNoEntry{},
+		Lint:          NewIANNoEntry,
 	})
 }
 
-func (l *IANNoEntry) Initialize() error {
-	return nil
+func NewIANNoEntry() lint.LintInterface {
+	return &IANNoEntry{}
 }
 
 func (l *IANNoEntry) CheckApplies(c *x509.Certificate) bool {

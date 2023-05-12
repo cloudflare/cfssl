@@ -39,12 +39,12 @@ func init() {
 		Citation:      "Mozilla Root Store Policy / Section 5.1.1",
 		Source:        lint.MozillaRootStorePolicy,
 		EffectiveDate: util.MozillaPolicy27Date,
-		Lint:          &rsaPssInSPKI{},
+		Lint:          NewRsaPssInSPKI,
 	})
 }
 
-func (l *rsaPssInSPKI) Initialize() error {
-	return nil
+func NewRsaPssInSPKI() lint.LintInterface {
+	return &rsaPssInSPKI{}
 }
 
 func (l *rsaPssInSPKI) CheckApplies(c *x509.Certificate) bool {

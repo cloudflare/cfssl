@@ -29,12 +29,12 @@ func init() {
 		Citation:      "lint.AWSLabs certlint",
 		Source:        lint.Community,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &SubjectDNLeadingSpace{},
+		Lint:          NewSubjectDNLeadingSpace,
 	})
 }
 
-func (l *SubjectDNLeadingSpace) Initialize() error {
-	return nil
+func NewSubjectDNLeadingSpace() lint.LintInterface {
+	return &SubjectDNLeadingSpace{}
 }
 
 func (l *SubjectDNLeadingSpace) CheckApplies(c *x509.Certificate) bool {

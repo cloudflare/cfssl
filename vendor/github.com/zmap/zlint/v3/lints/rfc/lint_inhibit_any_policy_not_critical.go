@@ -44,12 +44,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.14",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC3280Date,
-		Lint:          &InhibitAnyPolicyNotCritical{},
+		Lint:          NewInhibitAnyPolicyNotCritical,
 	})
 }
 
-func (l *InhibitAnyPolicyNotCritical) Initialize() error {
-	return nil
+func NewInhibitAnyPolicyNotCritical() lint.LintInterface {
+	return &InhibitAnyPolicyNotCritical{}
 }
 
 func (l *InhibitAnyPolicyNotCritical) CheckApplies(cert *x509.Certificate) bool {

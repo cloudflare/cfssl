@@ -49,12 +49,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2 & 4.2.1.2",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &subjectKeyIdMissingSubscriber{},
+		Lint:          NewSubjectKeyIdMissingSubscriber,
 	})
 }
 
-func (l *subjectKeyIdMissingSubscriber) Initialize() error {
-	return nil
+func NewSubjectKeyIdMissingSubscriber() lint.LintInterface {
+	return &subjectKeyIdMissingSubscriber{}
 }
 
 func (l *subjectKeyIdMissingSubscriber) CheckApplies(cert *x509.Certificate) bool {

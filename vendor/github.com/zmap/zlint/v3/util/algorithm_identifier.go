@@ -2,13 +2,13 @@ package util
 
 import (
 	"bytes"
-	"encoding/asn1"
 	"errors"
 	"fmt"
 
+	"github.com/zmap/zcrypto/cryptobyte"
+	cryptobyte_asn1 "github.com/zmap/zcrypto/cryptobyte/asn1"
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
-	"golang.org/x/crypto/cryptobyte"
-	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
 )
 
 // additional OIDs not provided by the x509 package.
@@ -39,6 +39,7 @@ var RSAAlgorithmIDToDER = map[string][]byte{
 
 // CheckAlgorithmIDParamNotNULL parses an AlgorithmIdentifier with algorithm OID rsaEncryption to check the Param field is asn1.NULL
 // Expects DER-encoded AlgorithmIdentifier including tag and length.
+//nolint:cyclop
 func CheckAlgorithmIDParamNotNULL(algorithmIdentifier []byte, requiredAlgoID asn1.ObjectIdentifier) error {
 	expectedAlgoIDBytes, ok := RSAAlgorithmIDToDER[requiredAlgoID.String()]
 	if !ok {

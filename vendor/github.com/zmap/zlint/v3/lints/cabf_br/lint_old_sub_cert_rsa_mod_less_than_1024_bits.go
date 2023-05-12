@@ -32,12 +32,12 @@ func init() {
 		Source:      lint.CABFBaselineRequirements,
 		// since effective date should be checked against end date in this specific case, putting time check into checkApplies instead, ZeroDate here to automatically pass NE test
 		EffectiveDate: util.ZeroDate,
-		Lint:          &subModSize{},
+		Lint:          NewSubModSize,
 	})
 }
 
-func (l *subModSize) Initialize() error {
-	return nil
+func NewSubModSize() lint.LintInterface {
+	return &subModSize{}
 }
 
 func (l *subModSize) CheckApplies(c *x509.Certificate) bool {

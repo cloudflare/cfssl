@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 6.3.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.SubCert825Days,
-		Lint:          &subCertValidTimeLongerThan825Days{},
+		Lint:          NewSubCertValidTimeLongerThan825Days,
 	})
 }
 
-func (l *subCertValidTimeLongerThan825Days) Initialize() error {
-	return nil
+func NewSubCertValidTimeLongerThan825Days() lint.LintInterface {
+	return &subCertValidTimeLongerThan825Days{}
 }
 
 func (l *subCertValidTimeLongerThan825Days) CheckApplies(c *x509.Certificate) bool {

@@ -38,12 +38,12 @@ func init() {
 		Citation:      "RFC 4055, Section 5",
 		Source:        lint.RFC5280, // RFC4055 is referenced in RFC5280, Section 1
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &rsaTBSSignatureEncryptionParamNotNULL{},
+		Lint:          NewRsaTBSSignatureEncryptionParamNotNULL,
 	})
 }
 
-func (l *rsaTBSSignatureEncryptionParamNotNULL) Initialize() error {
-	return nil
+func NewRsaTBSSignatureEncryptionParamNotNULL() lint.LintInterface {
+	return &rsaTBSSignatureEncryptionParamNotNULL{}
 }
 
 func (l *rsaTBSSignatureEncryptionParamNotNULL) CheckApplies(c *x509.Certificate) bool {

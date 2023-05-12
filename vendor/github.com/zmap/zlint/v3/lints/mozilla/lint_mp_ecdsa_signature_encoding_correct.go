@@ -51,12 +51,12 @@ func init() {
 		Citation:      "Mozilla Root Store Policy / Section 5.1.2",
 		Source:        lint.MozillaRootStorePolicy,
 		EffectiveDate: util.MozillaPolicy27Date,
-		Lint:          &ecdsaSignatureAidEncoding{},
+		Lint:          NewEcdsaSignatureAidEncoding,
 	})
 }
 
-func (l *ecdsaSignatureAidEncoding) Initialize() error {
-	return nil
+func NewEcdsaSignatureAidEncoding() lint.LintInterface {
+	return &ecdsaSignatureAidEncoding{}
 }
 
 func (l *ecdsaSignatureAidEncoding) CheckApplies(c *x509.Certificate) bool {

@@ -16,13 +16,13 @@ package util
 
 import (
 	"bytes"
-	"encoding/asn1"
 	"errors"
 	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf16"
 
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509/pkix"
 )
 

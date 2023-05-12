@@ -37,12 +37,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV116Date,
-		Lint:          &subCAEKUCrit{},
+		Lint:          NewSubCAEKUCrit,
 	})
 }
 
-func (l *subCAEKUCrit) Initialize() error {
-	return nil
+func NewSubCAEKUCrit() lint.LintInterface {
+	return &subCAEKUCrit{}
 }
 
 func (l *subCAEKUCrit) CheckApplies(c *x509.Certificate) bool {

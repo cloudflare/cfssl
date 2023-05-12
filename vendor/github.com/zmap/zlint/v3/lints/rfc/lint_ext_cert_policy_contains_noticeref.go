@@ -35,12 +35,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.4",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &noticeRefPres{},
+		Lint:          NewNoticeRefPres,
 	})
 }
 
-func (l *noticeRefPres) Initialize() error {
-	return nil
+func NewNoticeRefPres() lint.LintInterface {
+	return &noticeRefPres{}
 }
 
 func (l *noticeRefPres) CheckApplies(c *x509.Certificate) bool {

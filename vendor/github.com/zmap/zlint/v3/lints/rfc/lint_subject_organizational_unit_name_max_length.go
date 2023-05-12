@@ -38,12 +38,12 @@ func init() {
 		Citation:      "RFC 5280: A.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &subjectOrganizationalUnitNameMaxLength{},
+		Lint:          NewSubjectOrganizationalUnitNameMaxLength,
 	})
 }
 
-func (l *subjectOrganizationalUnitNameMaxLength) Initialize() error {
-	return nil
+func NewSubjectOrganizationalUnitNameMaxLength() lint.LintInterface {
+	return &subjectOrganizationalUnitNameMaxLength{}
 }
 
 func (l *subjectOrganizationalUnitNameMaxLength) CheckApplies(c *x509.Certificate) bool {

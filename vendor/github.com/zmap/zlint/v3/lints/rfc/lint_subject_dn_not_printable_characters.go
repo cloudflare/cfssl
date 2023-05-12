@@ -15,9 +15,9 @@
 package rfc
 
 import (
-	"encoding/asn1"
 	"unicode/utf8"
 
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
 	"github.com/zmap/zlint/v3/util"
@@ -32,12 +32,12 @@ func init() {
 		Citation:      "RFC 5280: Appendix A",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &subjectDNNotPrintableCharacters{},
+		Lint:          NewSubjectDNNotPrintableCharacters,
 	})
 }
 
-func (l *subjectDNNotPrintableCharacters) Initialize() error {
-	return nil
+func NewSubjectDNNotPrintableCharacters() lint.LintInterface {
+	return &subjectDNNotPrintableCharacters{}
 }
 
 func (l *subjectDNNotPrintableCharacters) CheckApplies(c *x509.Certificate) bool {

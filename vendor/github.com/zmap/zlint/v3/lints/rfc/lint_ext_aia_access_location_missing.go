@@ -42,12 +42,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.2.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &aiaNoHTTPorLDAP{},
+		Lint:          NewAiaNoHTTPorLDAP,
 	})
 }
 
-func (l *aiaNoHTTPorLDAP) Initialize() error {
-	return nil
+func NewAiaNoHTTPorLDAP() lint.LintInterface {
+	return &aiaNoHTTPorLDAP{}
 }
 
 func (l *aiaNoHTTPorLDAP) CheckApplies(c *x509.Certificate) bool {

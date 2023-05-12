@@ -38,12 +38,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.3",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &subExtKeyUsageClientOrServer{},
+		Lint:          NewSubExtKeyUsageClientOrServer,
 	})
 }
 
-func (l *subExtKeyUsageClientOrServer) Initialize() error {
-	return nil
+func NewSubExtKeyUsageClientOrServer() lint.LintInterface {
+	return &subExtKeyUsageClientOrServer{}
 }
 
 func (l *subExtKeyUsageClientOrServer) CheckApplies(c *x509.Certificate) bool {

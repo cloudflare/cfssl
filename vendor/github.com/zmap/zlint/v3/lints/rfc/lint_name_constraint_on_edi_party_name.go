@@ -42,12 +42,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.10",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &nameConstraintOnEDI{},
+		Lint:          NewNameConstraintOnEDI,
 	})
 }
 
-func (l *nameConstraintOnEDI) Initialize() error {
-	return nil
+func NewNameConstraintOnEDI() lint.LintInterface {
+	return &nameConstraintOnEDI{}
 }
 
 func (l *nameConstraintOnEDI) CheckApplies(c *x509.Certificate) bool {

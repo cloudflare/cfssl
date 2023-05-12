@@ -38,12 +38,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.3",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &keyUsageBitsSet{},
+		Lint:          NewKeyUsageBitsSet,
 	})
 }
 
-func (l *keyUsageBitsSet) Initialize() error {
-	return nil
+func NewKeyUsageBitsSet() lint.LintInterface {
+	return &keyUsageBitsSet{}
 }
 
 func (l *keyUsageBitsSet) CheckApplies(c *x509.Certificate) bool {

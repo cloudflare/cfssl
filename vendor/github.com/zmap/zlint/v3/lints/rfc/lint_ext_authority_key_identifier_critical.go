@@ -34,12 +34,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &authorityKeyIdCritical{},
+		Lint:          NewAuthorityKeyIdCritical,
 	})
 }
 
-func (l *authorityKeyIdCritical) Initialize() error {
-	return nil
+func NewAuthorityKeyIdCritical() lint.LintInterface {
+	return &authorityKeyIdCritical{}
 }
 
 func (l *authorityKeyIdCritical) CheckApplies(c *x509.Certificate) bool {

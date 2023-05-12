@@ -36,12 +36,12 @@ func init() {
 		Citation:      "Mozilla Root Store Policy / Section 5.1",
 		Source:        lint.MozillaRootStorePolicy,
 		EffectiveDate: util.MozillaPolicy24Date,
-		Lint:          &modulus2048OrMore{},
+		Lint:          NewModulus2048OrMore,
 	})
 }
 
-func (l *modulus2048OrMore) Initialize() error {
-	return nil
+func NewModulus2048OrMore() lint.LintInterface {
+	return &modulus2048OrMore{}
 }
 
 func (l *modulus2048OrMore) CheckApplies(c *x509.Certificate) bool {

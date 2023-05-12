@@ -40,12 +40,12 @@ func init() {
 		Citation:      "BRs: 7.1.5 / 7.1.4.2.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &NCReservedIPNet{},
+		Lint:          NewNCReservedIPNet,
 	})
 }
 
-func (l *NCReservedIPNet) Initialize() error {
-	return nil
+func NewNCReservedIPNet() lint.LintInterface {
+	return &NCReservedIPNet{}
 }
 
 func (l *NCReservedIPNet) CheckApplies(c *x509.Certificate) bool {

@@ -31,12 +31,12 @@ func init() {
 		Citation:      "awslabs certlint",
 		Source:        lint.Community,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &IANPubSuffix{},
+		Lint:          NewIANPubSuffix,
 	})
 }
 
-func (l *IANPubSuffix) Initialize() error {
-	return nil
+func NewIANPubSuffix() lint.LintInterface {
+	return &IANPubSuffix{}
 }
 
 func (l *IANPubSuffix) CheckApplies(c *x509.Certificate) bool {

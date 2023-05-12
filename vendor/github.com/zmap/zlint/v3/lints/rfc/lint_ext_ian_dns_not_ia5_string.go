@@ -45,12 +45,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.7",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &IANDNSNotIA5String{},
+		Lint:          NewIANDNSNotIA5String,
 	})
 }
 
-func (l *IANDNSNotIA5String) Initialize() error {
-	return nil
+func NewIANDNSNotIA5String() lint.LintInterface {
+	return &IANDNSNotIA5String{}
 }
 
 func (l *IANDNSNotIA5String) CheckApplies(c *x509.Certificate) bool {

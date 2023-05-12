@@ -34,12 +34,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &rootCAContainsEKU{},
+		Lint:          NewRootCAContainsEKU,
 	})
 }
 
-func (l *rootCAContainsEKU) Initialize() error {
-	return nil
+func NewRootCAContainsEKU() lint.LintInterface {
+	return &rootCAContainsEKU{}
 }
 
 func (l *rootCAContainsEKU) CheckApplies(c *x509.Certificate) bool {

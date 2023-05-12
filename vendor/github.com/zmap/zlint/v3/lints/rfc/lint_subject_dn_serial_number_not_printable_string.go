@@ -15,8 +15,7 @@ package rfc
  */
 
 import (
-	"encoding/asn1"
-
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
 	"github.com/zmap/zlint/v3/util"
@@ -31,12 +30,12 @@ func init() {
 		Citation:      "RFC 5280: Appendix A",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &SubjectDNSerialNumberNotPrintableString{},
+		Lint:          NewSubjectDNSerialNumberNotPrintableString,
 	})
 }
 
-func (l *SubjectDNSerialNumberNotPrintableString) Initialize() error {
-	return nil
+func NewSubjectDNSerialNumberNotPrintableString() lint.LintInterface {
+	return &SubjectDNSerialNumberNotPrintableString{}
 }
 
 func (l *SubjectDNSerialNumberNotPrintableString) CheckApplies(c *x509.Certificate) bool {

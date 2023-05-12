@@ -48,15 +48,16 @@ func init() {
 		Citation:      "BRs: 3.2.2.6",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &arpaMalformedIP{},
+		Lint:          NewArpaMalformedIP,
 	})
+}
+
+func NewArpaMalformedIP() lint.LintInterface {
+	return &arpaMalformedIP{}
 }
 
 // Initialize for an arpaMalformedIP linter is a NOP to statisfy linting
 // interfaces.
-func (l *arpaMalformedIP) Initialize() error {
-	return nil
-}
 
 // CheckApplies returns true if the certificate contains any names that end in
 // one of the two designated zones for reverse DNS: in-addr.arpa or ip6.arpa.

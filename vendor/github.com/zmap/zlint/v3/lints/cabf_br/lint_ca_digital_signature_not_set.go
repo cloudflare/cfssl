@@ -39,12 +39,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &caDigSignNotSet{},
+		Lint:          NewCaDigSignNotSet,
 	})
 }
 
-func (l *caDigSignNotSet) Initialize() error {
-	return nil
+func NewCaDigSignNotSet() lint.LintInterface {
+	return &caDigSignNotSet{}
 }
 
 func (l *caDigSignNotSet) CheckApplies(c *x509.Certificate) bool {

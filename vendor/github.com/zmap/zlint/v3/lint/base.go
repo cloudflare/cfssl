@@ -15,6 +15,7 @@ package lint
  */
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/zmap/zcrypto/x509"
@@ -22,10 +23,7 @@ import (
 )
 
 // LintInterface is implemented by each Lint.
-type LintInterface interface {
-	// Initialize runs once per-lint. It is called during RegisterLint().
-	Initialize() error
-
+type LintInterface interface { //nolint:revive
 	// CheckApplies runs once per certificate. It returns true if the Lint should
 	// run on the given certificate. If CheckApplies returns false, the Lint
 	// result is automatically set to NA without calling CheckEffective() or
@@ -35,6 +33,11 @@ type LintInterface interface {
 	// Execute() is the body of the lint. It is called for every certificate for
 	// which CheckApplies() returns true.
 	Execute(c *x509.Certificate) *LintResult
+}
+
+// Configurable lints return a pointer into a struct that they wish to receive their configuration into.
+type Configurable interface {
+	Configure() interface{}
 }
 
 // A Lint struct represents a single lint, e.g.
@@ -58,20 +61,31 @@ type Lint struct {
 
 	// Lints automatically returns NE for all certificates where CheckApplies() is
 	// true but with NotBefore < EffectiveDate. This check is bypassed if
-	// EffectiveDate is zero.
+	// EffectiveDate is zero. Please see CheckEffective for more information.
 	EffectiveDate time.Time `json:"-"`
 
-	// The implementation of the lint logic.
-	Lint LintInterface `json:"-"`
+	// Lints automatically returns NE for all certificates where CheckApplies() is
+	// true but with NotBefore >= IneffectiveDate. This check is bypassed if
+	// IneffectiveDate is zero. Please see CheckEffective for more information.
+	IneffectiveDate time.Time `json:"-"`
+
+	// A constructor which returns the implementation of the lint logic.
+	Lint func() LintInterface `json:"-"`
 }
 
-// CheckEffective returns true if c was issued on or after the EffectiveDate. If
-// EffectiveDate is zero, CheckEffective always returns true.
+// CheckEffective returns true if c was issued on or after the EffectiveDate
+// AND before (but not on) the Ineffective date. That is, CheckEffective
+// returns true if...
+//
+// 	c.NotBefore in [EffectiveDate, IneffectiveDate)
+//
+// If EffectiveDate is zero, then only IneffectiveDate is checked. Conversely,
+// if IneffectiveDate is zero then only EffectiveDate is checked. If both EffectiveDate
+// and IneffectiveDate are zero then CheckEffective always returns true.
 func (l *Lint) CheckEffective(c *x509.Certificate) bool {
-	if l.EffectiveDate.IsZero() || !l.EffectiveDate.After(c.NotBefore) {
-		return true
-	}
-	return false
+	onOrAfterEffective := l.EffectiveDate.IsZero() || util.OnOrAfter(c.NotBefore, l.EffectiveDate)
+	strictlyBeforeIneffective := l.IneffectiveDate.IsZero() || c.NotBefore.Before(l.IneffectiveDate)
+	return onOrAfterEffective && strictlyBeforeIneffective
 }
 
 // Execute runs the lint against a certificate. For lints that are
@@ -79,18 +93,38 @@ func (l *Lint) CheckEffective(c *x509.Certificate) bool {
 // if they are within the purview of the BRs. See LintInterface for details
 // about the other methods called. The ordering is as follows:
 //
+// Configure() ----> only if the lint implements Configurable
 // CheckApplies()
 // CheckEffective()
 // Execute()
-func (l *Lint) Execute(cert *x509.Certificate) *LintResult {
+func (l *Lint) Execute(cert *x509.Certificate, config Configuration) *LintResult {
 	if l.Source == CABFBaselineRequirements && !util.IsServerAuthCert(cert) {
 		return &LintResult{Status: NA}
 	}
-	if !l.Lint.CheckApplies(cert) {
+	return l.execute(l.Lint(), cert, config)
+}
+
+func (l *Lint) execute(lint LintInterface, cert *x509.Certificate, config Configuration) *LintResult {
+	configurable, ok := lint.(Configurable)
+	if ok {
+		err := config.Configure(configurable.Configure(), l.Name)
+		if err != nil {
+			details := fmt.Sprintf(
+				"A fatal error occurred while attempting to configure %s. Please visit the [%s] section of "+
+					"your provided configuration and compare it with the output of `zlint -exampleConfig`. Error: %s",
+				l.Name,
+				l.Name,
+				err.Error())
+			return &LintResult{
+				Status:  Fatal,
+				Details: details}
+		}
+	}
+	if !lint.CheckApplies(cert) {
 		return &LintResult{Status: NA}
 	} else if !l.CheckEffective(cert) {
 		return &LintResult{Status: NE}
 	}
-	res := l.Lint.Execute(cert)
+	res := lint.Execute(cert)
 	return res
 }

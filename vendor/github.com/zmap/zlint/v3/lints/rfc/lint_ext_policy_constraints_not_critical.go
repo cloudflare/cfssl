@@ -34,12 +34,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.11",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &policyConstraintsCritical{},
+		Lint:          NewPolicyConstraintsCritical,
 	})
 }
 
-func (l *policyConstraintsCritical) Initialize() error {
-	return nil
+func NewPolicyConstraintsCritical() lint.LintInterface {
+	return &policyConstraintsCritical{}
 }
 
 func (l *policyConstraintsCritical) CheckApplies(c *x509.Certificate) bool {

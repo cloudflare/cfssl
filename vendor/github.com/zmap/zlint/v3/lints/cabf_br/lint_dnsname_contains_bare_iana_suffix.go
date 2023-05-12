@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 1.6.1, Base Domain Name",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &dnsNameContainsBareIANASuffix{},
+		Lint:          NewDnsNameContainsBareIANASuffix,
 	})
 }
 
-func (l *dnsNameContainsBareIANASuffix) Initialize() error {
-	return nil
+func NewDnsNameContainsBareIANASuffix() lint.LintInterface {
+	return &dnsNameContainsBareIANASuffix{}
 }
 
 func (l *dnsNameContainsBareIANASuffix) CheckApplies(c *x509.Certificate) bool {

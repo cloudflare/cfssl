@@ -41,12 +41,12 @@ func init() {
 		Citation:      "RFC 5280: 4.1.2.6",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &caSubjectEmpty{},
+		Lint:          NewCaSubjectEmpty,
 	})
 }
 
-func (l *caSubjectEmpty) Initialize() error {
-	return nil
+func NewCaSubjectEmpty() lint.LintInterface {
+	return &caSubjectEmpty{}
 }
 
 func (l *caSubjectEmpty) CheckApplies(c *x509.Certificate) bool {

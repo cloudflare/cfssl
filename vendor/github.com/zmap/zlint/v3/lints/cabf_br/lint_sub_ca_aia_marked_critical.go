@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &subCaAIAMarkedCritical{},
+		Lint:          NewSubCaAIAMarkedCritical,
 	})
 }
 
-func (l *subCaAIAMarkedCritical) Initialize() error {
-	return nil
+func NewSubCaAIAMarkedCritical() lint.LintInterface {
+	return &subCaAIAMarkedCritical{}
 }
 
 func (l *subCaAIAMarkedCritical) CheckApplies(c *x509.Certificate) bool {

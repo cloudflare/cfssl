@@ -31,12 +31,12 @@ func init() {
 		Citation:      "BRs: 1.6.1, Wildcard Certificate and Wildcard Domain Name",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &DNSNameLeftLabelWildcardCheck{},
+		Lint:          NewDNSNameLeftLabelWildcardCheck,
 	})
 }
 
-func (l *DNSNameLeftLabelWildcardCheck) Initialize() error {
-	return nil
+func NewDNSNameLeftLabelWildcardCheck() lint.LintInterface {
+	return &DNSNameLeftLabelWildcardCheck{}
 }
 
 func (l *DNSNameLeftLabelWildcardCheck) CheckApplies(c *x509.Certificate) bool {

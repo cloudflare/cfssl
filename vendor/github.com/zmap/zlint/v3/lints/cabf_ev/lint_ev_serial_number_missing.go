@@ -29,12 +29,12 @@ func init() {
 		Citation:      "EVGs: 9.2.6",
 		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &evSNMissing{},
+		Lint:          NewEvSNMissing,
 	})
 }
 
-func (l *evSNMissing) Initialize() error {
-	return nil
+func NewEvSNMissing() lint.LintInterface {
+	return &evSNMissing{}
 }
 
 func (l *evSNMissing) CheckApplies(c *x509.Certificate) bool {
