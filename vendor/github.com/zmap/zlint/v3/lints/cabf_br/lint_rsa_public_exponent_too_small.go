@@ -36,12 +36,12 @@ func init() {
 		Citation:      "BRs: 6.1.6",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV113Date,
-		Lint:          &rsaParsedTestsExpBounds{},
+		Lint:          NewRsaParsedTestsExpBounds,
 	})
 }
 
-func (l *rsaParsedTestsExpBounds) Initialize() error {
-	return nil
+func NewRsaParsedTestsExpBounds() lint.LintInterface {
+	return &rsaParsedTestsExpBounds{}
 }
 
 func (l *rsaParsedTestsExpBounds) CheckApplies(c *x509.Certificate) bool {

@@ -20,7 +20,6 @@ import (
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
 	"github.com/zmap/zlint/v3/util"
-	"golang.org/x/net/idna"
 )
 
 type IDNMalformedUnicode struct{}
@@ -28,16 +27,16 @@ type IDNMalformedUnicode struct{}
 func init() {
 	lint.RegisterLint(&lint.Lint{
 		Name:          "e_international_dns_name_not_unicode",
-		Description:   "Internationalized DNSNames punycode not valid unicode",
+		Description:   "Internationalized DNSNames punycode not valid Unicode",
 		Citation:      "RFC 3490",
 		EffectiveDate: util.RFC3490Date,
 		Source:        lint.RFC5280,
-		Lint:          &IDNMalformedUnicode{},
+		Lint:          NewIDNMalformedUnicode,
 	})
 }
 
-func (l *IDNMalformedUnicode) Initialize() error {
-	return nil
+func NewIDNMalformedUnicode() lint.LintInterface {
+	return &IDNMalformedUnicode{}
 }
 
 func (l *IDNMalformedUnicode) CheckApplies(c *x509.Certificate) bool {
@@ -48,8 +47,8 @@ func (l *IDNMalformedUnicode) Execute(c *x509.Certificate) *lint.LintResult {
 	for _, dns := range c.DNSNames {
 		labels := strings.Split(dns, ".")
 		for _, label := range labels {
-			if strings.HasPrefix(label, "xn--") {
-				_, err := idna.ToUnicode(label)
+			if util.HasXNLabelPrefix(label) {
+				_, err := util.IdnaToUnicode(label)
 				if err != nil {
 					return &lint.LintResult{Status: lint.Error}
 				}

@@ -5,13 +5,13 @@
 package x509
 
 import (
-	"encoding/asn1"
 	"encoding/hex"
 	"encoding/json"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509/ct"
 	"github.com/zmap/zcrypto/x509/pkix"
 )

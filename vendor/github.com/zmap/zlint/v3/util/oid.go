@@ -15,9 +15,9 @@
 package util
 
 import (
-	"encoding/asn1"
 	"errors"
 
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zcrypto/x509/pkix"
 )
@@ -110,7 +110,6 @@ func IsExtInCert(cert *x509.Certificate, oid asn1.ObjectIdentifier) bool {
 
 // GetExtFromCert returns the extension with the matching OID, if present. If
 // the extension if not present, it returns nil.
-//nolint:interfacer
 func GetExtFromCert(cert *x509.Certificate, oid asn1.ObjectIdentifier) *pkix.Extension {
 	// Since this function is called by many Lint CheckApplies functions we use
 	// the x509.Certificate.ExtensionsMap field added by zcrypto to check for

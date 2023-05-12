@@ -31,12 +31,12 @@ func init() {
 		Citation:      "awslabs certlint",
 		Source:        lint.Community,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &brSANBareWildcard{},
+		Lint:          NewBrSANBareWildcard,
 	})
 }
 
-func (l *brSANBareWildcard) Initialize() error {
-	return nil
+func NewBrSANBareWildcard() lint.LintInterface {
+	return &brSANBareWildcard{}
 }
 
 func (l *brSANBareWildcard) CheckApplies(c *x509.Certificate) bool {

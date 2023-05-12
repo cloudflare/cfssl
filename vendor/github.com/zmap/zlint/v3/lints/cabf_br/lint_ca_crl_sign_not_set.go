@@ -36,12 +36,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &caCRLSignNotSet{},
+		Lint:          NewCaCRLSignNotSet,
 	})
 }
 
-func (l *caCRLSignNotSet) Initialize() error {
-	return nil
+func NewCaCRLSignNotSet() lint.LintInterface {
+	return &caCRLSignNotSet{}
 }
 
 func (l *caCRLSignNotSet) CheckApplies(c *x509.Certificate) bool {

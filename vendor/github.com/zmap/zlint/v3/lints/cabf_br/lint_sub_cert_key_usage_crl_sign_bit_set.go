@@ -35,12 +35,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.3",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &subCrlSignAllowed{},
+		Lint:          NewSubCrlSignAllowed,
 	})
 }
 
-func (l *subCrlSignAllowed) Initialize() error {
-	return nil
+func NewSubCrlSignAllowed() lint.LintInterface {
+	return &subCrlSignAllowed{}
 }
 
 func (l *subCrlSignAllowed) CheckApplies(c *x509.Certificate) bool {

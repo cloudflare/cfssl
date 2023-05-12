@@ -14,7 +14,7 @@
 
 package util
 
-import "encoding/asn1"
+import "github.com/zmap/zcrypto/encoding/asn1"
 
 type AttributeTypeAndRawValue struct {
 	Type  asn1.ObjectIdentifier

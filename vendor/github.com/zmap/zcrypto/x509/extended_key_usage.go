@@ -7,7 +7,7 @@
 package x509
 
 import (
-	"encoding/asn1"
+	"github.com/zmap/zcrypto/encoding/asn1"
 )
 
 const (

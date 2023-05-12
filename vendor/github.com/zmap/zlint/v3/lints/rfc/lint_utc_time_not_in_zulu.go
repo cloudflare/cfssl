@@ -50,12 +50,12 @@ func init() {
 		Citation:      "RFC 5280: 4.1.2.5.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &utcTimeGMT{},
+		Lint:          NewUtcTimeGMT,
 	})
 }
 
-func (l *utcTimeGMT) Initialize() error {
-	return nil
+func NewUtcTimeGMT() lint.LintInterface {
+	return &utcTimeGMT{}
 }
 
 func (l *utcTimeGMT) CheckApplies(c *x509.Certificate) bool {

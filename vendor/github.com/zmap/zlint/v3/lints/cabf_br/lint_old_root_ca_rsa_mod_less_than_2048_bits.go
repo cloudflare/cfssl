@@ -31,12 +31,12 @@ func init() {
 		Citation:      "BRs: 6.1.5",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &rootCaModSize{},
+		Lint:          NewRootCaModSize,
 	})
 }
 
-func (l *rootCaModSize) Initialize() error {
-	return nil
+func NewRootCaModSize() lint.LintInterface {
+	return &rootCaModSize{}
 }
 
 func (l *rootCaModSize) CheckApplies(c *x509.Certificate) bool {

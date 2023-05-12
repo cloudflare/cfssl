@@ -33,8 +33,12 @@ func init() {
 		Citation:      "BRs: Ballot 201, Ballot SC27",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV201Date,
-		Lint:          &torServiceDescHashInvalid{},
+		Lint:          NewTorServiceDescHashInvalid,
 	})
+}
+
+func NewTorServiceDescHashInvalid() lint.LintInterface {
+	return &torServiceDescHashInvalid{}
 }
 
 func (l *torServiceDescHashInvalid) Initialize() error {
@@ -49,7 +53,8 @@ func (l *torServiceDescHashInvalid) CheckApplies(c *x509.Certificate) bool {
 	ext := util.GetExtFromCert(c, util.BRTorServiceDescriptor)
 	return ext != nil || (util.IsSubscriberCert(c) &&
 		util.CertificateSubjInTLD(c, util.OnionTLD) &&
-		util.IsEV(c.PolicyIdentifiers))
+		util.IsEV(c.PolicyIdentifiers)) &&
+		util.IsOnionV2Cert(c)
 }
 
 // failResult is a small utility function for creating a failed lint result.
@@ -108,6 +113,7 @@ func lintOnionURL(onion string) *lint.LintResult {
 //      an onion subject in the cert.
 //   6) There is an onion subject in the cert that doesn't correspond to
 //      a TorServiceDescriptorHash, if required.
+//nolint:cyclop
 func (l *torServiceDescHashInvalid) Execute(c *x509.Certificate) *lint.LintResult {
 	// If the certificate is EV, the BRTorServiceDescriptor extension is required.
 	// We know that `CheckApplies` will only apply if the certificate has the

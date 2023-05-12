@@ -30,12 +30,12 @@ func init() {
 		Citation:      "CA/Browser Forum EV Guidelines v1.7.0, Sec. 9.8.2",
 		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.CABFEV_9_8_2,
-		Lint:          &evOrgIdExtMissing{},
+		Lint:          NewEvOrgIdExtMissing,
 	})
 }
 
-func (l *evOrgIdExtMissing) Initialize() error {
-	return nil
+func NewEvOrgIdExtMissing() lint.LintInterface {
+	return &evOrgIdExtMissing{}
 }
 
 func (l *evOrgIdExtMissing) CheckApplies(c *x509.Certificate) bool {

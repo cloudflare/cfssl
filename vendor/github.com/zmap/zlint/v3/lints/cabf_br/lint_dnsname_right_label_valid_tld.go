@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 3.2.2.4",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &DNSNameValidTLD{},
+		Lint:          NewDNSNameValidTLD,
 	})
 }
 
-func (l *DNSNameValidTLD) Initialize() error {
-	return nil
+func NewDNSNameValidTLD() lint.LintInterface {
+	return &DNSNameValidTLD{}
 }
 
 func (l *DNSNameValidTLD) CheckApplies(c *x509.Certificate) bool {

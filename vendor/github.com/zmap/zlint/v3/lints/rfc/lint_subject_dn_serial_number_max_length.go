@@ -31,12 +31,12 @@ func init() {
 		Citation:      "RFC 5280: Appendix A",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &SubjectDNSerialNumberMaxLength{},
+		Lint:          NewSubjectDNSerialNumberMaxLength,
 	})
 }
 
-func (l *SubjectDNSerialNumberMaxLength) Initialize() error {
-	return nil
+func NewSubjectDNSerialNumberMaxLength() lint.LintInterface {
+	return &SubjectDNSerialNumberMaxLength{}
 }
 
 func (l *SubjectDNSerialNumberMaxLength) CheckApplies(c *x509.Certificate) bool {

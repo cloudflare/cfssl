@@ -40,12 +40,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &SANRegId{},
+		Lint:          NewSANRegId,
 	})
 }
 
-func (l *SANRegId) Initialize() error {
-	return nil
+func NewSANRegId() lint.LintInterface {
+	return &SANRegId{}
 }
 
 func (l *SANRegId) CheckApplies(c *x509.Certificate) bool {

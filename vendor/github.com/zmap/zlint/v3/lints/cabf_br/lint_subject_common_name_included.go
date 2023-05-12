@@ -34,12 +34,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &commonNames{},
+		Lint:          NewCommonNames,
 	})
 }
 
-func (l *commonNames) Initialize() error {
-	return nil
+func NewCommonNames() lint.LintInterface {
+	return &commonNames{}
 }
 
 func (l *commonNames) CheckApplies(c *x509.Certificate) bool {

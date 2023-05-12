@@ -29,12 +29,12 @@ func init() {
 		Citation:      "lint.AWSLabs certlint",
 		Source:        lint.Community,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &validityNegative{},
+		Lint:          NewValidityNegative,
 	})
 }
 
-func (l *validityNegative) Initialize() error {
-	return nil
+func NewValidityNegative() lint.LintInterface {
+	return &validityNegative{}
 }
 
 func (l *validityNegative) CheckApplies(c *x509.Certificate) bool {

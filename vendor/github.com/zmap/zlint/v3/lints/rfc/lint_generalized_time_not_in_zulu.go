@@ -43,12 +43,12 @@ func init() {
 		Citation:      "RFC 5280: 4.1.2.5.2",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &generalizedNotZulu{},
+		Lint:          NewGeneralizedNotZulu,
 	})
 }
 
-func (l *generalizedNotZulu) Initialize() error {
-	return nil
+func NewGeneralizedNotZulu() lint.LintInterface {
+	return &generalizedNotZulu{}
 }
 
 func (l *generalizedNotZulu) CheckApplies(c *x509.Certificate) bool {

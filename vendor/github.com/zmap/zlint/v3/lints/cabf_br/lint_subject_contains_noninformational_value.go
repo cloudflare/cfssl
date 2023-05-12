@@ -40,12 +40,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &illegalChar{},
+		Lint:          NewIllegalChar,
 	})
 }
 
-func (l *illegalChar) Initialize() error {
-	return nil
+func NewIllegalChar() lint.LintInterface {
+	return &illegalChar{}
 }
 
 func (l *illegalChar) CheckApplies(c *x509.Certificate) bool {

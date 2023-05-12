@@ -35,12 +35,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.2.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &ExtAiaMarkedCritical{},
+		Lint:          NewExtAiaMarkedCritical,
 	})
 }
 
-func (l *ExtAiaMarkedCritical) Initialize() error {
-	return nil
+func NewExtAiaMarkedCritical() lint.LintInterface {
+	return &ExtAiaMarkedCritical{}
 }
 
 func (l *ExtAiaMarkedCritical) CheckApplies(cert *x509.Certificate) bool {

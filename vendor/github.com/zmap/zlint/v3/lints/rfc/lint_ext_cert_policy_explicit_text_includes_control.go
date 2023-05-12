@@ -41,12 +41,12 @@ func init() {
 		Citation:      "RFC 6818: 3",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC6818Date,
-		Lint:          &controlChar{},
+		Lint:          NewControlChar,
 	})
 }
 
-func (l *controlChar) Initialize() error {
-	return nil
+func NewControlChar() lint.LintInterface {
+	return &controlChar{}
 }
 
 func (l *controlChar) CheckApplies(c *x509.Certificate) bool {
@@ -59,6 +59,7 @@ func (l *controlChar) CheckApplies(c *x509.Certificate) bool {
 }
 
 //nolint:nestif
+//nolint:cyclop
 func (l *controlChar) Execute(c *x509.Certificate) *lint.LintResult {
 	for _, firstLvl := range c.ExplicitTexts {
 		for _, text := range firstLvl {

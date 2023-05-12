@@ -42,12 +42,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.10",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &nameConstraintOnX400{},
+		Lint:          NewNameConstraintOnX400,
 	})
 }
 
-func (l *nameConstraintOnX400) Initialize() error {
-	return nil
+func NewNameConstraintOnX400() lint.LintInterface {
+	return &nameConstraintOnX400{}
 }
 
 func (l *nameConstraintOnX400) CheckApplies(c *x509.Certificate) bool {

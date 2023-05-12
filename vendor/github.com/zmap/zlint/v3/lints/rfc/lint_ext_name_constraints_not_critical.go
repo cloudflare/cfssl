@@ -37,16 +37,16 @@ Restrictions are defined in terms of permitted or excluded name
 func init() {
 	lint.RegisterLint(&lint.Lint{
 		Name:          "e_ext_name_constraints_not_critical",
-		Description:   "If it is included, conforming CAs MUST mark the name constrains extension as critical",
+		Description:   "If it is included, conforming CAs MUST mark the name constraints extension as critical",
 		Citation:      "RFC 5280: 4.2.1.10",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &nameConstraintCrit{},
+		Lint:          NewNameConstraintCrit,
 	})
 }
 
-func (l *nameConstraintCrit) Initialize() error {
-	return nil
+func NewNameConstraintCrit() lint.LintInterface {
+	return &nameConstraintCrit{}
 }
 
 func (l *nameConstraintCrit) CheckApplies(c *x509.Certificate) bool {

@@ -41,14 +41,15 @@ func init() {
 		Citation:      "EVGs: Appendix F",
 		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          &torValidityTooLarge{},
+		Lint:          NewTorValidityTooLarge,
 	})
 }
 
-// Initialize for a torValidityTooLarge linter is a NOP.
-func (l *torValidityTooLarge) Initialize() error {
-	return nil
+func NewTorValidityTooLarge() lint.LintInterface {
+	return &torValidityTooLarge{}
 }
+
+// Initialize for a torValidityTooLarge linter is a NOP.
 
 // CheckApplies returns true if the certificate is a subscriber certificate that
 // contains a subject name ending in `.onion`.

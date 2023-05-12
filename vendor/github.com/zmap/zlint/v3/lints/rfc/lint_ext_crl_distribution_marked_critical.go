@@ -33,12 +33,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.13",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &ExtCrlDistributionMarkedCritical{},
+		Lint:          NewExtCrlDistributionMarkedCritical,
 	})
 }
 
-func (l *ExtCrlDistributionMarkedCritical) Initialize() error {
-	return nil
+func NewExtCrlDistributionMarkedCritical() lint.LintInterface {
+	return &ExtCrlDistributionMarkedCritical{}
 }
 
 func (l *ExtCrlDistributionMarkedCritical) CheckApplies(cert *x509.Certificate) bool {

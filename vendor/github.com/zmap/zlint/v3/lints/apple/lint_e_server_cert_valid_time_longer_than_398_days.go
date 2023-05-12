@@ -32,12 +32,12 @@ func init() {
 		Citation:      "https://support.apple.com/en-us/HT211025",
 		Source:        lint.AppleRootStorePolicy,
 		EffectiveDate: util.AppleReducedLifetimeDate,
-		Lint:          &serverCertValidityTooLong{},
+		Lint:          NewServerCertValidityTooLong,
 	})
 }
 
-func (l *serverCertValidityTooLong) Initialize() error {
-	return nil
+func NewServerCertValidityTooLong() lint.LintInterface {
+	return &serverCertValidityTooLong{}
 }
 
 func (l *serverCertValidityTooLong) CheckApplies(c *x509.Certificate) bool {

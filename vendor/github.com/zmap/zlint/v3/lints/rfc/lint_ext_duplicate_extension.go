@@ -36,12 +36,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &extDuplicateExtension{},
+		Lint:          NewExtDuplicateExtension,
 	})
 }
 
-func (l *extDuplicateExtension) Initialize() error {
-	return nil
+func NewExtDuplicateExtension() lint.LintInterface {
+	return &extDuplicateExtension{}
 }
 
 func (l *extDuplicateExtension) CheckApplies(cert *x509.Certificate) bool {

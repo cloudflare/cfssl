@@ -33,12 +33,12 @@ func init() {
 		Citation:      "BRs: 7.1.1",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABV130Date,
-		Lint:          &InvalidCertificateVersion{},
+		Lint:          NewInvalidCertificateVersion,
 	})
 }
 
-func (l *InvalidCertificateVersion) Initialize() error {
-	return nil
+func NewInvalidCertificateVersion() lint.LintInterface {
+	return &InvalidCertificateVersion{}
 }
 
 func (l *InvalidCertificateVersion) CheckApplies(cert *x509.Certificate) bool {

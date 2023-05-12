@@ -15,9 +15,9 @@
 package mozilla
 
 import (
-	"encoding/asn1"
 	"fmt"
 
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
 	"github.com/zmap/zlint/v3/util"
@@ -45,12 +45,12 @@ func init() {
 		Citation:      "Mozilla Root Store Policy / Section 5.2",
 		Source:        lint.MozillaRootStorePolicy,
 		EffectiveDate: util.MozillaPolicy22Date,
-		Lint:          &authorityKeyIdentifierCorrect{},
+		Lint:          NewAuthorityKeyIdentifierCorrect,
 	})
 }
 
-func (l *authorityKeyIdentifierCorrect) Initialize() error {
-	return nil
+func NewAuthorityKeyIdentifierCorrect() lint.LintInterface {
+	return &authorityKeyIdentifierCorrect{}
 }
 
 func (l *authorityKeyIdentifierCorrect) CheckApplies(c *x509.Certificate) bool {

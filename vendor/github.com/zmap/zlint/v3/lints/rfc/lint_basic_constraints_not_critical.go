@@ -41,12 +41,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.9",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &basicConstCrit{},
+		Lint:          NewBasicConstCrit,
 	})
 }
 
-func (l *basicConstCrit) Initialize() error {
-	return nil
+func NewBasicConstCrit() lint.LintInterface {
+	return &basicConstCrit{}
 }
 
 func (l *basicConstCrit) CheckApplies(c *x509.Certificate) bool {

@@ -47,12 +47,12 @@ func init() {
 		Citation:      "RFC 5280: 4.1.2.5.1",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &utcNoSecond{},
+		Lint:          NewUtcNoSecond,
 	})
 }
 
-func (l *utcNoSecond) Initialize() error {
-	return nil
+func NewUtcNoSecond() lint.LintInterface {
+	return &utcNoSecond{}
 }
 
 func (l *utcNoSecond) CheckApplies(c *x509.Certificate) bool {

@@ -40,12 +40,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.6",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &ExtSANCriticalWithSubjectDN{},
+		Lint:          NewExtSANCriticalWithSubjectDN,
 	})
 }
 
-func (l *ExtSANCriticalWithSubjectDN) Initialize() error {
-	return nil
+func NewExtSANCriticalWithSubjectDN() lint.LintInterface {
+	return &ExtSANCriticalWithSubjectDN{}
 }
 
 func (l *ExtSANCriticalWithSubjectDN) CheckApplies(cert *x509.Certificate) bool {

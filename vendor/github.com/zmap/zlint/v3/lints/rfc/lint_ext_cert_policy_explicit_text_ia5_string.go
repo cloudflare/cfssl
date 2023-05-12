@@ -43,12 +43,12 @@ func init() {
 		Citation:      "RFC 6818: 3",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC6818Date,
-		Lint:          &explicitTextIA5String{},
+		Lint:          NewExplicitTextIA5String,
 	})
 }
 
-func (l *explicitTextIA5String) Initialize() error {
-	return nil
+func NewExplicitTextIA5String() lint.LintInterface {
+	return &explicitTextIA5String{}
 }
 
 func (l *explicitTextIA5String) CheckApplies(c *x509.Certificate) bool {

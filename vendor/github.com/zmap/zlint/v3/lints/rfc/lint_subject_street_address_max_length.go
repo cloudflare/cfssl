@@ -37,12 +37,12 @@ func init() {
 		Citation:      "ITU-T X.520 (02/2001) UpperBounds",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &subjectStreetAddressMaxLength{},
+		Lint:          NewSubjectStreetAddressMaxLength,
 	})
 }
 
-func (l *subjectStreetAddressMaxLength) Initialize() error {
-	return nil
+func NewSubjectStreetAddressMaxLength() lint.LintInterface {
+	return &subjectStreetAddressMaxLength{}
 }
 
 func (l *subjectStreetAddressMaxLength) CheckApplies(c *x509.Certificate) bool {

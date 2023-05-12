@@ -40,12 +40,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.4",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC3280Date,
-		Lint:          &unrecommendedQualifier{},
+		Lint:          NewUnrecommendedQualifier,
 	})
 }
 
-func (l *unrecommendedQualifier) Initialize() error {
-	return nil
+func NewUnrecommendedQualifier() lint.LintInterface {
+	return &unrecommendedQualifier{}
 }
 
 func (l *unrecommendedQualifier) CheckApplies(c *x509.Certificate) bool {

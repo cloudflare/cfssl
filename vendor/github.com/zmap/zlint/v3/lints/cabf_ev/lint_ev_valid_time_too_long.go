@@ -29,12 +29,12 @@ func init() {
 		Citation:      "EVGs 1.0: 8(a), EVGs 1.6.1: 9.4",
 		Source:        lint.CABFEVGuidelines,
 		EffectiveDate: util.ZeroDate,
-		Lint:          &evValidTooLong{},
+		Lint:          NewEvValidTooLong,
 	})
 }
 
-func (l *evValidTooLong) Initialize() error {
-	return nil
+func NewEvValidTooLong() lint.LintInterface {
+	return &evValidTooLong{}
 }
 
 func (l *evValidTooLong) CheckApplies(c *x509.Certificate) bool {

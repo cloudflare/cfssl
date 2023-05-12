@@ -39,16 +39,16 @@ intermediates.
 func init() {
 	lint.RegisterLint(&lint.Lint{
 		Name:          "n_mp_allowed_eku",
-		Description:   "A SubCA certificate must not have key usage that allows for both server auth and email protection, and must not use anyKeyUsage",
+		Description:   "A SubCA certificate must not have key usage that allows for both server auth and email protection, and must not use anyExtendedKeyUsage",
 		Citation:      "Mozilla Root Store Policy / Section 5.3",
 		Source:        lint.MozillaRootStorePolicy,
 		EffectiveDate: time.Date(2019, time.January, 1, 0, 0, 0, 0, time.UTC),
-		Lint:          &allowedEKU{},
+		Lint:          NewAllowedEKU,
 	})
 }
 
-func (l *allowedEKU) Initialize() error {
-	return nil
+func NewAllowedEKU() lint.LintInterface {
+	return &allowedEKU{}
 }
 
 func (l *allowedEKU) CheckApplies(c *x509.Certificate) bool {

@@ -37,12 +37,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.4",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &ExtCertPolicyDuplicate{},
+		Lint:          NewExtCertPolicyDuplicate,
 	})
 }
 
-func (l *ExtCertPolicyDuplicate) Initialize() error {
-	return nil
+func NewExtCertPolicyDuplicate() lint.LintInterface {
+	return &ExtCertPolicyDuplicate{}
 }
 
 func (l *ExtCertPolicyDuplicate) CheckApplies(cert *x509.Certificate) bool {

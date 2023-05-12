@@ -67,8 +67,6 @@ github.com/jmoiron/sqlx/types
 # github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
 ## explicit
 github.com/kisielk/sqlstruct
-# github.com/kr/text v0.2.0
-## explicit
 # github.com/kylelemons/go-gypsy v1.0.0
 ## explicit; go 1.5
 github.com/kylelemons/go-gypsy/yaml
@@ -83,6 +81,9 @@ github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/pelletier/go-toml v1.9.3
+## explicit; go 1.12
+github.com/pelletier/go-toml
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
@@ -111,7 +112,7 @@ github.com/prometheus/procfs/internal/util
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/weppos/publicsuffix-go v0.15.1-0.20210511084619-b1f36a2d6c0b
+# github.com/weppos/publicsuffix-go v0.15.1-0.20220329081811-9a40b608a236
 ## explicit; go 1.11
 github.com/weppos/publicsuffix-go/publicsuffix
 # github.com/ziutek/mymysql v1.5.4
@@ -119,17 +120,20 @@ github.com/weppos/publicsuffix-go/publicsuffix
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-# github.com/zmap/zcrypto v0.0.0-20210511125630-18f1e0152cfc
+# github.com/zmap/zcrypto v0.0.0-20220402174210-599ec18ecbac
 ## explicit; go 1.16
+github.com/zmap/zcrypto/cryptobyte
+github.com/zmap/zcrypto/cryptobyte/asn1
 github.com/zmap/zcrypto/dsa
+github.com/zmap/zcrypto/encoding/asn1
 github.com/zmap/zcrypto/internal/randutil
 github.com/zmap/zcrypto/json
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v3 v3.1.0
-## explicit; go 1.15
+# github.com/zmap/zlint/v3 v3.4.1
+## explicit; go 1.18
 github.com/zmap/zlint/v3
 github.com/zmap/zlint/v3/lint
 github.com/zmap/zlint/v3/lints/apple

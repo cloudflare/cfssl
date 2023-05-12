@@ -29,12 +29,12 @@ func init() {
 		Citation:      "BRs: 3.2.2.6",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &DNSNameWildcardLeftofPublicSuffix{},
+		Lint:          NewDNSNameWildcardLeftofPublicSuffix,
 	})
 }
 
-func (l *DNSNameWildcardLeftofPublicSuffix) Initialize() error {
-	return nil
+func NewDNSNameWildcardLeftofPublicSuffix() lint.LintInterface {
+	return &DNSNameWildcardLeftofPublicSuffix{}
 }
 
 func (l *DNSNameWildcardLeftofPublicSuffix) CheckApplies(c *x509.Certificate) bool {

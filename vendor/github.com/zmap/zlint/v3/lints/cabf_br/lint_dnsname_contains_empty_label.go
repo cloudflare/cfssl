@@ -31,12 +31,12 @@ func init() {
 		Citation:      "BRs: 7.1.4.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &DNSNameEmptyLabel{},
+		Lint:          NewDNSNameEmptyLabel,
 	})
 }
 
-func (l *DNSNameEmptyLabel) Initialize() error {
-	return nil
+func NewDNSNameEmptyLabel() lint.LintInterface {
+	return &DNSNameEmptyLabel{}
 }
 
 func (l *DNSNameEmptyLabel) CheckApplies(c *x509.Certificate) bool {

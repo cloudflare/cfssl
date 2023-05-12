@@ -36,12 +36,12 @@ func init() {
 		Citation:      "RFC5280: 4.2.1.6",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &extSANURINotIA5{},
+		Lint:          NewExtSANURINotIA5,
 	})
 }
 
-func (l *extSANURINotIA5) Initialize() error {
-	return nil
+func NewExtSANURINotIA5() lint.LintInterface {
+	return &extSANURINotIA5{}
 }
 
 func (l *extSANURINotIA5) CheckApplies(c *x509.Certificate) bool {

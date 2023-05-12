@@ -42,12 +42,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.12",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC3280Date,
-		Lint:          &ekuBadCritical{},
+		Lint:          NewEkuBadCritical,
 	})
 }
 
-func (l *ekuBadCritical) Initialize() error {
-	return nil
+func NewEkuBadCritical() lint.LintInterface {
+	return &ekuBadCritical{}
 }
 
 func (l *ekuBadCritical) CheckApplies(c *x509.Certificate) bool {

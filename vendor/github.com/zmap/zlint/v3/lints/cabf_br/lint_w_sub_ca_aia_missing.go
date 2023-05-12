@@ -20,39 +20,39 @@ import (
 	"github.com/zmap/zlint/v3/util"
 )
 
-type caAiaMissing struct{}
+type caAiaShouldNotBeMissing struct{}
 
 /***********************************************
-CAB 7.1.2.2c
-With the exception of stapling, which is noted below, this extension MUST be present. It MUST NOT be
-marked critical, and it MUST contain the HTTP URL of the Issuing CA’s OCSP responder (accessMethod
-= 1.3.6.1.5.5.7.48.1). It SHOULD also contain the HTTP URL of the Issuing CA’s certificate
-(accessMethod = 1.3.6.1.5.5.7.48.2).
+CAB BR 1.7.1 Section 7.1.2.2c - authorityInformationAccess
+This extension SHOULD be present. It MUST NOT be marked critical.
+It SHOULD contain the HTTP URL of the Issuing CA’s certificate (accessMethod =
+1.3.6.1.5.5.7.48.2). It MAY contain the HTTP URL of the Issuing CA’s OCSP responder
+(accessMethod = 1.3.6.1.5.5.7.48.1).
 ************************************************/
 
 func init() {
 	lint.RegisterLint(&lint.Lint{
-		Name:          "e_sub_ca_aia_missing",
-		Description:   "Subordinate CA Certificate: authorityInformationAccess MUST be present, with the exception of stapling.",
+		Name:          "w_sub_ca_aia_missing",
+		Description:   "Subordinate CA Certificate: authorityInformationAccess SHOULD be present.",
 		Citation:      "BRs: 7.1.2.2",
 		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &caAiaMissing{},
+		EffectiveDate: util.CABFBRs_1_7_1_Date,
+		Lint:          NewCaAiaShouldNotBeMissing,
 	})
 }
 
-func (l *caAiaMissing) Initialize() error {
-	return nil
+func NewCaAiaShouldNotBeMissing() lint.LintInterface {
+	return &caAiaShouldNotBeMissing{}
 }
 
-func (l *caAiaMissing) CheckApplies(c *x509.Certificate) bool {
+func (l *caAiaShouldNotBeMissing) CheckApplies(c *x509.Certificate) bool {
 	return util.IsCACert(c) && !util.IsRootCA(c)
 }
 
-func (l *caAiaMissing) Execute(c *x509.Certificate) *lint.LintResult {
+func (l *caAiaShouldNotBeMissing) Execute(c *x509.Certificate) *lint.LintResult {
 	if util.IsExtInCert(c, util.AiaOID) {
 		return &lint.LintResult{Status: lint.Pass}
 	} else {
-		return &lint.LintResult{Status: lint.Error}
+		return &lint.LintResult{Status: lint.Warn}
 	}
 }

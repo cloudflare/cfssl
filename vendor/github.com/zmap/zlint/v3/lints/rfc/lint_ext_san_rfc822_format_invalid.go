@@ -43,12 +43,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.6",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC2459Date,
-		Lint:          &invalidEmail{},
+		Lint:          NewInvalidEmail,
 	})
 }
 
-func (l *invalidEmail) Initialize() error {
-	return nil
+func NewInvalidEmail() lint.LintInterface {
+	return &invalidEmail{}
 }
 
 func (l *invalidEmail) CheckApplies(c *x509.Certificate) bool {

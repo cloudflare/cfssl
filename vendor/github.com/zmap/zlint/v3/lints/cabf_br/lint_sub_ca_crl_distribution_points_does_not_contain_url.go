@@ -37,12 +37,12 @@ func init() {
 		Citation:      "BRs: 7.1.2.2",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &subCACRLDistNoUrl{},
+		Lint:          NewSubCACRLDistNoUrl,
 	})
 }
 
-func (l *subCACRLDistNoUrl) Initialize() error {
-	return nil
+func NewSubCACRLDistNoUrl() lint.LintInterface {
+	return &subCACRLDistNoUrl{}
 }
 
 func (l *subCACRLDistNoUrl) CheckApplies(c *x509.Certificate) bool {

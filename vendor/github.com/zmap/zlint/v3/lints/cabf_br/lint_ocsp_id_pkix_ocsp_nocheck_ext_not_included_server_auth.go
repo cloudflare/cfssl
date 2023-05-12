@@ -30,12 +30,12 @@ func init() {
 		Citation:      "BRs: 4.9.9",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &OCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth{},
+		Lint:          NewOCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth,
 	})
 }
 
-func (l *OCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth) Initialize() error {
-	return nil
+func NewOCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth() lint.LintInterface {
+	return &OCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth{}
 }
 
 func (l *OCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth) CheckApplies(c *x509.Certificate) bool {

@@ -37,12 +37,12 @@ func init() {
 		Citation:      "Mozilla Root Store Policy / Section 5.2",
 		Source:        lint.MozillaRootStorePolicy,
 		EffectiveDate: util.MozillaPolicy24Date,
-		Lint:          &exponentCannotBeOne{},
+		Lint:          NewExponentCannotBeOne,
 	})
 }
 
-func (l *exponentCannotBeOne) Initialize() error {
-	return nil
+func NewExponentCannotBeOne() lint.LintInterface {
+	return &exponentCannotBeOne{}
 }
 
 func (l *exponentCannotBeOne) CheckApplies(c *x509.Certificate) bool {

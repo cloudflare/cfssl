@@ -43,12 +43,12 @@ func init() {
 		Citation:      "RFC 5280: 4.2.1.10",
 		Source:        lint.RFC5280,
 		EffectiveDate: util.RFC5280Date,
-		Lint:          &nameConstraintNotFQDN{},
+		Lint:          NewNameConstraintNotFQDN,
 	})
 }
 
-func (l *nameConstraintNotFQDN) Initialize() error {
-	return nil
+func NewNameConstraintNotFQDN() lint.LintInterface {
+	return &nameConstraintNotFQDN{}
 }
 
 func (l *nameConstraintNotFQDN) CheckApplies(c *x509.Certificate) bool {

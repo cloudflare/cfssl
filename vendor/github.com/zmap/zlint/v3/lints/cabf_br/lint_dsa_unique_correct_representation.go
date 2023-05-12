@@ -15,8 +15,9 @@ package cabf_br
  */
 
 import (
-	"crypto/dsa"
 	"math/big"
+
+	"github.com/zmap/zcrypto/dsa"
 
 	"github.com/zmap/zcrypto/x509"
 	"github.com/zmap/zlint/v3/lint"
@@ -32,12 +33,12 @@ func init() {
 		Citation:      "BRs v1.7.0: 6.1.6",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.CABEffectiveDate,
-		Lint:          &dsaUniqueCorrectRepresentation{},
+		Lint:          NewDsaUniqueCorrectRepresentation,
 	})
 }
 
-func (l *dsaUniqueCorrectRepresentation) Initialize() error {
-	return nil
+func NewDsaUniqueCorrectRepresentation() lint.LintInterface {
+	return &dsaUniqueCorrectRepresentation{}
 }
 
 func (l *dsaUniqueCorrectRepresentation) CheckApplies(c *x509.Certificate) bool {

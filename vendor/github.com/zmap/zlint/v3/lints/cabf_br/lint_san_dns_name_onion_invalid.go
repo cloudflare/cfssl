@@ -84,12 +84,12 @@ func init() {
 		Citation:      "RFC 7686, EVGs v1.7.2: Appendix F, BRs v1.6.9: Appendix C",
 		Source:        lint.CABFBaselineRequirements,
 		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          &onionNotValid{},
+		Lint:          NewOnionNotValid,
 	})
 }
 
-func (l *onionNotValid) Initialize() error {
-	return nil
+func NewOnionNotValid() lint.LintInterface {
+	return &onionNotValid{}
 }
 
 // CheckApplies returns true if the certificate contains one or more subject
