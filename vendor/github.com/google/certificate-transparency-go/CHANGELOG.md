@@ -2,6 +2,54 @@
 
 ## HEAD
 
+## v1.1.6
+
+## Dependency update
+
+ * Bump Trillian to v1.5.2
+ * Bump Prometheus to v0.43.1
+
+## v1.1.5
+
+### Public/Private Key Consistency
+
+ * #1044: If a public key has been configured for a log, check that it is consistent with the private key.
+ * #1046: Ensure that no two logs in the CTFE configuration use the same private key.
+
+### Cleanup
+
+ * Remove v2 log list package files.
+
+ ### Misc
+
+ * Updated golangci-lint to v1.51.1 (developers should update to this version).
+ * Bump Go version from 1.17 to 1.19.
+
+## v1.1.4
+
+[Published 2022-10-21](https://github.com/google/certificate-transparency-go/releases/tag/v1.1.4)
+
+### Cleanup
+
+ * Remove log list v1 package and its dependencies.
+
+### Migrillian
+
+ * #960: Skip consistency check when root is size zero.
+
+### Misc
+
+ * Update Trillian to [0a389c4](https://github.com/google/trillian/commit/0a389c4bb8d97fb3be8f55d7e5b428cf4304986f)
+ * Migrate loglist dependency from v1 to v3 in ctclient cmd.
+ * Migrate loglist dependency from v1 to v3 in ctutil/loginfo.go
+ * Migrate loglist dependency from v1 to v3 in ctutil/sctscan.go
+ * Migrate loglist dependency from v1 to v3 in trillian/integration/ct_hammer/main.go
+ * Downgrade 429 errors to verbosity 2
+
+## v1.1.3
+
+[Published 2022-05-14](https://github.com/google/certificate-transparency-go/releases/tag/v1.1.3)
+
 ### Integration
 
  * Breaking change to API for `integration.HammerCTLog`:
@@ -16,11 +64,6 @@
  * `WithBalancerName` is deprecated and removed, using the recommended way.
  * `ctfe.PEMCertPool` type has been moved to `x509util.PEMCertPool` to reduce
    dependencies (#903).
- * Remove log list v1 package and its dependencies.
-
-### Migrillian
-
-* #960: Skip consistency check when root is size zero.
 
 ### Misc
 
@@ -29,13 +72,10 @@
  * `ctclient` tool now uses Cobra for better CLI experience (#901).
  * #800: Remove dependency from `ratelimit`.
  * #927: Add read-only mode to CTFE config.
- * Update Trillian to [0a389c4](https://github.com/google/trillian/commit/0a389c4bb8d97fb3be8f55d7e5b428cf4304986f)
- * Migrate loglist dependency from v1 to v3 in ctclient cmd.
- * Migrate loglist dependency from v1 to v3 in ctutil/loginfo.go
- * Migrate loglist dependency from v1 to v3 in ctutil/sctscan.go
- * Migrate loglist dependency from v1 to v3 in trillian/integration/ct_hammer/main.go
 
 ## v1.1.2
+
+[Published 2021-09-21](https://github.com/google/certificate-transparency-go/releases/tag/v1.1.2)
 
 ### CTFE
 
@@ -47,6 +87,7 @@
  * protobuf to v2
 
 ## v1.1.1
+
 [Published 2020-10-06](https://github.com/google/certificate-transparency-go/releases/tag/v1.1.1)
 
 ### Tools

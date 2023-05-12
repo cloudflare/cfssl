@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package jsonclient provides a simple client for fetching and parsing
+// JSON CT structures from a log.
 package jsonclient
 
 import (
