@@ -11,7 +11,7 @@ require (
 	github.com/jmhodges/clock v1.2.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
-	github.com/lib/pq v1.10.1
+	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.15
 	github.com/prometheus/client_golang v1.15.1
 	github.com/stretchr/testify v1.8.0
