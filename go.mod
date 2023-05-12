@@ -6,7 +6,7 @@ require (
 	bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/redoctober v0.0.0-20211013234631-6a74ccc611f6
-	github.com/go-sql-driver/mysql v1.6.0
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/certificate-transparency-go v1.1.4
 	github.com/jmhodges/clock v1.2.0
 	github.com/jmoiron/sqlx v1.3.5
