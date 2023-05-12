@@ -7,17 +7,17 @@ require (
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/redoctober v0.0.0-20211013234631-6a74ccc611f6
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/google/certificate-transparency-go v1.1.4
+	github.com/google/certificate-transparency-go v1.1.6
 	github.com/jmhodges/clock v1.2.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.14.15
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/prometheus/client_golang v1.15.1
 	github.com/stretchr/testify v1.8.0
 	github.com/zmap/zcrypto v0.0.0-20220402174210-599ec18ecbac
 	github.com/zmap/zlint/v3 v3.4.1
-	golang.org/x/crypto v0.3.0
+	golang.org/x/crypto v0.8.0
 )
 
 require (
@@ -25,22 +25,22 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/getsentry/sentry-go v0.11.0 // indirect
-	github.com/go-logr/logr v1.2.0 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/kylelemons/go-gypsy v1.0.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.3.0 // indirect
+	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/weppos/publicsuffix-go v0.15.1-0.20220329081811-9a40b608a236 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/klog/v2 v2.80.1 // indirect
+	k8s.io/klog/v2 v2.100.1 // indirect
 )
