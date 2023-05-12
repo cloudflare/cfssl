@@ -72,7 +72,7 @@ github.com/kisielk/sqlstruct
 # github.com/kylelemons/go-gypsy v1.0.0
 ## explicit; go 1.5
 github.com/kylelemons/go-gypsy/yaml
-# github.com/lib/pq v1.10.1
+# github.com/lib/pq v1.10.9
 ## explicit; go 1.13
 github.com/lib/pq
 github.com/lib/pq/oid
