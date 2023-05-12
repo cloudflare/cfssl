@@ -59,7 +59,7 @@ github.com/google/certificate-transparency-go/x509/pkix
 # github.com/jmhodges/clock v1.2.0
 ## explicit; go 1.17
 github.com/jmhodges/clock
-# github.com/jmoiron/sqlx v1.3.3
+# github.com/jmoiron/sqlx v1.3.5
 ## explicit; go 1.10
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
