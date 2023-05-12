@@ -1,4 +1,8 @@
-FROM --platform=${BUILDPLATFORM} golang:1.20
+FROM golang:1.20
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+RUN echo "I am running on $BUILDPLATFORM, building for $TARGETPLATFORM" 
 
 LABEL org.opencontainers.image.source https://github.com/cloudflare/cfssl
 LABEL org.opencontainers.image.description "Cloudflare's PKI toolkit"
