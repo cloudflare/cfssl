@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	neturl "net/url"
 	"sync"
@@ -24,6 +23,9 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 )
+
+// HTTPClient is an instance of http.Client that will be used for all HTTP requests.
+var HTTPClient = http.DefaultClient
 
 // HardFail determines whether the failure to check the revocation
 // status of a certificate (i.e. due to network failure) causes
@@ -54,16 +56,10 @@ func ldapURL(url string) bool {
 // is revoked, the second indicates whether the revocations were
 // successfully checked.. This leads to the following combinations:
 //
-//  false, false: an error was encountered while checking revocations.
-//
-//  false, true:  the certificate was checked successfully and
-//                  it is not revoked.
-//
-//  true, true:   the certificate was checked successfully and
-//                  it is revoked.
-//
-//  true, false:  failure to check revocation status causes
-//                  verification to fail
+// - false, false: an error was encountered while checking revocations.
+// - false, true:  the certificate was checked successfully, and it is not revoked.
+// - true, true:   the certificate was checked successfully, and it is revoked.
+// - true, false:  failure to check revocation status causes verification to fail
 func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 	for _, url := range cert.CRLDistributionPoints {
 		if ldapURL(url) {
@@ -99,10 +95,13 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 
 // fetchCRL fetches and parses a CRL.
 func fetchCRL(url string) (*pkix.CertificateList, error) {
-	resp, err := http.Get(url)
+	resp, err := HTTPClient.Get(url)
 	if err != nil {
 		return nil, err
-	} else if resp.StatusCode >= 300 {
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
 		return nil, errors.New("failed to retrieve CRL")
 	}
 
@@ -110,8 +109,6 @@ func fetchCRL(url string) (*pkix.CertificateList, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
-
 	return x509.ParseCRL(body)
 }
 
@@ -133,13 +130,13 @@ func getIssuer(cert *x509.Certificate) *x509.Certificate {
 // check a cert against a specific CRL. Returns the same bool pair
 // as revCheck, plus an error if one occurred.
 func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool, err error) {
+	crlLock.Lock()
 	crl, ok := CRLSet[url]
 	if ok && crl == nil {
 		ok = false
-		crlLock.Lock()
 		delete(CRLSet, url)
-		crlLock.Unlock()
 	}
+	crlLock.Unlock()
 
 	var shouldFetchCRL = true
 	if ok {
@@ -205,16 +202,16 @@ func VerifyCertificateError(cert *x509.Certificate) (revoked, ok bool, err error
 }
 
 func fetchRemote(url string) (*x509.Certificate, error) {
-	resp, err := http.Get(url)
+	resp, err := HTTPClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	in, err := remoteRead(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
 
 	p, _ := pem.Decode(in)
 	if p != nil {
@@ -278,15 +275,16 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	var err error
 	if len(req) > 256 {
 		buf := bytes.NewBuffer(req)
-		resp, err = http.Post(server, "application/ocsp-request", buf)
+		resp, err = HTTPClient.Post(server, "application/ocsp-request", buf)
 	} else {
 		reqURL := server + "/" + neturl.QueryEscape(base64.StdEncoding.EncodeToString(req))
-		resp, err = http.Get(reqURL)
+		resp, err = HTTPClient.Get(reqURL)
 	}
 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("failed to retrieve OSCP")
@@ -296,7 +294,6 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
 
 	switch {
 	case bytes.Equal(body, ocsp.UnauthorizedErrorResponse):
@@ -314,21 +311,21 @@ func sendOCSPRequest(server string, req []byte, leaf, issuer *x509.Certificate) 
 	return ocsp.ParseResponseForCert(body, leaf, issuer)
 }
 
-var crlRead = ioutil.ReadAll
+var crlRead = io.ReadAll
 
 // SetCRLFetcher sets the function to use to read from the http response body
 func SetCRLFetcher(fn func(io.Reader) ([]byte, error)) {
 	crlRead = fn
 }
 
-var remoteRead = ioutil.ReadAll
+var remoteRead = io.ReadAll
 
 // SetRemoteFetcher sets the function to use to read from the http response body
 func SetRemoteFetcher(fn func(io.Reader) ([]byte, error)) {
 	remoteRead = fn
 }
 
-var ocspRead = ioutil.ReadAll
+var ocspRead = io.ReadAll
 
 // SetOCSPFetcher sets the function to use to read from the http response body
 func SetOCSPFetcher(fn func(io.Reader) ([]byte, error)) {

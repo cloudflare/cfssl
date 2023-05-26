@@ -1,3 +1,4 @@
+//go:build postgresql
 // +build postgresql
 
 package sql

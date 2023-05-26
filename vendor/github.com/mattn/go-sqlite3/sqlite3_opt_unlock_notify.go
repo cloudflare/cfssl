@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -12,7 +12,7 @@ package sqlite3
 #cgo CFLAGS: -DSQLITE_ENABLE_UNLOCK_NOTIFY
 
 #include <stdlib.h>
-#include <sqlite3-binding.h>
+#include "sqlite3-binding.h"
 
 extern void unlock_notify_callback(void *arg, int argc);
 */

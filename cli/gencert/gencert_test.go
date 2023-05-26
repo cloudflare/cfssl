@@ -1,8 +1,8 @@
 package gencert
 
 import (
-	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -85,8 +85,8 @@ func TestGencertFile(t *testing.T) {
 }
 
 func TestGencertEnv(t *testing.T) {
-	tempCaCert, _ := ioutil.ReadFile("../testdata/ca.pem")
-	tempCaKey, _ := ioutil.ReadFile("../testdata/ca-key.pem")
+	tempCaCert, _ := os.ReadFile("../testdata/ca.pem")
+	tempCaKey, _ := os.ReadFile("../testdata/ca-key.pem")
 	os.Setenv("ca", string(tempCaCert))
 	os.Setenv("ca_key", string(tempCaKey))
 
@@ -123,8 +123,8 @@ func TestGencertEnv(t *testing.T) {
 }
 
 func TestBadGencertEnv(t *testing.T) {
-	tempCaCert, _ := ioutil.ReadFile("../testdata/ca.pem")
-	tempCaKey, _ := ioutil.ReadFile("../testdata/ca-key.pem")
+	tempCaCert, _ := os.ReadFile("../testdata/ca.pem")
+	tempCaKey, _ := os.ReadFile("../testdata/ca-key.pem")
 	os.Setenv("ca", string(tempCaCert))
 	os.Setenv("ca_key", string(tempCaKey))
 
@@ -214,4 +214,18 @@ func TestBadGencertMain(t *testing.T) {
 		t.Fatal("Invalid remote, should reort error")
 	}
 
+}
+
+func TestOidMain(t *testing.T) {
+	c := cli.Config{
+		CAFile:    "../testdata/ca.pem",
+		CAKeyFile: "../testdata/ca-key.pem",
+	}
+	err := gencertMain([]string{"../testdata/bad_oid_csr.json"}, c)
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+	if !strings.Contains(err.Error(), "invalid OID part abc") {
+		t.Fatalf("Unexpected error: %s", err.Error())
+	}
 }

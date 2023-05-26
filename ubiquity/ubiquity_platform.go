@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 
@@ -93,7 +93,7 @@ func (p *Platform) ParseAndLoad() (ok bool) {
 	p.KeyAlgoUbiquity = p.keyAlgoUbiquity()
 	p.KeyStore = map[string]bool{}
 	if p.KeyStoreFile != "" {
-		pemBytes, err := ioutil.ReadFile(p.KeyStoreFile)
+		pemBytes, err := os.ReadFile(p.KeyStoreFile)
 		if err != nil {
 			log.Error(err)
 			return false
@@ -140,7 +140,7 @@ func LoadPlatforms(filename string) error {
 	relativePath := filepath.Dir(filename)
 	// Attempt to load root certificate metadata
 	log.Debug("Loading platform metadata: ", filename)
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("platform metadata failed to load: %v", err)
 	}

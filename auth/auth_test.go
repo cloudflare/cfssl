@@ -2,7 +2,7 @@ package auth
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -107,7 +107,7 @@ func TestNullRequest(t *testing.T) {
 
 // Sanity check: verify a pre-generated authenticated request.
 func TestPreGenerated(t *testing.T) {
-	in, err := ioutil.ReadFile("testdata/authrequest.json")
+	in, err := os.ReadFile("testdata/authrequest.json")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -126,7 +126,7 @@ func TestPreGenerated(t *testing.T) {
 var bmRequest []byte
 
 func TestLoadBenchmarkRequest(t *testing.T) {
-	in, err := ioutil.ReadFile("testdata/request.json")
+	in, err := os.ReadFile("testdata/request.json")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

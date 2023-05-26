@@ -3,12 +3,14 @@ package local
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"database/sql"
 	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
@@ -21,6 +23,7 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
@@ -29,14 +32,13 @@ import (
 	"github.com/cloudflare/cfssl/info"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 
 	zx509 "github.com/zmap/zcrypto/x509"
-	"github.com/zmap/zlint/v2"
-	"github.com/zmap/zlint/v2/lint"
-	"golang.org/x/net/context"
+	"github.com/zmap/zlint/v3"
+	"github.com/zmap/zlint/v3/lint"
 )
 
 // Signer contains a signer that uses the standard library to
@@ -505,19 +507,29 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	parsedCert, _ := helpers.ParseCertificatePEM(signedCert)
 
 	if s.dbAccessor != nil {
+		now := time.Now()
 		var certRecord = certdb.CertificateRecord{
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
 			// which sets the AuthorityKeyId from the signer's SubjectKeyId
-			AKI:     hex.EncodeToString(parsedCert.AuthorityKeyId),
-			CALabel: req.Label,
-			Status:  "good",
-			Expiry:  certTBS.NotAfter,
-			PEM:     string(signedCert),
+			AKI:        hex.EncodeToString(parsedCert.AuthorityKeyId),
+			CALabel:    req.Label,
+			Status:     "good",
+			Expiry:     certTBS.NotAfter,
+			PEM:        string(signedCert),
+			IssuedAt:   &now,
+			NotBefore:  &certTBS.NotBefore,
+			CommonName: sql.NullString{String: certTBS.Subject.CommonName, Valid: true},
 		}
 
-		err = s.dbAccessor.InsertCertificate(certRecord)
-		if err != nil {
+		if err := certRecord.SetMetadata(req.Metadata); err != nil {
+			return nil, err
+		}
+		if err := certRecord.SetSANs(certTBS.DNSNames); err != nil {
+			return nil, err
+		}
+
+		if err := s.dbAccessor.InsertCertificate(certRecord); err != nil {
 			return nil, err
 		}
 		log.Debug("saved certificate with serial number ", certTBS.SerialNumber)

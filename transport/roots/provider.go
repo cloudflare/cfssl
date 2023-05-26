@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"errors"
-	"io/ioutil"
+	"os"
 
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/transport/core"
@@ -114,7 +114,7 @@ func TrustPEM(metadata map[string]string) ([]*x509.Certificate, error) {
 		return nil, errors.New("transport: PEM source requires a source file")
 	}
 
-	in, err := ioutil.ReadFile(sourceFile)
+	in, err := os.ReadFile(sourceFile)
 	if err != nil {
 		return nil, err
 	}

@@ -2,10 +2,12 @@ package sqlx
 
 import (
 	"bytes"
+	"database/sql/driver"
 	"errors"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/jmoiron/sqlx/reflectx"
 )
@@ -16,21 +18,39 @@ const (
 	QUESTION
 	DOLLAR
 	NAMED
+	AT
 )
+
+var defaultBinds = map[int][]string{
+	DOLLAR:   []string{"postgres", "pgx", "pq-timeouts", "cloudsqlpostgres", "ql", "nrpostgres", "cockroach"},
+	QUESTION: []string{"mysql", "sqlite3", "nrmysql", "nrsqlite3"},
+	NAMED:    []string{"oci8", "ora", "goracle", "godror"},
+	AT:       []string{"sqlserver"},
+}
+
+var binds sync.Map
+
+func init() {
+	for bind, drivers := range defaultBinds {
+		for _, driver := range drivers {
+			BindDriver(driver, bind)
+		}
+	}
+
+}
 
 // BindType returns the bindtype for a given database given a drivername.
 func BindType(driverName string) int {
-	switch driverName {
-	case "postgres", "pgx", "pq-timeouts":
-		return DOLLAR
-	case "mysql":
-		return QUESTION
-	case "sqlite3":
-		return QUESTION
-	case "oci8", "ora", "goracle":
-		return NAMED
+	itype, ok := binds.Load(driverName)
+	if !ok {
+		return UNKNOWN
 	}
-	return UNKNOWN
+	return itype.(int)
+}
+
+// BindDriver sets the BindType for driverName to bindType.
+func BindDriver(driverName string, bindType int) {
+	binds.Store(driverName, bindType)
 }
 
 // FIXME: this should be able to be tolerant of escaped ?'s in queries without
@@ -56,6 +76,8 @@ func Rebind(bindType int, query string) string {
 			rqb = append(rqb, '$')
 		case NAMED:
 			rqb = append(rqb, ':', 'a', 'r', 'g')
+		case AT:
+			rqb = append(rqb, '@', 'p')
 		}
 
 		j++
@@ -92,6 +114,28 @@ func rebindBuff(bindType int, query string) string {
 	return rqb.String()
 }
 
+func asSliceForIn(i interface{}) (v reflect.Value, ok bool) {
+	if i == nil {
+		return reflect.Value{}, false
+	}
+
+	v = reflect.ValueOf(i)
+	t := reflectx.Deref(v.Type())
+
+	// Only expand slices
+	if t.Kind() != reflect.Slice {
+		return reflect.Value{}, false
+	}
+
+	// []byte is a driver.Value type so it should not be expanded
+	if t == reflect.TypeOf([]byte{}) {
+		return reflect.Value{}, false
+
+	}
+
+	return v, true
+}
+
 // In expands slice values in args, returning the modified query string
 // and a new arg list that can be executed by a database. The `query` should
 // use the `?` bindVar.  The return value uses the `?` bindVar.
@@ -107,13 +151,25 @@ func In(query string, args ...interface{}) (string, []interface{}, error) {
 	var flatArgsCount int
 	var anySlices bool
 
-	meta := make([]argMeta, len(args))
+	var stackMeta [32]argMeta
+
+	var meta []argMeta
+	if len(args) <= len(stackMeta) {
+		meta = stackMeta[:len(args)]
+	} else {
+		meta = make([]argMeta, len(args))
+	}
 
 	for i, arg := range args {
-		v := reflect.ValueOf(arg)
-		t := reflectx.Deref(v.Type())
+		if a, ok := arg.(driver.Valuer); ok {
+			var err error
+			arg, err = a.Value()
+			if err != nil {
+				return "", nil, err
+			}
+		}
 
-		if t.Kind() == reflect.Slice {
+		if v, ok := asSliceForIn(arg); ok {
 			meta[i].length = v.Len()
 			meta[i].v = v
 
@@ -136,7 +192,9 @@ func In(query string, args ...interface{}) (string, []interface{}, error) {
 	}
 
 	newArgs := make([]interface{}, 0, flatArgsCount)
-	buf := bytes.NewBuffer(make([]byte, 0, len(query)+len(", ?")*flatArgsCount))
+
+	var buf strings.Builder
+	buf.Grow(len(query) + len(", ?")*flatArgsCount)
 
 	var arg, offset int
 

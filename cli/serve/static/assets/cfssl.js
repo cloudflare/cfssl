@@ -81,7 +81,7 @@
     'scan.tlshandshake.title': 'TLS Handshake',
     'scan.tlshandshake.description': 'Scans for host\'s SSL and TLS versions and cipher suite negotiation.',
     'scan.tlshandshake.CipherSuite.title': 'Cipher Suite Matrix',
-    'scan.tlshandshake.CipherSuite.body': 'Determines host\'s cipher suite accepted and prefered order.',
+    'scan.tlshandshake.CipherSuite.body': 'Determines host\'s cipher suite accepted and preferred order.',
     'scan.tlssession.title': 'TLS Session',
     'scan.tlssession.description': 'Scans host\'s implementation of TLS session resumption using session ticket and session IDs.',
     'scan.tlssession.SessionResume.title': 'Session Resumption',

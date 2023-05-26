@@ -1,4 +1,4 @@
-//Package crl implements the crl command
+// Package crl implements the crl command
 package crl
 
 import (

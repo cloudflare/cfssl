@@ -3,9 +3,10 @@ package sign
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -197,7 +198,7 @@ func testSignFileOldInterface(t *testing.T, hostname, csrFile string) (resp *htt
 	var csrPEM []byte
 	if csrFile != "" {
 		var err error
-		csrPEM, err = ioutil.ReadFile(csrFile)
+		csrPEM, err = os.ReadFile(csrFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -219,7 +220,7 @@ func testSignFileOldInterface(t *testing.T, hostname, csrFile string) (resp *htt
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +233,7 @@ func testSignFile(t *testing.T, hosts []string, subject *signer.Subject, csrFile
 	var csrPEM []byte
 	if csrFile != "" {
 		var err error
-		csrPEM, err = ioutil.ReadFile(csrFile)
+		csrPEM, err = os.ReadFile(csrFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -257,7 +258,7 @@ func testSignFile(t *testing.T, hosts []string, subject *signer.Subject, csrFile
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -446,7 +447,7 @@ func testAuthSignFile(t *testing.T, hosts []string, subject *signer.Subject, csr
 	var csrPEM []byte
 	if csrFile != "" {
 		var err error
-		csrPEM, err = ioutil.ReadFile(csrFile)
+		csrPEM, err = os.ReadFile(csrFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -483,7 +484,7 @@ func testAuthSignFile(t *testing.T, hosts []string, subject *signer.Subject, csr
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

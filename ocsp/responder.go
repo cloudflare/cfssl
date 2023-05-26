@@ -15,9 +15,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"time"
 
@@ -131,7 +132,7 @@ func (src DBSource) Response(req *ocsp.Request) ([]byte, http.Header, error) {
 // PEM without headers or whitespace).  Invalid responses are ignored.
 // This function pulls the entire file into an InMemorySource.
 func NewSourceFromFile(responseFile string) (Source, error) {
-	fileContents, err := ioutil.ReadFile(responseFile)
+	fileContents, err := os.ReadFile(responseFile)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +310,7 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 			return
 		}
 	case "POST":
-		requestBody, err = ioutil.ReadAll(request.Body)
+		requestBody, err = io.ReadAll(request.Body)
 		if err != nil {
 			log.Errorf("Problem reading body of POST: %s", err)
 			response.WriteHeader(http.StatusBadRequest)

@@ -10,16 +10,15 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 )
 
-//TestNew validate the CertificateRequest created to return with a KeyRequest
-//in KeyRequest field
-
+// TestNew validate the CertificateRequest created to return with a KeyRequest
+// in KeyRequest field
 func TestNew(t *testing.T) {
 	if cr := New(); cr.KeyRequest == nil {
 		t.Fatalf("Should create a new, empty certificate request with KeyRequest")
@@ -76,7 +75,10 @@ func TestPKIXName(t *testing.T) {
 		KeyRequest: NewKeyRequest(),
 	}
 
-	name := cr.Name()
+	name, err := cr.Name()
+	if err != nil {
+		t.Fatalf("Error getting name: %s", err.Error())
+	}
 	if len(name.Country) != 2 {
 		t.Fatal("Expected two countries in SubjInfo.")
 	} else if len(name.Province) != 2 {
@@ -116,7 +118,7 @@ func TestParseRequest(t *testing.T) {
 		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com", "https://www.cloudflare.com"},
 		KeyRequest: NewKeyRequest(),
 		Extensions: []pkix.Extension{
-			pkix.Extension{
+			{
 				Id:    asn1.ObjectIdentifier{1, 2, 3, 4, 5},
 				Value: []byte("AgEB"),
 			},
@@ -805,7 +807,7 @@ func TestBadReGenerate(t *testing.T) {
 var testECDSACertificateFile = "testdata/test-ecdsa-ca.pem"
 
 func TestExtractCertificateRequest(t *testing.T) {
-	certPEM, err := ioutil.ReadFile(testECDSACertificateFile)
+	certPEM, err := os.ReadFile(testECDSACertificateFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -834,5 +836,52 @@ func TestExtractCertificateRequest(t *testing.T) {
 
 	if req.CA == nil || req.CA.PathLength != 2 {
 		t.Fatal("Bad Certificate Request!")
+	}
+}
+
+// TestDelegationCSR tests that we create requests with the DC extension
+func TestDelegationCSR(t *testing.T) {
+	var cr = &CertificateRequest{
+		CN: "Test Common Name",
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare, Inc.",
+				OU: "Systems Engineering",
+			},
+			{
+				C:  "GB",
+				ST: "London",
+				L:  "London",
+				O:  "CloudFlare, Inc",
+				OU: "Systems Engineering",
+			},
+		},
+		DelegationEnabled: true,
+		Hosts:             []string{"cloudflare.com", "www.cloudflare.com"},
+		KeyRequest:        NewKeyRequest(),
+	}
+	csr, _, err := ParseRequest(cr)
+	if err != nil {
+		t.Fatal("could not generate csr")
+	}
+	unPem, _ := pem.Decode(csr)
+	if unPem == nil {
+		t.Fatal("Failed to decode pem")
+	}
+	res, err := x509.ParseCertificateRequest(unPem.Bytes)
+	if err != nil {
+		t.Fatalf("spat out nonsense as a csr: %v", err)
+	}
+	found := false
+	for _, ext := range res.Extensions {
+		if ext.Id.Equal(helpers.DelegationUsage) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("generated csr has no extension")
 	}
 }

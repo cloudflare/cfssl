@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build plan9
 // +build plan9
 
 package system
 
 import (
 	"crypto/x509"
-	"io/ioutil"
 )
 
 // Possible certificate files; stop after finding one.
@@ -18,7 +18,7 @@ var certFiles = []string{
 
 func initSystemRoots() (roots []*x509.Certificate) {
 	for _, file := range certFiles {
-		data, err := ioutil.ReadFile(file)
+		data, err := os.ReadFile(file)
 		if err == nil {
 			roots, _ = appendPEM(roots, data)
 			return

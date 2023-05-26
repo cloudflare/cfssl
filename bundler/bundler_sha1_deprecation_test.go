@@ -3,7 +3,7 @@ package bundler
 // This test file contains tests on checking Bundle.Status with SHA-1 deprecation warning.
 import (
 	"crypto/x509"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -33,7 +33,7 @@ func TestChromeWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	csrBytes, err := ioutil.ReadFile(leafCSR)
+	csrBytes, err := os.ReadFile(leafCSR)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestSHA2Preferences(t *testing.T) {
 	sha1InterBytes := signCSRFile(sha1CASigner, intermediateCSR, t)
 	sha2InterBytes := signCSRFile(sha2CASigner, intermediateCSR, t)
 
-	interKeyBytes, err := ioutil.ReadFile(intermediateKey)
+	interKeyBytes, err := os.ReadFile(intermediateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,12 +124,12 @@ func TestSHA2Preferences(t *testing.T) {
 }
 
 func makeCASignerFromFile(certFile, keyFile string, sigAlgo x509.SignatureAlgorithm, t *testing.T) signer.Signer {
-	certBytes, err := ioutil.ReadFile(certFile)
+	certBytes, err := os.ReadFile(certFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	keyBytes, err := ioutil.ReadFile(keyFile)
+	keyBytes, err := os.ReadFile(keyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func makeCASigner(certBytes, keyBytes []byte, sigAlgo x509.SignatureAlgorithm, t
 }
 
 func signCSRFile(s signer.Signer, csrFile string, t *testing.T) []byte {
-	csrBytes, err := ioutil.ReadFile(csrFile)
+	csrBytes, err := os.ReadFile(csrFile)
 	if err != nil {
 		t.Fatal(err)
 	}

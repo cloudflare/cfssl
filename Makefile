@@ -7,13 +7,13 @@ export GOPROXY := off
 .PHONY: all
 all: bin/cfssl bin/cfssl-bundle bin/cfssl-certinfo bin/cfssl-newkey bin/cfssl-scan bin/cfssljson bin/mkbundle bin/multirootca
 
-bin/%: $(shell find . -type f -name '*.go') cli/serve/rice-box.go
+bin/%: $(shell find . -type f -name '*.go')
 	@mkdir -p $(dir $@)
+ifneq ($(and $(TARGETOS),$(TARGETARCH)),)
+	GOOS=$(TARGETOS) GOARCH=$(TARGETARCH) go build -ldflags $(LDFLAGS) -o $@ ./cmd/$(@F)
+else
 	go build -ldflags $(LDFLAGS) -o $@ ./cmd/$(@F)
-
-cli/serve/rice-box.go: bin/rice $(shell find cli/serve/static -type f)
-cli/serve/rice-box.go:
-	./bin/rice embed-go -i=./cli/serve
+endif
 
 .PHONY: install
 install: install-cfssl install-cfssl-bundle install-cfssl-certinfo install-cfssl-newkey install-cfssl-scan install-cfssljson install-mkbundle install-multirootca
@@ -27,17 +27,13 @@ serve: bin/cfssl
 serve:
 	./bin/cfssl serve
 
-bin/rice: $(shell find vendor -type f -name '*.go')
-	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/github.com/GeertJohan/go.rice/rice
-
-bin/golint: $(shell find vendor -type f -name '*.go')
-	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/golang.org/x/lint/golint
-
 bin/goose: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)
+ifneq ($(and $(TARGETOS),$(TARGETARCH)),)
+	GOOS=$(TARGETOS) GOARCH=$(TARGETARCH) go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose
+else
 	go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose
+endif
 
 .PHONY: clean
 clean:
@@ -60,12 +56,32 @@ __check_defined = \
 
 .PHONY: snapshot
 snapshot:
-	docker run --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist --snapshot --skip-publish
+	docker run \
+	--rm \
+    -v $(PWD):/cross \
+    -w /cross \
+    ghcr.io/gythialy/golang-cross:latest --clean --snapshot --skip-publish
+
+.PHONY: github-release
+github-release:
+	@:$(call check_defined, GITHUB_TOKEN)
+
+	docker run \
+	--rm \
+	-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
+    -v $(PWD):/cross \
+    -w /cross \
+    ghcr.io/gythialy/golang-cross:latest --clean
+
+.PHONY: docker-build
+docker-build:
+	docker build -f Dockerfile -t cfssl/cfssl:$(VERSION) .
+.PHONY: docker-push
+docker-push:
+	docker push cfssl/cfssl:$(VERSION)
 
 .PHONY: release
-release:
-	@:$(call check_defined, GITHUB_TOKEN)
-	docker run -e GITHUB_TOKEN=$(GITHUB_TOKEN) --rm  -v $(PWD):/workdir -w /workdir cbroglie/goreleaser-cgo:1.12.12-musl goreleaser --rm-dist
+release: github-release docker-build docker-push
 
 BUILD_PATH   := $(CURDIR)/build
 INSTALL_PATH := $(BUILD_PATH)/usr/local/bin

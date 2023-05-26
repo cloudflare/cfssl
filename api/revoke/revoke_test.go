@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +70,7 @@ func testRevokeCert(t *testing.T, dbAccessor certdb.Accessor, serial, aki, reaso
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,9 +142,9 @@ func TestOCSPGeneration(t *testing.T) {
 		Subject: pkix.Name{
 			Organization: []string{"cfssl unit test"},
 		},
-		AuthorityKeyId: []byte{42, 42, 42, 42},
-		KeyUsage:       x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		IsCA:           true,
+		AuthorityKeyId:        []byte{42, 42, 42, 42},
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 	issuerBytes, err := x509.CreateCertificate(rand.Reader, &issuerTemplate, &issuerTemplate, &privKey.PublicKey, privKey)
@@ -250,7 +250,7 @@ func TestOCSPGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

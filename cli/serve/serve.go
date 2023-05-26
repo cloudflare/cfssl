@@ -3,8 +3,10 @@ package serve
 
 import (
 	"crypto/tls"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/api/bundle"
+	"github.com/cloudflare/cfssl/api/certadd"
 	"github.com/cloudflare/cfssl/api/certinfo"
 	"github.com/cloudflare/cfssl/api/crl"
 	"github.com/cloudflare/cfssl/api/gencrl"
@@ -80,38 +82,28 @@ func v1APIPath(path string) string {
 	return (&url.URL{Path: path}).String()
 }
 
-// httpBox implements http.FileSystem which allows the use of Box with a http.FileServer.
-// Attempting to Open an API endpoint will result in an error.
-type httpBox struct {
-	*rice.Box
-	redirects map[string]string
+//go:embed static
+var staticContent embed.FS
+
+var staticRedirections = map[string]string{
+	"bundle":   "index.html",
+	"scan":     "index.html",
+	"packages": "index.html",
 }
 
-func (hb *httpBox) findStaticBox() (err error) {
-	hb.Box, err = rice.FindBox("static")
-	return
+type staticFS struct {
+	fs           fs.FS
+	redirections map[string]string
 }
 
-// Open returns a File for non-API enpoints using the http.File interface.
-func (hb *httpBox) Open(name string) (http.File, error) {
+func (s *staticFS) Open(name string) (fs.File, error) {
 	if strings.HasPrefix(name, V1APIPrefix) {
 		return nil, os.ErrNotExist
 	}
-
-	if location, ok := hb.redirects[name]; ok {
-		return hb.Box.Open(location)
+	if location, ok := s.redirections[name]; ok {
+		return s.fs.Open(location)
 	}
-
-	return hb.Box.Open(name)
-}
-
-// staticBox is the box containing all static assets.
-var staticBox = &httpBox{
-	redirects: map[string]string{
-		"/scan":     "/index.html",
-		"/bundle":   "/index.html",
-		"/packages": "/index.html",
-	},
+	return s.fs.Open(name)
 }
 
 var errBadSigner = errors.New("signer not initialized")
@@ -241,15 +233,16 @@ var endpoints = map[string]func() (http.Handler, error){
 	},
 
 	"/": func() (http.Handler, error) {
-		if err := staticBox.findStaticBox(); err != nil {
-			return nil, err
-		}
-
-		return http.FileServer(staticBox), nil
+		subFS, _ := fs.Sub(staticContent, "static")
+		return http.FileServer(http.FS(&staticFS{fs: subFS, redirections: staticRedirections})), nil
 	},
 
 	"health": func() (http.Handler, error) {
 		return health.NewHealthCheck(), nil
+	},
+
+	"certadd": func() (http.Handler, error) {
+		return certadd.NewHandler(certsql.NewAccessor(db), nil), nil
 	},
 }
 

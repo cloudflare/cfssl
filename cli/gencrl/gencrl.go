@@ -1,4 +1,4 @@
-//Package gencrl implements the gencrl command
+// Package gencrl implements the gencrl command
 package gencrl
 
 import (

@@ -1,0 +1,78 @@
+name: Go
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [stable, oldstable]
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres
+        # Provide the password for postgres
+        env:
+          POSTGRES_DB: postgres_db
+          POSTGRES_PASSWORD: ""
+          POSTGRES_HOST_AUTH_METHOD: trust # allow no password
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ROOT_PASSWORD: ""
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    env:
+      GOFLAGS: "-mod=vendor"
+      GODEBUG: "x509sha1=1"
+      BUILD_TAGS: "postgresql"
+      PGHOST: localhost
+      MYSQL_HOST: 127.0.0.1
+    steps:
+      - run: psql -c 'create database certdb_development;' -U postgres;
+      - run: mysql -e 'create database certdb_development;' -u root;
+      - run: mysql -e 'SET global sql_mode = 0;' -u root;
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Build
+        run: go build -v ./...
+      - run: make bin/goose;
+      - run: ./bin/goose -path certdb/pg up;
+      - run: ./bin/goose -path certdb/mysql up;
+      - name: Test
+        run: ./test.sh
+      - uses: codecov/codecov-action@v3
+
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.18
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3

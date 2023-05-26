@@ -6,8 +6,8 @@ import (
 	"crypto/x509/pkix"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -41,7 +41,7 @@ type Name struct {
 	StreetAddress      string        `json:"street_address,omitempty"`
 	PostalCode         string        `json:"postal_code,omitempty"`
 	Names              []interface{} `json:"names,omitempty"`
-	//ExtraNames         []interface{} `json:"extra_names,omitempty"`
+	// ExtraNames         []interface{} `json:"extra_names,omitempty"`
 }
 
 // ParseName parses a new name from a *pkix.Name
@@ -105,7 +105,7 @@ func ParseCertificate(cert *x509.Certificate) *Certificate {
 
 // ParseCertificateFile parses x509 certificate file.
 func ParseCertificateFile(certFile string) (*Certificate, error) {
-	certPEM, err := ioutil.ReadFile(certFile)
+	certPEM, err := os.ReadFile(certFile)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 
 // ParseCSRFile uses the helper to parse an x509 CSR PEM file.
 func ParseCSRFile(csrFile string) (*x509.CertificateRequest, error) {
-	csrPEM, err := ioutil.ReadFile(csrFile)
+	csrPEM, err := os.ReadFile(csrFile)
 	if err != nil {
 		return nil, err
 	}

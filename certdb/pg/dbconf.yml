@@ -1,6 +1,6 @@
 development:
   driver: postgres
-  open: dbname=certdb_development sslmode=disable
+  open: dbname=certdb_development sslmode=disable user=postgres
 
 test:
   driver: postgres

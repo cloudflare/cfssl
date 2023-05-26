@@ -5,13 +5,13 @@
 package x509
 
 import (
-	"encoding/asn1"
 	"encoding/hex"
 	"encoding/json"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/zmap/zcrypto/encoding/asn1"
 	"github.com/zmap/zcrypto/x509/ct"
 	"github.com/zmap/zcrypto/x509/pkix"
 )
@@ -31,6 +31,9 @@ var (
 	oidExtAuthorityInfoAccess            = oidExtensionAuthorityInfoAccess
 	oidExtensionCTPrecertificatePoison   = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 3}
 	oidExtSignedCertificateTimestampList = oidExtensionSignedCertificateTimestampList
+
+	oidExtCABFOrganizationID = asn1.ObjectIdentifier{2, 23, 140, 3, 1}
+	oidExtQCStatements       = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 3}
 )
 
 type CertificateExtensions struct {
@@ -48,6 +51,8 @@ type CertificateExtensions struct {
 	IsPrecert                      IsPrecert                        `json:"ct_poison,omitempty"`
 	SignedCertificateTimestampList []*ct.SignedCertificateTimestamp `json:"signed_certificate_timestamps,omitempty"`
 	TorServiceDescriptors          []*TorServiceDescriptorHash      `json:"tor_service_descriptors,omitempty"`
+	CABFOrganizationIdentifier     *CABFOrganizationIdentifier      `json:"cabf_organization_id,omitempty"`
+	QCStatements                   *QCStatements                    `json:"qc_statements,omitempty"`
 }
 
 type UnknownCertificateExtensions []pkix.Extension
@@ -204,6 +209,7 @@ type NameConstraints struct {
 
 	PermittedDNSNames       []GeneralSubtreeString
 	PermittedEmailAddresses []GeneralSubtreeString
+	PermittedURIs           []GeneralSubtreeString
 	PermittedIPAddresses    []GeneralSubtreeIP
 	PermittedDirectoryNames []GeneralSubtreeName
 	PermittedEdiPartyNames  []GeneralSubtreeEdi
@@ -211,6 +217,7 @@ type NameConstraints struct {
 
 	ExcludedEmailAddresses []GeneralSubtreeString
 	ExcludedDNSNames       []GeneralSubtreeString
+	ExcludedURIs           []GeneralSubtreeString
 	ExcludedIPAddresses    []GeneralSubtreeIP
 	ExcludedDirectoryNames []GeneralSubtreeName
 	ExcludedEdiPartyNames  []GeneralSubtreeEdi
@@ -222,6 +229,7 @@ type NameConstraintsJSON struct {
 
 	PermittedDNSNames       []string            `json:"permitted_names,omitempty"`
 	PermittedEmailAddresses []string            `json:"permitted_email_addresses,omitempty"`
+	PermittedURIs           []string            `json:"permitted_uris,omitempty"`
 	PermittedIPAddresses    []GeneralSubtreeIP  `json:"permitted_ip_addresses,omitempty"`
 	PermittedDirectoryNames []pkix.Name         `json:"permitted_directory_names,omitempty"`
 	PermittedEdiPartyNames  []pkix.EDIPartyName `json:"permitted_edi_party_names,omitempty"`
@@ -229,6 +237,7 @@ type NameConstraintsJSON struct {
 
 	ExcludedDNSNames       []string            `json:"excluded_names,omitempty"`
 	ExcludedEmailAddresses []string            `json:"excluded_email_addresses,omitempty"`
+	ExcludedURIs           []string            `json:"excluded_uris,omitempty"`
 	ExcludedIPAddresses    []GeneralSubtreeIP  `json:"excluded_ip_addresses,omitempty"`
 	ExcludedDirectoryNames []pkix.Name         `json:"excluded_directory_names,omitempty"`
 	ExcludedEdiPartyNames  []pkix.EDIPartyName `json:"excluded_edi_party_names,omitempty"`
@@ -246,6 +255,9 @@ func (nc *NameConstraints) UnmarshalJSON(b []byte) error {
 	}
 	for _, email := range ncJson.PermittedEmailAddresses {
 		nc.PermittedEmailAddresses = append(nc.PermittedEmailAddresses, GeneralSubtreeString{Data: email})
+	}
+	for _, uri := range ncJson.PermittedURIs {
+		nc.PermittedURIs = append(nc.PermittedURIs, GeneralSubtreeString{Data: uri})
 	}
 	for _, constraint := range ncJson.PermittedIPAddresses {
 		nc.PermittedIPAddresses = append(nc.PermittedIPAddresses, constraint)
@@ -275,6 +287,9 @@ func (nc *NameConstraints) UnmarshalJSON(b []byte) error {
 	}
 	for _, email := range ncJson.ExcludedEmailAddresses {
 		nc.ExcludedEmailAddresses = append(nc.ExcludedEmailAddresses, GeneralSubtreeString{Data: email})
+	}
+	for _, uri := range ncJson.ExcludedURIs {
+		nc.ExcludedURIs = append(nc.ExcludedURIs, GeneralSubtreeString{Data: uri})
 	}
 	for _, constraint := range ncJson.ExcludedIPAddresses {
 		nc.ExcludedIPAddresses = append(nc.ExcludedIPAddresses, constraint)
@@ -309,6 +324,9 @@ func (nc NameConstraints) MarshalJSON() ([]byte, error) {
 	for _, email := range nc.PermittedEmailAddresses {
 		out.PermittedEmailAddresses = append(out.PermittedEmailAddresses, email.Data)
 	}
+	for _, uri := range nc.PermittedURIs {
+		out.PermittedURIs = append(out.PermittedURIs, uri.Data)
+	}
 	out.PermittedIPAddresses = nc.PermittedIPAddresses
 	for _, directory := range nc.PermittedDirectoryNames {
 		out.PermittedDirectoryNames = append(out.PermittedDirectoryNames, directory.Data)
@@ -325,6 +343,9 @@ func (nc NameConstraints) MarshalJSON() ([]byte, error) {
 	}
 	for _, email := range nc.ExcludedEmailAddresses {
 		out.ExcludedEmailAddresses = append(out.ExcludedEmailAddresses, email.Data)
+	}
+	for _, uri := range nc.ExcludedURIs {
+		out.ExcludedURIs = append(out.ExcludedURIs, uri.Data)
 	}
 	for _, ip := range nc.ExcludedIPAddresses {
 		out.ExcludedIPAddresses = append(out.ExcludedIPAddresses, ip)
@@ -672,6 +693,37 @@ type AuthorityInfoAccess struct {
 	IssuingCertificateURL []string `json:"issuer_urls,omitempty"`
 }
 
+/*
+    id-CABFOrganizationIdentifier OBJECT IDENTIFIER ::= { joint-iso-itu-t(2) international-organizations(23) ca-browser-forum(140) certificate-extensions(3) cabf-organization-identifier(1) }
+
+    ext-CABFOrganizationIdentifier EXTENSION ::= { SYNTAX CABFOrganizationIdentifier IDENTIFIED BY id-CABFOrganizationIdentifier }
+
+    CABFOrganizationIdentifier ::= SEQUENCE {
+
+        registrationSchemeIdentifier   PrintableString (SIZE(3)),
+
+        registrationCountry            PrintableString (SIZE(2)),
+
+        registrationStateOrProvince    [0] IMPLICIT PrintableString OPTIONAL (SIZE(0..128)),
+
+        registrationReference          UTF8String
+
+	}
+*/
+type CABFOrganizationIDASN struct {
+	RegistrationSchemeIdentifier string `asn1:"printable"`
+	RegistrationCountry          string `asn1:"printable"`
+	RegistrationStateOrProvince  string `asn1:"printable,optional,tag:0"`
+	RegistrationReference        string `asn1:"utf8"`
+}
+
+type CABFOrganizationIdentifier struct {
+	Scheme    string `json:"scheme,omitempty"`
+	Country   string `json:"country,omitempty"`
+	State     string `json:"state,omitempty"`
+	Reference string `json:"reference,omitempty"`
+}
+
 func (c *Certificate) jsonifyExtensions() (*CertificateExtensions, UnknownCertificateExtensions) {
 	exts := new(CertificateExtensions)
 	unk := make([]pkix.Extension, 0, 2)
@@ -711,6 +763,7 @@ func (c *Certificate) jsonifyExtensions() (*CertificateExtensions, UnknownCertif
 
 			exts.NameConstraints.PermittedDNSNames = c.PermittedDNSNames
 			exts.NameConstraints.PermittedEmailAddresses = c.PermittedEmailAddresses
+			exts.NameConstraints.PermittedURIs = c.PermittedURIs
 			exts.NameConstraints.PermittedIPAddresses = c.PermittedIPAddresses
 			exts.NameConstraints.PermittedDirectoryNames = c.PermittedDirectoryNames
 			exts.NameConstraints.PermittedEdiPartyNames = c.PermittedEdiPartyNames
@@ -718,6 +771,7 @@ func (c *Certificate) jsonifyExtensions() (*CertificateExtensions, UnknownCertif
 
 			exts.NameConstraints.ExcludedEmailAddresses = c.ExcludedEmailAddresses
 			exts.NameConstraints.ExcludedDNSNames = c.ExcludedDNSNames
+			exts.NameConstraints.ExcludedURIs = c.ExcludedURIs
 			exts.NameConstraints.ExcludedIPAddresses = c.ExcludedIPAddresses
 			exts.NameConstraints.ExcludedDirectoryNames = c.ExcludedDirectoryNames
 			exts.NameConstraints.ExcludedEdiPartyNames = c.ExcludedEdiPartyNames
@@ -751,6 +805,10 @@ func (c *Certificate) jsonifyExtensions() (*CertificateExtensions, UnknownCertif
 			exts.IsPrecert = true
 		} else if e.Id.Equal(oidBRTorServiceDescriptor) {
 			exts.TorServiceDescriptors = c.TorServiceDescriptors
+		} else if e.Id.Equal(oidExtCABFOrganizationID) {
+			exts.CABFOrganizationIdentifier = c.CABFOrganizationIdentifier
+		} else if e.Id.Equal(oidExtQCStatements) {
+			exts.QCStatements = c.QCStatements
 		} else {
 			// Unknown extension
 			unk = append(unk, e)

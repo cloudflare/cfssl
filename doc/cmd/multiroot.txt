@@ -1,6 +1,6 @@
 THE MULTIROOTCA PROGRAM
 
-The multirootca program is a authenticated-signer-only server that is
+The multirootca program is an authenticated-signer-only server that is
 intended to be used as a remote server for cfssl instances. The
 scenario it was originally intended for is
 
@@ -9,7 +9,7 @@ scenario it was originally intended for is
       issuing certificates.
 
 The multirootca configuration file is an ini-style configuration file;
-an example is found in `cmd/multirootca/config/testdata/roots_whitelist.conf`.
+various examples can be found in `multirootca/config/testdata`.
 
     [ primary ]
     private = file://testdata/server.key
@@ -21,6 +21,7 @@ an example is found in `cmd/multirootca/config/testdata/roots_whitelist.conf`.
     private = file://testdata/server.key
     certificate = testdata/server.crt
     config = testdata/config.json
+    dbconfig = testdata/db-config.json
 
 This defines two signers, labelled "primary" and "backup". These are
 both using the same key, but in practice these keys will be
@@ -30,7 +31,9 @@ points to a cfssl configuration file to use for each signer; the
 format of this file is described in "cfssl.txt". Optionally, a nets
 entry points to a comma-separated list of networks that should be
 permitted access to the signer. This list forms a whitelist; if it's
-not present, all networks are whitelisted for that signer.
+not present, all networks are whitelisted for that signer. A dbconfig
+entry points to a certdb configuration file containing database 
+connection details, see `certdb/README.md`.
 
 SPECIFYING A PRIVATE KEY
 

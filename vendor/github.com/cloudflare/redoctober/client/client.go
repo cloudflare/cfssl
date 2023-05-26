@@ -34,7 +34,7 @@ func NewRemoteServer(serverAddress, CAFile string) (*RemoteServer, error) {
 		}
 		ok := rootCAs.AppendCertsFromPEM(pemBytes)
 		if !ok {
-			return nil, errors.New("fail to populate CA root pool.")
+			return nil, errors.New("fail to populate CA root pool")
 		}
 	}
 
@@ -246,6 +246,22 @@ func (c *RemoteServer) Decrypt(req core.DecryptRequest) (*core.ResponseData, err
 	}
 
 	respBytes, err := c.doAction("decrypt", reqBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshalResponseData(respBytes)
+
+}
+
+// SSHSignWith issues a SSH-sign-with request to the remote server
+func (c *RemoteServer) SSHSignWith(req core.SSHSignWithRequest) (*core.ResponseData, error) {
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respBytes, err := c.doAction("ssh-sign-with", reqBytes)
 	if err != nil {
 		return nil, err
 	}

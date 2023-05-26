@@ -24,7 +24,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/cloudflare/cfssl/csr"
@@ -312,7 +312,7 @@ func (sp *StandardProvider) Load() (err error) {
 		}
 	}()
 
-	sp.internal.keyPEM, err = ioutil.ReadFile(sp.Paths.KeyFile)
+	sp.internal.keyPEM, err = os.ReadFile(sp.Paths.KeyFile)
 	if err != nil {
 		return
 	}
@@ -324,7 +324,7 @@ func (sp *StandardProvider) Load() (err error) {
 
 	clearKey = false
 
-	sp.internal.certPEM, err = ioutil.ReadFile(sp.Paths.CertFile)
+	sp.internal.certPEM, err = os.ReadFile(sp.Paths.CertFile)
 	if err != nil {
 		return ErrCertificateUnavailable
 	}
@@ -413,12 +413,12 @@ func (sp *StandardProvider) Store() error {
 		return errors.New("transport: provider does not have a key and certificate")
 	}
 
-	err := ioutil.WriteFile(sp.Paths.CertFile, sp.internal.certPEM, 0644)
+	err := os.WriteFile(sp.Paths.CertFile, sp.internal.certPEM, 0644)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(sp.Paths.KeyFile, sp.internal.keyPEM, 0600)
+	return os.WriteFile(sp.Paths.KeyFile, sp.internal.keyPEM, 0600)
 }
 
 // X509KeyPair returns a tls.Certificate for the provider.

@@ -2,33 +2,17 @@
 ## explicit
 bitbucket.org/liamstask/goose/cmd/goose
 bitbucket.org/liamstask/goose/lib/goose
-# github.com/GeertJohan/go.incremental v1.0.0
-github.com/GeertJohan/go.incremental
-# github.com/GeertJohan/go.rice v1.0.0
-## explicit
-github.com/GeertJohan/go.rice
-github.com/GeertJohan/go.rice/embedded
-github.com/GeertJohan/go.rice/rice
-# github.com/akavel/rsrc v0.8.0
-github.com/akavel/rsrc/binutil
-github.com/akavel/rsrc/coff
-# github.com/certifi/gocertifi v0.0.0-20180118203423-deb3ae2ef261
-## explicit
-github.com/certifi/gocertifi
+# github.com/beorn7/perks v1.0.1
+## explicit; go 1.11
+github.com/beorn7/perks/quantile
+# github.com/cespare/xxhash/v2 v2.2.0
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
 # github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 ## explicit
 github.com/cloudflare/backoff
-# github.com/cloudflare/circl v1.0.1-0.20200429041708-9763a1b56ebf
-## explicit
-github.com/cloudflare/circl/internal/conv
-github.com/cloudflare/circl/math
-github.com/cloudflare/circl/math/fp25519
-github.com/cloudflare/circl/sign/ed25519
-# github.com/cloudflare/go-metrics v0.0.0-20151117154305-6a9aea36fb41
-## explicit
-github.com/cloudflare/go-metrics
-# github.com/cloudflare/redoctober v0.0.0-20171127175943-746a508df14c
-## explicit
+# github.com/cloudflare/redoctober v0.0.0-20211013234631-6a74ccc611f6
+## explicit; go 1.16
 github.com/cloudflare/redoctober/client
 github.com/cloudflare/redoctober/config
 github.com/cloudflare/redoctober/core
@@ -43,23 +27,26 @@ github.com/cloudflare/redoctober/passvault
 github.com/cloudflare/redoctober/persist
 github.com/cloudflare/redoctober/report
 github.com/cloudflare/redoctober/symcrypt
-# github.com/daaku/go.zipexe v1.0.0
-github.com/daaku/go.zipexe
-# github.com/getsentry/raven-go v0.0.0-20180121060056-563b81fc02b7
+# github.com/davecgh/go-spew v1.1.1
 ## explicit
-github.com/getsentry/raven-go
-# github.com/go-sql-driver/mysql v1.3.0
-## explicit
+github.com/davecgh/go-spew/spew
+# github.com/getsentry/sentry-go v0.11.0
+## explicit; go 1.14
+github.com/getsentry/sentry-go
+github.com/getsentry/sentry-go/internal/crypto/randutil
+github.com/getsentry/sentry-go/internal/debug
+github.com/getsentry/sentry-go/internal/ratelimit
+# github.com/go-logr/logr v1.2.3
+## explicit; go 1.16
+github.com/go-logr/logr
+# github.com/go-sql-driver/mysql v1.7.1
+## explicit; go 1.13
 github.com/go-sql-driver/mysql
-# github.com/golang/protobuf v1.3.1
-## explicit
+# github.com/golang/protobuf v1.5.3
+## explicit; go 1.9
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/any
-github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/certificate-transparency-go v1.0.21
-## explicit
+# github.com/google/certificate-transparency-go v1.1.6
+## explicit; go 1.19
 github.com/google/certificate-transparency-go
 github.com/google/certificate-transparency-go/asn1
 github.com/google/certificate-transparency-go/client
@@ -68,97 +55,166 @@ github.com/google/certificate-transparency-go/jsonclient
 github.com/google/certificate-transparency-go/tls
 github.com/google/certificate-transparency-go/x509
 github.com/google/certificate-transparency-go/x509/pkix
-# github.com/jessevdk/go-flags v1.4.0
-github.com/jessevdk/go-flags
-# github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548
-## explicit
+# github.com/jmhodges/clock v1.2.0
+## explicit; go 1.17
 github.com/jmhodges/clock
-# github.com/jmoiron/sqlx v0.0.0-20180124204410-05cef0741ade
-## explicit
+# github.com/jmoiron/sqlx v1.3.5
+## explicit; go 1.10
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
-# github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49
+github.com/jmoiron/sqlx/types
+# github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
 ## explicit
 github.com/kisielk/sqlstruct
-# github.com/kisom/goutils v1.1.0
-## explicit
-github.com/kisom/goutils/assert
-# github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28
-## explicit
+# github.com/kylelemons/go-gypsy v1.0.0
+## explicit; go 1.5
 github.com/kylelemons/go-gypsy/yaml
-# github.com/lib/pq v1.3.0
-## explicit
+# github.com/lib/pq v1.10.9
+## explicit; go 1.13
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
-# github.com/mattn/go-sqlite3 v1.10.0
-## explicit
+# github.com/mattn/go-sqlite3 v1.14.16
+## explicit; go 1.16
 github.com/mattn/go-sqlite3
-# github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229
-github.com/nkovacs/streamquote
-# github.com/pkg/errors v0.8.0
+# github.com/matttproud/golang_protobuf_extensions v1.0.4
+## explicit; go 1.9
+github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/pelletier/go-toml v1.9.3
+## explicit; go 1.12
+github.com/pelletier/go-toml
+# github.com/pmezard/go-difflib v1.0.0
 ## explicit
-github.com/pkg/errors
-# github.com/valyala/bytebufferpool v1.0.0
-github.com/valyala/bytebufferpool
-# github.com/valyala/fasttemplate v1.0.1
-github.com/valyala/fasttemplate
-# github.com/weppos/publicsuffix-go v0.5.0
-## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/prometheus/client_golang v1.15.1
+## explicit; go 1.17
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/internal
+github.com/prometheus/client_golang/prometheus/promauto
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.4.0
+## explicit; go 1.18
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.42.0
+## explicit; go 1.18
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/model
+# github.com/prometheus/procfs v0.9.0
+## explicit; go 1.18
+github.com/prometheus/procfs
+github.com/prometheus/procfs/internal/fs
+github.com/prometheus/procfs/internal/util
+# github.com/rogpeppe/go-internal v1.10.0
+## explicit; go 1.19
+# github.com/stretchr/testify v1.8.3
+## explicit; go 1.20
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
+# github.com/weppos/publicsuffix-go v0.15.1-0.20220329081811-9a40b608a236
+## explicit; go 1.11
 github.com/weppos/publicsuffix-go/publicsuffix
 # github.com/ziutek/mymysql v1.5.4
 ## explicit
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-# github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
-## explicit
+# github.com/zmap/zcrypto v0.0.0-20220402174210-599ec18ecbac
+## explicit; go 1.16
+github.com/zmap/zcrypto/cryptobyte
+github.com/zmap/zcrypto/cryptobyte/asn1
+github.com/zmap/zcrypto/dsa
+github.com/zmap/zcrypto/encoding/asn1
+github.com/zmap/zcrypto/internal/randutil
 github.com/zmap/zcrypto/json
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v2 v2.0.0
-## explicit
-github.com/zmap/zlint/v2
-github.com/zmap/zlint/v2/lint
-github.com/zmap/zlint/v2/lints/apple
-github.com/zmap/zlint/v2/lints/cabf_br
-github.com/zmap/zlint/v2/lints/cabf_ev
-github.com/zmap/zlint/v2/lints/community
-github.com/zmap/zlint/v2/lints/etsi
-github.com/zmap/zlint/v2/lints/mozilla
-github.com/zmap/zlint/v2/lints/rfc
-github.com/zmap/zlint/v2/util
-# golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
-## explicit
+# github.com/zmap/zlint/v3 v3.4.1
+## explicit; go 1.18
+github.com/zmap/zlint/v3
+github.com/zmap/zlint/v3/lint
+github.com/zmap/zlint/v3/lints/apple
+github.com/zmap/zlint/v3/lints/cabf_br
+github.com/zmap/zlint/v3/lints/cabf_ev
+github.com/zmap/zlint/v3/lints/community
+github.com/zmap/zlint/v3/lints/etsi
+github.com/zmap/zlint/v3/lints/mozilla
+github.com/zmap/zlint/v3/lints/rfc
+github.com/zmap/zlint/v3/util
+# golang.org/x/crypto v0.9.0
+## explicit; go 1.17
+golang.org/x/crypto/blowfish
+golang.org/x/crypto/chacha20
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
-golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/internal/alias
+golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/scrypt
-# golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-## explicit
-golang.org/x/lint
-golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
-## explicit
-golang.org/x/net/context
+golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
+# golang.org/x/net v0.10.0
+## explicit; go 1.17
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/idna
-# golang.org/x/sys v0.0.0-20190602015325-4c4f7f33c9ed
+# golang.org/x/sys v0.8.0
+## explicit; go 1.17
 golang.org/x/sys/cpu
-# golang.org/x/text v0.3.2
-## explicit
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/text v0.9.0
+## explicit; go 1.17
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.0.0-20190311212946-11955173bddd
-golang.org/x/tools/go/ast/astutil
-golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/gcimporter
+# google.golang.org/protobuf v1.30.0
+## explicit; go 1.11
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genid
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/order
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protodesc
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
+google.golang.org/protobuf/types/descriptorpb
+google.golang.org/protobuf/types/known/timestamppb
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
+# k8s.io/klog/v2 v2.100.1
+## explicit; go 1.13
+k8s.io/klog/v2
+k8s.io/klog/v2/internal/buffer
+k8s.io/klog/v2/internal/clock
+k8s.io/klog/v2/internal/dbg
+k8s.io/klog/v2/internal/serialize
+k8s.io/klog/v2/internal/severity

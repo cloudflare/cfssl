@@ -9,6 +9,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -51,6 +52,7 @@ func roughlySameTime(t1, t2 time.Time) bool {
 func testEverything(ta TestAccessor, t *testing.T) {
 	testInsertCertificateAndGetCertificate(ta, t)
 	testInsertCertificateAndGetUnexpiredCertificate(ta, t)
+	testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta, t)
 	testUpdateCertificateAndGetCertificate(ta, t)
 	testInsertOCSPAndGetOCSP(ta, t)
 	testInsertOCSPAndGetUnexpiredOCSP(ta, t)
@@ -70,7 +72,7 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		Reason: 0,
 		Expiry: expiry,
 	}
-
+	want.SetMetadata(map[string]interface{}{"k": "v"})
 	if err := ta.Accessor.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
@@ -92,6 +94,9 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
+	gotMeta, err := got.GetMetadata()
+	require.NoError(t, err)
+	require.Equal(t, map[string]interface{}{"k": "v"}, gotMeta)
 
 	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
 
@@ -109,6 +114,60 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 
 	expiry := time.Now().Add(time.Minute)
 	want := certdb.CertificateRecord{
+		PEM:     "fake cert data",
+		Serial:  "fake serial 2",
+		AKI:     fakeAKI,
+		Status:  "good",
+		Reason:  0,
+		Expiry:  expiry,
+		CALabel: "foo",
+	}
+
+	if err := ta.Accessor.InsertCertificate(want); err != nil {
+		t.Fatal(err)
+	}
+
+	rets, err := ta.Accessor.GetCertificate(want.Serial, want.AKI)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(rets) != 1 {
+		t.Fatal("should return exactly one record")
+	}
+
+	got := rets[0]
+
+	// reflection comparison with zero time objects are not stable as it seems
+	if want.Serial != got.Serial || want.Status != got.Status ||
+		want.AKI != got.AKI || !got.RevokedAt.IsZero() ||
+		want.PEM != got.PEM || !roughlySameTime(got.Expiry, expiry) {
+		t.Errorf("want Certificate %+v, got %+v", want, got)
+	}
+
+	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(unexpired) != 1 {
+		t.Error("Should have 1 unexpired certificate record:", len(unexpired))
+	}
+
+	unexpiredFiltered, err := ta.Accessor.GetUnexpiredCertificatesByLabel([]string{"foo"})
+	require.NoError(t, err)
+	require.Len(t, unexpiredFiltered, 1)
+	unexpiredFiltered, err = ta.Accessor.GetUnexpiredCertificatesByLabel([]string{"bar"})
+	require.NoError(t, err)
+	require.Len(t, unexpiredFiltered, 0)
+
+}
+func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccessor, t *testing.T) {
+	ta.Truncate()
+
+	expiry := time.Now().Add(time.Minute)
+	want := certdb.CertificateRecord{
 		PEM:    "fake cert data",
 		Serial: "fake serial 2",
 		AKI:    fakeAKI,
@@ -120,6 +179,14 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 	if err := ta.Accessor.InsertCertificate(want); err != nil {
 		t.Fatal(err)
 	}
+
+	// simulate situation where there are rows before migrate 002 has been run
+	ta.DB.MustExec(`update certificates
+	set issued_at = NULL,
+	not_before = NULL,
+	metadata = NULL,
+	sans = NULL,
+	common_name = NULL;`)
 
 	rets, err := ta.Accessor.GetCertificate(want.Serial, want.AKI)
 	if err != nil {
@@ -220,6 +287,17 @@ func testUpdateCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 	if want.Serial != got.Serial || got.Status != "revoked" ||
 		want.AKI != got.AKI || got.RevokedAt.IsZero() ||
 		want.PEM != got.PEM {
+		t.Errorf("want Certificate %+v, got %+v", want, got)
+	}
+
+	rets, err = ta.Accessor.GetRevokedAndUnexpiredCertificatesByLabelSelectColumns("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got = rets[0]
+	// reflection comparison with zero time objects are not stable as it seems
+	if want.Serial != got.Serial || got.RevokedAt.IsZero() {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 }

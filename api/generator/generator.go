@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
@@ -107,7 +107,7 @@ func computeSum(in []byte) (sum Sum, err error) {
 // these requests is documented in the API documentation.
 func (g *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Info("request for CSR")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)
@@ -228,7 +228,7 @@ func (cg *CertGeneratorHandler) Handle(w http.ResponseWriter, r *http.Request) e
 	req := new(genSignRequest)
 	req.Request = csr.New()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Warningf("failed to read request body: %v", err)
 		return errors.NewBadRequest(err)

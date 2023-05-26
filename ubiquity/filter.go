@@ -9,9 +9,10 @@ import (
 
 // RankingFunc returns the relative rank between chain1 and chain2.
 // Return value:
-//	positive integer if rank(chain1) > rank(chain2),
-//	negative integer if rank(chain1) < rank(chain2),
-//	0 if rank(chain1) == (chain2).
+//
+// - positive integer if rank(chain1) > rank(chain2),
+// - negative integer if rank(chain1) < rank(chain2),
+// - 0 if rank(chain1) == (chain2).
 type RankingFunc func(chain1, chain2 []*x509.Certificate) int
 
 // Filter filters out the chains with highest rank according to the ranking function f.

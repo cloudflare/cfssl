@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ package tls
 
 import (
 	"crypto"
-	"crypto/dsa"
+	"crypto/dsa" //nolint:staticcheck
 	"crypto/ecdsa"
 	_ "crypto/md5" // For registration side-effect
 	"crypto/rand"
@@ -89,7 +89,7 @@ func VerifySignature(pubKey crypto.PublicKey, data []byte, sig DigitallySigned) 
 			return fmt.Errorf("failed to unmarshal DSA signature: %v", err)
 		}
 		if len(rest) != 0 {
-			log.Printf("Garbage following signature %v", rest)
+			log.Printf("Garbage following signature %q", rest)
 		}
 		if dsaSig.R.Sign() <= 0 || dsaSig.S.Sign() <= 0 {
 			return errors.New("DSA signature contained zero or negative values")
@@ -108,7 +108,7 @@ func VerifySignature(pubKey crypto.PublicKey, data []byte, sig DigitallySigned) 
 			return fmt.Errorf("failed to unmarshal ECDSA signature: %v", err)
 		}
 		if len(rest) != 0 {
-			log.Printf("Garbage following signature %v", rest)
+			log.Printf("Garbage following signature %q", rest)
 		}
 		if ecdsaSig.R.Sign() <= 0 || ecdsaSig.S.Sign() <= 0 {
 			return errors.New("ECDSA signature contained zero or negative values")

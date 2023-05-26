@@ -13,7 +13,7 @@ import (
 	"encoding/pem"
 	goerr "errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -33,6 +33,9 @@ import (
 // When unspecified, downloaded intermediates are not saved.
 var IntermediateStash string
 
+// HTTPClient is an instance of http.Client that will be used for all HTTP requests.
+var HTTPClient = http.DefaultClient
+
 // BundleFlavor is named optimization strategy on certificate chain selection when bundling.
 type BundleFlavor string
 
@@ -45,7 +48,7 @@ const (
 	// by the most platforms.
 	Ubiquitous BundleFlavor = "ubiquitous"
 
-	// Force means the bundler only verfiies the input as a valid bundle, not optimization is done.
+	// Force means the bundler only verifies the input as a valid bundle, not optimization is done.
 	Force BundleFlavor = "force"
 )
 
@@ -97,7 +100,7 @@ func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, er
 
 	if caBundleFile != "" {
 		log.Debug("Loading CA bundle: ", caBundleFile)
-		caBundle, err = ioutil.ReadFile(caBundleFile)
+		caBundle, err = os.ReadFile(caBundleFile)
 		if err != nil {
 			log.Errorf("root bundle failed to load: %v", err)
 			return nil, errors.Wrap(errors.RootError, errors.ReadFailed, err)
@@ -106,7 +109,7 @@ func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, er
 
 	if intBundleFile != "" {
 		log.Debug("Loading Intermediate bundle: ", intBundleFile)
-		intBundle, err = ioutil.ReadFile(intBundleFile)
+		intBundle, err = os.ReadFile(intBundleFile)
 		if err != nil {
 			log.Errorf("intermediate bundle failed to load: %v", err)
 			return nil, errors.Wrap(errors.IntermediatesError, errors.ReadFailed, err)
@@ -197,7 +200,7 @@ func (b *Bundler) VerifyOptions() x509.VerifyOptions {
 // and returns the bundle built from that key and the certificate(s).
 func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor, password string) (*Bundle, error) {
 	log.Debug("Loading Certificate: ", bundleFile)
-	certsRaw, err := ioutil.ReadFile(bundleFile)
+	certsRaw, err := os.ReadFile(bundleFile)
 	if err != nil {
 		return nil, errors.Wrap(errors.CertificateError, errors.ReadFailed, err)
 	}
@@ -206,7 +209,7 @@ func (b *Bundler) BundleFromFile(bundleFile, keyFile string, flavor BundleFlavor
 	// Load private key PEM only if a file is given
 	if keyFile != "" {
 		log.Debug("Loading private key: ", keyFile)
-		keyPEM, err = ioutil.ReadFile(keyFile)
+		keyPEM, err = os.ReadFile(keyFile)
 		if err != nil {
 			log.Debugf("failed to read private key: ", err)
 			return nil, errors.Wrap(errors.PrivateKeyError, errors.ReadFailed, err)
@@ -334,7 +337,7 @@ type fetchedIntermediate struct {
 func fetchRemoteCertificate(certURL string) (fi *fetchedIntermediate, err error) {
 	log.Debugf("fetching remote certificate: %s", certURL)
 	var resp *http.Response
-	resp, err = http.Get(certURL)
+	resp, err = HTTPClient.Get(certURL)
 	if err != nil {
 		log.Debugf("failed HTTP get: %v", err)
 		return
@@ -342,7 +345,7 @@ func fetchRemoteCertificate(certURL string) (fi *fetchedIntermediate, err error)
 
 	defer resp.Body.Close()
 	var certData []byte
-	certData, err = ioutil.ReadAll(resp.Body)
+	certData, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Debugf("failed to read response body: %v", err)
 		return
@@ -440,7 +443,7 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 
 			log.Debugf("write intermediate to stash directory: %s", fileName)
 			// If the write fails, verification should not fail.
-			err = ioutil.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
+			err = os.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
 			if err != nil {
 				log.Errorf("failed to write new intermediate: %v", err)
 			} else {
@@ -471,7 +474,7 @@ func constructCertFileName(cert *x509.Certificate) string {
 // intermediate pool, the certificate is saved to file and added to
 // the list of intermediates to be used for verification. This will
 // not add any new certificates to the root pool; if the ultimate
-// issuer is not trusted, fetching the certicate here will not change
+// issuer is not trusted, fetching the certificate here will not change
 // that.
 func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 	if IntermediateStash != "" {

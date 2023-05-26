@@ -6,18 +6,27 @@ import (
 	"time"
 
 	"github.com/cloudflare/redoctober/config"
-	raven "github.com/getsentry/raven-go"
+	"github.com/getsentry/sentry-go"
 )
 
-// sentry will be set to true if sentry reporting is valid.
-var sentry bool
+// useSentry will be set to true if sentry reporting is valid.
+var useSentry bool
 
 // sentryTags contains additional tags that can be sent to Sentry.
-var sentryTags = map[string]string{}
 
 func configSentry(cfg *config.Config) {
-	raven.SetDSN(cfg.Reporting.SentryDSN)
-	sentry = true
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: cfg.Reporting.SentryDSN,
+	})
+
+	if err != nil {
+		fmt.Printf("Sentry initialization failed: %v\n", err)
+		return
+	}
+
+	useSentry = true
+	var sentryTags = map[string]string{}
+
 	sentryTags["started_at"] = fmt.Sprintf("%d", time.Now().Unix())
 
 	sentryTags["server.systemd"] = fmt.Sprintf("%v", cfg.Server.Systemd)
@@ -37,6 +46,10 @@ func configSentry(cfg *config.Config) {
 		sentryTags["persist.mechanism"] = cfg.Delegations.Mechanism
 		sentryTags["persist.location"] = cfg.Delegations.Location
 	}
+
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		scope.SetTags(sentryTags)
+	})
 }
 
 func Init(cfg *config.Config) {
@@ -56,11 +69,11 @@ func Check(err error, tags map[string]string) {
 		tags = map[string]string{}
 	}
 
-	if sentry {
-		for k, v := range sentryTags {
-			tags[k] = v
-		}
-		raven.CaptureError(err, tags)
+	if useSentry {
+		sentry.ConfigureScope(func(scope *sentry.Scope) {
+			scope.SetTags(tags)
+		})
+		sentry.CaptureException(err)
 	}
 }
 
@@ -70,9 +83,8 @@ func Check(err error, tags map[string]string) {
 // system logs and the service management system (e.g. systemd) to
 // automatically restart the server.
 func Recover(fn func()) {
-	if sentry {
-		raven.CapturePanic(fn, sentryTags)
-	} else {
-		fn()
+	if useSentry {
+		defer sentry.Recover()
 	}
+	fn()
 }

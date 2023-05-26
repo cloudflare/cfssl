@@ -5,11 +5,12 @@
 package pkix
 
 import (
-	"encoding/asn1"
 	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/zmap/zcrypto/encoding/asn1"
 )
 
 type auxAttributeTypeAndValue struct {
@@ -149,6 +150,9 @@ type auxName struct {
 	JurisdictionLocality []string `json:"jurisdiction_locality,omitempty"`
 	JurisdictionProvince []string `json:"jurisdiction_province,omitempty"`
 
+	// QWACS
+	OrganizationID []string `json:"organization_id,omitempty"`
+
 	UnknownAttributes []AttributeTypeAndValue `json:"-"`
 }
 
@@ -195,6 +199,8 @@ func (n *Name) MarshalJSON() ([]byte, error) {
 				aux.JurisdictionLocality = append(aux.JurisdictionLocality, s)
 			} else if a.Type.Equal(oidJurisdictionProvince) {
 				aux.JurisdictionProvince = append(aux.JurisdictionProvince, s)
+			} else if a.Type.Equal(oidOrganizationID) {
+				aux.OrganizationID = append(aux.OrganizationID, s)
 			} else {
 				aux.UnknownAttributes = append(aux.UnknownAttributes, a)
 			}

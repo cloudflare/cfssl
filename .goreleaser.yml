@@ -1,6 +1,6 @@
 env:
   - GO111MODULE=on
-  - CGO_ENABLED=1
+  - CGO_ENABLED=0
   - GOFLAGS=-mod=vendor
   - GOPROXY=off
 builds:
@@ -9,25 +9,31 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
       - amd64
+      - arm64
     main: ./cmd/cfssl
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-linux
     binary: cfssl
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/cfssl
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: cfssl-windows
     binary: cfssl
     env:
@@ -40,11 +46,14 @@ builds:
     main: ./cmd/cfssl
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-bundle-darwin
     binary: cfssl-bundle
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -52,18 +61,22 @@ builds:
     main: ./cmd/cfssl-bundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-bundle-linux
     binary: cfssl-bundle
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/cfssl-bundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: cfssl-bundle-windows
     binary: cfssl-bundle
     env:
@@ -76,11 +89,14 @@ builds:
     main: ./cmd/cfssl-bundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-certinfo-darwin
     binary: cfssl-certinfo
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -88,18 +104,22 @@ builds:
     main: ./cmd/cfssl-certinfo
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-certinfo-linux
     binary: cfssl-certinfo
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/cfssl-certinfo
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: cfssl-certinfo-windows
     binary: cfssl-certinfo
     env:
@@ -112,11 +132,14 @@ builds:
     main: ./cmd/cfssl-certinfo
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-newkey-darwin
     binary: cfssl-newkey
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -124,18 +147,22 @@ builds:
     main: ./cmd/cfssl-newkey
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-newkey-linux
     binary: cfssl-newkey
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/cfssl-newkey
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: cfssl-newkey-windows
     binary: cfssl-newkey
     env:
@@ -148,11 +175,14 @@ builds:
     main: ./cmd/cfssl-newkey
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-scan-darwin
     binary: cfssl-scan
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -160,18 +190,22 @@ builds:
     main: ./cmd/cfssl-scan
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssl-scan-linux
     binary: cfssl-scan
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/cfssl-scan
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: cfssl-scan-windows
     binary: cfssl-scan
     env:
@@ -184,11 +218,14 @@ builds:
     main: ./cmd/cfssl-scan
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssljson-darwin
     binary: cfssljson
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -196,18 +233,22 @@ builds:
     main: ./cmd/cfssljson
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: cfssljson-linux
     binary: cfssljson
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/cfssljson
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: cfssljson-windows
     binary: cfssljson
     env:
@@ -220,11 +261,14 @@ builds:
     main: ./cmd/cfssljson
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: mkbundle-darwin
     binary: mkbundle
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -232,18 +276,22 @@ builds:
     main: ./cmd/mkbundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: mkbundle-linux
     binary: mkbundle
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/mkbundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: mkbundle-windows
     binary: mkbundle
     env:
@@ -256,11 +304,14 @@ builds:
     main: ./cmd/mkbundle
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: multirootca-darwin
     binary: multirootca
     env:
       - CC=o64-clang
       - CXX=o64-clang++
+      - CGO_ENABLED=1
     goos:
       - darwin
     goarch:
@@ -268,18 +319,22 @@ builds:
     main: ./cmd/multirootca
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
   - id: multirootca-linux
     binary: multirootca
     goos:
       - linux
     goarch:
       - amd64
+      - arm
+      - arm64
+      - s390x
     main: ./cmd/multirootca
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
-      - -linkmode external -extldflags "-static"
-    env:
-      - CC=/usr/bin/musl-gcc
+    flags:
+      - -buildvcs=false
   - id: multirootca-windows
     binary: multirootca
     env:
@@ -292,8 +347,11 @@ builds:
     main: ./cmd/multirootca
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
+    flags:
+      - -buildvcs=false
 archives:
   - format: binary
+    allow_different_binary_count: true # https://github.com/goreleaser/goreleaser/pull/1841
 release:
   github:
     owner: cloudflare

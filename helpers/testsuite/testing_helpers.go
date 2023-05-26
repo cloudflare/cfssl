@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -324,7 +323,7 @@ func createTempFile(data []byte) (fileName string, err error) {
 	}
 
 	readWritePermissions := os.FileMode(0664)
-	err = ioutil.WriteFile(tempFileName, data, readWritePermissions)
+	err = os.WriteFile(tempFileName, data, readWritePermissions)
 	if err != nil {
 		return "", err
 	}

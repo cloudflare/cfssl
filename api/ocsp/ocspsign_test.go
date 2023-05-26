@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/ocsp"
-	goocsp "golang.org/x/crypto/ocsp"
-
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/ocsp"
+
+	goocsp "golang.org/x/crypto/ocsp"
 )
 
 const (
@@ -49,7 +50,7 @@ func testSignFile(t *testing.T, certFile, status string, reason int, revokedAt s
 
 	obj := map[string]interface{}{}
 	if certFile != "" {
-		c, err := ioutil.ReadFile(certFile)
+		c, err := os.ReadFile(certFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +74,7 @@ func testSignFile(t *testing.T, certFile, status string, reason int, revokedAt s
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +211,7 @@ func TestSign(t *testing.T) {
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, b64Resp)
 		}
 
-		//should default to good
+		// should default to good
 		if test.Status == "" {
 			test.Status = "good"
 		}

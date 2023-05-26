@@ -4,6 +4,7 @@ also a tool to start a HTTP server to handle web requests for signing, bundling
 and verification.
 
 Usage:
+
 	cfssl command [-flags] arguments
 
 	The commands are
@@ -54,7 +55,7 @@ import (
 // main defines the cfssl usage and registers all defined commands and flags.
 func main() {
 	// Add command names to cfssl usage
-	flag.Usage = nil // this is set to nil for testabilty
+	flag.Usage = nil // this is set to nil for testability
 	// Register commands.
 	cmds := map[string]*cli.Command{
 		"bundle":         bundle.Command,

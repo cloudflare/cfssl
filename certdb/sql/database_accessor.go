@@ -19,8 +19,10 @@ func init() {
 
 const (
 	insertSQL = `
-INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
-	VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem,
+	issued_at, not_before, metadata, sans, common_name)
+VALUES (:serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem,
+	:issued_at, :not_before, :metadata, :sans, :common_name);`
 
 	selectSQL = `
 SELECT %s FROM certificates
@@ -32,6 +34,10 @@ SELECT %s FROM certificates
 
 	selectAllRevokedAndUnexpiredWithLabelSQL = `
 SELECT %s FROM certificates
+	WHERE CURRENT_TIMESTAMP < expiry AND status='revoked' AND ca_label= ?;`
+
+	selectRevokedAndUnexpiredWithLabelSQL = `
+SELECT serial_number, revoked_at FROM certificates
 	WHERE CURRENT_TIMESTAMP < expiry AND status='revoked' AND ca_label= ?;`
 
 	selectAllRevokedAndUnexpiredSQL = `
@@ -66,6 +72,8 @@ type Accessor struct {
 	db *sqlx.DB
 }
 
+var _ certdb.Accessor = &Accessor{}
+
 func wrapSQLError(err error) error {
 	if err != nil {
 		return cferr.Wrap(cferr.CertStoreError, cferr.Unknown, err)
@@ -99,15 +107,29 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		return err
 	}
 
+	var issuedAt, notBefore *time.Time
+	if cr.IssuedAt != nil {
+		t := cr.IssuedAt.UTC()
+		issuedAt = &t
+	}
+	if cr.NotBefore != nil {
+		t := cr.NotBefore.UTC()
+		notBefore = &t
+	}
 	res, err := d.db.NamedExec(insertSQL, &certdb.CertificateRecord{
-		Serial:    cr.Serial,
-		AKI:       cr.AKI,
-		CALabel:   cr.CALabel,
-		Status:    cr.Status,
-		Reason:    cr.Reason,
-		Expiry:    cr.Expiry.UTC(),
-		RevokedAt: cr.RevokedAt.UTC(),
-		PEM:       cr.PEM,
+		Serial:       cr.Serial,
+		AKI:          cr.AKI,
+		CALabel:      cr.CALabel,
+		Status:       cr.Status,
+		Reason:       cr.Reason,
+		Expiry:       cr.Expiry.UTC(),
+		RevokedAt:    cr.RevokedAt.UTC(),
+		PEM:          cr.PEM,
+		IssuedAt:     issuedAt,
+		NotBefore:    notBefore,
+		MetadataJSON: cr.MetadataJSON,
+		SANsJSON:     cr.SANsJSON,
+		CommonName:   cr.CommonName,
 	})
 	if err != nil {
 		return wrapSQLError(err)
@@ -156,6 +178,29 @@ func (d *Accessor) GetUnexpiredCertificates() (crs []certdb.CertificateRecord, e
 	return crs, nil
 }
 
+// GetUnexpiredCertificatesByLabel gets all unexpired certificate from db that have the provided label.
+func (d *Accessor) GetUnexpiredCertificatesByLabel(labels []string) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	query, args, err := sqlx.In(
+		fmt.Sprintf(`SELECT %s FROM certificates WHERE CURRENT_TIMESTAMP < expiry AND ca_label IN (?)`,
+			sqlstruct.Columns(certdb.CertificateRecord{}),
+		), labels)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	err = d.db.Select(&crs, d.db.Rebind(query), args...)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
 // GetRevokedAndUnexpiredCertificates gets all revoked and unexpired certificate from db (for CRLs).
 func (d *Accessor) GetRevokedAndUnexpiredCertificates() (crs []certdb.CertificateRecord, err error) {
 	err = d.checkDB()
@@ -179,6 +224,21 @@ func (d *Accessor) GetRevokedAndUnexpiredCertificatesByLabel(label string) (crs 
 	}
 
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectAllRevokedAndUnexpiredWithLabelSQL), sqlstruct.Columns(certdb.CertificateRecord{})), label)
+	if err != nil {
+		return nil, wrapSQLError(err)
+	}
+
+	return crs, nil
+}
+
+// GetRevokedAndUnexpiredCertificatesSelectColumnsByLabel gets serial_number and revoed_at from all revoked and unexpired certificate from db (for CRLs) with specified ca_label.
+func (d *Accessor) GetRevokedAndUnexpiredCertificatesByLabelSelectColumns(label string) (crs []certdb.CertificateRecord, err error) {
+	err = d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.db.Select(&crs, d.db.Rebind(selectRevokedAndUnexpiredWithLabelSQL), label)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
@@ -311,7 +371,7 @@ func (d *Accessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error 
 // We didn't implement 'upsert' with SQL statement and we lost race condition
 // prevention provided by underlying DBMS.
 // Reasoning:
-// 1. it's diffcult to support multiple DBMS backends in the same time, the
+// 1. it's difficult to support multiple DBMS backends in the same time, the
 // SQL syntax differs from one to another.
 // 2. we don't need a strict simultaneous consistency between OCSP and certificate
 // status. It's OK that a OCSP response still shows 'good' while the

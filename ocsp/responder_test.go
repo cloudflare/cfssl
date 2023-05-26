@@ -2,10 +2,10 @@ package ocsp
 
 import (
 	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -210,11 +210,11 @@ func TestSqliteTrivial(t *testing.T) {
 	// an OCSP request.
 	certFile := "testdata/sqlite_ca.pem"
 	issuerFile := "testdata/ca.pem"
-	certContent, err := ioutil.ReadFile(certFile)
+	certContent, err := os.ReadFile(certFile)
 	if err != nil {
 		t.Errorf("Error reading cert file: %s", err)
 	}
-	issuerContent, err := ioutil.ReadFile(issuerFile)
+	issuerContent, err := os.ReadFile(issuerFile)
 	if err != nil {
 		t.Errorf("Error reading issuer file: %s", err)
 	}
@@ -274,11 +274,11 @@ func TestSqliteRealResponse(t *testing.T) {
 
 	certFile := "testdata/cert.pem"
 	issuerFile := "testdata/ca.pem"
-	certContent, err := ioutil.ReadFile(certFile)
+	certContent, err := os.ReadFile(certFile)
 	if err != nil {
 		t.Errorf("Error reading cert file: %s", err)
 	}
-	issuerContent, err := ioutil.ReadFile(issuerFile)
+	issuerContent, err := os.ReadFile(issuerFile)
 	if err != nil {
 		t.Errorf("Error reading issuer file: %s", err)
 	}
@@ -308,7 +308,7 @@ func TestSqliteRealResponse(t *testing.T) {
 		ThisUpdate:   time.Now(),
 		NextUpdate:   time.Now().AddDate(0, 1, 0),
 	}
-	keyPEM, err := ioutil.ReadFile("testdata/ca-key.pem")
+	keyPEM, err := os.ReadFile("testdata/ca-key.pem")
 	if err != nil {
 		t.Errorf("Error reading private key file: %s", err)
 	}

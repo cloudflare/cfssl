@@ -5,18 +5,17 @@
 package x509
 
 import (
-	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"encoding/asn1"
 	"encoding/json"
 	"errors"
 	"net"
 	"sort"
-
 	"strings"
 	"time"
 
+	"github.com/zmap/zcrypto/dsa"
+	"github.com/zmap/zcrypto/encoding/asn1"
 	jsonKeys "github.com/zmap/zcrypto/json"
 	"github.com/zmap/zcrypto/util"
 	"github.com/zmap/zcrypto/x509/pkix"
@@ -26,7 +25,7 @@ var kMinTime, kMaxTime time.Time
 
 func init() {
 	var err error
-	kMinTime, err = time.Parse(time.RFC3339, "1970-01-01T00:00:00Z")
+	kMinTime, err = time.Parse(time.RFC3339, "0001-01-01T00:00:00Z")
 	if err != nil {
 		panic(err)
 	}
@@ -219,7 +218,7 @@ func (v *validity) MarshalJSON() ([]byte, error) {
 	aux := auxValidity{
 		Start:          clampTime(v.NotBefore.UTC()).Format(time.RFC3339),
 		End:            clampTime(v.NotAfter.UTC()).Format(time.RFC3339),
-		ValidityPeriod: int(v.NotAfter.Sub(v.NotBefore).Seconds()),
+		ValidityPeriod: int(v.NotAfter.Unix() - v.NotBefore.Unix()),
 	}
 	return json.Marshal(&aux)
 }
@@ -236,7 +235,6 @@ func (v *validity) UnmarshalJSON(b []byte) error {
 	if v.NotAfter, err = time.Parse(time.RFC3339, aux.End); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -428,6 +426,39 @@ type JSONCertificate struct {
 	Redacted                  bool                         `json:"redacted"`
 }
 
+// CollectAllNames - Collect and validate all DNS / URI / IP Address names for a given certificate
+func (c *Certificate) CollectAllNames() []string {
+	var names []string
+
+	if isValidName(c.Subject.CommonName) {
+		names = append(names, c.Subject.CommonName)
+	}
+
+	for _, name := range c.DNSNames {
+		if isValidName(name) {
+			names = append(names, name)
+		} else if !strings.Contains(name, ".") { //just a TLD
+			names = append(names, name)
+		}
+
+	}
+
+	for _, name := range c.URIs {
+		if util.IsURL(name) {
+			names = append(names, name)
+		}
+	}
+
+	for _, name := range c.IPAddresses {
+		str := name.String()
+		if util.IsURL(str) {
+			names = append(names, str)
+		}
+	}
+
+	return purgeNameDuplicates(names)
+}
+
 func (c *Certificate) MarshalJSON() ([]byte, error) {
 	// Fill out the certificate
 	jc := new(JSONCertificate)
@@ -441,34 +472,7 @@ func (c *Certificate) MarshalJSON() ([]byte, error) {
 	jc.Validity.ValidityPeriod = c.ValidityPeriod
 	jc.Subject = c.Subject
 	jc.SubjectDN = c.Subject.String()
-
-	if isValidName(c.Subject.CommonName) {
-		jc.Names = append(jc.Names, c.Subject.CommonName)
-	}
-
-	for _, name := range c.DNSNames {
-		if isValidName(name) {
-			jc.Names = append(jc.Names, name)
-		} else if !strings.Contains(name, ".") { //just a TLD
-			jc.Names = append(jc.Names, name)
-		}
-
-	}
-
-	for _, name := range c.URIs {
-		if util.IsURL(name) {
-			jc.Names = append(jc.Names, name)
-		}
-	}
-
-	for _, name := range c.IPAddresses {
-		str := name.String()
-		if util.IsURL(str) {
-			jc.Names = append(jc.Names, str)
-		}
-	}
-
-	jc.Names = purgeNameDuplicates(jc.Names)
+	jc.Names = c.CollectAllNames()
 	jc.Redacted = false
 	for _, name := range jc.Names {
 		if strings.HasPrefix(name, "?") {

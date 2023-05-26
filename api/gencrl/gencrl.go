@@ -5,16 +5,17 @@ import (
 	"crypto/rand"
 	"crypto/x509/pkix"
 	"encoding/json"
-	"github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/errors"
-	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/log"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/log"
 )
 
 // This type is meant to be unmarshalled from JSON
@@ -32,7 +33,7 @@ func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 	var oneWeek = time.Duration(604800) * time.Second
 	var newExpiryTime = time.Now()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}

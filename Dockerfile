@@ -1,12 +1,21 @@
-FROM golang:1.14.1@sha256:08d16c1e689e86df1dae66d8ef4cec49a9d822299ec45e68a810c46cb705628d
+FROM golang:1.20
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+RUN echo "I am running on $BUILDPLATFORM, building for $TARGETPLATFORM" 
+
+LABEL org.opencontainers.image.source https://github.com/cloudflare/cfssl
+LABEL org.opencontainers.image.description "Cloudflare's PKI toolkit"
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workdir
 COPY . /workdir
 
 RUN git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
     make clean && \
-    make bin/rice && ./bin/rice embed-go -i=./cli/serve && \
-    make all && cp bin/* /usr/bin/
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} make all && cp bin/* /usr/bin/
 
 EXPOSE 8888
 

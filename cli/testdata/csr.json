@@ -13,7 +13,11 @@
             "L": "San Francisco",
             "O": "CloudFlare",
             "OU": "Systems Engineering",
-            "ST": "California"
+            "ST": "California",
+            "OID": {
+                "1.2.3.4.5": "abc"
+            }
         }
-    ]
+    ],
+    "delegation_enabled": true
 }
