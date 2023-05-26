@@ -19,7 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/google/certificate-transparency-go"
+	ct "github.com/google/certificate-transparency-go"
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
 	"golang.org/x/crypto/ocsp"
@@ -54,7 +54,7 @@ var Jul2012 = InclusiveDate(2012, time.July, 01)
 // issuing certificates valid for more than 39 months.
 var Apr2015 = InclusiveDate(2015, time.April, 01)
 
-// KeyLength returns the bit size of ECDSA or RSA PublicKey
+// KeyLength returns the bit size of ECDSA, RSA or Ed25519 PublicKey
 func KeyLength(key interface{}) int {
 	if key == nil {
 		return 0
@@ -150,13 +150,13 @@ func SignatureString(alg x509.SignatureAlgorithm) string {
 	case x509.ECDSAWithSHA512:
 		return "ECDSAWithSHA512"
 	case x509.PureEd25519:
-		return "ED25519"
+		return "Ed25519"
 	default:
 		return "Unknown Signature"
 	}
 }
 
-// HashAlgoString returns the hash algorithm name contains in the signature
+// HashAlgoString returns the hash algorithm name contained in the signature
 // method.
 func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	switch alg {
@@ -185,7 +185,7 @@ func HashAlgoString(alg x509.SignatureAlgorithm) string {
 	case x509.ECDSAWithSHA512:
 		return "SHA512"
 	case x509.PureEd25519:
-		return "ED25519"
+		return "Ed25519"
 	default:
 		return "Unknown Hash Algorithm"
 	}
@@ -385,7 +385,15 @@ func ParsePrivateKeyPEMWithPassword(keyPEM []byte, password []byte) (key crypto.
 
 // GetKeyDERFromPEM parses a PEM-encoded private key and returns DER-format key bytes.
 func GetKeyDERFromPEM(in []byte, password []byte) ([]byte, error) {
-	keyDER, _ := pem.Decode(in)
+	// Ignore any EC PARAMETERS blocks when looking for a key (openssl includes
+	// them by default).
+	var keyDER *pem.Block
+	for {
+		keyDER, in = pem.Decode(in)
+		if keyDER == nil || keyDER.Type != "EC PARAMETERS" {
+			break
+		}
+	}
 	if keyDER != nil {
 		if procType, ok := keyDER.Headers["Proc-Type"]; ok {
 			if strings.Contains(procType, "ENCRYPTED") {
@@ -459,8 +467,6 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case ed25519.PublicKey:
-		return x509.PureEd25519
 	case *ecdsa.PublicKey:
 		switch pub.Curve {
 		case elliptic.P521():
@@ -472,6 +478,8 @@ func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case ed25519.PublicKey:
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}

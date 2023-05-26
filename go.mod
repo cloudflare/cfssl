@@ -1,6 +1,6 @@
 module github.com/cloudflare/cfssl
 
-go 1.13
+go 1.14
 
 require (
 	bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c
@@ -18,15 +18,15 @@ require (
 	github.com/kisielk/sqlstruct v0.0.0-20150923205031-648daed35d49
 	github.com/kisom/goutils v1.1.0
 	github.com/kylelemons/go-gypsy v0.0.0-20160905020020-08cad365cd28 // indirect
-	github.com/lib/pq v0.0.0-20180201184707-88edab080323
+	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/weppos/publicsuffix-go v0.5.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e
-	github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	github.com/zmap/zcrypto v0.0.0-20191112190257-7f2fe6faf8cf
+	github.com/zmap/zlint/v2 v2.0.0
+	golang.org/x/crypto v0.0.0-20200124225646-8b5121be2f68
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/text v0.3.2 // indirect
 )

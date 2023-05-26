@@ -11,10 +11,10 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"time"
 
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 )
 
 // A Bundle contains a certificate and its trust chain. It is intended
@@ -106,12 +106,12 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	switch b.Cert.PublicKeyAlgorithm {
 	case x509.ECDSA:
 		keyType = fmt.Sprintf("%d-bit ECDSA", keyLength)
-	case x509.Ed25519:
-		keyType = "Ed25519"
 	case x509.RSA:
 		keyType = fmt.Sprintf("%d-bit RSA", keyLength)
 	case x509.DSA:
 		keyType = "DSA"
+	case x509.Ed25519:
+		keyType = "Ed25519"
 	default:
 		keyType = "Unknown"
 	}
@@ -125,7 +125,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		keyString = PemBlockToString(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes})
 	case ed25519.PrivateKey:
 		keyBytes, _ = derhelpers.MarshalEd25519PrivateKey(key)
-		keyString = PemBlockToString(&pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
+		keyString = PemBlockToString(&pem.Block{Type: "Ed25519 PRIVATE KEY", Bytes: keyBytes})
 	case fmt.Stringer:
 		keyString = key.String()
 	}

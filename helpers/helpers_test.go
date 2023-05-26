@@ -16,9 +16,8 @@ import (
 	"testing"
 	"time"
 
+	ct "github.com/google/certificate-transparency-go"
 	"golang.org/x/crypto/ocsp"
-
-	"github.com/google/certificate-transparency-go"
 )
 
 const (
@@ -33,6 +32,7 @@ const (
 	testPrivateRSAKey            = "testdata/priv_rsa_key.pem"
 	testPrivateECDSAKey          = "testdata/private_ecdsa_key.pem"
 	testPrivateEd25519Key        = "testdata/private_ed25519_key.pem"
+	testPrivateOpenSSLECKey      = "testdata/openssl_secp384.pem"
 	testUnsupportedECDSAKey      = "testdata/secp256k1-key.pem"
 	testMessedUpPrivateKey       = "testdata/messed_up_priv_key.pem"
 	testEncryptedPrivateKey      = "testdata/enc_priv_key.pem"
@@ -229,7 +229,7 @@ func TestHashAlgoString(t *testing.T) {
 	if HashAlgoString(x509.ECDSAWithSHA512) != "SHA512" {
 		t.Fatal("standin")
 	}
-	if HashAlgoString(x509.PureEd25519) != "ED25519" {
+	if HashAlgoString(x509.PureEd25519) != "Ed25519" {
 		t.Fatal("standin")
 	}
 	if HashAlgoString(math.MaxInt32) != "Unknown Hash Algorithm" {
@@ -274,7 +274,7 @@ func TestSignatureString(t *testing.T) {
 	if SignatureString(x509.ECDSAWithSHA512) != "ECDSAWithSHA512" {
 		t.Fatal("Signature String functioning improperly")
 	}
-	if SignatureString(x509.PureEd25519) != "ED25519" {
+	if SignatureString(x509.PureEd25519) != "Ed25519" {
 		t.Fatal("Signature String functioning improperly")
 	}
 	if SignatureString(math.MaxInt32) != "Unknown Signature" {
@@ -390,7 +390,18 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	_, err = ParsePrivateKeyPEM(testEd25519PEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testOpenSSLECKey, err := ioutil.ReadFile(testPrivateOpenSSLECKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ParsePrivateKeyPEM(testOpenSSLECKey)
 	if err != nil {
 		t.Fatal(err)
 	}

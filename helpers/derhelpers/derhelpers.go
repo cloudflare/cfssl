@@ -1,3 +1,5 @@
+// +build go1.13
+
 // Package derhelpers implements common functionality
 // on DER encoded data
 package derhelpers

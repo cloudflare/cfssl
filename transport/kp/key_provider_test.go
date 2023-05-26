@@ -82,7 +82,17 @@ func TestGenerate(t *testing.T) {
 		t.Fatal("key provider shouldn't have a key yet")
 	}
 
+	err = kp.Generate("rsa", 2048)
+	if err != nil {
+		t.Fatalf("key provider couldn't generate key: %v", err)
+	}
+
 	err = kp.Generate("ecdsa", 256)
+	if err != nil {
+		t.Fatalf("key provider couldn't generate key: %v", err)
+	}
+
+	err = kp.Generate("ed25519", 256)
 	if err != nil {
 		t.Fatalf("key provider couldn't generate key: %v", err)
 	}

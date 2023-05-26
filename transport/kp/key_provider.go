@@ -23,12 +23,13 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
+	"io"
 	"io/ioutil"
 	"strings"
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/transport/core"
 )
 
@@ -212,22 +213,6 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		}
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 		sp.internal.priv = priv
-	case "ed25519":
-		if size != 256 && size != 0 {
-			return errors.New("ED25519 keys are always 256Bit")
-		}
-		_, priv, err := ed25519.GenerateKey(rand.Reader)
-
-		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-			return err
-		}
-		p := &pem.Block{
-			Type:    "PRIVATE KEY",
-			Bytes:   keyPEM,
-		}
-		sp.internal.keyPEM = pem.EncodeToMemory(p)
-		sp.internal.priv = priv
 	case "ecdsa":
 		var priv *ecdsa.PrivateKey
 		var curve elliptic.Curve
@@ -260,8 +245,29 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 		sp.internal.keyPEM = pem.EncodeToMemory(p)
 
 		sp.internal.priv = priv
+	case "ed25519":
+		if size != (ed25519.PublicKeySize * 8) {
+			return errors.New("transport: ed25519 keys must be 256 bits")
+		}
+
+		seed := make([]byte, ed25519.SeedSize)
+		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
+			return err
+		}
+		priv := ed25519.NewKeyFromSeed(seed)
+
+		keyPEM, err := derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			return err
+		}
+		p := &pem.Block{
+			Type:  "Ed25519 PRIVATE KEY",
+			Bytes: keyPEM,
+		}
+		sp.internal.keyPEM = pem.EncodeToMemory(p)
+		sp.internal.priv = priv
 	default:
-		return errors.New("transport: invalid key algorithm; only RSA, ED25519 and ECDSA are supported")
+		return errors.New("transport: invalid key algorithm; only RSA, Ed25519 and ECDSA are supported")
 	}
 
 	return nil
@@ -337,14 +343,14 @@ func (sp *StandardProvider) Load() (err error) {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an RSA key")
 			return
 		}
-	case *ed25519.PublicKey:
-		if p.Type != "ED25519 PRIVATE KEY" && p.Type != "PRIVATE KEY" {
-			err = errors.New("transport: PEM type" + p.Type + "is invalid for an ED25519 key")
-			return
-		}
 	case *ecdsa.PublicKey:
 		if p.Type != "EC PRIVATE KEY" {
 			err = errors.New("transport: PEM type " + p.Type + " is invalid for an ECDSA key")
+			return
+		}
+	case ed25519.PublicKey:
+		if p.Type != "Ed25519 PRIVATE KEY" {
+			err = errors.New("transport: PEM type" + p.Type + "is invalid for an Ed25519 key")
 			return
 		}
 	default:

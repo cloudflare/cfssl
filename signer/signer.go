@@ -167,6 +167,8 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case ed25519.PublicKey:
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -174,7 +176,7 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
-func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certificate, err error) {
+func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte) (template *x509.Certificate, err error) {
 	csrv, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
@@ -196,6 +198,8 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
 		URIs:               csrv.URIs,
+		Extensions:         csrv.Extensions,
+		ExtraExtensions:    []pkix.Extension{},
 	}
 
 	for _, val := range csrv.Extensions {
@@ -215,6 +219,11 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 			template.IsCA = constraints.IsCA
 			template.MaxPathLen = constraints.MaxPathLen
 			template.MaxPathLenZero = template.MaxPathLen == 0
+		} else {
+			// If the profile has 'copy_extensions' to true then lets add it
+			if p.CopyExtensions {
+				template.ExtraExtensions = append(template.ExtraExtensions, val)
+			}
 		}
 	}
 

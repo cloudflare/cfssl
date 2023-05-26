@@ -19,7 +19,9 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	ocspConfig "github.com/cloudflare/cfssl/ocsp/config"
-	"github.com/zmap/zlint/lints"
+	// empty import of zlint/v2 required to have lints registered.
+	_ "github.com/zmap/zlint/v2"
+	"github.com/zmap/zlint/v2/lint"
 )
 
 // A CSRWhitelist stores booleans for fields in the CSR. If a CSRWhitelist is
@@ -82,6 +84,7 @@ type SigningProfile struct {
 	ExpiryString        string       `json:"expiry"`
 	BackdateString      string       `json:"backdate"`
 	AuthKeyName         string       `json:"auth_key"`
+	CopyExtensions      bool         `json:"copy_extensions"`
 	PrevAuthKeyName     string       `json:"prev_auth_key"` // to suppport key rotation
 	RemoteName          string       `json:"remote"`
 	NotBefore           time.Time    `json:"not_before"`
@@ -99,11 +102,12 @@ type SigningProfile struct {
 	// 5 = all lint results except pass, notice and warn are considered errors
 	// 6 = all lint results except pass, notice, warn and error are considered errors.
 	// 7 = lint is performed, no lint results are treated as errors.
-	LintErrLevel lints.LintStatus `json:"lint_error_level"`
-	// IgnoredLints lists zlint lint names to ignore. Any lint results from
-	// matching lints will be ignored no matter what the configured LintErrLevel
-	// is.
-	IgnoredLints []string `json:"ignored_lints"`
+	LintErrLevel lint.LintStatus `json:"lint_error_level"`
+	// ExcludeLints lists ZLint lint names to exclude from preissuance linting.
+	ExcludeLints []string `json:"ignored_lints"`
+	// ExcludeLintSources lists ZLint lint sources to exclude from preissuance
+	// linting.
+	ExcludeLintSources []string `json:"ignored_lint_sources"`
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
@@ -118,9 +122,11 @@ type SigningProfile struct {
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
 	ClientProvidesSerialNumbers bool
-	// IgnoredLintsMap is a bool map created from IgnoredLints when the profile is
-	// loaded. It facilitates set membership testing.
-	IgnoredLintsMap map[string]bool
+	// LintRegistry is the collection of lints that should be used if
+	// LintErrLevel is configured. By default all ZLint lints are used. If
+	// ExcludeLints or ExcludeLintSources are set then this registry will be
+	// filtered in populate() to exclude the named lints and lint sources.
+	LintRegistry lint.Registry
 }
 
 // UnmarshalJSON unmarshals a JSON string into an OID.
@@ -324,9 +330,38 @@ func (p *SigningProfile) populate(cfg *Config) error {
 		p.ExtensionWhitelist[asn1.ObjectIdentifier(oid).String()] = true
 	}
 
-	p.IgnoredLintsMap = map[string]bool{}
-	for _, lintName := range p.IgnoredLints {
-		p.IgnoredLintsMap[lintName] = true
+	// By default perform any required preissuance linting with all ZLint lints.
+	p.LintRegistry = lint.GlobalRegistry()
+
+	// If ExcludeLintSources are present in config build a lint.SourceList while
+	// validating that no unknown sources were specified.
+	var excludedSources lint.SourceList
+	if len(p.ExcludeLintSources) > 0 {
+		for _, sourceName := range p.ExcludeLintSources {
+			var lintSource lint.LintSource
+			lintSource.FromString(sourceName)
+			if lintSource == lint.UnknownLintSource {
+				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+					fmt.Errorf("failed to build excluded lint source list: unknown source %q",
+						sourceName))
+			}
+			excludedSources = append(excludedSources, lintSource)
+		}
+	}
+
+	opts := lint.FilterOptions{
+		ExcludeNames:   p.ExcludeLints,
+		ExcludeSources: excludedSources,
+	}
+	if !opts.Empty() {
+		// If ExcludeLints or ExcludeLintSources were not empty then filter out the
+		// lints we don't want to use for preissuance linting with this profile.
+		filteredRegistry, err := p.LintRegistry.Filter(opts)
+		if err != nil {
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				fmt.Errorf("failed to build filtered lint registry: %v", err))
+		}
+		p.LintRegistry = filteredRegistry
 	}
 
 	return nil

@@ -32,7 +32,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/google/certificate-transparency-go"
-	"github.com/zmap/zlint/lints"
+	"github.com/zmap/zlint/v2/lint"
 )
 
 const (
@@ -1536,13 +1536,27 @@ func TestLint(t *testing.T) {
 	jankyTemplate.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 	jankyTemplate.IsCA = false
 
+	ignoredLintNameRegistry, err := lint.GlobalRegistry().Filter(lint.FilterOptions{
+		ExcludeNames: []string{"e_dnsname_not_valid_tld"},
+	})
+	if err != nil {
+		t.Fatalf("failed to construct ignoredLintNamesRegistry: %v", err)
+	}
+
+	ignoredLintSourcesRegistry, err := lint.GlobalRegistry().Filter(lint.FilterOptions{
+		ExcludeSources: lint.SourceList{lint.CABFBaselineRequirements},
+	})
+	if err != nil {
+		t.Fatalf("failed to construct ignoredLintSourcesRegistry: %v", err)
+	}
+
 	testCases := []struct {
 		name               string
 		signer             *Signer
-		lintErrLevel       lints.LintStatus
-		ignoredLintMap     map[string]bool
+		lintErrLevel       lint.LintStatus
+		lintRegistry       lint.Registry
 		expectedErr        error
-		expectedErrResults map[string]lints.LintResult
+		expectedErrResults map[string]lint.LintResult
 	}{
 		{
 			name:   "linting disabled",
@@ -1551,46 +1565,50 @@ func TestLint(t *testing.T) {
 		{
 			name:         "signer without lint key",
 			signer:       &Signer{},
-			lintErrLevel: lints.NA,
+			lintErrLevel: lint.NA,
 			expectedErr:  errors.New(`{"code":2500,"message":"Private key is unavailable"}`),
 		},
 		{
 			name:         "lint results above err level",
 			signer:       lintSigner,
-			lintErrLevel: lints.Notice,
+			lintErrLevel: lint.Notice,
 			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
-			expectedErrResults: map[string]lints.LintResult{
-				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
-				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
+			expectedErrResults: map[string]lint.LintResult{
+				"e_sub_cert_aia_does_not_contain_ocsp_url": lint.LintResult{Status: 6},
+				"e_dnsname_not_valid_tld":                  lint.LintResult{Status: 6},
 			},
 		},
 		{
 			name:         "lint results below err level",
 			signer:       lintSigner,
-			lintErrLevel: lints.Warn,
+			lintErrLevel: lint.Warn,
 			expectedErr:  errors.New("pre-issuance linting found 2 error results"),
-			expectedErrResults: map[string]lints.LintResult{
-				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
-				"e_dnsname_not_valid_tld":                  lints.LintResult{Status: 6},
+			expectedErrResults: map[string]lint.LintResult{
+				"e_sub_cert_aia_does_not_contain_ocsp_url": lint.LintResult{Status: 6},
+				"e_dnsname_not_valid_tld":                  lint.LintResult{Status: 6},
 			},
 		},
 		{
-			name:         "ignored lints, lint results above err level",
+			name:         "ignored lint names, lint results above err level",
 			signer:       lintSigner,
-			lintErrLevel: lints.Notice,
-			ignoredLintMap: map[string]bool{
-				"e_dnsname_not_valid_tld": true,
+			lintErrLevel: lint.Notice,
+			lintRegistry: ignoredLintNameRegistry,
+			expectedErr:  errors.New("pre-issuance linting found 1 error results"),
+			expectedErrResults: map[string]lint.LintResult{
+				"e_sub_cert_aia_does_not_contain_ocsp_url": lint.LintResult{Status: 6},
 			},
-			expectedErr: errors.New("pre-issuance linting found 1 error results"),
-			expectedErrResults: map[string]lints.LintResult{
-				"e_sub_cert_aia_does_not_contain_ocsp_url": lints.LintResult{Status: 6},
-			},
+		},
+		{
+			name:         "ignored lint sources, lint results above err level",
+			signer:       lintSigner,
+			lintErrLevel: lint.Notice,
+			lintRegistry: ignoredLintSourcesRegistry,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.signer.lint(*jankyTemplate, tc.lintErrLevel, tc.ignoredLintMap)
+			err := tc.signer.lint(*jankyTemplate, tc.lintErrLevel, tc.lintRegistry)
 			if err != nil && tc.expectedErr == nil {
 				t.Errorf("Expected no err, got %#v", err)
 			} else if err == nil && tc.expectedErr != nil {

@@ -13,7 +13,6 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
-	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"io"
 	"net"
 	"net/mail"
@@ -22,6 +21,7 @@ import (
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -63,7 +63,7 @@ func (kr *KeyRequest) Size() int {
 }
 
 // Generate generates a key as specified in the request. Currently,
-// only ECDSA and RSA and Ed25519 are supported.
+// only ECDSA, RSA and ed25519 algorithms are supported.
 func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo(), kr.Size())
 	switch kr.Algo() {
@@ -75,15 +75,6 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 			return nil, errors.New("RSA key size too large")
 		}
 		return rsa.GenerateKey(rand.Reader, kr.Size())
-	case "ed25519":
-		if kr.Size() != 256 && kr.Size() != 0 {
-			return nil, errors.New("ED25519 keys are always 256Bit")
-		}
-		seed := make([]byte, ed25519.SeedSize)
-		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
-			return nil, err
-		}
-		return ed25519.NewKeyFromSeed(seed), nil
 	case "ecdsa":
 		var curve elliptic.Curve
 		switch kr.Size() {
@@ -97,6 +88,16 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 			return nil, errors.New("invalid curve")
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
+	case "ed25519":
+		if kr.Size() != (ed25519.PublicKeySize * 8) {
+			return nil, errors.New("ED25519 keys should be 256 bit long")
+		}
+
+		seed := make([]byte, ed25519.SeedSize)
+		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
+			return nil, err
+		}
+		return ed25519.NewKeyFromSeed(seed), nil
 	default:
 		return nil, errors.New("invalid algorithm")
 	}
@@ -117,8 +118,6 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case "ed25519":
-		return x509.PureEd25519
 	case "ecdsa":
 		switch kr.Size() {
 		case curveP521:
@@ -130,6 +129,8 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case "ed25519":
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -146,12 +147,13 @@ type CAConfig struct {
 // A CertificateRequest encapsulates the API interface to the
 // certificate request functionality.
 type CertificateRequest struct {
-	CN           string     `json:"CN" yaml:"CN"`
-	Names        []Name     `json:"names" yaml:"names"`
-	Hosts        []string   `json:"hosts" yaml:"hosts"`
-	KeyRequest   *KeyRequest `json:"key,omitempty" yaml:"key,omitempty"`
-	CA           *CAConfig  `json:"ca,omitempty" yaml:"ca,omitempty"`
-	SerialNumber string     `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	CN           string           `json:"CN" yaml:"CN"`
+	Names        []Name           `json:"names" yaml:"names"`
+	Hosts        []string         `json:"hosts" yaml:"hosts"`
+	KeyRequest   *KeyRequest      `json:"key,omitempty" yaml:"key,omitempty"`
+	CA           *CAConfig        `json:"ca,omitempty" yaml:"ca,omitempty"`
+	SerialNumber string           `json:"serialnumber,omitempty" yaml:"serialnumber,omitempty"`
+	Extensions   []pkix.Extension `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 }
 
 // New returns a new, empty CertificateRequest with a
@@ -218,16 +220,6 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
-	case ed25519.PrivateKey:
-		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-
-		}
-		block := pem.Block{
-			Type:    "PRIVATE KEY",
-			Bytes:   key,
-		}
-		key = pem.EncodeToMemory(&block)
 	case *ecdsa.PrivateKey:
 		key, err = x509.MarshalECPrivateKey(priv)
 		if err != nil {
@@ -239,11 +231,22 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)
+	case ed25519.PrivateKey:
+		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+			return
+		}
+		block := pem.Block{
+			Type:  "Ed25519 PRIVATE KEY",
+			Bytes: key,
+		}
+		key = pem.EncodeToMemory(&block)
 	default:
 		panic("Generate should have failed to produce a valid key.")
 	}
 
-	csr, err = Generate(priv.(crypto.Signer), req)
+	csr, err = Generate(priv.(crypto.Signer), req) // TODO: solve
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
@@ -406,8 +409,18 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 		}
 	}
 
+	tpl.ExtraExtensions = []pkix.Extension{}
+
 	if req.CA != nil {
 		err = appendCAInfoToCSR(req.CA, &tpl)
+		if err != nil {
+			err = cferr.Wrap(cferr.CSRError, cferr.GenerationFailed, err)
+			return
+		}
+	}
+
+	if req.Extensions != nil {
+		err = appendExtensionsToCSR(req.Extensions, &tpl)
 		if err != nil {
 			err = cferr.Wrap(cferr.CSRError, cferr.GenerationFailed, err)
 			return
@@ -442,13 +455,19 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 		return err
 	}
 
-	csr.ExtraExtensions = []pkix.Extension{
-		{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
-			Value:    val,
-			Critical: true,
-		},
-	}
+	csr.ExtraExtensions = append(csr.ExtraExtensions, pkix.Extension{
+		Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
+		Value:    val,
+		Critical: true,
+	})
 
+	return nil
+}
+
+// appendCAInfoToCSR appends user-defined extension to a CSR
+func appendExtensionsToCSR(extensions []pkix.Extension, csr *x509.CertificateRequest) error {
+	for _, extension := range extensions {
+		csr.ExtraExtensions = append(csr.ExtraExtensions, extension)
+	}
 	return nil
 }

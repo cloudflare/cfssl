@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"io/ioutil"
@@ -20,7 +21,6 @@ import (
 //in KeyRequest field
 
 func TestNew(t *testing.T) {
-
 	if cr := New(); cr.KeyRequest == nil {
 		t.Fatalf("Should create a new, empty certificate request with KeyRequest")
 	}
@@ -46,7 +46,7 @@ func TestKeyRequest(t *testing.T) {
 		}
 	case ed25519.PrivateKey:
 		if kr.Algo() != "ed25519" {
-			t.Fatal("ED25519 key generated, but expected", kr.Algo())
+			t.Fatal("Ed25519 key generated, but expected", kr.Algo())
 		}
 	}
 }
@@ -115,11 +115,43 @@ func TestParseRequest(t *testing.T) {
 		},
 		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com", "https://www.cloudflare.com"},
 		KeyRequest: NewKeyRequest(),
+		Extensions: []pkix.Extension{
+			pkix.Extension{
+				Id:    asn1.ObjectIdentifier{1, 2, 3, 4, 5},
+				Value: []byte("AgEB"),
+			},
+		},
 	}
 
-	_, _, err := ParseRequest(cr)
+	csrBytes, _, err := ParseRequest(cr)
 	if err != nil {
 		t.Fatalf("%v", err)
+	}
+
+	block, _ := pem.Decode(csrBytes)
+	if block == nil {
+		t.Fatalf("%v", err)
+	}
+
+	if block.Type != "CERTIFICATE REQUEST" {
+		t.Fatalf("Incorrect block type: %s", block.Type)
+	}
+
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	found := false
+	for _, ext := range csr.Extensions {
+		if ext.Id.Equal(asn1.ObjectIdentifier{1, 2, 3, 4, 5}) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("CSR did not include Custom Extension")
 	}
 }
 
@@ -283,19 +315,17 @@ func TestECGeneration(t *testing.T) {
 }
 
 func TestED25519Generation(t *testing.T) {
-	for _, sz := range []int{256, 0} {
-		kr := &KeyRequest{"ed25519", sz}
-		priv, err := kr.Generate()
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
-		_, ok := priv.(ed25519.PrivateKey)
-		if !ok {
-			t.Fatal("Expected ed25519 key")
-		}
-		if sa := kr.SigAlgo(); sa == x509.UnknownSignatureAlgorithm {
-			t.Fatal("Invalid signature algorithm!")
-		}
+	kr := &KeyRequest{"ed25519", 256}
+	priv, err := kr.Generate()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	_, ok := priv.(ed25519.PrivateKey)
+	if !ok {
+		t.Fatal("Expected ed25519 key")
+	}
+	if sa := kr.SigAlgo(); sa == x509.UnknownSignatureAlgorithm {
+		t.Fatal("Invalid signature algorithm!")
 	}
 }
 
@@ -352,7 +382,6 @@ func TestBadKeyRequest(t *testing.T) {
 		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
 	}
 
-
 	kr = &KeyRequest{"tobig", 9216}
 
 	kr.A = "rsa"
@@ -400,7 +429,7 @@ func TestDefaultKeyRequest(t *testing.T) {
 		if DefaultKeyRequest.Algo() != "ecdsa" {
 			t.Fatal("Invalid default key request.")
 		}
-	case "PRIVATE KEY":
+	case "Ed25519 PRIVATE KEY":
 		if DefaultKeyRequest.Algo() != "ed25519" {
 			t.Fatal("Invalid default key request.")
 		}

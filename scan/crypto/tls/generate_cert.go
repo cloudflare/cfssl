@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 // Generate a self-signed X.509 certificate for a TLS server. Outputs to
@@ -26,6 +27,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 )
 
 var (
@@ -60,7 +63,7 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 			fmt.Fprintf(os.Stderr, "Unable to marshal ED25519 private key: %v", err)
 			os.Exit(2)
 		}
-		return &pem.Block{Type: "PRIVATE KEY", Bytes: b}
+		return &pem.Block{Type: "Ed25519 PRIVATE KEY", Bytes: b}
 	case *ecdsa.PrivateKey:
 		b, err := x509.MarshalECPrivateKey(k)
 		if err != nil {

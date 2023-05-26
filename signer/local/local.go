@@ -34,8 +34,8 @@ import (
 	"github.com/google/certificate-transparency-go/jsonclient"
 
 	zx509 "github.com/zmap/zcrypto/x509"
-	"github.com/zmap/zlint"
-	"github.com/zmap/zlint/lints"
+	"github.com/zmap/zlint/v2"
+	"github.com/zmap/zlint/v2/lint"
 	"golang.org/x/net/context"
 )
 
@@ -131,7 +131,7 @@ func NewSignerFromFile(caFile, caKeyFile string, policy *config.Signing) (*Signe
 // concrete zlint LintResults so that callers can further inspect the cause of
 // the failing lints.
 type LintError struct {
-	ErrorResults map[string]lints.LintResult
+	ErrorResults map[string]lint.LintResult
 }
 
 func (e *LintError) Error() string {
@@ -140,14 +140,12 @@ func (e *LintError) Error() string {
 }
 
 // lint performs pre-issuance linting of a given TBS certificate template when
-// the provided errLevel is > 0. Any lint results with a status higher than the
-// errLevel that isn't created by a lint in the ignoreMap will result in
-// a LintError being returned to the caller. Note that the template is provided
-// by-value and not by-reference. This is important as the lint function needs
-// to mutate the template's signature algorithm to match the lintPriv.
-func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, ignoreMap map[string]bool) error {
-	// Always return nil when linting is disabled (lints.Reserved == 0).
-	if errLevel == lints.Reserved {
+// the provided errLevel is > 0. Note that the template is provided by-value and
+// not by-reference. This is important as the lint function needs to mutate the
+// template's signature algorithm to match the lintPriv.
+func (s *Signer) lint(template x509.Certificate, errLevel lint.LintStatus, lintRegistry lint.Registry) error {
+	// Always return nil when linting is disabled (lint.Reserved == 0).
+	if errLevel == lint.Reserved {
 		return nil
 	}
 	// without a lintPriv key to use to sign the tbsCertificate we can't lint it.
@@ -174,12 +172,9 @@ func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, igno
 	if err != nil {
 		return cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 	}
-	errorResults := map[string]lints.LintResult{}
-	results := zlint.LintCertificate(prelintCert)
+	errorResults := map[string]lint.LintResult{}
+	results := zlint.LintCertificateEx(prelintCert, lintRegistry)
 	for name, res := range results.Results {
-		if ignoreMap[name] {
-			continue
-		}
 		if res.Status > errLevel {
 			errorResults[name] = *res
 		}
@@ -192,7 +187,7 @@ func (s *Signer) lint(template x509.Certificate, errLevel lints.LintStatus, igno
 	return nil
 }
 
-func (s *Signer) sign(template *x509.Certificate, lintErrLevel lints.LintStatus, lintIgnore map[string]bool) (cert []byte, err error) {
+func (s *Signer) sign(template *x509.Certificate, lintErrLevel lint.LintStatus, lintRegistry lint.Registry) (cert []byte, err error) {
 	var initRoot bool
 	if s.ca == nil {
 		if !template.IsCA {
@@ -206,7 +201,7 @@ func (s *Signer) sign(template *x509.Certificate, lintErrLevel lints.LintStatus,
 		initRoot = true
 	}
 
-	if err := s.lint(*template, lintErrLevel, lintIgnore); err != nil {
+	if err := s.lint(*template, lintErrLevel, lintRegistry); err != nil {
 		return nil, err
 	}
 
@@ -303,7 +298,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			cferr.BadRequest, errors.New("not a csr"))
 	}
 
-	csrTemplate, err := signer.ParseCertificateRequest(s, block.Bytes)
+	csrTemplate, err := signer.ParseCertificateRequest(s, profile, block.Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +449,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
 		var poisonedPreCert = certTBS
 		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
-		cert, err = s.sign(&poisonedPreCert, profile.LintErrLevel, profile.IgnoredLintsMap)
+		cert, err = s.sign(&poisonedPreCert, profile.LintErrLevel, profile.LintRegistry)
 		if err != nil {
 			return
 		}
@@ -499,7 +494,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	var signedCert []byte
-	signedCert, err = s.sign(&certTBS, profile.LintErrLevel, profile.IgnoredLintsMap)
+	signedCert, err = s.sign(&certTBS, profile.LintErrLevel, profile.LintRegistry)
 	if err != nil {
 		return nil, err
 	}

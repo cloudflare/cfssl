@@ -3,6 +3,7 @@
 package initca
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -94,7 +95,6 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	cert, err = s.Sign(signReq)
 
 	return
-
 }
 
 // NewFromPEM creates a new root certificate from the key file passed in.
@@ -209,6 +209,16 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
 		if ca.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaPublicKey.X) != 0 {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+	case ca.PublicKeyAlgorithm == x509.Ed25519:
+		var ed25519PublicKey ed25519.PublicKey
+		var ok bool
+		if ed25519PublicKey, ok = priv.Public().(ed25519.PublicKey); !ok {
+			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
+		}
+
+		if !(bytes.Equal(ca.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
 	default:

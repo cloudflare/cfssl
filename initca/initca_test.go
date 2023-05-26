@@ -23,7 +23,7 @@ var validKeyParams = []csr.KeyRequest{
 	{A: "ecdsa", S: 256},
 	{A: "ecdsa", S: 384},
 	{A: "ecdsa", S: 521},
-	{A: "ed25519",},
+	{A: "ed25519", S: 256},
 }
 
 var validCAConfigs = []csr.CAConfig{
@@ -150,7 +150,7 @@ func TestInitCA(t *testing.T) {
 			}
 			s.SetPolicy(CAPolicy())
 
-			// Sign RSA and ECDSA customer CSRs.
+			// Sign RSA, ECDSA and ed25519 customer CSRs.
 			for _, csrFile := range csrFiles {
 				csrBytes, err := ioutil.ReadFile(csrFile)
 				if err != nil {

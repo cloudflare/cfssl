@@ -1,7 +1,9 @@
 dist/*
-cli/serve/static.rice-box.go
+cli/serve/rice-box.go
 coverage.txt
 profile.out
 bin
 *.deb
 *.rpm
+test
+
