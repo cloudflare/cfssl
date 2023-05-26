@@ -260,12 +260,12 @@ var fileTests = []fileTest{
 	},
 
 	// DSA is NOT supported.
-	// Keyless bundling, expect private key error "NotRSAOrECC"
+	// Keyless bundling, expect private key error "NotRSAOrECCOrEd25519"
 	{
 		cert:          certDSA2048,
 		caBundleFile:  testCFSSLRootBundle,
 		intBundleFile: testCFSSLIntBundle,
-		errorCallback: ExpectErrorMessages([]string{`"code":2200,`, `"message":"Private key algorithm is not RSA or ECC"`}),
+		errorCallback: ExpectErrorMessages([]string{`"code":2200,`, `"message":"Private key algorithm is not RSA or ECC or Ed25519"`}),
 	},
 	// Bundling with DSA private key, expect error "Failed to parse private key"
 	{

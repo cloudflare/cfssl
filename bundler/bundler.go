@@ -601,7 +601,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
 	} else {
 		switch {
@@ -609,7 +609,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
 		case cert.PublicKeyAlgorithm == x509.Ed25519:
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
 	}
 
