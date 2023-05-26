@@ -13,8 +13,8 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
-	"io"
 	"fmt"
+	"io"
 	"net"
 	"net/mail"
 	"net/url"
@@ -279,7 +279,7 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 		panic("Generate should have failed to produce a valid key.")
 	}
 
-	csr, err = Generate(priv.(crypto.Signer), req) // TODO: solve
+	csr, err = Generate(priv.(crypto.Signer), req)
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
