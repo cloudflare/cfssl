@@ -158,8 +158,6 @@ func DefaultSigAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 		default:
 			return x509.SHA1WithRSA
 		}
-	case ed25519.PublicKey:
-		return x509.PureEd25519
 	case *ecdsa.PublicKey:
 		switch pub.Curve {
 		case elliptic.P256():
