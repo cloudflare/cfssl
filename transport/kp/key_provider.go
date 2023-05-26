@@ -246,10 +246,6 @@ func (sp *StandardProvider) Generate(algo string, size int) (err error) {
 
 		sp.internal.priv = priv
 	case "ed25519":
-		if size != (ed25519.PublicKeySize * 8) {
-			return errors.New("transport: ed25519 keys must be 256 bits")
-		}
-
 		seed := make([]byte, ed25519.SeedSize)
 		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
 			return err

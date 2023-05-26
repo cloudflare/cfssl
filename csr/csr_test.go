@@ -317,7 +317,7 @@ func TestECGeneration(t *testing.T) {
 }
 
 func TestED25519Generation(t *testing.T) {
-	kr := &KeyRequest{"ed25519", 256}
+	kr := &KeyRequest{A: "ed25519"}
 	priv, err := kr.Generate()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -374,13 +374,6 @@ func TestBadKeyRequest(t *testing.T) {
 	if _, err := kr.Generate(); err == nil {
 		t.Fatal("Key generation should fail with invalid key size")
 	} else if sa := kr.SigAlgo(); sa != x509.SHA1WithRSA {
-		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
-	}
-
-	kr.A = "ed25519"
-	if _, err := kr.Generate(); err == nil {
-		t.Fatal("Key generation should fail with invalid key size")
-	} else if sa := kr.SigAlgo(); sa != x509.PureEd25519 {
 		t.Fatal("The wrong signature algorithm was returned from SigAlgo!")
 	}
 
@@ -476,7 +469,7 @@ func TestED25519CertRequest(t *testing.T) {
 		},
 		CN:         "cloudflare.com",
 		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com", "https://www.cloudflare.com"},
-		KeyRequest: &KeyRequest{"ed25519", 256},
+		KeyRequest: &KeyRequest{A: "ed25519"},
 	}
 	_, _, err := ParseRequest(req)
 	if err != nil {

@@ -92,7 +92,7 @@ func TestGenerate(t *testing.T) {
 		t.Fatalf("key provider couldn't generate key: %v", err)
 	}
 
-	err = kp.Generate("ed25519", 256)
+	err = kp.Generate("ed25519", 256) // ed25519 key size is ignored
 	if err != nil {
 		t.Fatalf("key provider couldn't generate key: %v", err)
 	}

@@ -93,10 +93,6 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
 	case "ed25519":
-		if kr.Size() != (ed25519.PublicKeySize * 8) {
-			return nil, errors.New("ED25519 keys should be 256 bit long")
-		}
-
 		seed := make([]byte, ed25519.SeedSize)
 		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
 			return nil, err
