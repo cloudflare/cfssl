@@ -398,10 +398,7 @@ func isSelfSigned(cert *x509.Certificate) bool {
 }
 
 func isChainRootNode(cert *x509.Certificate) bool {
-	if isSelfSigned(cert) {
-		return true
-	}
-	return false
+	return isSelfSigned(cert)
 }
 
 func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {

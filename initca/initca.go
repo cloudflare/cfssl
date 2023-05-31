@@ -157,7 +157,7 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 		}
 
 		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
-		if req.CA.PathLength != 0 && req.CA.PathLenZero == true {
+		if req.CA.PathLength != 0 && req.CA.PathLenZero {
 			log.Infof("ignore invalid 'pathlenzero' value")
 		} else {
 			policy.Default.CAConstraint.MaxPathLenZero = req.CA.PathLenZero

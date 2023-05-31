@@ -352,7 +352,7 @@ func cleanCLIOutput(CLIOutput []byte, item string) (cleanedOutput []byte, err er
 	eligibleSearchIndex := strings.Index(outputString, "{")
 	outputString = outputString[eligibleSearchIndex:]
 	// Make sure the item is present in the output.
-	if strings.Index(outputString, itemString) == -1 {
+	if !strings.Contains(outputString, itemString) {
 		return nil, errors.New("Item " + item + " not found in CLI Output")
 	}
 	// We add 2 for the [:"] that follows the item
