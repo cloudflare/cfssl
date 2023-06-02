@@ -202,10 +202,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 		if ca.PublicKey.(*rsa.PublicKey).N.Cmp(rsaPublicKey.N) != 0 {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
-	case ca.PublicKeyAlgorithm == x509.Ed25519:
-		if _, ok := priv.Public().(ed25519.PublicKey); !ok {
-			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
-		}
 	case ca.PublicKeyAlgorithm == x509.ECDSA:
 		var ecdsaPublicKey *ecdsa.PublicKey
 		var ok bool
@@ -221,7 +217,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 		if ed25519PublicKey, ok = priv.Public().(ed25519.PublicKey); !ok {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
-
 		if !(bytes.Equal(ca.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
