@@ -213,7 +213,7 @@ func TestInvalidCAConfig(t *testing.T) {
 
 	_, _, _, err := New(req)
 	if err == nil {
-		t.Fatal("InitCA with bad CAConfig should fail:", err)
+		t.Fatalf("InitCA with bad CAConfig should fail: %v", invalidCAConfig)
 	}
 }
 func TestInvalidCryptoParams(t *testing.T) {
@@ -236,7 +236,7 @@ func TestInvalidCryptoParams(t *testing.T) {
 		}
 		_, _, _, err := New(req)
 		if err == nil {
-			t.Fatal("InitCA with bad params should fail:", err)
+			t.Fatalf("InitCA with bad CAConfig should fail: %v", invalidCAConfig)
 		}
 
 		if !strings.Contains(err.Error(), `"code":2400`) {
