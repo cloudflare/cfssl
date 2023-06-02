@@ -274,7 +274,7 @@ func New(category Category, reason Reason) *Error {
 		case Encrypted:
 			msg = "Private key is encrypted."
 		case NotRSAOrECCOrEd25519:
-			msg = "Private key algorithm is not RSA or ECC"
+			msg = "Private key algorithm is not RSA or ECC or Ed25519"
 		case KeyMismatch:
 			msg = "Private key does not match public key"
 		case GenerationFailed:
