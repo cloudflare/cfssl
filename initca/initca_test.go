@@ -20,10 +20,10 @@ var validKeyParams = []csr.KeyRequest{
 	{A: "rsa", S: 2048},
 	{A: "rsa", S: 3072},
 	{A: "rsa", S: 4096},
-	{A: "ecdsa"},
+	{A: "ecdsa", S: 256},
 	{A: "ecdsa", S: 384},
 	{A: "ecdsa", S: 521},
-	{A: "ed25519", S: 256},
+	{A: "ed25519"},
 }
 
 var validCAConfigs = []csr.CAConfig{
