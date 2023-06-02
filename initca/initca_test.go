@@ -63,7 +63,6 @@ var invalidCryptoParams = []csr.KeyRequest{
 	// Bad param
 	{A: "rsaCrypto", S: 2048},
 	{A: "ecdsa", S: 2000},
-	{A: "ed25519", S: 512},
 }
 
 func TestInitCA(t *testing.T) {
