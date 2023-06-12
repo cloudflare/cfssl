@@ -46,7 +46,8 @@ Example:
         "sums": {
             "certificate_request": {
                 "md5": "95E25336DA65B58DA250C3B5FAA4B97F",
-                "sha-1": "5F1ACE9D14F55E95FAA246A80474873C14E0F42F"
+                "sha-1": "5F1ACE9D14F55E95FAA246A80474873C14E0F42F",
+                "sha-256": "EA8409AE9117FE62A91DBD64F2C7496DC4CF3A06C5D513D5811A1CC1E8B2D180"
             }
         }
     },
