@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2021 Regents of the University of Michigan
+ * ZLint Copyright 2023 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -15,6 +15,7 @@
 package lint
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -30,24 +31,42 @@ type Configuration struct {
 	tree *toml.Tree
 }
 
+// MaybeConfigure is a thin wrapper over Configure.
+//
+// If the provided lint object does not implement the Configurable interface
+// then this function is a noop and nil is always returned.
+//
+// Otherwise, configuration of the provided lint is attempted.
+func (c Configuration) MaybeConfigure(lint interface{}, namespace string) error {
+	configurable, ok := lint.(Configurable)
+	if !ok {
+		return nil
+	}
+	return c.Configure(configurable.Configure(), namespace)
+}
+
 // Configure attempts to deserialize the provided namespace into the provided empty interface.
 //
 // For example, let's say that the name of your lint is MyLint, then the configuration
 // file might look something like the following...
 //
 // ```
+//
 //	[MyLint]
 //	A = 1
 //	B = 2
+//
 // ```
 //
 // Given this, our target struct may look like the following...
 //
 // ```
+//
 //	type MytLint struct {
 //		A int
 //		B uint
 //	}
+//
 // ```
 //
 // So deserializing into this struct would look like...
@@ -56,7 +75,17 @@ type Configuration struct {
 // configuration.Configure(&myLint, myLint.Name())
 // ```
 func (c Configuration) Configure(lint interface{}, namespace string) error {
-	return c.deserializeConfigInto(lint, namespace)
+	err := c.deserializeConfigInto(lint, namespace)
+	if err != nil {
+		details := fmt.Sprintf(
+			"A fatal error occurred while attempting to configure %s. Please visit the [%s] section of "+
+				"your provided configuration and compare it with the output of `zlint -exampleConfig`. Error: %s",
+			namespace,
+			namespace,
+			err.Error())
+		err = errors.New(details)
+	}
+	return err
 }
 
 // NewConfig attempts to instantiate a configuration by consuming the contents of the provided reader.
@@ -121,9 +150,11 @@ func NewEmptyConfig() Configuration {
 // And the following struct definition...
 //
 // ```
-// type SomeOtherLint {
-//		IsWebPKI bool `toml:"is_web_pki"`
-// }
+//
+//	type SomeOtherLint {
+//			IsWebPKI bool `toml:"is_web_pki"`
+//	}
+//
 // ```
 //
 // Then the invocation of this function should be...

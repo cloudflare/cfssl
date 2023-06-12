@@ -39,6 +39,7 @@ var RSAAlgorithmIDToDER = map[string][]byte{
 
 // CheckAlgorithmIDParamNotNULL parses an AlgorithmIdentifier with algorithm OID rsaEncryption to check the Param field is asn1.NULL
 // Expects DER-encoded AlgorithmIdentifier including tag and length.
+//
 //nolint:cyclop
 func CheckAlgorithmIDParamNotNULL(algorithmIdentifier []byte, requiredAlgoID asn1.ObjectIdentifier) error {
 	expectedAlgoIDBytes, ok := RSAAlgorithmIDToDER[requiredAlgoID.String()]
@@ -96,21 +97,21 @@ func CheckAlgorithmIDParamNotNULL(algorithmIdentifier []byte, requiredAlgoID asn
 // Returns the signature field of the tbsCertificate of this certificate in a DER encoded form or an error
 // if the signature field could not be extracted. The encoded form contains the tag and the length.
 //
-//    TBSCertificate  ::=  SEQUENCE  {
-//        version         [0]  EXPLICIT Version DEFAULT v1,
-//        serialNumber         CertificateSerialNumber,
-//        signature            AlgorithmIdentifier,
-//        issuer               Name,
-//        validity             Validity,
-//        subject              Name,
-//        subjectPublicKeyInfo SubjectPublicKeyInfo,
-//        issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
-//                             -- If present, version MUST be v2 or v3
-//        subjectUniqueID [2]  IMPLICIT UniqueIdentifier OPTIONAL,
-//                             -- If present, version MUST be v2 or v3
-//        extensions      [3]  EXPLICIT Extensions OPTIONAL
-//                             -- If present, version MUST be v3
-//        }
+//	TBSCertificate  ::=  SEQUENCE  {
+//	    version         [0]  EXPLICIT Version DEFAULT v1,
+//	    serialNumber         CertificateSerialNumber,
+//	    signature            AlgorithmIdentifier,
+//	    issuer               Name,
+//	    validity             Validity,
+//	    subject              Name,
+//	    subjectPublicKeyInfo SubjectPublicKeyInfo,
+//	    issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
+//	                         -- If present, version MUST be v2 or v3
+//	    subjectUniqueID [2]  IMPLICIT UniqueIdentifier OPTIONAL,
+//	                         -- If present, version MUST be v2 or v3
+//	    extensions      [3]  EXPLICIT Extensions OPTIONAL
+//	                         -- If present, version MUST be v3
+//	    }
 func GetSignatureAlgorithmInTBSEncoded(c *x509.Certificate) ([]byte, error) {
 	input := cryptobyte.String(c.RawTBSCertificate)
 
@@ -140,10 +141,9 @@ func GetSignatureAlgorithmInTBSEncoded(c *x509.Certificate) ([]byte, error) {
 // Returns the algorithm field of the SubjectPublicKeyInfo of the certificate or an error
 // if the algorithm field could not be extracted.
 //
-//    SubjectPublicKeyInfo  ::=  SEQUENCE  {
-//        algorithm            AlgorithmIdentifier,
-//        subjectPublicKey     BIT STRING  }
-//
+//	SubjectPublicKeyInfo  ::=  SEQUENCE  {
+//	    algorithm            AlgorithmIdentifier,
+//	    subjectPublicKey     BIT STRING  }
 func GetPublicKeyOID(c *x509.Certificate) (asn1.ObjectIdentifier, error) {
 	input := cryptobyte.String(c.RawSubjectPublicKeyInfo)
 
@@ -168,10 +168,9 @@ func GetPublicKeyOID(c *x509.Certificate) (asn1.ObjectIdentifier, error) {
 // Returns the algorithm field of the SubjectPublicKeyInfo of the certificate in its encoded form (containing Tag
 // and Length) or an error if the algorithm field could not be extracted.
 //
-//    SubjectPublicKeyInfo  ::=  SEQUENCE  {
-//        algorithm            AlgorithmIdentifier,
-//        subjectPublicKey     BIT STRING  }
-//
+//	SubjectPublicKeyInfo  ::=  SEQUENCE  {
+//	    algorithm            AlgorithmIdentifier,
+//	    subjectPublicKey     BIT STRING  }
 func GetPublicKeyAidEncoded(c *x509.Certificate) ([]byte, error) {
 	input := cryptobyte.String(c.RawSubjectPublicKeyInfo)
 	var spkiContent cryptobyte.String
