@@ -123,10 +123,7 @@ func ValidExpiry(c *x509.Certificate) bool {
 		maxMonths = 120
 	}
 
-	if MonthsValid(c) > maxMonths {
-		return false
-	}
-	return true
+	return MonthsValid(c) <= maxMonths
 }
 
 // SignatureString returns the TLS signature string corresponding to

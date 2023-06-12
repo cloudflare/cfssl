@@ -311,16 +311,11 @@ func getHosts(cert *x509.Certificate) []string {
 	for _, ip := range cert.IPAddresses {
 		hosts = append(hosts, ip.String())
 	}
-	for _, dns := range cert.DNSNames {
-		hosts = append(hosts, dns)
-	}
-	for _, email := range cert.EmailAddresses {
-		hosts = append(hosts, email)
-	}
+	hosts = append(hosts, cert.DNSNames...)
+	hosts = append(hosts, cert.EmailAddresses...)
 	for _, uri := range cert.URIs {
 		hosts = append(hosts, uri.String())
 	}
-
 	return hosts
 }
 
@@ -504,8 +499,6 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 
 // appendCAInfoToCSR appends user-defined extension to a CSR
 func appendExtensionsToCSR(extensions []pkix.Extension, csr *x509.CertificateRequest) error {
-	for _, extension := range extensions {
-		csr.ExtraExtensions = append(csr.ExtraExtensions, extension)
-	}
+	csr.ExtraExtensions = append(csr.ExtraExtensions, extensions...)
 	return nil
 }
