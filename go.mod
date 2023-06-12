@@ -14,7 +14,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/prometheus/client_golang v1.15.1
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	github.com/zmap/zcrypto v0.0.0-20230310154051-c8b263fd8300
 	github.com/zmap/zlint/v3 v3.5.0
 	golang.org/x/crypto v0.9.0
