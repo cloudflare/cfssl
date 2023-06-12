@@ -750,3 +750,42 @@ func (s *String) readASN1(out *String, outTag *asn1.Tag, skipHeader bool) bool {
 
 	return true
 }
+
+const defaultUTCTimeFormatStr = "060102150405Z0700"
+
+// ReadASN1UTCTime decodes an ASN.1 UTCTime into out and advances.
+// It reports whether the read was successful.
+func (s *String) ReadASN1UTCTime(out *time.Time) bool {
+	var bytes String
+	if !s.ReadASN1(&bytes, asn1.UTCTime) {
+		return false
+	}
+	t := string(bytes)
+
+	formatStr := defaultUTCTimeFormatStr
+	var err error
+	res, err := time.Parse(formatStr, t)
+	if err != nil {
+		// Fallback to minute precision if we can't parse second
+		// precision. If we are following X.509 or X.690 we shouldn't
+		// support this, but we do.
+		formatStr = "0601021504Z0700"
+		res, err = time.Parse(formatStr, t)
+	}
+	if err != nil {
+		return false
+	}
+
+	if serialized := res.Format(formatStr); serialized != t {
+		return false
+	}
+
+	if res.Year() >= 2050 {
+		// UTCTime interprets the low order digits 50-99 as 1950-99.
+		// This only applies to its use in the X.509 profile.
+		// See https://tools.ietf.org/html/rfc5280#section-4.1.2.5.1
+		res = res.AddDate(-100, 0, 0)
+	}
+	*out = res
+	return true
+}

@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2021 Regents of the University of Michigan
+ * ZLint Copyright 2023 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -23,7 +23,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/pelletier/go-toml"
 )
@@ -56,12 +55,21 @@ type FilterOptions struct {
 
 // Empty returns true if the FilterOptions is empty and does not specify any
 // elements to filter by.
-func (opts FilterOptions) Empty() bool {
-	return opts.NameFilter == nil &&
-		len(opts.IncludeNames) == 0 &&
-		len(opts.ExcludeNames) == 0 &&
-		len(opts.IncludeSources) == 0 &&
-		len(opts.ExcludeSources) == 0
+func (f FilterOptions) Empty() bool {
+	return f.NameFilter == nil &&
+		len(f.IncludeNames) == 0 &&
+		len(f.ExcludeNames) == 0 &&
+		len(f.IncludeSources) == 0 &&
+		len(f.ExcludeSources) == 0
+}
+
+// AddProfile takes in a Profile and appends all Profile.LintNames
+// into FilterOptions.IncludeNames.
+func (f *FilterOptions) AddProfile(profile Profile) {
+	if f.IncludeNames == nil {
+		f.IncludeNames = make([]string, 0)
+	}
+	f.IncludeNames = append(f.IncludeNames, profile.LintNames...)
 }
 
 // Registry is an interface describing a collection of registered lints.
@@ -71,7 +79,7 @@ func (opts FilterOptions) Empty() bool {
 // Typically users will interact with the global Registry returned by
 // GlobalRegistry(), or a filtered Registry created by applying FilterOptions to
 // the GlobalRegistry()'s Filter function.
-type Registry interface {
+type Registry interface { //nolint: interfacebloat // Somewhat unavoidable here.
 	// Names returns a list of all of the lint names that have been registered
 	// in string sorted order.
 	Names() []string
@@ -82,9 +90,13 @@ type Registry interface {
 	DefaultConfiguration() ([]byte, error)
 	// ByName returns a pointer to the registered lint with the given name, or nil
 	// if there is no such lint registered in the registry.
+	//
+	// @deprecated - use CertificateLints instead.
 	ByName(name string) *Lint
 	// BySource returns a list of registered lints that have the same LintSource as
 	// provided (or nil if there were no such lints in the registry).
+	//
+	// @deprecated - use CertificateLints instead.
 	BySource(s LintSource) []*Lint
 	// Filter returns a new Registry containing only lints that match the
 	// FilterOptions criteria.
@@ -94,22 +106,18 @@ type Registry interface {
 	WriteJSON(w io.Writer)
 	SetConfiguration(config Configuration)
 	GetConfiguration() Configuration
+	// CertificateLints returns an interface used to lookup CertificateLints.
+	CertificateLints() CertificateLinterLookup
+	// RevocationListLitns returns an interface used to lookup RevocationListLints.
+	RevocationListLints() RevocationListLinterLookup
 }
 
 // registryImpl implements the Registry interface to provide a global collection
 // of Lints that have been registered.
 type registryImpl struct {
-	sync.RWMutex
-	// lintsByName is a map of all registered lints by name.
-	lintsByName map[string]*Lint
-	// lintNames is a sorted list of all of the registered lint names. It is
-	// equivalent to collecting the keys from lintsByName into a slice and sorting
-	// them lexicographically.
-	lintNames []string
-	// lintsBySource is a map of all registered lints by source category. Lints
-	// are added to the lintsBySource map by RegisterLint.
-	lintsBySource map[LintSource][]*Lint
-	configuration Configuration
+	certificateLints    certificateLinterLookupImpl
+	revocationListLints revocationListLinterLookupImpl
+	configuration       Configuration
 }
 
 var (
@@ -135,11 +143,9 @@ func (e errDuplicateName) Error() string {
 		e.lintName)
 }
 
-// register adds the provided lint to the Registry. If initialize is true then
-// the lint's Initialize() function will be called before registering the lint.
+// registerLint registers a lint to the registry.
 //
-// An error is returned if the lint or lint's Lint pointer is nil, if the Lint
-// has an empty Name or if the Name was previously registered.
+// @deprecated - use registerCertificateLint instead.
 func (r *registryImpl) register(l *Lint) error {
 	if l == nil {
 		return errNilLint
@@ -147,55 +153,96 @@ func (r *registryImpl) register(l *Lint) error {
 	if l.Lint() == nil {
 		return errNilLintPtr
 	}
-	if l.Name == "" {
-		return errEmptyName
+
+	return r.registerCertificateLint(l.toCertificateLint())
+}
+
+// registerCertificateLint registers a CertificateLint to the registry.
+//
+// An error is returned if the lint or lint's Lint pointer is nil, if the Lint
+// has an empty Name or if the Name was previously registered.
+func (r *registryImpl) registerCertificateLint(l *CertificateLint) error {
+	if l == nil {
+		return errNilLint
 	}
-	if existing := r.ByName(l.Name); existing != nil {
-		return &errDuplicateName{l.Name}
+	if l.Lint() == nil {
+		return errNilLintPtr
 	}
-	r.Lock()
-	defer r.Unlock()
-	r.lintNames = append(r.lintNames, l.Name)
-	r.lintsByName[l.Name] = l
-	r.lintsBySource[l.Source] = append(r.lintsBySource[l.Source], l)
-	sort.Strings(r.lintNames)
-	return nil
+	return r.certificateLints.register(l, l.Name, l.Source)
+}
+
+// registerCertificateLint registers a CertificateLint to the registry.
+//
+// An error is returned if the lint or lint's Lint pointer is nil, if the Lint
+// has an empty Name or if the Name was previously registered.
+func (r *registryImpl) registerRevocationListLint(l *RevocationListLint) error {
+	if l == nil {
+		return errNilLint
+	}
+	if l.Lint() == nil {
+		return errNilLintPtr
+	}
+	return r.revocationListLints.register(l, l.Name, l.Source)
 }
 
 // ByName returns the Lint previously registered under the given name with
 // Register, or nil if no matching lint name has been registered.
+//
+// @deprecated - use r.CertificateLints.ByName() instead.
 func (r *registryImpl) ByName(name string) *Lint {
-	r.RLock()
-	defer r.RUnlock()
-	return r.lintsByName[name]
+	certificateLint := r.certificateLints.ByName(name)
+	if certificateLint == nil {
+		return nil
+	}
+
+	return certificateLint.toLint()
 }
 
 // Names returns a list of all of the lint names that have been registered
 // in string sorted order.
 func (r *registryImpl) Names() []string {
-	r.RLock()
-	defer r.RUnlock()
-	return r.lintNames
+	var names []string
+	names = append(names, r.certificateLints.lintNames...)
+	names = append(names, r.revocationListLints.lintNames...)
+
+	sort.Strings(names)
+	return names
 }
 
 // BySource returns a list of registered lints that have the same LintSource as
 // provided (or nil if there were no such lints).
+//
+// @deprecated use r.CertificateLints().BySource() instead.
 func (r *registryImpl) BySource(s LintSource) []*Lint {
-	r.RLock()
-	defer r.RUnlock()
-	return r.lintsBySource[s]
+	var lints []*Lint
+
+	certificateLints := r.certificateLints.BySource(s)
+	for _, l := range certificateLints {
+		if l == nil {
+			continue
+		}
+		lints = append(lints, l.toLint())
+	}
+
+	return lints
 }
 
 // Sources returns a SourceList of registered LintSources. The list is not
 // sorted but can be sorted by the caller with sort.Sort() if required.
 func (r *registryImpl) Sources() SourceList {
-	r.RLock()
-	defer r.RUnlock()
-	var results SourceList
-	for k := range r.lintsBySource {
-		results = append(results, k)
-	}
-	return results
+	var sources SourceList
+
+	sources = append(sources, r.certificateLints.Sources()...)
+	sources = append(sources, r.revocationListLints.Sources()...)
+	return sources
+}
+
+func (r *registryImpl) CertificateLints() CertificateLinterLookup {
+	return &r.certificateLints
+}
+
+func (r *registryImpl) RevocationListLints() RevocationListLinterLookup {
+	return &r.revocationListLints
 }
 
 // lintNamesToMap converts a list of lit names into a bool hashmap useful for
@@ -209,10 +256,15 @@ func (r *registryImpl) lintNamesToMap(names []string) (map[string]bool, error) {
 	namesMap := make(map[string]bool, len(names))
 	for _, n := range names {
 		n = strings.TrimSpace(n)
-		if l := r.ByName(n); l == nil {
-			return nil, fmt.Errorf("unknown lint name %q", n)
+		if l := r.certificateLints.ByName(n); l != nil {
+			namesMap[n] = true
+			continue
 		}
-		namesMap[n] = true
+		if l := r.revocationListLints.ByName(n); l != nil {
+			namesMap[n] = true
+			continue
+		}
+		return nil, fmt.Errorf("unknown lint name %q", n)
 	}
 	return namesMap, nil
 }
@@ -232,7 +284,9 @@ func sourceListToMap(sources SourceList) map[LintSource]bool {
 // criteria included.
 //
 // FilterOptions are applied in the following order of precedence:
-//   ExcludeSources > IncludeSources > NameFilter > ExcludeNames > IncludeNames
+//
+//	ExcludeSources > IncludeSources > NameFilter > ExcludeNames > IncludeNames
+//
 //nolint:cyclop
 func (r *registryImpl) Filter(opts FilterOptions) (Registry, error) {
 	// If there's no filtering to be done, return the existing Registry.
@@ -262,12 +316,25 @@ func (r *registryImpl) Filter(opts FilterOptions) (Registry, error) {
 	}
 
 	for _, name := range r.Names() {
-		l := r.ByName(name)
+		var meta LintMetadata
+		var registerFunc func() error
 
-		if sourceExcludes != nil && sourceExcludes[l.Source] {
+		if l := r.certificateLints.ByName(name); l != nil {
+			meta = l.LintMetadata
+			registerFunc = func() error {
+				return filteredRegistry.registerCertificateLint(l)
+			}
+		} else if l := r.revocationListLints.ByName(name); l != nil {
+			meta = l.LintMetadata
+			registerFunc = func() error {
+				return filteredRegistry.registerRevocationListLint(l)
+			}
+		}
+
+		if sourceExcludes != nil && sourceExcludes[meta.Source] {
 			continue
 		}
-		if sourceIncludes != nil && !sourceIncludes[l.Source] {
+		if sourceIncludes != nil && !sourceIncludes[meta.Source] {
 			continue
 		}
 		if opts.NameFilter != nil && !opts.NameFilter.MatchString(name) {
@@ -280,9 +347,7 @@ func (r *registryImpl) Filter(opts FilterOptions) (Registry, error) {
 			continue
 		}
 
-		// when adding lints to a filtered registry we do not want Initialize() to
-		// be called a second time, so provide false as the initialize argument.
-		if err := filteredRegistry.register(l); err != nil {
+		if err := registerFunc(); err != nil {
 			return nil, err
 		}
 	}
@@ -295,9 +360,14 @@ func (r *registryImpl) Filter(opts FilterOptions) (Registry, error) {
 func (r *registryImpl) WriteJSON(w io.Writer) {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
-	for _, name := range r.Names() {
+	for _, lint := range r.certificateLints.Lints() {
 		//nolint:errchkjson
-		_ = enc.Encode(r.ByName(name))
+		_ = enc.Encode(lint)
+	}
+
+	for _, lint := range r.revocationListLints.Lints() {
+		//nolint:errchkjson
+		_ = enc.Encode(lint)
 	}
 }
 
@@ -322,13 +392,22 @@ func (r *registryImpl) DefaultConfiguration() ([]byte, error) {
 // for the sake of making unit testing easier.
 func (r *registryImpl) defaultConfiguration(globals []GlobalConfiguration) ([]byte, error) {
 	configurables := map[string]interface{}{}
-	for name, lint := range r.lintsByName {
+	for name, lint := range r.certificateLints.lintsByName {
 		switch configurable := lint.Lint().(type) {
 		case Configurable:
 			configurables[name] = stripGlobalsFromExample(configurable.Configure())
 		default:
 		}
 	}
+
+	for name, lint := range r.revocationListLints.lintsByName {
+		switch configurable := lint.Lint().(type) {
+		case Configurable:
+			configurables[name] = stripGlobalsFromExample(configurable.Configure())
+		default:
+		}
+	}
+
 	for _, config := range globals {
 		switch config.(type) {
 		case *Global:
@@ -360,11 +439,12 @@ func (r *registryImpl) defaultConfiguration(globals []GlobalConfiguration) ([]by
 
 // NewRegistry constructs a Registry implementation that can be used to register
 // lints.
+//
 //nolint:revive
 func NewRegistry() *registryImpl {
 	registry := &registryImpl{
-		lintsByName:   make(map[string]*Lint),
-		lintsBySource: make(map[LintSource][]*Lint),
+		certificateLints:    newCertificateLintLookup(),
+		revocationListLints: newRevocationListLintLookup(),
 	}
 	registry.SetConfiguration(NewEmptyConfig())
 	return registry
@@ -377,18 +457,41 @@ var globalRegistry = NewRegistry()
 // RegisterLint must be called once for each lint to be executed. Normally,
 // RegisterLint is called from the Go init() function of a lint implementation.
 //
-// RegsterLint will call l.Lint's Initialize() function as part of the
-// registration process.
-//
 // IMPORTANT: RegisterLint will panic if given a nil lint, or a lint with a nil
-// Lint pointer, or if the lint's Initialize function errors, or if the lint
-// name matches a previously registered lint's name. These conditions all
-// indicate a bug that should be addressed by a developer.
+// Lint pointer, or if the lint name matches a previously registered lint's
+// name. These conditions all indicate a bug that should be addressed by a
+// developer.
+//
+// @deprecated - use RegisterCertificateLint instead.
 func RegisterLint(l *Lint) {
+	RegisterCertificateLint(l.toCertificateLint())
+}
+
+// RegisterCertificateLint must be called once for each CertificateLint to be executed.
+// Normally, RegisterCertificateLint is called from the Go init() function of a lint implementation.
+//
+// IMPORTANT: RegisterCertificateLint will panic if given a nil lint, or a lint
+// with a nil Lint pointer, or if the lint name matches a previously registered
+// lint's name. These conditions all indicate a bug that should be addressed by
+// a developer.
+func RegisterCertificateLint(l *CertificateLint) {
+	if err := globalRegistry.registerCertificateLint(l); err != nil {
+		panic(fmt.Sprintf("RegisterLint error: %v\n", err.Error()))
+	}
+}
+
+// RegisterRevocationListLint must be called once for each RevocationListLint to be executed.
+// Normally, RegisterRevocationListLint is called from the Go init() function of a lint implementation.
+//
+// IMPORTANT: RegisterRevocationListLint will panic if given a nil lint, or a
+// lint with a nil Lint pointer, or if the lint name matches a previously
+// registered lint's name. These conditions all indicate a bug that should be
+// addressed by a developer.
+func RegisterRevocationListLint(l *RevocationListLint) {
 	// RegisterLint always sets initialize to true. It's assumed this is called by
 	// the package init() functions and therefore must be doing the first
 	// initialization of a lint.
-	if err := globalRegistry.register(l); err != nil {
+	if err := globalRegistry.registerRevocationListLint(l); err != nil {
 		panic(fmt.Sprintf("RegisterLint error: %v\n", err.Error()))
 	}
 }

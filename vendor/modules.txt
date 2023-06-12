@@ -111,15 +111,15 @@ github.com/prometheus/procfs/internal/util
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/weppos/publicsuffix-go v0.15.1-0.20220329081811-9a40b608a236
-## explicit; go 1.11
+# github.com/weppos/publicsuffix-go v0.30.0
+## explicit; go 1.16
 github.com/weppos/publicsuffix-go/publicsuffix
 # github.com/ziutek/mymysql v1.5.4
 ## explicit
 github.com/ziutek/mymysql/godrv
 github.com/ziutek/mymysql/mysql
 github.com/ziutek/mymysql/native
-# github.com/zmap/zcrypto v0.0.0-20220402174210-599ec18ecbac
+# github.com/zmap/zcrypto v0.0.0-20230310154051-c8b263fd8300
 ## explicit; go 1.16
 github.com/zmap/zcrypto/cryptobyte
 github.com/zmap/zcrypto/cryptobyte/asn1
@@ -131,7 +131,7 @@ github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v3 v3.4.1
+# github.com/zmap/zlint/v3 v3.5.0
 ## explicit; go 1.18
 github.com/zmap/zlint/v3
 github.com/zmap/zlint/v3/lint

@@ -41,9 +41,9 @@ func IsOnionV3Address(dnsName string) bool {
 // IsOnionV2Address returns whether-or-not the give address appears to be an Onion V2 address.
 //
 // In order to be an Onion V2 encoded address, the DNS name must satisfy the following:
-//	1. The address has at least two labels.
-//	2. The right most label is the .onion TLD.
-//	3. The second-to-the-right most label is a 16 character long, base32.
+//  1. The address has at least two labels.
+//  2. The right most label is the .onion TLD.
+//  3. The second-to-the-right most label is a 16 character long, base32.
 func IsOnionV2Address(dnsName string) bool {
 	if !strings.HasSuffix(dnsName, "onion") {
 		return false
@@ -56,10 +56,7 @@ func IsOnionV2Address(dnsName string) bool {
 		return false
 	}
 	_, err := onionBase32Encoding.DecodeString(labels[0])
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // IsOnionV3Cert returns whether-or-not at least one of the provided certificates subject common name,

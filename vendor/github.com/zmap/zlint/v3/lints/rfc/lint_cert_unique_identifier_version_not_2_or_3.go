@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2021 Regents of the University of Michigan
+ * ZLint Copyright 2023 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -52,11 +52,11 @@ func NewCertUniqueIdVersion() lint.LintInterface {
 }
 
 func (l *certUniqueIdVersion) CheckApplies(c *x509.Certificate) bool {
-	return c.IssuerUniqueId.Bytes != nil || c.SubjectUniqueId.Bytes != nil
+	return true
 }
 
 func (l *certUniqueIdVersion) Execute(c *x509.Certificate) *lint.LintResult {
-	if (c.Version) != 2 && (c.Version) != 3 {
+	if (c.IssuerUniqueId.Bytes != nil || c.SubjectUniqueId.Bytes != nil) && (c.Version) != 2 && (c.Version) != 3 {
 		return &lint.LintResult{Status: lint.Error}
 	} else {
 		return &lint.LintResult{Status: lint.Pass}
