@@ -1,0 +1,17 @@
+{
+  "key": {
+    "algo": "ed25519"
+  },
+  "names": [
+    {
+    "C": "US",
+    "L": "San Francisco",
+    "ST": "California",
+    "O": "CloudFlare, Inc.",
+    "OU": "Test Certificate Authority"
+    }
+  ],
+  "ca": {
+    "expiry": "5m"
+  }
+}

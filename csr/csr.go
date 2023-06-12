@@ -4,6 +4,7 @@ package csr
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -13,6 +14,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/mail"
 	"net/url"
@@ -21,6 +23,7 @@ import (
 
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 	"github.com/cloudflare/cfssl/log"
 )
 
@@ -64,7 +67,7 @@ func (kr *KeyRequest) Size() int {
 }
 
 // Generate generates a key as specified in the request. Currently,
-// only ECDSA and RSA are supported.
+// only ECDSA, RSA and ed25519 algorithms are supported.
 func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo(), kr.Size())
 	switch kr.Algo() {
@@ -89,6 +92,12 @@ func (kr *KeyRequest) Generate() (crypto.PrivateKey, error) {
 			return nil, errors.New("invalid curve")
 		}
 		return ecdsa.GenerateKey(curve, rand.Reader)
+	case "ed25519":
+		seed := make([]byte, ed25519.SeedSize)
+		if _, err := io.ReadFull(rand.Reader, seed); err != nil {
+			return nil, err
+		}
+		return ed25519.NewKeyFromSeed(seed), nil
 	default:
 		return nil, errors.New("invalid algorithm")
 	}
@@ -120,6 +129,8 @@ func (kr *KeyRequest) SigAlgo() x509.SignatureAlgorithm {
 		default:
 			return x509.ECDSAWithSHA1
 		}
+	case "ed25519":
+		return x509.PureEd25519
 	default:
 		return x509.UnknownSignatureAlgorithm
 	}
@@ -246,6 +257,17 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 		}
 		block := pem.Block{
 			Type:  "EC PRIVATE KEY",
+			Bytes: key,
+		}
+		key = pem.EncodeToMemory(&block)
+	case ed25519.PrivateKey:
+		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+			return
+		}
+		block := pem.Block{
+			Type:  "Ed25519 PRIVATE KEY",
 			Bytes: key,
 		}
 		key = pem.EncodeToMemory(&block)

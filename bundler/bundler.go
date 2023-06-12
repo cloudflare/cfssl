@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -555,7 +556,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 
 // Bundle takes an X509 certificate (already in the
 // Certificate structure), a private key as crypto.Signer in one of the appropriate
-// formats (i.e. *rsa.PrivateKey or *ecdsa.PrivateKey, or even a opaque key), using them to
+// formats (i.e. *rsa.PrivateKey, *ecdsa.PrivateKey or ed25519.PrivateKey, or even a opaque key), using them to
 // build a certificate bundle.
 func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor BundleFlavor) (*Bundle, error) {
 	log.Infof("bundling certificate for %+v", certs[0].Subject)
@@ -576,7 +577,6 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 	if key != nil {
 		switch {
 		case cert.PublicKeyAlgorithm == x509.RSA:
-
 			var rsaPublicKey *rsa.PublicKey
 			if rsaPublicKey, ok = key.Public().(*rsa.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
@@ -592,15 +592,24 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 			if cert.PublicKey.(*ecdsa.PublicKey).X.Cmp(ecdsaPublicKey.X) != 0 {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
+		case cert.PublicKeyAlgorithm == x509.Ed25519:
+			var ed25519PublicKey ed25519.PublicKey
+			if ed25519PublicKey, ok = key.Public().(ed25519.PublicKey); !ok {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
+			if !(bytes.Equal(cert.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
 	} else {
 		switch {
 		case cert.PublicKeyAlgorithm == x509.RSA:
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
+		case cert.PublicKeyAlgorithm == x509.Ed25519:
 		default:
-			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECC)
+			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
 	}
 

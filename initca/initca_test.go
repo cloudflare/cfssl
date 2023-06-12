@@ -23,6 +23,7 @@ var validKeyParams = []csr.KeyRequest{
 	{A: "ecdsa", S: 256},
 	{A: "ecdsa", S: 384},
 	{A: "ecdsa", S: 521},
+	{A: "ed25519"},
 }
 
 var validCAConfigs = []csr.CAConfig{
@@ -46,12 +47,15 @@ var csrFiles = []string{
 	"testdata/ecdsa256.csr",
 	"testdata/ecdsa384.csr",
 	"testdata/ecdsa521.csr",
+	"testdata/ed25519.csr",
 }
 
 var testRSACAFile = "testdata/5min-rsa.pem"
 var testRSACAKeyFile = "testdata/5min-rsa-key.pem"
 var testECDSACAFile = "testdata/5min-ecdsa.pem"
 var testECDSACAKeyFile = "testdata/5min-ecdsa-key.pem"
+var testED25519CAFile = "testdata/5min-ed25519.pem"
+var testED25519CAKeyFile = "testdata/5min-ed25519-key.pem"
 
 var invalidCryptoParams = []csr.KeyRequest{
 	// Weak Key
@@ -160,7 +164,7 @@ func TestInitCA(t *testing.T) {
 			}
 			s.SetPolicy(CAPolicy())
 
-			// Sign RSA and ECDSA customer CSRs.
+			// Sign RSA, ECDSA and ed25519 customer CSRs.
 			for _, csrFile := range csrFiles {
 				csrBytes, err := os.ReadFile(csrFile)
 				if err != nil {
@@ -209,7 +213,7 @@ func TestInvalidCAConfig(t *testing.T) {
 
 	_, _, _, err := New(req)
 	if err == nil {
-		t.Fatal("InitCA with bad CAConfig should fail:", err)
+		t.Fatalf("InitCA with bad CAConfig should fail: %v", invalidCAConfig)
 	}
 }
 func TestInvalidCryptoParams(t *testing.T) {
@@ -232,7 +236,7 @@ func TestInvalidCryptoParams(t *testing.T) {
 		}
 		_, _, _, err := New(req)
 		if err == nil {
-			t.Fatal("InitCA with bad params should fail:", err)
+			t.Fatalf("InitCA with bad CAConfig should fail: %v", invalidCAConfig)
 		}
 
 		if !strings.Contains(err.Error(), `"code":2400`) {
@@ -276,6 +280,43 @@ func TestValidations(t *testing.T) {
 
 func TestRenewRSA(t *testing.T) {
 	certPEM, err := RenewFromPEM(testRSACAFile, testRSACAKeyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// must parse ok
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cert.IsCA {
+		t.Fatal("renewed CA certificate is not CA")
+	}
+
+	// cert expiry must be 5 minutes
+	expiry := cert.NotAfter.Sub(cert.NotBefore).Seconds()
+	if expiry >= 301 || expiry <= 299 {
+		t.Fatal("expiry is not correct:", expiry)
+	}
+
+	// check subject
+
+	if cert.Subject.CommonName != "" {
+		t.Fatal("Bad CommonName")
+	}
+
+	if len(cert.Subject.Country) != 1 || cert.Subject.Country[0] != "US" {
+		t.Fatal("Bad Subject")
+	}
+
+	if len(cert.Subject.Organization) != 1 || cert.Subject.Organization[0] != "CloudFlare, Inc." {
+		t.Fatal("Bad Subject")
+	}
+}
+
+func TestRenewED25519(t *testing.T) {
+	certPEM, err := RenewFromPEM(testED25519CAFile, testED25519CAKeyFile)
 	if err != nil {
 		t.Fatal(err)
 	}

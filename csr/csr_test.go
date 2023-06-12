@@ -3,6 +3,7 @@ package csr
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
@@ -41,6 +42,10 @@ func TestKeyRequest(t *testing.T) {
 	case *ecdsa.PrivateKey:
 		if kr.Algo() != "ecdsa" {
 			t.Fatal("ECDSA key generated, but expected", kr.Algo())
+		}
+	case ed25519.PrivateKey:
+		if kr.Algo() != "ed25519" {
+			t.Fatal("Ed25519 key generated, but expected", kr.Algo())
 		}
 	}
 }
@@ -311,6 +316,21 @@ func TestECGeneration(t *testing.T) {
 	}
 }
 
+func TestED25519Generation(t *testing.T) {
+	kr := &KeyRequest{A: "ed25519"}
+	priv, err := kr.Generate()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	_, ok := priv.(ed25519.PrivateKey)
+	if !ok {
+		t.Fatal("Expected ed25519 key")
+	}
+	if sa := kr.SigAlgo(); sa == x509.UnknownSignatureAlgorithm {
+		t.Fatal("Invalid signature algorithm!")
+	}
+}
+
 func TestRSAKeyGeneration(t *testing.T) {
 	var rsakey *rsa.PrivateKey
 
@@ -404,6 +424,10 @@ func TestDefaultKeyRequest(t *testing.T) {
 		if DefaultKeyRequest.Algo() != "ecdsa" {
 			t.Fatal("Invalid default key request.")
 		}
+	case "Ed25519 PRIVATE KEY":
+		if DefaultKeyRequest.Algo() != "ed25519" {
+			t.Fatal("Invalid default key request.")
+		}
 	}
 }
 
@@ -423,6 +447,29 @@ func TestRSACertRequest(t *testing.T) {
 		CN:         "cloudflare.com",
 		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com", "https://www.cloudflare.com"},
 		KeyRequest: &KeyRequest{"rsa", 2048},
+	}
+	_, _, err := ParseRequest(req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}
+
+// TestED25519CertRequest validates parsing a certificate request with an
+// ED25519 key.
+func TestED25519CertRequest(t *testing.T) {
+	var req = &CertificateRequest{
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "jdoe@example.com", "https://www.cloudflare.com"},
+		KeyRequest: &KeyRequest{A: "ed25519"},
 	}
 	_, _, err := ParseRequest(req)
 	if err != nil {
