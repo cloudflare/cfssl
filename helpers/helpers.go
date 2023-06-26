@@ -457,6 +457,23 @@ func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 	return csrObject, nil
 }
 
+// ParseCSRDER parses a PEM-encoded certificate signing request.
+// It does not check the signature. This is useful for dumping data from a CSR
+// locally.
+func ParseCSRDER(csrDER []byte) (*x509.CertificateRequest, error) {
+	csrObject, err := x509.ParseCertificateRequest(csrDER)
+	if err != nil {
+		return nil, err
+	}
+
+	err = csrObject.CheckSignature()
+	if err != nil {
+		return nil, err
+	}
+
+	return csrObject, nil
+}
+
 // SignerAlgo returns an X.509 signature algorithm from a crypto.Signer.
 func SignerAlgo(priv crypto.Signer) x509.SignatureAlgorithm {
 	switch pub := priv.Public().(type) {
