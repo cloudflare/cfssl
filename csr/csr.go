@@ -408,9 +408,9 @@ func Regenerate(priv crypto.Signer, csr []byte) ([]byte, error) {
 	return x509.CreateCertificateRequest(rand.Reader, req, priv)
 }
 
-// Generate creates a new CSR from a CertificateRequest structure and
+// GenerateDER creates a new CSR(ASN1 DER encoded) from a CertificateRequest structure and
 // an existing key. The KeyRequest field is ignored.
-func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
+func GenerateDER(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
 	sigAlgo := helpers.SignerAlgo(priv)
 	if sigAlgo == x509.UnknownSignatureAlgorithm {
 		return nil, cferr.New(cferr.PrivateKeyError, cferr.Unavailable)
@@ -464,6 +464,17 @@ func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err erro
 	if err != nil {
 		log.Errorf("failed to generate a CSR: %v", err)
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
+		return
+	}
+	return
+}
+
+// Generate creates a new CSR(PEM encoded) from a CertificateRequest structure and
+// an existing key. The KeyRequest field is ignored.
+func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
+
+	csr, err = GenerateDER(priv, req)
+	if err != nil {
 		return
 	}
 	block := pem.Block{

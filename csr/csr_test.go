@@ -705,6 +705,59 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
+func TestGenerateASN1(t *testing.T) {
+	var req = &CertificateRequest{
+		Names: []Name{
+			{
+				C:  "US",
+				ST: "California",
+				L:  "San Francisco",
+				O:  "CloudFlare",
+				OU: "Systems Engineering",
+			},
+		},
+		CN:         "cloudflare.com",
+		Hosts:      []string{"cloudflare.com", "www.cloudflare.com", "192.168.0.1", "jdoe@example.com", "https://www.cloudflare.com"},
+		KeyRequest: &KeyRequest{"ecdsa", 256},
+	}
+
+	key, err := req.KeyRequest.Generate()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	priv, ok := key.(crypto.Signer)
+	if !ok {
+		t.Fatal("Private key is not a signer.")
+	}
+
+	csrDER, err := GenerateDER(priv, req)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	csr, err := helpers.ParseCSRDER(csrDER)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if len(csr.DNSNames) != 2 {
+		t.Fatal("SAN parsing error")
+	}
+
+	if len(csr.IPAddresses) != 1 {
+		t.Fatal("SAN parsing error")
+	}
+
+	if len(csr.EmailAddresses) != 1 {
+		t.Fatal("SAN parsing error")
+	}
+
+	if len(csr.URIs) != 1 {
+		t.Fatal("SAN parsing error")
+	}
+}
+
 // TestReGenerate ensures Regenerate() is abel to use the provided CSR as a template for signing a new
 // CSR using priv.
 func TestReGenerate(t *testing.T) {
