@@ -2,6 +2,7 @@ package sql
 
 import (
 	"math"
+	"reflect"
 	"testing"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/cloudflare/cfssl/certdb/testdb"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -95,8 +95,13 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 	gotMeta, err := got.GetMetadata()
-	require.NoError(t, err)
-	require.Equal(t, map[string]interface{}{"k": "v"}, gotMeta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := map[string]interface{}{"k": "v"}
+	if !reflect.DeepEqual(gotMeta, expected) {
+		t.Fatalf("expected: %+v, got: %+v", expected, gotMeta)
+	}
 
 	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
 
@@ -156,12 +161,19 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 	}
 
 	unexpiredFiltered, err := ta.Accessor.GetUnexpiredCertificatesByLabel([]string{"foo"})
-	require.NoError(t, err)
-	require.Len(t, unexpiredFiltered, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(unexpiredFiltered); l != 1 {
+		t.Error("Should have 1 unexpiredFiltered certificate record:", l)
+	}
 	unexpiredFiltered, err = ta.Accessor.GetUnexpiredCertificatesByLabel([]string{"bar"})
-	require.NoError(t, err)
-	require.Len(t, unexpiredFiltered, 0)
-
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := len(unexpiredFiltered); l != 0 {
+		t.Error("Should have 0 unexpiredFiltered certificate record:", l)
+	}
 }
 func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccessor, t *testing.T) {
 	ta.Truncate()

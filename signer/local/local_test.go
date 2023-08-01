@@ -31,8 +31,6 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/stretchr/testify/require"
-
 	ct "github.com/google/certificate-transparency-go"
 	"github.com/zmap/zlint/v3/lint"
 )
@@ -1622,13 +1620,17 @@ func TestLint(t *testing.T) {
 			} else if err != nil && tc.expectedErr != nil {
 				actual := err.Error()
 				expected := tc.expectedErr.Error()
-				require.Equal(t, expected, actual)
+				if expected != actual {
+					t.Fatalf("expected: %v, got: %v", expected, actual)
+				}
 				if len(tc.expectedErrResults) > 0 {
 					le, ok := err.(*LintError)
 					if !ok {
 						t.Fatalf("expected LintError type err, got %v", err)
 					}
-					require.EqualValues(t, tc.expectedErrResults, le.ErrorResults)
+					if !reflect.DeepEqual(tc.expectedErrResults, le.ErrorResults) {
+						t.Fatalf("expected: %v, got: %v", tc.expectedErrResults, le.ErrorResults)
+					}
 				}
 			}
 		})
