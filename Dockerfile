@@ -20,4 +20,4 @@ RUN git clone https://github.com/cloudflare/cfssl_trust.git /etc/cfssl && \
 EXPOSE 8888
 
 ENTRYPOINT ["cfssl"]
-CMD ["--help"]
+CMD ["serve"]
