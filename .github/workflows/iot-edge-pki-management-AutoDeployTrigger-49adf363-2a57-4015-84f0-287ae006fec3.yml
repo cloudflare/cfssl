@@ -1,0 +1,42 @@
+name: Trigger auto deployment for iot-edge-pki-management
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ containerised ]
+    paths:
+    - '**'
+    - '.github/workflows/iot-edge-pki-management-AutoDeployTrigger-49adf363-2a57-4015-84f0-287ae006fec3.yml'
+
+  # Allow mannually trigger 
+  workflow_dispatch:
+      
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.IOTEDGEPKIMANAGEMENT_AZURE_CREDENTIALS }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: labiotedge.azurecr.io
+          registryUsername: ${{ secrets.IOTEDGEPKIMANAGEMENT_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.IOTEDGEPKIMANAGEMENT_REGISTRY_PASSWORD }}
+          containerAppName: iot-edge-pki-management
+          resourceGroup: lab-iot-edge-rg
+          imageToBuild: labiotedge.azurecr.io/pki/cfsll:${{ github.sha }}
+          dockerfilePath: Dockerfile
+
+     
+
