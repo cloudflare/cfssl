@@ -19,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	ocspConfig "github.com/cloudflare/cfssl/ocsp/config"
+
 	// empty import of zlint/v3 required to have lints registered.
 	_ "github.com/zmap/zlint/v3"
 	"github.com/zmap/zlint/v3/lint"
@@ -121,7 +122,7 @@ type SigningProfile struct {
 	CSRWhitelist                *CSRWhitelist
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
-	ClientProvidesSerialNumbers bool
+	ClientProvidesSerialNumbers bool `json:"client_provides_serial_numbers"`
 	// LintRegistry is the collection of lints that should be used if
 	// LintErrLevel is configured. By default all ZLint lints are used. If
 	// ExcludeLints or ExcludeLintSources are set then this registry will be
