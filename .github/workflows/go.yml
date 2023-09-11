@@ -50,7 +50,7 @@ jobs:
       - run: psql -c 'create database certdb_development;' -U postgres;
       - run: mysql -e 'create database certdb_development;' -u root;
       - run: mysql -e 'SET global sql_mode = 0;' -u root;
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -73,6 +73,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: 1.18
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
