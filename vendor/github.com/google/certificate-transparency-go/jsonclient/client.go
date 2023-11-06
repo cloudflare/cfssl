@@ -274,7 +274,7 @@ func (c *JSONClient) waitForBackoff(ctx context.Context) error {
 }
 
 // PostAndParseWithRetry makes a HTTP POST call, but retries (with backoff) on
-// retriable errors; the caller should set a deadline on the provided context
+// retryable errors; the caller should set a deadline on the provided context
 // to prevent infinite retries.  Return values are as for PostAndParse.
 func (c *JSONClient) PostAndParseWithRetry(ctx context.Context, path string, req, rsp interface{}) (*http.Response, []byte, error) {
 	if ctx == nil {
