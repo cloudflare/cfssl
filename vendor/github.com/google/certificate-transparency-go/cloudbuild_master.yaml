@@ -14,7 +14,6 @@ options:
   - name: go-modules
     path: /go
   env:
-  - GO111MODULE=on
   - GOPROXY=https://proxy.golang.org
   - PROJECT_ROOT=github.com/google/certificate-transparency-go
   - GOPATH=/go
