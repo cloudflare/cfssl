@@ -103,7 +103,7 @@ func TestSignerDBPersistence(t *testing.T) {
 		t.Fatal("API operation failed")
 	}
 
-	crs, err := dbAccessor.GetUnexpiredCertificates()
+	crs, err := dbAccessor.GetUnexpiredCertificates('fake_aki')
 	if err != nil {
 		t.Fatal("Failed to get unexpired certificates")
 	}
