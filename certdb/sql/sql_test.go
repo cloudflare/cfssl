@@ -103,7 +103,7 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 		t.Fatalf("expected: %+v, got: %+v", expected, gotMeta)
 	}
 
-	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
+	unexpired, err := ta.Accessor.GetUnexpiredCertificates('fake_aki')
 
 	if err != nil {
 		t.Fatal(err)
@@ -218,7 +218,7 @@ func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccess
 		t.Errorf("want Certificate %+v, got %+v", want, got)
 	}
 
-	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
+	unexpired, err := ta.Accessor.GetUnexpiredCertificates('fake_aki')
 
 	if err != nil {
 		t.Fatal(err)
