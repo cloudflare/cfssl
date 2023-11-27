@@ -30,7 +30,7 @@ SELECT %s FROM certificates
 
 	selectAllUnexpiredSQL = `
 SELECT %s FROM certificates
-	WHERE CURRENT_TIMESTAMP < expiry;`
+	WHERE CURRENT_TIMESTAMP < expiry AND authority_key_identifier = ?);`
 
 	selectAllRevokedAndUnexpiredWithLabelSQL = `
 SELECT %s FROM certificates
