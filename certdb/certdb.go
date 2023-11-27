@@ -74,7 +74,7 @@ type OCSPRecord struct {
 type Accessor interface {
 	InsertCertificate(cr CertificateRecord) error
 	GetCertificate(serial, aki string) ([]CertificateRecord, error)
-	GetUnexpiredCertificates() ([]CertificateRecord, error)
+	GetUnexpiredCertificates(aki string) ([]CertificateRecord, error)
 	GetRevokedAndUnexpiredCertificates() ([]CertificateRecord, error)
 	GetUnexpiredCertificatesByLabel(labels []string) (crs []CertificateRecord, err error)
 	GetRevokedAndUnexpiredCertificatesByLabel(label string) ([]CertificateRecord, error)
