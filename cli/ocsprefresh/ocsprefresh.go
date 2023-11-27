@@ -4,6 +4,7 @@ package ocsprefresh
 import (
 	"encoding/hex"
 	"errors"
+	"io/ioutil"
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb/dbconf"
@@ -55,9 +56,19 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
+	
+    log.Debug("Loading issuer cert: ", c.CAFile)
+    issuerBytes, err := ioutil.ReadFile(c.CAFile)
+    if err != nil {
+        return nil
+    }
 
+	issuerCert, err := helpers.ParseCertificatePEM([]byte(issuerBytes))
+    if err != nil {
+        return nil
+    }
 	dbAccessor := sql.NewAccessor(db)
-	certs, err := dbAccessor.GetUnexpiredCertificates()
+	certs, err := dbAccessor.GetUnexpiredCertificates(hex.EncodeToString(issuerCert.AuthorityKeyId))
 	if err != nil {
 		return err
 	}
