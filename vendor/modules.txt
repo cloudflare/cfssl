@@ -68,7 +68,7 @@ github.com/kylelemons/go-gypsy/yaml
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
-# github.com/mattn/go-sqlite3 v1.14.18
+# github.com/mattn/go-sqlite3 v1.14.19
 ## explicit; go 1.16
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0
