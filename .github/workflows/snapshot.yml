@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: make snapshot
       - name: Archive snapshot artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: dist/
