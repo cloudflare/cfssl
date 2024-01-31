@@ -39,6 +39,7 @@ func (z *ResultSet) executeCertificate(o *x509.Certificate, registry lint.Regist
 	// Run each lint from the registry.
 	for _, lint := range registry.CertificateLints().Lints() {
 		res := lint.Execute(o, registry.GetConfiguration())
+		res.LintMetadata = lint.LintMetadata
 		z.Results[lint.Name] = res
 		z.updateErrorStatePresent(res)
 	}
@@ -52,6 +53,7 @@ func (z *ResultSet) executeRevocationList(o *x509.RevocationList, registry lint.
 	// Run each lints from the registry.
 	for _, lint := range registry.RevocationListLints().Lints() {
 		res := lint.Execute(o, registry.GetConfiguration())
+		res.LintMetadata = lint.LintMetadata
 		z.Results[lint.Name] = res
 		z.updateErrorStatePresent(res)
 	}

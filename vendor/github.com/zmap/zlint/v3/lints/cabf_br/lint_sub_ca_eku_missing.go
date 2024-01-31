@@ -23,13 +23,15 @@ import (
 type subCAEKUMissing struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "n_sub_ca_eku_missing",
-		Description:   "To be considered Technically Constrained, the Subordinate CA certificate MUST have extkeyUsage extension",
-		Citation:      "BRs: 7.1.5",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewSubCAEKUMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "n_sub_ca_eku_missing",
+			Description:   "To be considered Technically Constrained, the Subordinate CA certificate MUST have extkeyUsage extension",
+			Citation:      "BRs: 7.1.5",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewSubCAEKUMissing,
 	})
 }
 

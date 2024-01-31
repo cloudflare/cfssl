@@ -23,14 +23,16 @@ import (
 type OCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name: "e_ocsp_id_pkix_ocsp_nocheck_ext_not_included_server_auth",
-		Description: "OCSP signing Certificate MUST contain an extension of type id-pkixocsp-nocheck, as" +
-			" defined by RFC6960",
-		Citation:      "BRs: 4.9.9",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewOCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name: "e_ocsp_id_pkix_ocsp_nocheck_ext_not_included_server_auth",
+			Description: "OCSP signing Certificate MUST contain an extension of type id-pkixocsp-nocheck, as" +
+				" defined by RFC6960",
+			Citation:      "BRs: 4.9.9",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewOCSPIDPKIXOCSPNocheckExtNotIncludedServerAuth,
 	})
 }
 

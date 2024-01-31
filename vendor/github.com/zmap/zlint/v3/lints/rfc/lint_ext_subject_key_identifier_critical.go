@@ -28,13 +28,15 @@ RFC 5280: 4.2.1.2
 **********************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_subject_key_identifier_critical",
-		Description:   "The subject key identifier extension MUST be non-critical",
-		Citation:      "RFC 5280: 4.2.1.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectKeyIdCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_subject_key_identifier_critical",
+			Description:   "The subject key identifier extension MUST be non-critical",
+			Citation:      "RFC 5280: 4.2.1.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectKeyIdCritical,
 	})
 }
 

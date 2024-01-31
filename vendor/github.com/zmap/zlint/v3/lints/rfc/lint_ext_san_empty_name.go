@@ -36,13 +36,15 @@ path is not defined by this profile.
 ******************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_san_empty_name",
-		Description:   "General name fields MUST NOT be empty in subjectAlternateNames",
-		Citation:      "RFC 5280: 4.2.1.6",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSANEmptyName,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_san_empty_name",
+			Description:   "General name fields MUST NOT be empty in subjectAlternateNames",
+			Citation:      "RFC 5280: 4.2.1.6",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSANEmptyName,
 	})
 }
 

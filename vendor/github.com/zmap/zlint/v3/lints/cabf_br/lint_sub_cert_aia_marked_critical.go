@@ -23,13 +23,15 @@ import (
 type subCertAiaMarkedCritical struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_sub_cert_aia_marked_critical",
-		Description:   "Subscriber Certificate: authorityInformationAccess MUST NOT be marked critical",
-		Citation:      "BRs: 7.1.2.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewSubCertAiaMarkedCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_sub_cert_aia_marked_critical",
+			Description:   "Subscriber Certificate: authorityInformationAccess MUST NOT be marked critical",
+			Citation:      "BRs: 7.1.2.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewSubCertAiaMarkedCritical,
 	})
 }
 

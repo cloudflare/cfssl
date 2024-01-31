@@ -29,13 +29,15 @@ import (
 type keyUsageIncorrectLength struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_key_usage_incorrect_length",
-		Description:   "The key usage is a bit string with exactly nine possible flags",
-		Citation:      "RFC 5280: 4.2.1.3",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewKeyUsageIncorrectLength,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_key_usage_incorrect_length",
+			Description:   "The key usage is a bit string with exactly nine possible flags",
+			Citation:      "RFC 5280: 4.2.1.3",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewKeyUsageIncorrectLength,
 	})
 }
 

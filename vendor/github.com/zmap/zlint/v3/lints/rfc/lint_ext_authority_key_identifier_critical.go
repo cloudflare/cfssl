@@ -28,13 +28,15 @@ Conforming CAs MUST mark this extension as non-critical.
 **********************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_authority_key_identifier_critical",
-		Description:   "The authority key identifier extension must be non-critical",
-		Citation:      "RFC 5280: 4.2.1.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewAuthorityKeyIdCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_authority_key_identifier_critical",
+			Description:   "The authority key identifier extension must be non-critical",
+			Citation:      "RFC 5280: 4.2.1.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewAuthorityKeyIdCritical,
 	})
 }
 

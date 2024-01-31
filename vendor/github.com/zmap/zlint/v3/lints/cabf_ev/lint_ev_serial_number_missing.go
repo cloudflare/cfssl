@@ -23,13 +23,15 @@ import (
 type evSNMissing struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ev_serial_number_missing",
-		Description:   "EV certificates must include serialNumber in subject",
-		Citation:      "EVGs: 9.2.6",
-		Source:        lint.CABFEVGuidelines,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewEvSNMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ev_serial_number_missing",
+			Description:   "EV certificates must include serialNumber in subject",
+			Citation:      "EVGs: 9.2.6",
+			Source:        lint.CABFEVGuidelines,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewEvSNMissing,
 	})
 }
 

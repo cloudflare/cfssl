@@ -31,13 +31,15 @@ in which the CA’s place	of business	is located.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ca_country_name_invalid",
-		Description:   "Root and Subordinate CA certificates MUST have a two-letter country code specified in ISO 3166-1",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewCaCountryNameInvalid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ca_country_name_invalid",
+			Description:   "Root and Subordinate CA certificates MUST have a two-letter country code specified in ISO 3166-1",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewCaCountryNameInvalid,
 	})
 }
 

@@ -23,13 +23,15 @@ import (
 type IssuerDNTrailingSpace struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_issuer_dn_trailing_whitespace",
-		Description:   "AttributeValue in issuer RelativeDistinguishedName sequence SHOULD NOT have trailing whitespace",
-		Citation:      "lint.AWSLabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewIssuerDNTrailingSpace,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_issuer_dn_trailing_whitespace",
+			Description:   "AttributeValue in issuer RelativeDistinguishedName sequence SHOULD NOT have trailing whitespace",
+			Citation:      "lint.AWSLabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewIssuerDNTrailingSpace,
 	})
 }
 

@@ -26,13 +26,15 @@ import (
 type qcStatemQctypeValid struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_qcstatem_qctype_valid",
-		Description:   "Checks that a QC Statement of the type Id-etsi-qcs-QcType features a non-empty list of only the allowed QcType OIDs",
-		Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.3",
-		Source:        lint.EtsiEsi,
-		EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
-		Lint:          NewQcStatemQctypeValid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_qcstatem_qctype_valid",
+			Description:   "Checks that a QC Statement of the type Id-etsi-qcs-QcType features a non-empty list of only the allowed QcType OIDs",
+			Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.3",
+			Source:        lint.EtsiEsi,
+			EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
+		},
+		Lint: NewQcStatemQctypeValid,
 	})
 }
 

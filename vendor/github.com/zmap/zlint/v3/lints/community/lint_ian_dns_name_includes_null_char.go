@@ -23,13 +23,15 @@ import (
 type IANDNSNull struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ian_dns_name_includes_null_char",
-		Description:   "DNSName MUST NOT include a null character",
-		Citation:      "awslabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewIANDNSNull,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ian_dns_name_includes_null_char",
+			Description:   "DNSName MUST NOT include a null character",
+			Citation:      "awslabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewIANDNSNull,
 	})
 }
 

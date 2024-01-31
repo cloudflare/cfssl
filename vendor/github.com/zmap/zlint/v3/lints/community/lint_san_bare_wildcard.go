@@ -25,13 +25,15 @@ import (
 type brSANBareWildcard struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_san_bare_wildcard",
-		Description:   "A wildcard MUST be accompanied by other data to its right (Only checks DNSName)",
-		Citation:      "awslabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewBrSANBareWildcard,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_san_bare_wildcard",
+			Description:   "A wildcard MUST be accompanied by other data to its right (Only checks DNSName)",
+			Citation:      "awslabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewBrSANBareWildcard,
 	})
 }
 

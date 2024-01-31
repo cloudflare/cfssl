@@ -34,13 +34,15 @@ tbsCertificate
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_cert_sig_alg_not_match_tbs_sig_alg",
-		Description:   "Certificate signature field must match TBSCertificate signature field",
-		Citation:      "RFC 5280, Section 4.1.1.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewMismatchingSigAlg,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_cert_sig_alg_not_match_tbs_sig_alg",
+			Description:   "Certificate signature field must match TBSCertificate signature field",
+			Citation:      "RFC 5280, Section 4.1.1.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewMismatchingSigAlg,
 	})
 }
 

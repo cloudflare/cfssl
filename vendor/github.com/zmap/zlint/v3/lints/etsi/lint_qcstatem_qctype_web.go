@@ -26,13 +26,15 @@ import (
 type qcStatemQctypeWeb struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_qcstatem_qctype_web",
-		Description:   "Checks that a QC Statement of the type Id-etsi-qcs-QcType features at least the type IdEtsiQcsQctWeb",
-		Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.3",
-		Source:        lint.EtsiEsi,
-		EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
-		Lint:          NewQcStatemQctypeWeb,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_qcstatem_qctype_web",
+			Description:   "Checks that a QC Statement of the type Id-etsi-qcs-QcType features at least the type IdEtsiQcsQctWeb",
+			Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.3",
+			Source:        lint.EtsiEsi,
+			EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
+		},
+		Lint: NewQcStatemQctypeWeb,
 	})
 }
 

@@ -23,13 +23,15 @@ import (
 )
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_dnsname_contains_prohibited_reserved_label",
-		Description:   "FQDNs MUST consist solely of Domain Labels that are P‐Labels or Non‐Reserved LDH Labels",
-		Citation:      "BRs: 7.1.4.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.NoReservedDomainLabelsDate,
-		Lint:          NewDNSNameContainsProhibitedReservedLabel,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_dnsname_contains_prohibited_reserved_label",
+			Description:   "FQDNs MUST consist solely of Domain Labels that are P‐Labels or Non‐Reserved LDH Labels",
+			Citation:      "BRs: 7.1.4.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.NoReservedDomainLabelsDate,
+		},
+		Lint: NewDNSNameContainsProhibitedReservedLabel,
 	})
 }
 

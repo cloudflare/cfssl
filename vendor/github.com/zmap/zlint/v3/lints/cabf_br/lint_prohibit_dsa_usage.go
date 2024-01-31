@@ -23,13 +23,15 @@ import (
 type prohibitDSAUsage struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_br_prohibit_dsa_usage",
-		Description:   "DSA was removed from the Baseline Requirements as a valid signature algorithm in 1.7.1.",
-		Citation:      "BRs: v1.7.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_7_1_Date,
-		Lint:          NewProhibitDSAUsage,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_br_prohibit_dsa_usage",
+			Description:   "DSA was removed from the Baseline Requirements as a valid signature algorithm in 1.7.1.",
+			Citation:      "BRs: v1.7.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_7_1_Date,
+		},
+		Lint: NewProhibitDSAUsage,
 	})
 }
 

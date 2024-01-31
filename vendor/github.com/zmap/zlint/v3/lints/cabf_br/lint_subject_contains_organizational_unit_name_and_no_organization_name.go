@@ -32,13 +32,15 @@ This lint check the first requirement, i.e.: Prohibited if the subject:organizat
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_contains_organizational_unit_name_and_no_organization_name",
-		Description:   "If a subject organization name is absent then an organizational unit name MUST NOT be included in subject",
-		Citation:      "BRs: 7.1.4.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_7_9_Date,
-		Lint:          NewSubjectContainsOrganizationalUnitNameButNoOrganizationName,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_contains_organizational_unit_name_and_no_organization_name",
+			Description:   "If a subject organization name is absent then an organizational unit name MUST NOT be included in subject",
+			Citation:      "BRs: 7.1.4.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_7_9_Date,
+		},
+		Lint: NewSubjectContainsOrganizationalUnitNameButNoOrganizationName,
 	})
 }
 

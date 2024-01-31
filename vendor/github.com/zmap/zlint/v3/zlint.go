@@ -24,6 +24,7 @@ import (
 	_ "github.com/zmap/zlint/v3/lints/apple"
 	_ "github.com/zmap/zlint/v3/lints/cabf_br"
 	_ "github.com/zmap/zlint/v3/lints/cabf_ev"
+	_ "github.com/zmap/zlint/v3/lints/cabf_smime_br"
 	_ "github.com/zmap/zlint/v3/lints/community"
 	_ "github.com/zmap/zlint/v3/lints/etsi"
 	_ "github.com/zmap/zlint/v3/lints/mozilla"
@@ -74,7 +75,7 @@ func LintRevocationList(r *x509.RevocationList) *ResultSet {
 // lints that will be run. (See lint.Registry.Filter())
 //
 // If registry is nil then the global registry of all lints is used and this
-// function is equivalent to calling LintRevocationListEx(r).
+// function is equivalent to calling LintRevocationList(r).
 func LintRevocationListEx(r *x509.RevocationList, registry lint.Registry) *ResultSet {
 	if r == nil {
 		return nil

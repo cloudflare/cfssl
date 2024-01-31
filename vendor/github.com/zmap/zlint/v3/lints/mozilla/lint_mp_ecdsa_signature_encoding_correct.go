@@ -45,13 +45,15 @@ an explicit NULL.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_mp_ecdsa_signature_encoding_correct",
-		Description:   "The encoded algorithm identifiers for ECDSA signatures MUST match specific hex-encoded bytes",
-		Citation:      "Mozilla Root Store Policy / Section 5.1.2",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy27Date,
-		Lint:          NewEcdsaSignatureAidEncoding,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_mp_ecdsa_signature_encoding_correct",
+			Description:   "The encoded algorithm identifiers for ECDSA signatures MUST match specific hex-encoded bytes",
+			Citation:      "Mozilla Root Store Policy / Section 5.1.2",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy27Date,
+		},
+		Lint: NewEcdsaSignatureAidEncoding,
 	})
 }
 

@@ -38,13 +38,15 @@ to Unicode normalization form C (NFC) [NFC].
 *******************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_cert_policy_explicit_text_not_utf8",
-		Description:   "Compliant certificates should use the utf8string encoding for explicitText",
-		Citation:      "RFC 6818: 3",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC6818Date,
-		Lint:          NewExplicitTextUtf8,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_cert_policy_explicit_text_not_utf8",
+			Description:   "Compliant certificates should use the utf8string encoding for explicitText",
+			Citation:      "RFC 6818: 3",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC6818Date,
+		},
+		Lint: NewExplicitTextUtf8,
 	})
 }
 

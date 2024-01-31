@@ -23,13 +23,15 @@ import (
 type subCertStreetAddressShouldNotExist struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_sub_cert_street_address_should_not_exist",
-		Description:   "Subscriber Certificate: subject:streetAddress MUST NOT appear if subject:organizationName, subject:givenName, and subject:surname fields are absent.",
-		Citation:      "BRs: 7.1.4.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABGivenNameDate,
-		Lint:          NewSubCertStreetAddressShouldNotExist,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_sub_cert_street_address_should_not_exist",
+			Description:   "Subscriber Certificate: subject:streetAddress MUST NOT appear if subject:organizationName, subject:givenName, and subject:surname fields are absent.",
+			Citation:      "BRs: 7.1.4.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABGivenNameDate,
+		},
+		Lint: NewSubCertStreetAddressShouldNotExist,
 	})
 }
 

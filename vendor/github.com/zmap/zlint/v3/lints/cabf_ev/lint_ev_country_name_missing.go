@@ -23,13 +23,15 @@ import (
 type evCountryMissing struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ev_country_name_missing",
-		Description:   "EV certificates must include countryName in subject",
-		Citation:      "EVGs: 9.2.4",
-		Source:        lint.CABFEVGuidelines,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewEvCountryMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ev_country_name_missing",
+			Description:   "EV certificates must include countryName in subject",
+			Citation:      "EVGs: 9.2.4",
+			Source:        lint.CABFEVGuidelines,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewEvCountryMissing,
 	})
 }
 

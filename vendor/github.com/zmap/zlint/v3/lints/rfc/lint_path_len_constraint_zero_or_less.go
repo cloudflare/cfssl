@@ -46,13 +46,15 @@ not appear, no limit is imposed.
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_path_len_constraint_zero_or_less",
-		Description:   "Where it appears, the pathLenConstraint field MUST be greater than or equal to zero",
-		Citation:      "RFC 5280: 4.2.1.9",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewPathLenNonPositive,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_path_len_constraint_zero_or_less",
+			Description:   "Where it appears, the pathLenConstraint field MUST be greater than or equal to zero",
+			Citation:      "RFC 5280: 4.2.1.9",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewPathLenNonPositive,
 	})
 }
 

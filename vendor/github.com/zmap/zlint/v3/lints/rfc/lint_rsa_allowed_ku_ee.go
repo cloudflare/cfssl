@@ -39,13 +39,15 @@ RFC 3279: 2.3.1  RSA Keys
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rsa_allowed_ku_ee",
-		Description:   "Key usage values digitalSignature, nonRepudiation, keyEncipherment, and dataEncipherment may only be present in an end entity certificate with an RSA key",
-		Citation:      "RFC 3279: 2.3.1",
-		Source:        lint.RFC3279,
-		EffectiveDate: util.RFC3279Date,
-		Lint:          NewRsaAllowedKUEe,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rsa_allowed_ku_ee",
+			Description:   "Key usage values digitalSignature, nonRepudiation, keyEncipherment, and dataEncipherment may only be present in an end entity certificate with an RSA key",
+			Citation:      "RFC 3279: 2.3.1",
+			Source:        lint.RFC3279,
+			EffectiveDate: util.RFC3279Date,
+		},
+		Lint: NewRsaAllowedKUEe,
 	})
 }
 

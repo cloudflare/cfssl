@@ -25,13 +25,15 @@ type checkKeyUsageCritical struct{}
 // "When present, conforming CAs SHOULD mark this extension as critical."
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_key_usage_not_critical",
-		Description:   "The keyUsage extension SHOULD be critical",
-		Citation:      "RFC 5280: 4.2.1.3",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewCheckKeyUsageCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_key_usage_not_critical",
+			Description:   "The keyUsage extension SHOULD be critical",
+			Citation:      "RFC 5280: 4.2.1.3",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewCheckKeyUsageCritical,
 	})
 }
 

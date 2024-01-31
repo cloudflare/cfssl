@@ -31,13 +31,15 @@ The subject directory attributes extension is used to convey
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_subject_directory_attr_critical",
-		Description:   "Conforming CAs MUST mark the Subject Directory Attributes extension as not critical",
-		Citation:      "RFC 5280: 4.2.1.8",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubDirAttrCrit,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_subject_directory_attr_critical",
+			Description:   "Conforming CAs MUST mark the Subject Directory Attributes extension as not critical",
+			Citation:      "RFC 5280: 4.2.1.8",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubDirAttrCrit,
 	})
 }
 

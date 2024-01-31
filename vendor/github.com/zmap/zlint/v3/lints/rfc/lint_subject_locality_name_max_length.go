@@ -32,13 +32,15 @@ RFC 5280: A.1
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_locality_name_max_length",
-		Description:   "The 'Locality Name' field of the subject MUST be less than 129 characters",
-		Citation:      "RFC 5280: A.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectLocalityNameMaxLength,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_locality_name_max_length",
+			Description:   "The 'Locality Name' field of the subject MUST be less than 129 characters",
+			Citation:      "RFC 5280: A.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectLocalityNameMaxLength,
 	})
 }
 
@@ -47,7 +49,7 @@ func NewSubjectLocalityNameMaxLength() lint.LintInterface {
 }
 
 func (l *subjectLocalityNameMaxLength) CheckApplies(c *x509.Certificate) bool {
-	return true
+	return len(c.Subject.Locality) > 0
 }
 
 func (l *subjectLocalityNameMaxLength) Execute(c *x509.Certificate) *lint.LintResult {

@@ -35,13 +35,15 @@ normalized according to Unicode normalization form C (NFC) [NFC].
 *********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_cert_policy_explicit_text_includes_control",
-		Description:   "Explicit text should not include any control characters",
-		Citation:      "RFC 6818: 3",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC6818Date,
-		Lint:          NewControlChar,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_cert_policy_explicit_text_includes_control",
+			Description:   "Explicit text should not include any control characters",
+			Citation:      "RFC 6818: 3",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC6818Date,
+		},
+		Lint: NewControlChar,
 	})
 }
 

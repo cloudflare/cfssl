@@ -30,13 +30,15 @@ scheme (e.g., "http" or "ftp") and a scheme-specific-part.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_san_uri_format_invalid",
-		Description:   "URIs in SAN extension must have a scheme and scheme specific part",
-		Citation:      "RFC5280: 4.2.1.6",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewExtSANURIFormatInvalid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_san_uri_format_invalid",
+			Description:   "URIs in SAN extension must have a scheme and scheme specific part",
+			Citation:      "RFC5280: 4.2.1.6",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewExtSANURIFormatInvalid,
 	})
 }
 

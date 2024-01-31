@@ -62,8 +62,9 @@ var (
 // LintResult contains a LintStatus, and an optional human-readable description.
 // The output of a lint is a LintResult.
 type LintResult struct {
-	Status  LintStatus `json:"result"`
-	Details string     `json:"details,omitempty"`
+	Status       LintStatus   `json:"result"`
+	Details      string       `json:"details,omitempty"`
+	LintMetadata LintMetadata `json:"-"`
 }
 
 // MarshalJSON implements the json.Marshaler interface.

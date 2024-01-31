@@ -43,13 +43,15 @@ type subjectKeyIdMissingCA struct{}
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_subject_key_identifier_missing_ca",
-		Description:   "CAs MUST include a Subject Key Identifier in all CA certificates",
-		Citation:      "RFC 5280: 4.2 & 4.2.1.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectKeyIdMissingCA,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_subject_key_identifier_missing_ca",
+			Description:   "CAs MUST include a Subject Key Identifier in all CA certificates",
+			Citation:      "RFC 5280: 4.2 & 4.2.1.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectKeyIdMissingCA,
 	})
 }
 

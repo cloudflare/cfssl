@@ -30,13 +30,15 @@ When present, DistributionPointName SHOULD include at least one LDAP or HTTP URI
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_distribution_point_missing_ldap_or_uri",
-		Description:   "When present in the CRLDistributionPoints extension, DistributionPointName SHOULD include at least one LDAP or HTTP URI",
-		Citation:      "RFC 5280: 4.2.1.13",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewDistribNoLDAPorURI,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_distribution_point_missing_ldap_or_uri",
+			Description:   "When present in the CRLDistributionPoints extension, DistributionPointName SHOULD include at least one LDAP or HTTP URI",
+			Citation:      "RFC 5280: 4.2.1.13",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewDistribNoLDAPorURI,
 	})
 }
 

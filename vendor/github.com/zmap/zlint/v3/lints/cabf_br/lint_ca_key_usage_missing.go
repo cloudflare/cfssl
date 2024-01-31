@@ -31,13 +31,15 @@ Conforming CAs MUST include this extension in certificates that
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ca_key_usage_missing",
-		Description:   "Root and Subordinate CA certificate keyUsage extension MUST be present",
-		Citation:      "BRs: 7.1.2.1, RFC 5280: 4.2.1.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewCaKeyUsageMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ca_key_usage_missing",
+			Description:   "Root and Subordinate CA certificate keyUsage extension MUST be present",
+			Citation:      "BRs: 7.1.2.1, RFC 5280: 4.2.1.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewCaKeyUsageMissing,
 	})
 }
 

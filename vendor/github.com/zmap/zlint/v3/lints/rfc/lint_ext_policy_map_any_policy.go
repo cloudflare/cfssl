@@ -31,13 +31,15 @@ Each issuerDomainPolicy named in the policy mappings extension SHOULD
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_policy_map_any_policy",
-		Description:   "Policies must not be mapped to or from the anyPolicy value",
-		Citation:      "RFC 5280: 4.2.1.5",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewPolicyMapAnyPolicy,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_policy_map_any_policy",
+			Description:   "Policies must not be mapped to or from the anyPolicy value",
+			Citation:      "RFC 5280: 4.2.1.5",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewPolicyMapAnyPolicy,
 	})
 }
 

@@ -24,14 +24,16 @@ import (
 )
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:            "e_no_underscores_before_1_6_2",
-		Description:     "Before explicitly stating as such in CABF 1.6.2, the stance of RFC5280 is adopted that DNSNames MUST NOT contain an underscore character.",
-		Citation:        "BR 7.1.4.2.1",
-		Source:          lint.CABFBaselineRequirements,
-		EffectiveDate:   util.ZeroDate,
-		IneffectiveDate: util.CABFBRs_1_6_2_Date,
-		Lint:            func() lint.LintInterface { return &NoUnderscoreBefore1_6_2{} },
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:            "e_no_underscores_before_1_6_2",
+			Description:     "Before explicitly stating as such in CABF 1.6.2, the stance of RFC5280 is adopted that DNSNames MUST NOT contain an underscore character.",
+			Citation:        "BR 7.1.4.2.1",
+			Source:          lint.CABFBaselineRequirements,
+			EffectiveDate:   util.ZeroDate,
+			IneffectiveDate: util.CABFBRs_1_6_2_Date,
+		},
+		Lint: func() lint.LintInterface { return &NoUnderscoreBefore1_6_2{} },
 	})
 }
 

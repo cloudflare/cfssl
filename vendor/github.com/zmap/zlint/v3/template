@@ -20,13 +20,15 @@ import (
 )
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "SUBTEST",
-		Description:   "Fill this in...",
-		Citation:      "Fill this in...",
-		Source:        UnknownLintSource,
-		EffectiveDate: "Change this...",
-		Lint:          func() lint.LintInterface { return &SUBST{} },
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "SUBTEST",
+			Description:   "Fill this in...",
+			Citation:      "Fill this in...",
+			Source:        UnknownLintSource,
+			EffectiveDate: "Change this...",
+		},
+		Lint: NewPASCAL_CASE_SUBST,
 	})
 }
 

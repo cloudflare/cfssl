@@ -34,13 +34,15 @@ certificate.
 ************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_name_constraint_maximum_not_absent",
-		Description:   "Within the name constraints name form, the maximum field is not used and therefore MUST be absent",
-		Citation:      "RFC 5280: 4.2.1.10",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewNameConstraintMax,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_name_constraint_maximum_not_absent",
+			Description:   "Within the name constraints name form, the maximum field is not used and therefore MUST be absent",
+			Citation:      "RFC 5280: 4.2.1.10",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewNameConstraintMax,
 	})
 }
 

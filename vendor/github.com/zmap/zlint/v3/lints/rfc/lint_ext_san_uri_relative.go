@@ -37,13 +37,15 @@ Section 7.4.
 *************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_san_uri_relative",
-		Description:   "When the subjectAlternateName extension is present and a URI is used, the name MUST NOT be a relative URI",
-		Citation:      "RFC 5280: 4.2.1.6",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewExtSANURIRelative,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_san_uri_relative",
+			Description:   "When the subjectAlternateName extension is present and a URI is used, the name MUST NOT be a relative URI",
+			Citation:      "RFC 5280: 4.2.1.6",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewExtSANURIRelative,
 	})
 }
 

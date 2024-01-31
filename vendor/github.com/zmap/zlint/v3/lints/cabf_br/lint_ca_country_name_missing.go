@@ -31,13 +31,15 @@ in which the CA’s place	of business	is located.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ca_country_name_missing",
-		Description:   "Root and Subordinate CA certificates MUST have a countryName present in subject information",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewCaCountryNameMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ca_country_name_missing",
+			Description:   "Root and Subordinate CA certificates MUST have a countryName present in subject information",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewCaCountryNameMissing,
 	})
 }
 

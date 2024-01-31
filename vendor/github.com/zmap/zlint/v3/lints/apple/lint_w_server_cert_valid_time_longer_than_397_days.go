@@ -25,14 +25,16 @@ import (
 type serverCertValidityAlmostTooLong struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name: "w_tls_server_cert_valid_time_longer_than_397_days",
-		Description: "TLS server certificates issued on or after September 1, 2020 " +
-			"00:00 GMT/UTC should not have a validity period greater than 397 days",
-		Citation:      "https://support.apple.com/en-us/HT211025",
-		Source:        lint.AppleRootStorePolicy,
-		EffectiveDate: util.AppleReducedLifetimeDate,
-		Lint:          NewServerCertValidityAlmostTooLong,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name: "w_tls_server_cert_valid_time_longer_than_397_days",
+			Description: "TLS server certificates issued on or after September 1, 2020 " +
+				"00:00 GMT/UTC should not have a validity period greater than 397 days",
+			Citation:      "https://support.apple.com/en-us/HT211025",
+			Source:        lint.AppleRootStorePolicy,
+			EffectiveDate: util.AppleReducedLifetimeDate,
+		},
+		Lint: NewServerCertValidityAlmostTooLong,
 	})
 }
 

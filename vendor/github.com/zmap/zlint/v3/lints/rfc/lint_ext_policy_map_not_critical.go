@@ -29,13 +29,15 @@ This extension MAY be supported by CAs and/or applications.
 **********************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_policy_map_not_critical",
-		Description:   "Policy mappings should be marked as critical",
-		Citation:      "RFC 5280: 4.2.1.5",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewPolicyMapCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_policy_map_not_critical",
+			Description:   "Policy mappings should be marked as critical",
+			Citation:      "RFC 5280: 4.2.1.5",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewPolicyMapCritical,
 	})
 }
 

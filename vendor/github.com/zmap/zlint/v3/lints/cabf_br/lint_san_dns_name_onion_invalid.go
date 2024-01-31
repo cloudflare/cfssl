@@ -78,13 +78,15 @@ See also https://github.com/cabforum/documents/issues/191
 *******************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_san_dns_name_onion_invalid",
-		Description:   "certificates with a .onion subject name must be issued in accordance with the Tor address/rendezvous specification",
-		Citation:      "RFC 7686, EVGs v1.7.2: Appendix F, BRs v1.6.9: Appendix C",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          NewOnionNotValid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_san_dns_name_onion_invalid",
+			Description:   "certificates with a .onion subject name must be issued in accordance with the Tor address/rendezvous specification",
+			Citation:      "RFC 7686, EVGs v1.7.2: Appendix F, BRs v1.6.9: Appendix C",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.OnionOnlyEVDate,
+		},
+		Lint: NewOnionNotValid,
 	})
 }
 

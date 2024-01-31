@@ -221,6 +221,9 @@ func (l *CertificateLint) Execute(cert *x509.Certificate, config Configuration) 
 	if l.Source == CABFBaselineRequirements && !util.IsServerAuthCert(cert) {
 		return &LintResult{Status: NA}
 	}
+	if l.Source == CABFSMIMEBaselineRequirements && !((util.IsEmailProtectionCert(cert) && util.HasEmailSAN(cert)) || util.IsSMIMEBRCertificate(cert)) {
+		return &LintResult{Status: NA}
+	}
 	lint := l.Lint()
 	err := config.MaybeConfigure(lint, l.Name)
 	if err != nil {

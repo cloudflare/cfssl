@@ -25,13 +25,15 @@ import (
 type DNSNameUnderscoreInSLD struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_dnsname_underscore_in_sld",
-		Description:   "DNSName MUST NOT contain underscore characters",
-		Citation:      "BRs: 7.1.4.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewDNSNameUnderscoreInSLD,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_dnsname_underscore_in_sld",
+			Description:   "DNSName MUST NOT contain underscore characters",
+			Citation:      "BRs: 7.1.4.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewDNSNameUnderscoreInSLD,
 	})
 }
 

@@ -25,13 +25,15 @@ import (
 type DNSNameLabelLengthTooLong struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rfc_dnsname_label_too_long",
-		Description:   "DNSName labels MUST be less than or equal to 63 characters",
-		Citation:      "RFC 5280: 4.2.1.6, citing RFC 1035",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewDNSNameLabelLengthTooLong,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rfc_dnsname_label_too_long",
+			Description:   "DNSName labels MUST be less than or equal to 63 characters",
+			Citation:      "RFC 5280: 4.2.1.6, citing RFC 1035",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewDNSNameLabelLengthTooLong,
 	})
 }
 

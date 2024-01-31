@@ -25,13 +25,15 @@ import (
 type rsaParsedPubKeyExist struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rsa_no_public_key",
-		Description:   "The RSA public key should be present",
-		Citation:      "awslabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewRsaParsedPubKeyExist,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rsa_no_public_key",
+			Description:   "The RSA public key should be present",
+			Citation:      "awslabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewRsaParsedPubKeyExist,
 	})
 }
 

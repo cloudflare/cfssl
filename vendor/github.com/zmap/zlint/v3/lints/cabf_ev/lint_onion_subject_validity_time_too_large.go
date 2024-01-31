@@ -33,15 +33,17 @@ const (
 type torValidityTooLarge struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name: "e_onion_subject_validity_time_too_large",
-		Description: fmt.Sprintf(
-			"certificates with .onion names can not be valid for more than %d months",
-			maxOnionValidityMonths),
-		Citation:      "EVGs: Appendix F",
-		Source:        lint.CABFEVGuidelines,
-		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          NewTorValidityTooLarge,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name: "e_onion_subject_validity_time_too_large",
+			Description: fmt.Sprintf(
+				"certificates with .onion names can not be valid for more than %d months",
+				maxOnionValidityMonths),
+			Citation:      "EVGs: Appendix F",
+			Source:        lint.CABFEVGuidelines,
+			EffectiveDate: util.OnionOnlyEVDate,
+		},
+		Lint: NewTorValidityTooLarge,
 	})
 }
 

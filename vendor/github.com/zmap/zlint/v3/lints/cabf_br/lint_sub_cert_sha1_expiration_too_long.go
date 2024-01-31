@@ -32,13 +32,15 @@ CAs and Subscribers using such certificates do so at their own risk.
 ****************************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_cert_sha1_expiration_too_long",
-		Description:   "Subscriber certificates using the SHA-1 algorithm SHOULD NOT have an expiration date later than 1 Jan 2017",
-		Citation:      "BRs: 7.1.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_2_1_Date,
-		Lint:          NewSha1ExpireLong,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_cert_sha1_expiration_too_long",
+			Description:   "Subscriber certificates using the SHA-1 algorithm SHOULD NOT have an expiration date later than 1 Jan 2017",
+			Citation:      "BRs: 7.1.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_2_1_Date,
+		},
+		Lint: NewSha1ExpireLong,
 	})
 }
 

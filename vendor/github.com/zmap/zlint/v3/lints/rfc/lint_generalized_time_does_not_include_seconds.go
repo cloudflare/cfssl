@@ -38,13 +38,15 @@ is zero.  GeneralizedTime values MUST NOT include fractional seconds.
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_generalized_time_does_not_include_seconds",
-		Description:   "Generalized time values MUST include seconds",
-		Citation:      "RFC 5280: 4.1.2.5.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewGeneralizedNoSeconds,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_generalized_time_does_not_include_seconds",
+			Description:   "Generalized time values MUST include seconds",
+			Citation:      "RFC 5280: 4.1.2.5.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewGeneralizedNoSeconds,
 	})
 }
 

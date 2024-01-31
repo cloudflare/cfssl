@@ -32,13 +32,15 @@ RFC 5280: A.1
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_common_name_max_length",
-		Description:   "The commonName field of the subject MUST be less than 65 characters",
-		Citation:      "RFC 5280: A.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectCommonNameMaxLength,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_common_name_max_length",
+			Description:   "The commonName field of the subject MUST be less than 65 characters",
+			Citation:      "RFC 5280: A.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectCommonNameMaxLength,
 	})
 }
 
@@ -47,7 +49,7 @@ func NewSubjectCommonNameMaxLength() lint.LintInterface {
 }
 
 func (l *subjectCommonNameMaxLength) CheckApplies(c *x509.Certificate) bool {
-	return true
+	return len(c.Subject.CommonName) > 0
 }
 
 func (l *subjectCommonNameMaxLength) Execute(c *x509.Certificate) *lint.LintResult {

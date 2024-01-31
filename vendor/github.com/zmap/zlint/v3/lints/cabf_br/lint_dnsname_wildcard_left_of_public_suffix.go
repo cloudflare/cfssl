@@ -23,13 +23,15 @@ import (
 type DNSNameWildcardLeftofPublicSuffix struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "n_dnsname_wildcard_left_of_public_suffix",
-		Description:   "the CA MUST establish and follow a documented procedure[^pubsuffix] that determines if the wildcard character occurs in the first label position to the left of a “registry‐controlled” label or “public suffix”",
-		Citation:      "BRs: 3.2.2.6",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewDNSNameWildcardLeftofPublicSuffix,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "n_dnsname_wildcard_left_of_public_suffix",
+			Description:   "the CA MUST establish and follow a documented procedure[^pubsuffix] that determines if the wildcard character occurs in the first label position to the left of a “registry‐controlled” label or “public suffix”",
+			Citation:      "BRs: 3.2.2.6",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewDNSNameWildcardLeftofPublicSuffix,
 	})
 }
 

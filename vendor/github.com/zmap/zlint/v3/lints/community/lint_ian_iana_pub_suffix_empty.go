@@ -25,13 +25,15 @@ import (
 type IANPubSuffix struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ian_iana_pub_suffix_empty",
-		Description:   "Domain SHOULD NOT have a bare public suffix",
-		Citation:      "awslabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewIANPubSuffix,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ian_iana_pub_suffix_empty",
+			Description:   "Domain SHOULD NOT have a bare public suffix",
+			Citation:      "awslabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewIANPubSuffix,
 	})
 }
 

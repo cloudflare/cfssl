@@ -30,13 +30,15 @@ type extDuplicateExtension struct{}
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_duplicate_extension",
-		Description:   "A certificate MUST NOT include more than one instance of a particular extension",
-		Citation:      "RFC 5280: 4.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewExtDuplicateExtension,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_duplicate_extension",
+			Description:   "A certificate MUST NOT include more than one instance of a particular extension",
+			Citation:      "RFC 5280: 4.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewExtDuplicateExtension,
 	})
 }
 

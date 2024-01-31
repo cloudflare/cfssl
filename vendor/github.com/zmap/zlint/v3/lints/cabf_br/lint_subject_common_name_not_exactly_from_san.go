@@ -34,13 +34,15 @@ the subjectAltName extension.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_common_name_not_exactly_from_san",
-		Description:   "The common name field in subscriber certificates must include only names from the SAN extension",
-		Citation:      "BRs: 7.1.4.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_8_0_Date,
-		Lint:          NewSubjectCommonNameNotExactlyFromSAN,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_common_name_not_exactly_from_san",
+			Description:   "The common name field in subscriber certificates must include only names from the SAN extension",
+			Citation:      "BRs: 7.1.4.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_8_0_Date,
+		},
+		Lint: NewSubjectCommonNameNotExactlyFromSAN,
 	})
 }
 

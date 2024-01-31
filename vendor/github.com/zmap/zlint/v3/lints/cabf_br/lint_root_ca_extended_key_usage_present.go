@@ -28,13 +28,15 @@ This extension MUST NOT be present.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_root_ca_extended_key_usage_present",
-		Description:   "Root CA Certificate: extendedKeyUsage MUST NOT be present.t",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewRootCAContainsEKU,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_root_ca_extended_key_usage_present",
+			Description:   "Root CA Certificate: extendedKeyUsage MUST NOT be present.t",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewRootCAContainsEKU,
 	})
 }
 

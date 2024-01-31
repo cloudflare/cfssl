@@ -26,13 +26,15 @@ import (
 type qcStatemEtsiTypeAsStatem struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_qcstatem_etsi_type_as_statem",
-		Description:   "Checks for erroneous QC Statement OID that actually are represented by ETSI ESI QC type OID.",
-		Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.3",
-		Source:        lint.EtsiEsi,
-		EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
-		Lint:          NewQcStatemEtsiTypeAsStatem,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_qcstatem_etsi_type_as_statem",
+			Description:   "Checks for erroneous QC Statement OID that actually are represented by ETSI ESI QC type OID.",
+			Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.3",
+			Source:        lint.EtsiEsi,
+			EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
+		},
+		Lint: NewQcStatemEtsiTypeAsStatem,
 	})
 }
 

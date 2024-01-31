@@ -55,13 +55,15 @@ var (
 type signatureAlgorithmNotSupported struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_signature_algorithm_not_supported",
-		Description:   "Certificates MUST meet the following requirements for algorithm Source: SHA-1*, SHA-256, SHA-384, SHA-512",
-		Citation:      "BRs: 6.1.5",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewSignatureAlgorithmNotSupported,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_signature_algorithm_not_supported",
+			Description:   "Certificates MUST meet the following requirements for algorithm Source: SHA-1*, SHA-256, SHA-384, SHA-512",
+			Citation:      "BRs: 6.1.5",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewSignatureAlgorithmNotSupported,
 	})
 }
 

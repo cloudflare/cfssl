@@ -30,13 +30,15 @@ RSA keys whose modulus size in bits is divisible by 8, and is at least 2048.
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_mp_modulus_must_be_divisible_by_8",
-		Description:   "RSA keys must have a modulus size divisible by 8",
-		Citation:      "Mozilla Root Store Policy / Section 5.1",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy24Date,
-		Lint:          NewModulusDivisibleBy8,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_mp_modulus_must_be_divisible_by_8",
+			Description:   "RSA keys must have a modulus size divisible by 8",
+			Citation:      "Mozilla Root Store Policy / Section 5.1",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy24Date,
+		},
+		Lint: NewModulusDivisibleBy8,
 	})
 }
 

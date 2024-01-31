@@ -30,13 +30,15 @@ signing OCSP responses, then the digitalSignature bit MUST be set.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ca_crl_sign_not_set",
-		Description:   "Root and Subordinate CA certificate keyUsage extension's crlSign bit MUST be set",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewCaCRLSignNotSet,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ca_crl_sign_not_set",
+			Description:   "Root and Subordinate CA certificate keyUsage extension's crlSign bit MUST be set",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewCaCRLSignNotSet,
 	})
 }
 

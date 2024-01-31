@@ -27,13 +27,15 @@ import (
 type torServiceDescHashInvalid struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_tor_service_descriptor_hash_invalid",
-		Description:   "certificates with v2 .onion names need valid TorServiceDescriptors in extension",
-		Citation:      "BRs: Ballot 201, Ballot SC27",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV201Date,
-		Lint:          NewTorServiceDescHashInvalid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_tor_service_descriptor_hash_invalid",
+			Description:   "certificates with v2 .onion names need valid TorServiceDescriptors in extension",
+			Citation:      "BRs: Ballot 201, Ballot SC27",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV201Date,
+		},
+		Lint: NewTorServiceDescHashInvalid,
 	})
 }
 

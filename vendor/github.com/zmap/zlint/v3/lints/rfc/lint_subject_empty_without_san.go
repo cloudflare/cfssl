@@ -36,13 +36,15 @@ subjectAltName extension as non-critical.
 *************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_empty_without_san",
-		Description:   "CAs MUST support subject alternative name if the subject field is an empty sequence",
-		Citation:      "RFC 5280: 4.2 & 4.2.1.6",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewEmptyWithoutSAN,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_empty_without_san",
+			Description:   "CAs MUST support subject alternative name if the subject field is an empty sequence",
+			Citation:      "RFC 5280: 4.2 & 4.2.1.6",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewEmptyWithoutSAN,
 	})
 }
 

@@ -36,13 +36,15 @@ Further, if the only subject identity included in the certificate is
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_san_not_critical_without_subject",
-		Description:   "If there is an empty subject field, then the SAN extension MUST be critical",
-		Citation:      "RFC 5280: 4.2.1.6",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewExtSANNotCritNoSubject,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_san_not_critical_without_subject",
+			Description:   "If there is an empty subject field, then the SAN extension MUST be critical",
+			Citation:      "RFC 5280: 4.2.1.6",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewExtSANNotCritNoSubject,
 	})
 }
 

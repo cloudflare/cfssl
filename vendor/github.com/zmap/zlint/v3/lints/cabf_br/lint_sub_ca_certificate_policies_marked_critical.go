@@ -28,13 +28,15 @@ This extension MUST be present and SHOULD NOT be marked critical.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_ca_certificate_policies_marked_critical",
-		Description:   "Subordinate CA certificates certificatePolicies extension should not be marked as critical",
-		Citation:      "BRs: 7.1.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewSubCACertPolicyCrit,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_ca_certificate_policies_marked_critical",
+			Description:   "Subordinate CA certificates certificatePolicies extension should not be marked as critical",
+			Citation:      "BRs: 7.1.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewSubCACertPolicyCrit,
 	})
 }
 

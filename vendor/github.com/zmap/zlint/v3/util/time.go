@@ -21,6 +21,10 @@ import (
 	"github.com/zmap/zcrypto/x509"
 )
 
+const (
+	DurationDay = 24 * time.Hour
+)
+
 var (
 	ZeroDate                   = time.Date(0000, time.January, 1, 0, 0, 0, 0, time.UTC)
 	RFC1035Date                = time.Date(1987, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -72,6 +76,11 @@ var (
 	CABFBRs_1_8_0_Date                               = time.Date(2021, time.August, 25, 0, 0, 0, 0, time.UTC)
 	NoReservedDomainLabelsDate                       = time.Date(2021, time.October, 1, 0, 0, 0, 0, time.UTC)
 	CABFBRs_OU_Prohibited_Date                       = time.Date(2022, time.September, 1, 0, 0, 0, 0, time.UTC)
+	CABF_SMIME_BRs_1_0_0_Date                        = time.Date(2023, time.September, 1, 0, 0, 0, 0, time.UTC)
+	// Enforcement date of CRL reason codes from Ballot SC 061
+	CABFBRs_1_8_7_Date = time.Date(2023, time.July, 15, 0, 0, 0, 0, time.UTC)
+	// Updates to the CABF BRs and EVGLs from Ballot SC 062 https://cabforum.org/2023/03/17/ballot-sc62v2-certificate-profiles-update/
+	SC62EffectiveDate = time.Date(2023, time.September, 15, 0, 0, 0, 0, time.UTC)
 )
 
 var (

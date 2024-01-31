@@ -28,13 +28,15 @@ The Certificate Subject MUST contain the following: organizationName (OID 2.5.4.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ca_organization_name_missing",
-		Description:   "Root and Subordinate CA certificates MUST have a organizationName present in subject information",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewCaOrganizationNameMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ca_organization_name_missing",
+			Description:   "Root and Subordinate CA certificates MUST have a organizationName present in subject information",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewCaOrganizationNameMissing,
 	})
 }
 

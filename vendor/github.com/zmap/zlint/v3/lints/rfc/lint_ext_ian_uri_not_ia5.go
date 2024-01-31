@@ -30,13 +30,15 @@ stored in the uniformResourceIdentifier (an IA5String).
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_ian_uri_not_ia5",
-		Description:   "When issuer alternative name contains a URI, the name MUST be an IA5 string",
-		Citation:      "RFC5280: 4.2.1.7",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewIANURIIA5String,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_ian_uri_not_ia5",
+			Description:   "When issuer alternative name contains a URI, the name MUST be an IA5 string",
+			Citation:      "RFC5280: 4.2.1.7",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewIANURIIA5String,
 	})
 }
 

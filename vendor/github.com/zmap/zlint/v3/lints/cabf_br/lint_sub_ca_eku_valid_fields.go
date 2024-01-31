@@ -23,13 +23,15 @@ import (
 type subCAEKUValidFields struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "n_sub_ca_eku_not_technically_constrained",
-		Description:   "Subordinate CA extkeyUsage, either id-kp-serverAuth or id-kp-clientAuth or both values MUST be present to be technically constrained.",
-		Citation:      "BRs: 7.1.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV116Date,
-		Lint:          NewSubCAEKUValidFields,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "n_sub_ca_eku_not_technically_constrained",
+			Description:   "Subordinate CA extkeyUsage, either id-kp-serverAuth or id-kp-clientAuth or both values MUST be present to be technically constrained.",
+			Citation:      "BRs: 7.1.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV116Date,
+		},
+		Lint: NewSubCAEKUValidFields,
 	})
 }
 

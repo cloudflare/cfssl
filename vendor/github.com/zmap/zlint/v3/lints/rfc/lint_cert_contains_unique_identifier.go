@@ -36,13 +36,15 @@ type CertContainsUniqueIdentifier struct{}
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_cert_contains_unique_identifier",
-		Description:   "CAs MUST NOT generate certificate with unique identifiers",
-		Source:        lint.RFC5280,
-		Citation:      "RFC 5280: 4.1.2.8",
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewCertContainsUniqueIdentifier,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_cert_contains_unique_identifier",
+			Description:   "CAs MUST NOT generate certificate with unique identifiers",
+			Source:        lint.RFC5280,
+			Citation:      "RFC 5280: 4.1.2.8",
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewCertContainsUniqueIdentifier,
 	})
 }
 

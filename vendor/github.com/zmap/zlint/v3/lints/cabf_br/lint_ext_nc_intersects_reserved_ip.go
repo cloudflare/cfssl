@@ -34,13 +34,15 @@ Subject commonName field containing a Reserved IP Address or Internal Name.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_nc_intersects_reserved_ip",
-		Description:   "iPAddress name constraint intersects an IANA reserved network",
-		Citation:      "BRs: 7.1.5 / 7.1.4.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewNCReservedIPNet,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_nc_intersects_reserved_ip",
+			Description:   "iPAddress name constraint intersects an IANA reserved network",
+			Citation:      "BRs: 7.1.5 / 7.1.4.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewNCReservedIPNet,
 	})
 }
 

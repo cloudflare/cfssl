@@ -25,14 +25,16 @@ import (
 type dsaTooShort struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:        "e_dsa_shorter_than_2048_bits",
-		Description: "DSA modulus size must be at least 2048 bits",
-		Citation:    "BRs v1.7.0: 6.1.5",
-		// Refer to BRs: 6.1.5, taking the statement "Before 31 Dec 2010" literally
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewDsaTooShort,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:        "e_dsa_shorter_than_2048_bits",
+			Description: "DSA modulus size must be at least 2048 bits",
+			Citation:    "BRs v1.7.0: 6.1.5",
+			// Refer to BRs: 6.1.5, taking the statement "Before 31 Dec 2010" literally
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewDsaTooShort,
 	})
 }
 

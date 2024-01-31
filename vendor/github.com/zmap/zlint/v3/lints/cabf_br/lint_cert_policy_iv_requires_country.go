@@ -34,13 +34,15 @@ the Subject field.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_cert_policy_iv_requires_country",
-		Description:   "If certificate policy 2.23.140.1.2.3 is included, countryName MUST be included in subject",
-		Citation:      "BRs: 7.1.6.4",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV131Date,
-		Lint:          NewCertPolicyIVRequiresCountry,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_cert_policy_iv_requires_country",
+			Description:   "If certificate policy 2.23.140.1.2.3 is included, countryName MUST be included in subject",
+			Citation:      "BRs: 7.1.6.4",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV131Date,
+		},
+		Lint: NewCertPolicyIVRequiresCountry,
 	})
 }
 

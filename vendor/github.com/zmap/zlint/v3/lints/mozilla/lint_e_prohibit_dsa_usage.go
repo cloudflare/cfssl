@@ -35,13 +35,15 @@ Root certificates in our root program, and any certificate which chains up to th
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_prohibit_dsa_usage",
-		Description:   "DSA is not an explicitly allowed signature algorithm, therefore it is forbidden.",
-		Citation:      "Mozilla Root Store Policy / Section 5.1",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy241Date,
-		Lint:          NewProhibitDSAUsage,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_prohibit_dsa_usage",
+			Description:   "DSA is not an explicitly allowed signature algorithm, therefore it is forbidden.",
+			Citation:      "Mozilla Root Store Policy / Section 5.1",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy241Date,
+		},
+		Lint: NewProhibitDSAUsage,
 	})
 }
 

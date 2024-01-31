@@ -31,14 +31,16 @@ marked critical, and it MUST contain the HTTP URL of the Issuing CA’s OCSP res
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:            "e_sub_ca_aia_missing",
-		Description:     "Subordinate CA Certificate: authorityInformationAccess MUST be present, with the exception of stapling.",
-		Citation:        "BRs: 7.1.2.2",
-		Source:          lint.CABFBaselineRequirements,
-		EffectiveDate:   util.CABEffectiveDate,
-		IneffectiveDate: util.CABFBRs_1_7_1_Date,
-		Lint:            NewCaAiaMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:            "e_sub_ca_aia_missing",
+			Description:     "Subordinate CA Certificate: authorityInformationAccess MUST be present, with the exception of stapling.",
+			Citation:        "BRs: 7.1.2.2",
+			Source:          lint.CABFBaselineRequirements,
+			EffectiveDate:   util.CABEffectiveDate,
+			IneffectiveDate: util.CABFBRs_1_7_1_Date,
+		},
+		Lint: NewCaAiaMissing,
 	})
 }
 

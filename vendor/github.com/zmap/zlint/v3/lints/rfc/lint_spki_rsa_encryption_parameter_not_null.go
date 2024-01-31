@@ -30,13 +30,15 @@ RSA: Encoded algorithm identifier MUST have NULL parameters.
 *******************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_spki_rsa_encryption_parameter_not_null",
-		Description:   "RSA: Encoded public key algorithm identifier MUST have NULL parameters",
-		Citation:      "RFC 4055, Section 1.2",
-		Source:        lint.RFC5280, // RFC4055 is referenced in lint.RFC5280, Section 1
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewRsaSPKIEncryptionParamNotNULL,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_spki_rsa_encryption_parameter_not_null",
+			Description:   "RSA: Encoded public key algorithm identifier MUST have NULL parameters",
+			Citation:      "RFC 4055, Section 1.2",
+			Source:        lint.RFC5280, // RFC4055 is referenced in lint.RFC5280, Section 1
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewRsaSPKIEncryptionParamNotNULL,
 	})
 }
 

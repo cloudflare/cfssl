@@ -23,13 +23,15 @@ import (
 type SubjectDNTrailingSpace struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_subject_dn_trailing_whitespace",
-		Description:   "AttributeValue in subject RelativeDistinguishedName sequence SHOULD NOT have trailing whitespace",
-		Citation:      "lint.AWSLabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewSubjectDNTrailingSpace,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_subject_dn_trailing_whitespace",
+			Description:   "AttributeValue in subject RelativeDistinguishedName sequence SHOULD NOT have trailing whitespace",
+			Citation:      "lint.AWSLabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewSubjectDNTrailingSpace,
 	})
 }
 

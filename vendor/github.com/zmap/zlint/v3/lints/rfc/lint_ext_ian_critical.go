@@ -29,13 +29,15 @@ Issuer Alternative Name
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_ian_critical",
-		Description:   "Issuer alternate name should be marked as non-critical",
-		Citation:      "RFC 5280: 4.2.1.7",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewExtIANCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_ian_critical",
+			Description:   "Issuer alternate name should be marked as non-critical",
+			Citation:      "RFC 5280: 4.2.1.7",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewExtIANCritical,
 	})
 }
 

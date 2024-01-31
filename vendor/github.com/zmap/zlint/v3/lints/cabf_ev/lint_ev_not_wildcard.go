@@ -24,13 +24,15 @@ import (
 )
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ev_not_wildcard",
-		Description:   "Wildcard certificates are not allowed for EV Certificates except for those with .onion as the TLD.",
-		Citation:      "CABF EV Guidelines 1.7.8 Section 9.8.1",
-		Source:        lint.CABFEVGuidelines,
-		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          NewEvNotWildCard,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ev_not_wildcard",
+			Description:   "Wildcard certificates are not allowed for EV Certificates except for those with .onion as the TLD.",
+			Citation:      "CABF EV Guidelines 1.7.8 Section 9.8.1",
+			Source:        lint.CABFEVGuidelines,
+			EffectiveDate: util.OnionOnlyEVDate,
+		},
+		Lint: NewEvNotWildCard,
 	})
 }
 

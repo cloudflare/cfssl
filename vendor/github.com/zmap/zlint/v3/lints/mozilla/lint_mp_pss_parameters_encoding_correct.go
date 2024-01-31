@@ -58,13 +58,15 @@ The encoded AlgorithmIdentifier MUST match the following hex-encoded bytes:
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_mp_rsassa-pss_parameters_encoding_in_signature_algorithm_correct",
-		Description:   "The encoded AlgorithmIdentifier for RSASSA-PSS in the signature algorithm MUST match specific bytes",
-		Citation:      "Mozilla Root Store Policy / Section 5.1.1",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy27Date,
-		Lint:          NewRsaPssAidEncoding,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_mp_rsassa-pss_parameters_encoding_in_signature_algorithm_correct",
+			Description:   "The encoded AlgorithmIdentifier for RSASSA-PSS in the signature algorithm MUST match specific bytes",
+			Citation:      "Mozilla Root Store Policy / Section 5.1.1",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy27Date,
+		},
+		Lint: NewRsaPssAidEncoding,
 	})
 }
 

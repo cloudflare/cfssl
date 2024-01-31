@@ -31,13 +31,15 @@ If present, this extension SHOULD be marked non‐critical.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_ca_eku_critical",
-		Description:   "Subordinate CA certificate extkeyUsage extension should be marked non-critical if present",
-		Citation:      "BRs: 7.1.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV116Date,
-		Lint:          NewSubCAEKUCrit,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_ca_eku_critical",
+			Description:   "Subordinate CA certificate extkeyUsage extension should be marked non-critical if present",
+			Citation:      "BRs: 7.1.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV116Date,
+		},
+		Lint: NewSubCAEKUCrit,
 	})
 }
 

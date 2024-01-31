@@ -40,13 +40,15 @@ type SerialNumberNotPositive struct{}
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_serial_number_not_positive",
-		Description:   "Certificates must have a positive serial number",
-		Citation:      "RFC 5280: 4.1.2.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewSerialNumberNotPositive,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_serial_number_not_positive",
+			Description:   "Certificates must have a positive serial number",
+			Citation:      "RFC 5280: 4.1.2.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewSerialNumberNotPositive,
 	})
 }
 

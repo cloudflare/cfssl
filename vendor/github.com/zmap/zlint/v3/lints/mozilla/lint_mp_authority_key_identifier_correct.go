@@ -39,13 +39,15 @@ CAs MUST NOT issue certificates that have:
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_mp_authority_key_identifier_correct",
-		Description:   "CAs MUST NOT issue certificates that have authority key IDs that include both the key ID and the issuer's issuer name and serial number",
-		Citation:      "Mozilla Root Store Policy / Section 5.2",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy22Date,
-		Lint:          NewAuthorityKeyIdentifierCorrect,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_mp_authority_key_identifier_correct",
+			Description:   "CAs MUST NOT issue certificates that have authority key IDs that include both the key ID and the issuer's issuer name and serial number",
+			Citation:      "Mozilla Root Store Policy / Section 5.2",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy22Date,
+		},
+		Lint: NewAuthorityKeyIdentifierCorrect,
 	})
 }
 

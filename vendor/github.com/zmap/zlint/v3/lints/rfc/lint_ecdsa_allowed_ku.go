@@ -40,13 +40,15 @@ If the keyUsage extension is present in a certificate that indicates
 ***********************************************
 */
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ecdsa_allowed_ku",
-		Description:   "Key usage values keyEncipherment or dataEncipherment MUST NOT be present in certificates with ECDSA public keys",
-		Citation:      "RFC 8813 Section 3",
-		Source:        lint.RFC8813,
-		EffectiveDate: util.RFC8813Date,
-		Lint:          NewEcdsaAllowedKU,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ecdsa_allowed_ku",
+			Description:   "Key usage values keyEncipherment or dataEncipherment MUST NOT be present in certificates with ECDSA public keys",
+			Citation:      "RFC 8813 Section 3",
+			Source:        lint.RFC8813,
+			EffectiveDate: util.RFC8813Date,
+		},
+		Lint: NewEcdsaAllowedKU,
 	})
 }
 

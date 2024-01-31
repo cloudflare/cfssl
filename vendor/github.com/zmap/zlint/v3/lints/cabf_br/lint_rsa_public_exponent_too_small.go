@@ -30,13 +30,15 @@ RSA: The CA SHALL confirm that the value of the public exponent is an odd number
 *******************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rsa_public_exponent_too_small",
-		Description:   "RSA: Value of public exponent is an odd number equal to 3 or more.",
-		Citation:      "BRs: 6.1.6",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV113Date,
-		Lint:          NewRsaParsedTestsExpBounds,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rsa_public_exponent_too_small",
+			Description:   "RSA: Value of public exponent is an odd number equal to 3 or more.",
+			Citation:      "BRs: 6.1.6",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV113Date,
+		},
+		Lint: NewRsaParsedTestsExpBounds,
 	})
 }
 

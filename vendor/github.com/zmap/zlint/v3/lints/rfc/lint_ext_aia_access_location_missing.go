@@ -36,13 +36,15 @@ An authorityInfoAccess extension may include multiple instances of
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_aia_access_location_missing",
-		Description:   "When the id-ad-caIssuers accessMethod is used, at least one instance SHOULD specify an accessLocation that is an HTTP or LDAP URI",
-		Citation:      "RFC 5280: 4.2.2.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewAiaNoHTTPorLDAP,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_aia_access_location_missing",
+			Description:   "When the id-ad-caIssuers accessMethod is used, at least one instance SHOULD specify an accessLocation that is an HTTP or LDAP URI",
+			Citation:      "RFC 5280: 4.2.2.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewAiaNoHTTPorLDAP,
 	})
 }
 

@@ -29,13 +29,15 @@ option.
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ext_cert_policy_contains_noticeref",
-		Description:   "Compliant certificates SHOULD NOT use the noticeRef option",
-		Citation:      "RFC 5280: 4.2.1.4",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewNoticeRefPres,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ext_cert_policy_contains_noticeref",
+			Description:   "Compliant certificates SHOULD NOT use the noticeRef option",
+			Citation:      "RFC 5280: 4.2.1.4",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewNoticeRefPres,
 	})
 }
 
