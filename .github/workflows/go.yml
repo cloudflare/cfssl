@@ -64,7 +64,7 @@ jobs:
       - run: ./bin/goose -path certdb/mysql up;
       - name: Test
         run: ./test.sh
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
 
   golangci:
     name: lint
