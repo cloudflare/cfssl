@@ -3,6 +3,7 @@ package selfsign
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"encoding/asn1"
 	"net"
 	"net/url"
 	"os"
@@ -19,6 +20,8 @@ const (
 	csrFile = "testdata/localhost.csr"
 
 	csr2File = "testdata/sans.csr"
+
+	extCsrFile = "testdata/extension.csr"
 )
 
 func TestDefaultSign(t *testing.T) {
@@ -100,4 +103,55 @@ func TestSANs(t *testing.T) {
 		t.Errorf("cert should have contained URIs %#v but had %#v", expectedURIs, cert.URIs)
 	}
 
+}
+
+func TestExtensions(t *testing.T){
+	csrBytes, err := os.ReadFile(extCsrFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyBytes, err := os.ReadFile(keyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	priv, err := helpers.ParsePrivateKeyPEM(keyBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	profile := config.DefaultConfig()
+	profile.Expiry = 10 * time.Hour
+
+	certData, err := Sign(priv, csrBytes, profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Testing for 1.3.6.1.4.1.311.84.1.1=ASN1:UTF8String:example1
+	extFound := false
+	sampleCustomOid := asn1.ObjectIdentifier{1,3,6,1,4,1,311,84,1,1}
+	sampleValue := "example1"
+
+	for _, e := range cert.Extensions {
+		if(e.Id.Equal(sampleCustomOid) ){
+			var extValue string
+			_, err = asn1.Unmarshal(e.Value, &extValue)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if(extValue == sampleValue){
+				extFound = true
+			}
+		}
+	}
+
+	if !extFound {
+		t.Errorf("Custom x509 extension not found in certificate.")
+	}
 }
