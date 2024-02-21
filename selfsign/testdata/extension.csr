@@ -1,0 +1,95 @@
+Certificate Request:
+    Data:
+        Version: 1 (0x0)
+        Subject: CN = example.com, C = ER, ST = Everywhere, L = Somewhere
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (3072 bit)
+                Modulus:
+                    00:c2:9f:3d:fb:4e:2d:06:d6:6e:b2:21:2e:66:cf:
+                    72:41:91:81:32:27:09:1f:16:b4:1c:5a:4e:7a:91:
+                    58:e3:dc:d8:7a:f8:44:95:dc:94:4d:cf:49:d7:d6:
+                    5c:56:b7:ec:40:2f:a9:fd:2f:e5:26:9d:b4:5d:ea:
+                    8d:07:1d:34:c4:73:3c:7b:a3:3c:1e:f3:62:24:71:
+                    aa:7c:ac:9a:41:33:11:78:87:50:8b:a7:01:17:e2:
+                    cc:4e:bd:68:dd:09:2e:25:04:db:81:f8:01:87:15:
+                    a2:e4:be:03:48:23:1f:e6:ef:f1:0f:69:96:7e:dc:
+                    7d:f0:d1:7e:43:b2:3a:5e:69:94:ce:94:b9:cd:75:
+                    ff:0d:b1:6c:9f:75:3a:e5:c2:17:f4:cc:23:f9:44:
+                    45:bf:ca:e8:68:c0:52:c2:45:9f:85:aa:89:1a:50:
+                    20:99:fa:e8:b1:1d:3e:7d:a2:ff:67:33:a5:42:38:
+                    28:3d:c5:65:70:9d:2f:67:5f:ab:5b:04:d0:77:65:
+                    ae:9d:78:01:0d:54:cf:38:e6:0e:b0:d9:e8:ec:26:
+                    bf:5c:2b:96:5b:51:90:01:3a:6f:ae:f8:77:cc:88:
+                    39:18:f7:6d:81:93:2d:b4:6d:6d:5b:6c:62:d9:58:
+                    d6:ba:74:cc:17:2f:45:77:d1:aa:4b:d1:6b:d2:f1:
+                    97:89:b6:7d:26:9e:68:b5:07:74:b9:7e:3c:06:4e:
+                    4b:1e:cb:4c:88:02:bc:f9:27:8f:2e:7b:ff:dc:af:
+                    83:90:71:0e:71:3c:02:79:ea:4d:e5:42:23:a0:7d:
+                    31:3b:45:78:ff:1f:6a:e5:50:82:eb:0a:48:7d:59:
+                    c9:40:3d:33:3d:fa:99:88:71:27:05:90:c7:50:4f:
+                    e6:8b:99:c9:03:33:30:8c:8d:d6:58:4b:ed:18:7e:
+                    5c:46:2a:d9:23:8e:56:0e:45:7d:5d:ee:ef:b8:7f:
+                    d3:f5:f6:c3:9e:ec:26:3c:23:18:56:2e:d2:3a:5b:
+                    8d:d3:9f:6b:3d:f4:f7:51:ec:93
+                Exponent: 65537 (0x10001)
+        Attributes:
+        Requested Extensions:
+            X509v3 Subject Key Identifier: 
+                14:1E:80:FB:13:4C:2E:A3:99:BE:0C:DE:6F:FE:76:1A:E5:55:6D:2D
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: critical
+                TLS Web Server Authentication, TLS Web Client Authentication
+            1.3.6.1.4.1.311.84.1.1: 
+                ..example1
+            X509v3 Subject Alternative Name: 
+                DNS:example.com
+    Signature Algorithm: sha256WithRSAEncryption
+         a6:28:f3:bf:2a:eb:1b:85:24:57:10:f2:0e:ac:4c:af:0f:fb:
+         b0:e0:19:2c:9c:a8:b4:a9:29:f0:10:68:66:67:dd:fd:db:be:
+         3d:33:fb:50:4a:ad:74:0a:8d:9f:4e:6e:8b:22:e8:1f:9b:d4:
+         ad:d4:9e:20:aa:e0:60:01:81:c5:1c:36:6c:e2:df:53:0e:34:
+         42:d3:77:6e:fa:8b:45:1f:13:cc:56:6a:c0:65:8b:d1:33:b8:
+         01:3d:06:99:41:16:e9:5b:11:6a:a3:0b:b3:e3:df:cb:5d:34:
+         13:dd:59:c2:69:be:c9:73:f5:92:19:52:ba:33:30:bd:38:c5:
+         34:3a:ed:b3:cc:5f:2a:83:e2:6d:d9:e0:7c:b7:b3:6a:26:52:
+         4c:dd:fd:6a:50:42:35:4b:60:aa:4c:66:dc:fe:08:ca:ca:2d:
+         2e:aa:78:81:af:84:8f:da:db:fe:54:e6:f1:94:0e:59:36:de:
+         c8:4a:bf:ea:ce:e1:83:11:07:b3:ca:f5:98:eb:d8:ff:0c:f0:
+         1d:97:ec:b2:dd:f5:01:4e:29:42:45:ba:45:ee:13:77:50:92:
+         7e:17:01:d0:b5:03:29:01:f3:72:d6:28:d1:ad:86:a5:9e:c8:
+         4e:43:c9:09:de:45:eb:1b:c4:ed:10:45:2c:74:6e:66:8a:81:
+         8d:4d:54:72:7d:42:60:32:57:6f:ea:b3:76:96:58:68:3a:45:
+         bb:78:3d:60:9d:4d:8a:27:f4:31:fd:df:7b:97:08:3b:9d:84:
+         14:47:6a:31:99:94:f5:0e:66:bd:62:5c:59:80:6d:a9:5e:dc:
+         a0:a5:0f:be:ec:e3:d5:36:07:b8:39:80:2e:26:aa:18:fe:bf:
+         77:ac:85:d9:4d:08:08:e2:9f:d5:57:88:45:54:b0:a6:e8:3e:
+         90:41:19:c3:a7:b6:df:eb:5a:d6:0d:4d:92:3b:94:cf:16:45:
+         cb:67:52:f4:5d:4e:e7:18:cb:ba:9f:a4:50:21:3d:ab:38:48:
+         05:9f:bf:1c:72:b5
+-----BEGIN CERTIFICATE REQUEST-----
+MIIEKTCCApECAQAwTDEUMBIGA1UEAwwLZXhhbXBsZS5jb20xCzAJBgNVBAYTAkVS
+MRMwEQYDVQQIDApFdmVyeXdoZXJlMRIwEAYDVQQHDAlTb21ld2hlcmUwggGiMA0G
+CSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQDCnz37Ti0G1m6yIS5mz3JBkYEyJwkf
+FrQcWk56kVjj3Nh6+ESV3JRNz0nX1lxWt+xAL6n9L+UmnbRd6o0HHTTEczx7ozwe
+82Ikcap8rJpBMxF4h1CLpwEX4sxOvWjdCS4lBNuB+AGHFaLkvgNIIx/m7/EPaZZ+
+3H3w0X5DsjpeaZTOlLnNdf8NsWyfdTrlwhf0zCP5REW/yuhowFLCRZ+FqokaUCCZ
++uixHT59ov9nM6VCOCg9xWVwnS9nX6tbBNB3Za6deAENVM845g6w2ejsJr9cK5Zb
+UZABOm+u+HfMiDkY922Bky20bW1bbGLZWNa6dMwXL0V30apL0WvS8ZeJtn0mnmi1
+B3S5fjwGTksey0yIArz5J48ue//cr4OQcQ5xPAJ56k3lQiOgfTE7RXj/H2rlUILr
+Ckh9WclAPTM9+pmIcScFkMdQT+aLmckDMzCMjdZYS+0YflxGKtkjjlYORX1d7u+4
+f9P19sOe7CY8IxhWLtI6W43Tn2s99PdR7JMCAwEAAaCBlzCBlAYJKoZIhvcNAQkO
+MYGGMIGDMB0GA1UdDgQWBBQUHoD7E0wuo5m+DN5v/nYa5VVtLTAOBgNVHQ8BAf8E
+BAMCBaAwIAYDVR0lAQH/BBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMBgGCisGAQQB
+gjdUAQEECgwIZXhhbXBsZTEwFgYDVR0RBA8wDYILZXhhbXBsZS5jb20wDQYJKoZI
+hvcNAQELBQADggGBAKYo878q6xuFJFcQ8g6sTK8P+7DgGSycqLSpKfAQaGZn3f3b
+vj0z+1BKrXQKjZ9Obosi6B+b1K3UniCq4GABgcUcNmzi31MONELTd276i0UfE8xW
+asBli9EzuAE9BplBFulbEWqjC7Pj38tdNBPdWcJpvslz9ZIZUrozML04xTQ67bPM
+XyqD4m3Z4Hy3s2omUkzd/WpQQjVLYKpMZtz+CMrKLS6qeIGvhI/a2/5U5vGUDlk2
+3shKv+rO4YMRB7PK9Zjr2P8M8B2X7LLd9QFOKUJFukXuE3dQkn4XAdC1AykB83LW
+KNGthqWeyE5DyQneResbxO0QRSx0bmaKgY1NVHJ9QmAyV2/qs3aWWGg6Rbt4PWCd
+TYon9DH933uXCDudhBRHajGZlPUOZr1iXFmAbale3KClD77s49U2B7g5gC4mqhj+
+v3eshdlNCAjin9VXiEVUsKboPpBBGcOntt/rWtYNTZI7lM8WRctnUvRdTucYy7qf
+pFAhPas4SAWfvxxytQ==
+-----END CERTIFICATE REQUEST-----
