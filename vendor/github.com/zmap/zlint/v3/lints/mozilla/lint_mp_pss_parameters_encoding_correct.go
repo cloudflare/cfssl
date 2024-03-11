@@ -1,7 +1,7 @@
 package mozilla
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -58,13 +58,15 @@ The encoded AlgorithmIdentifier MUST match the following hex-encoded bytes:
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_mp_rsassa-pss_parameters_encoding_in_signature_algorithm_correct",
-		Description:   "The encoded AlgorithmIdentifier for RSASSA-PSS in the signature algorithm MUST match specific bytes",
-		Citation:      "Mozilla Root Store Policy / Section 5.1.1",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy27Date,
-		Lint:          NewRsaPssAidEncoding,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_mp_rsassa-pss_parameters_encoding_in_signature_algorithm_correct",
+			Description:   "The encoded AlgorithmIdentifier for RSASSA-PSS in the signature algorithm MUST match specific bytes",
+			Citation:      "Mozilla Root Store Policy / Section 5.1.1",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy27Date,
+		},
+		Lint: NewRsaPssAidEncoding,
 	})
 }
 

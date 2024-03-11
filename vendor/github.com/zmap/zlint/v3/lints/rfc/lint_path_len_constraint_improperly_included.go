@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -31,13 +31,15 @@ keyCertSign bit.
 ******************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_path_len_constraint_improperly_included",
-		Description:   "CAs MUST NOT include the pathLenConstraint field unless the CA boolean is asserted and the keyCertSign bit is set",
-		Citation:      "RFC 5280: 4.2.1.9",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewPathLenIncluded,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_path_len_constraint_improperly_included",
+			Description:   "CAs MUST NOT include the pathLenConstraint field unless the CA boolean is asserted and the keyCertSign bit is set",
+			Citation:      "RFC 5280: 4.2.1.9",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewPathLenIncluded,
 	})
 }
 

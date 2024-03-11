@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -32,13 +32,15 @@ type keyUsageBitsSet struct{}
 ***********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_key_usage_without_bits",
-		Description:   "When the keyUsage extension is included, at least one bit MUST be set to 1",
-		Citation:      "RFC 5280: 4.2.1.3",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewKeyUsageBitsSet,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_key_usage_without_bits",
+			Description:   "When the keyUsage extension is included, at least one bit MUST be set to 1",
+			Citation:      "RFC 5280: 4.2.1.3",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewKeyUsageBitsSet,
 	})
 }
 

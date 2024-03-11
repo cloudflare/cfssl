@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 )
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_incorrect_ku_encoding",
-		Description:   "RFC 5280 Section 4.2.1.3 describes the value of a KeyUsage to be a DER encoded BitString, which itself defines that all trailing 0 bits be counted as being \"unused\".",
-		Citation:      "Where ITU-T Rec. X.680 | ISO/IEC 8824-1, 21.7, applies, the bitstring shall have all trailing 0 bits removed before it is encoded.",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.ZeroDate,
-		Lint:          func() lint.LintInterface { return &incorrectKuEncoding{} },
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_incorrect_ku_encoding",
+			Description:   "RFC 5280 Section 4.2.1.3 describes the value of a KeyUsage to be a DER encoded BitString, which itself defines that all trailing 0 bits be counted as being \"unused\".",
+			Citation:      "Where ITU-T Rec. X.680 | ISO/IEC 8824-1, 21.7, applies, the bitstring shall have all trailing 0 bits removed before it is encoded.",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: func() lint.LintInterface { return &incorrectKuEncoding{} },
 	})
 }
 

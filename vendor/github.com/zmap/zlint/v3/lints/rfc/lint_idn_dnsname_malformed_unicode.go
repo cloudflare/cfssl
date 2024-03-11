@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 type IDNMalformedUnicode struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_international_dns_name_not_unicode",
-		Description:   "Internationalized DNSNames punycode not valid Unicode",
-		Citation:      "RFC 3490",
-		EffectiveDate: util.RFC3490Date,
-		Source:        lint.RFC5280,
-		Lint:          NewIDNMalformedUnicode,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_international_dns_name_not_unicode",
+			Description:   "Internationalized DNSNames punycode not valid Unicode",
+			Citation:      "RFC 3490",
+			EffectiveDate: util.RFC3490Date,
+			Source:        lint.RFC5280,
+		},
+		Lint: NewIDNMalformedUnicode,
 	})
 }
 

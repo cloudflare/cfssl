@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -24,6 +24,8 @@ import (
 
 var (
 	//extension OIDs
+	AdobeTimeStampOID       = asn1.ObjectIdentifier{1, 2, 840, 113583, 1, 1, 9, 1}    // Adobe Time-stamp x509 extension
+	AdobeArchiveRevInfoOID  = asn1.ObjectIdentifier{1, 2, 840, 113583, 1, 1, 9, 2}    // Adobe Archive Revocation Info x509 extension
 	AiaOID                  = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 1}        // Authority Information Access
 	AuthkeyOID              = asn1.ObjectIdentifier{2, 5, 29, 35}                     // Authority Key Identifier
 	BasicConstOID           = asn1.ObjectIdentifier{2, 5, 29, 19}                     // Basic Constraints
@@ -48,12 +50,25 @@ var (
 	SubjectDirAttrOID       = asn1.ObjectIdentifier{2, 5, 29, 9}                      // Subject Directory Attributes
 	SubjectInfoAccessOID    = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 11}       // Subject Info Access Syntax
 	SubjectKeyIdentityOID   = asn1.ObjectIdentifier{2, 5, 29, 14}                     // Subject Key Identifier
+	ReasonCodeOID           = asn1.ObjectIdentifier{2, 5, 29, 21}                     // CRL Reason Code
 	// CA/B reserved policies
-	BRDomainValidatedOID                = asn1.ObjectIdentifier{2, 23, 140, 1, 2, 1} // CA/B BR Domain-Validated
-	BROrganizationValidatedOID          = asn1.ObjectIdentifier{2, 23, 140, 1, 2, 2} // CA/B BR Organization-Validated
-	BRIndividualValidatedOID            = asn1.ObjectIdentifier{2, 23, 140, 1, 2, 3} // CA/B BR Individual-Validated
-	BRTorServiceDescriptor              = asn1.ObjectIdentifier{2, 23, 140, 1, 31}   // CA/B BR Tor Service Descriptor
-	CabfExtensionOrganizationIdentifier = asn1.ObjectIdentifier{2, 23, 140, 3, 1}    // CA/B EV 9.8.2 cabfOrganizationIdentifier
+	BRDomainValidatedOID                        = asn1.ObjectIdentifier{2, 23, 140, 1, 2, 1}    // CA/B BR Domain-Validated
+	BROrganizationValidatedOID                  = asn1.ObjectIdentifier{2, 23, 140, 1, 2, 2}    // CA/B BR Organization-Validated
+	BRIndividualValidatedOID                    = asn1.ObjectIdentifier{2, 23, 140, 1, 2, 3}    // CA/B BR Individual-Validated
+	BRTorServiceDescriptor                      = asn1.ObjectIdentifier{2, 23, 140, 1, 31}      // CA/B BR Tor Service Descriptor
+	CabfExtensionOrganizationIdentifier         = asn1.ObjectIdentifier{2, 23, 140, 3, 1}       // CA/B EV 9.8.2 cabfOrganizationIdentifier
+	SMIMEBRMailboxValidatedLegacyOID            = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 1, 1} // CA/B SMIME BR Mailbox Validated, Legacy
+	SMIMEBRMailboxValidatedMultipurposeOID      = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 1, 2} // CA/B SMIME BR Mailbox Validated, Multipurpose
+	SMIMEBRMailboxValidatedStrictOID            = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 1, 3} // CA/B SMIME BR Mailbox Validated, Strict
+	SMIMEBROrganizationValidatedLegacyOID       = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 2, 1} // CA/B SMIME BR Organization Validated, Legacy
+	SMIMEBROrganizationValidatedMultipurposeOID = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 2, 2} // CA/B SMIME BR Organization Validated, Multipurpose
+	SMIMEBROrganizationValidatedStrictOID       = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 2, 3} // CA/B SMIME BR Organization Validated, Strict
+	SMIMEBRSponsorValidatedLegacyOID            = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 3, 1} // CA/B SMIME BR Sponsor Validated, Legacy
+	SMIMEBRSponsorValidatedMultipurposeOID      = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 3, 2} // CA/B SMIME BR Sponsor Validated, Multipurpose
+	SMIMEBRSponsorValidatedStrictOID            = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 3, 3} // CA/B SMIME BR Sponsor Validated, Strict
+	SMIMEBRIndividualValidatedLegacyOID         = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 4, 1} // CA/B SMIME BR Individual Validated, Legacy
+	SMIMEBRIndividualValidatedMultipurposeOID   = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 4, 2} // CA/B SMIME BR Individual Validated, Multipurpose
+	SMIMEBRIndividualValidatedStrictOID         = asn1.ObjectIdentifier{2, 23, 140, 1, 5, 4, 3} // CA/B SMIME BR Individual Validated, Strict
 	//X.500 attribute types
 	CommonNameOID             = asn1.ObjectIdentifier{2, 5, 4, 3}
 	SurnameOID                = asn1.ObjectIdentifier{2, 5, 4, 4}
@@ -67,6 +82,8 @@ var (
 	BusinessOID               = asn1.ObjectIdentifier{2, 5, 4, 15}
 	PostalCodeOID             = asn1.ObjectIdentifier{2, 5, 4, 17}
 	GivenNameOID              = asn1.ObjectIdentifier{2, 5, 4, 42}
+	// SAN otherNames
+	OidIdOnSmtpUtf8Mailbox = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 8, 9}
 	// Hash algorithms - see https://golang.org/src/crypto/x509/x509.go
 	SHA256OID = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 1}
 	SHA384OID = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 2}

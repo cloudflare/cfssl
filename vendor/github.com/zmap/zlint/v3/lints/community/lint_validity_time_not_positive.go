@@ -1,7 +1,7 @@
 package community
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -23,13 +23,15 @@ import (
 type validityNegative struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_validity_time_not_positive",
-		Description:   "Certificates MUST have a positive time for which they are valid",
-		Citation:      "lint.AWSLabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewValidityNegative,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_validity_time_not_positive",
+			Description:   "Certificates MUST have a positive time for which they are valid",
+			Citation:      "lint.AWSLabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewValidityNegative,
 	})
 }
 

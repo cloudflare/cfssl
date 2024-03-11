@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -42,14 +42,16 @@ For P‐521 keys: 301006072a8648ce3d020106052b81040023
 ***********************************************
 */
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name: "e_algorithm_identifier_improper_encoding",
-		Description: "Encoded AlgorithmObjectIdentifier objects inside a SubjectPublicKeyInfo field " +
-			"MUST comply with specified byte sequences.",
-		Citation:      "BRs: 7.1.3.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_7_1_Date,
-		Lint:          NewAlgorithmObjectIdentifierEncoding,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name: "e_algorithm_identifier_improper_encoding",
+			Description: "Encoded AlgorithmObjectIdentifier objects inside a SubjectPublicKeyInfo field " +
+				"MUST comply with specified byte sequences.",
+			Citation:      "BRs: 7.1.3.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_7_1_Date,
+		},
+		Lint: NewAlgorithmObjectIdentifierEncoding,
 	})
 }
 
