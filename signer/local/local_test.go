@@ -1636,3 +1636,109 @@ func TestLint(t *testing.T) {
 		})
 	}
 }
+
+func TestNotBeforeAndNotAfter(t *testing.T) {
+	csrPEM, err := os.ReadFile(testCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s := newCustomSigner(t, testCaFile, testCaKeyFile)
+
+	expiry, err := time.ParseDuration("1h")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString: expiry.String(),
+			Expiry:       expiry,
+		},
+	}
+
+	request := signer.SignRequest{
+		Request: string(csrPEM),
+	}
+
+	now := time.Now().Round(time.Second).UTC()
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if !cert.NotBefore.Equal(now) {
+		if cert.NotBefore.Before(now) {
+			t.Fatal("Unexpected NotBefore")
+		}
+	}
+
+	if !cert.NotAfter.Equal(cert.NotBefore.Add(expiry)) {
+		t.Fatal("Unexpected NotAfter")
+	}
+}
+
+func TestNotBeforeAndNotAfterWithBackdate(t *testing.T) {
+	csrPEM, err := os.ReadFile(testCSR)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s := newCustomSigner(t, testCaFile, testCaKeyFile)
+
+	expiry, err := time.ParseDuration("1h")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	backdate, err := time.ParseDuration("5m")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s.policy = &config.Signing{
+		Default: &config.SigningProfile{
+			Usage:          []string{"signing", "key encipherment", "server auth", "client auth"},
+			ExpiryString:   expiry.String(),
+			Expiry:         expiry,
+			BackdateString: backdate.String(),
+			Backdate:       &backdate,
+		},
+	}
+
+	request := signer.SignRequest{
+		Request: string(csrPEM),
+	}
+
+	now := time.Now().Round(time.Second).UTC()
+	nowWithBack := now.Add(-1 * backdate)
+	certPEM, err := s.Sign(request)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if cert.NotBefore.Equal(now) {
+		t.Fatal("Unexpected NotBefore")
+	} else {
+		if !cert.NotBefore.Equal(nowWithBack) {
+			if cert.NotBefore.Before(nowWithBack) {
+				t.Fatal("Unexpected NotBefore")
+			}
+		}
+	}
+
+	if !cert.NotAfter.Equal(cert.NotBefore.Add(expiry)) {
+		t.Fatal("Unexpected NotAfter")
+	}
+}
