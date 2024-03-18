@@ -7,7 +7,7 @@ require (
 	github.com/cloudflare/backoff v0.0.0-20161212185259-647f3cdfc87a
 	github.com/cloudflare/redoctober v0.0.0-20211013234631-6a74ccc611f6
 	github.com/go-sql-driver/mysql v1.8.0
-	github.com/google/certificate-transparency-go v1.1.7
+	github.com/google/certificate-transparency-go v1.1.8
 	github.com/jmhodges/clock v1.2.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
@@ -24,7 +24,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/getsentry/sentry-go v0.11.0 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/kylelemons/go-gypsy v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
@@ -33,9 +33,9 @@ require (
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/weppos/publicsuffix-go v0.30.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
-	k8s.io/klog/v2 v2.100.1 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
+	k8s.io/klog/v2 v2.120.1 // indirect
 )
