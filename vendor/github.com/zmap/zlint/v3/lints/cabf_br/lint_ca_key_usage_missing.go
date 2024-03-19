@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -31,13 +31,15 @@ Conforming CAs MUST include this extension in certificates that
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ca_key_usage_missing",
-		Description:   "Root and Subordinate CA certificate keyUsage extension MUST be present",
-		Citation:      "BRs: 7.1.2.1, RFC 5280: 4.2.1.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewCaKeyUsageMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ca_key_usage_missing",
+			Description:   "Root and Subordinate CA certificate keyUsage extension MUST be present",
+			Citation:      "BRs: 7.1.2.1, RFC 5280: 4.2.1.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewCaKeyUsageMissing,
 	})
 }
 

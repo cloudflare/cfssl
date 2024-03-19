@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -28,13 +28,15 @@ SHA‐1 MAY be used with RSA keys in accordance with the criteria defined in Sec
 **************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_sub_cert_or_sub_ca_using_sha1",
-		Description:   "CAs MUST NOT issue any new Subscriber certificates or Subordinate CA certificates using SHA-1 after 1 January 2016",
-		Citation:      "BRs: 7.1.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.NO_SHA1,
-		Lint:          NewSigAlgTestsSHA1,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_sub_cert_or_sub_ca_using_sha1",
+			Description:   "CAs MUST NOT issue any new Subscriber certificates or Subordinate CA certificates using SHA-1 after 1 January 2016",
+			Citation:      "BRs: 7.1.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.NO_SHA1,
+		},
+		Lint: NewSigAlgTestsSHA1,
 	})
 }
 

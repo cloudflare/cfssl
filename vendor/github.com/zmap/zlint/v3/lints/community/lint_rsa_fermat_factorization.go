@@ -1,7 +1,7 @@
 package community
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -29,15 +29,17 @@ type fermatFactorization struct {
 }
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name: "e_rsa_fermat_factorization",
-		Description: "RSA key pairs that are too close to each other are susceptible to the Fermat Factorization " +
-			"Method (for more information please see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method " +
-			"and https://fermatattack.secvuln.info/)",
-		Citation:      "Pierre de Fermat",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewFermatFactorization,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name: "e_rsa_fermat_factorization",
+			Description: "RSA key pairs that are too close to each other are susceptible to the Fermat Factorization " +
+				"Method (for more information please see https://en.wikipedia.org/wiki/Fermat%27s_factorization_method " +
+				"and https://fermatattack.secvuln.info/)",
+			Citation:      "Pierre de Fermat",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewFermatFactorization,
 	})
 }
 

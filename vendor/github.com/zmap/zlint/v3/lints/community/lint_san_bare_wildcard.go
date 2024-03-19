@@ -1,7 +1,7 @@
 package community
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 type brSANBareWildcard struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_san_bare_wildcard",
-		Description:   "A wildcard MUST be accompanied by other data to its right (Only checks DNSName)",
-		Citation:      "awslabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewBrSANBareWildcard,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_san_bare_wildcard",
+			Description:   "A wildcard MUST be accompanied by other data to its right (Only checks DNSName)",
+			Citation:      "awslabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewBrSANBareWildcard,
 	})
 }
 

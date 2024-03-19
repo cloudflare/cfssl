@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -20,13 +20,15 @@ import (
 )
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "SUBTEST",
-		Description:   "Fill this in...",
-		Citation:      "Fill this in...",
-		Source:        UnknownLintSource,
-		EffectiveDate: "Change this...",
-		Lint:          func() lint.LintInterface { return &SUBST{} },
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "SUBTEST",
+			Description:   "Fill this in...",
+			Citation:      "Fill this in...",
+			Source:        UnknownLintSource,
+			EffectiveDate: "Change this...",
+		},
+		Lint: NewPASCAL_CASE_SUBST,
 	})
 }
 

@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -32,13 +32,15 @@ This lint check the first requirement, i.e.: Prohibited if the subject:organizat
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_contains_organizational_unit_name_and_no_organization_name",
-		Description:   "If a subject organization name is absent then an organizational unit name MUST NOT be included in subject",
-		Citation:      "BRs: 7.1.4.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_7_9_Date,
-		Lint:          NewSubjectContainsOrganizationalUnitNameButNoOrganizationName,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_contains_organizational_unit_name_and_no_organization_name",
+			Description:   "If a subject organization name is absent then an organizational unit name MUST NOT be included in subject",
+			Citation:      "BRs: 7.1.4.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_7_9_Date,
+		},
+		Lint: NewSubjectContainsOrganizationalUnitNameButNoOrganizationName,
 	})
 }
 

@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -34,13 +34,15 @@ are encoded in either UTCTime or GeneralizedTime.
 *********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_wrong_time_format_pre2050",
-		Description:   "Certificates valid through the year 2049 MUST be encoded in UTC time",
-		Citation:      "RFC 5280: 4.1.2.5",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewGeneralizedPre2050,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_wrong_time_format_pre2050",
+			Description:   "Certificates valid through the year 2049 MUST be encoded in UTC time",
+			Citation:      "RFC 5280: 4.1.2.5",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewGeneralizedPre2050,
 	})
 }
 

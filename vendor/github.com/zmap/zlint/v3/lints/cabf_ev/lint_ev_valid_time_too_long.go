@@ -1,7 +1,7 @@
 package cabf_ev
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -23,13 +23,15 @@ import (
 type evValidTooLong struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ev_valid_time_too_long",
-		Description:   "EV certificates must be 27 months in validity or less",
-		Citation:      "EVGs 1.0: 8(a), EVGs 1.6.1: 9.4",
-		Source:        lint.CABFEVGuidelines,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewEvValidTooLong,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ev_valid_time_too_long",
+			Description:   "EV certificates must be 27 months in validity or less",
+			Citation:      "EVGs 1.0: 8(a), EVGs 1.6.1: 9.4",
+			Source:        lint.CABFEVGuidelines,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewEvValidTooLong,
 	})
 }
 

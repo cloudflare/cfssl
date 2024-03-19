@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -17,6 +17,7 @@ package util
 import (
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 
 	zcutil "github.com/zmap/zcrypto/util"
@@ -116,4 +117,15 @@ func CommonNameIsIP(cert *x509.Certificate) bool {
 	} else {
 		return true
 	}
+}
+
+var nonLDHCharacterRegex = regexp.MustCompile(`[^a-zA-Z0-9\-]`)
+
+func IsLDHLabel(label string) bool {
+	return len(label) > 0 &&
+		len(label) <= 63 &&
+		!nonLDHCharacterRegex.MatchString(label) &&
+		!strings.HasPrefix(label, "-") &&
+		!strings.HasSuffix(label, "-") &&
+		!(HasReservedLabelPrefix(label) && !HasXNLabelPrefix(label))
 }

@@ -1,7 +1,7 @@
 package community
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 type IssuerRDNHasMultipleAttribute struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_multiple_issuer_rdn",
-		Description:   "Certificates should not have multiple attributes in a single RDN (issuer)",
-		Citation:      "awslabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewIssuerRDNHasMultipleAttribute,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_multiple_issuer_rdn",
+			Description:   "Certificates should not have multiple attributes in a single RDN (issuer)",
+			Citation:      "awslabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewIssuerRDNHasMultipleAttribute,
 	})
 }
 

@@ -1,7 +1,7 @@
 package mozilla
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -45,13 +45,15 @@ an explicit NULL.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_mp_ecdsa_signature_encoding_correct",
-		Description:   "The encoded algorithm identifiers for ECDSA signatures MUST match specific hex-encoded bytes",
-		Citation:      "Mozilla Root Store Policy / Section 5.1.2",
-		Source:        lint.MozillaRootStorePolicy,
-		EffectiveDate: util.MozillaPolicy27Date,
-		Lint:          NewEcdsaSignatureAidEncoding,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_mp_ecdsa_signature_encoding_correct",
+			Description:   "The encoded algorithm identifiers for ECDSA signatures MUST match specific hex-encoded bytes",
+			Citation:      "Mozilla Root Store Policy / Section 5.1.2",
+			Source:        lint.MozillaRootStorePolicy,
+			EffectiveDate: util.MozillaPolicy27Date,
+		},
+		Lint: NewEcdsaSignatureAidEncoding,
 	})
 }
 

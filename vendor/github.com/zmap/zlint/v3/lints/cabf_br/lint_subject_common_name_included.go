@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -28,13 +28,16 @@ Required/Optional: Deprecated (Discouraged, but not prohibited)
 ***************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "n_subject_common_name_included",
-		Description:   "Subscriber Certificate: commonName is deprecated.",
-		Citation:      "BRs: 7.1.4.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewCommonNames,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:            "n_subject_common_name_included",
+			Description:     "Subscriber Certificate: commonName is deprecated.",
+			Citation:        "BRs: 7.1.4.2.2",
+			Source:          lint.CABFBaselineRequirements,
+			EffectiveDate:   util.CABEffectiveDate,
+			IneffectiveDate: util.SC62EffectiveDate,
+		},
+		Lint: NewCommonNames,
 	})
 }
 
