@@ -66,14 +66,15 @@ func (h *Handler) SetBundler(caBundleFile, intBundleFile string) (err error) {
 // hostname field in the API
 // TODO: Change the API such that the normal struct can be used.
 type jsonSignRequest struct {
-	Hostname string          `json:"hostname"`
-	Hosts    []string        `json:"hosts"`
-	Request  string          `json:"certificate_request"`
-	Subject  *signer.Subject `json:"subject,omitempty"`
-	Profile  string          `json:"profile"`
-	Label    string          `json:"label"`
-	Serial   *big.Int        `json:"serial,omitempty"`
-	Bundle   bool            `json:"bundle"`
+	Hostname   string             `json:"hostname"`
+	Hosts      []string           `json:"hosts"`
+	Request    string             `json:"certificate_request"`
+	Subject    *signer.Subject    `json:"subject,omitempty"`
+	Profile    string             `json:"profile"`
+	Label      string             `json:"label"`
+	Serial     *big.Int           `json:"serial,omitempty"`
+	Bundle     bool               `json:"bundle"`
+	Extensions []signer.Extension `json:"extensions,omitempty"`
 }
 
 func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
@@ -87,22 +88,24 @@ func jsonReqToTrue(js jsonSignRequest) signer.SignRequest {
 
 	if js.Hostname != "" {
 		return signer.SignRequest{
-			Hosts:   signer.SplitHosts(js.Hostname),
-			Subject: sub,
-			Request: js.Request,
-			Profile: js.Profile,
-			Label:   js.Label,
-			Serial:  js.Serial,
+			Hosts:      signer.SplitHosts(js.Hostname),
+			Subject:    sub,
+			Request:    js.Request,
+			Profile:    js.Profile,
+			Label:      js.Label,
+			Serial:     js.Serial,
+			Extensions: js.Extensions,
 		}
 	}
 
 	return signer.SignRequest{
-		Hosts:   js.Hosts,
-		Subject: sub,
-		Request: js.Request,
-		Profile: js.Profile,
-		Label:   js.Label,
-		Serial:  js.Serial,
+		Hosts:      js.Hosts,
+		Subject:    sub,
+		Request:    js.Request,
+		Profile:    js.Profile,
+		Label:      js.Label,
+		Serial:     js.Serial,
+		Extensions: js.Extensions,
 	}
 }
 

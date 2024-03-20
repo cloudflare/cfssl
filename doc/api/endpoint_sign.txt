@@ -21,6 +21,7 @@ Optional parameters:
     useful when interacting with a remote multi-root CA signer
     * bundle: a boolean specifying whether to include an "optimal"
     certificate bundle along with the certificate
+    * extensions: a list of extensions to add to the certificate.
 
 Result:
 
