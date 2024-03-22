@@ -34,9 +34,18 @@ import (
 // Since API clients are expected to be trusted, but CSRs are not, fields
 // provided through the API are not subject to whitelisting through this
 // mechanism.
+// Note: when EKUs = true, only EKUs defined in Usage are copied from CSR;
+// when EKUs = false or CSRWhitelist is not present, EKUs are copied from Usage.
 type CSRWhitelist struct {
-	Subject, PublicKeyAlgorithm, PublicKey, SignatureAlgorithm bool
-	DNSNames, IPAddresses, EmailAddresses, URIs                bool
+	Subject            bool `json:"subject"`
+	PublicKeyAlgorithm bool `json:"public_key_algorithm"`
+	PublicKey          bool `json:"public_key"`
+	SignatureAlgorithm bool `json:"signature_algorithm"`
+	DNSNames           bool `json:"dns_names"`
+	IPAddresses        bool `json:"ip_addresses"`
+	EmailAddresses     bool `json:"email_addressess"`
+	URIs               bool `json:"uris"`
+	EKUs               bool `json:"ekus"`
 }
 
 // OID is our own version of asn1's ObjectIdentifier, so we can define a custom
@@ -119,7 +128,7 @@ type SigningProfile struct {
 	RemoteServer                string
 	RemoteCAs                   *x509.CertPool
 	ClientCert                  *tls.Certificate
-	CSRWhitelist                *CSRWhitelist
+	CSRWhitelist                *CSRWhitelist `json:"csr_whitelist"`
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
 	ClientProvidesSerialNumbers bool
@@ -456,15 +465,34 @@ func (p *Signing) NeedsLocalSigner() bool {
 	return p.Default.RemoteServer == ""
 }
 
+// str2OID converts string to OID if possible (or throws error if not)
+func str2OID(s string) (oid asn1.ObjectIdentifier, err error) {
+	strArray := strings.Split(s, ".")
+	oid = make(asn1.ObjectIdentifier, len(strArray), len(strArray))
+	for i, s := range strArray {
+		oid[i], err = strconv.Atoi(s)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
 // Usages parses the list of key uses in the profile, translating them
-// to a list of X.509 key usages and extended key usages.  The unknown
+// to a list of X.509 key usages and extended key usages (as OIDs). The unknown
 // uses are collected into a slice that is also returned.
-func (p *SigningProfile) Usages() (ku x509.KeyUsage, eku []x509.ExtKeyUsage, unk []string) {
+func (p *SigningProfile) Usages() (ku x509.KeyUsage, eku []asn1.ObjectIdentifier, unk []string) {
 	for _, keyUse := range p.Usage {
 		if kuse, ok := KeyUsage[keyUse]; ok {
 			ku |= kuse
 		} else if ekuse, ok := ExtKeyUsage[keyUse]; ok {
-			eku = append(eku, ekuse)
+			if oid, ok := OIDFromKnownExtKeyUsage(ekuse); ok {
+				eku = append(eku, oid)
+			} else {
+				unk = append(unk, keyUse)
+			}
+		} else if oid, err := str2OID(keyUse); err == nil {
+			eku = append(eku, oid)
 		} else {
 			unk = append(unk, keyUse)
 		}
@@ -658,6 +686,72 @@ var ExtKeyUsage = map[string]x509.ExtKeyUsage{
 	"ocsp signing":     x509.ExtKeyUsageOCSPSigning,
 	"microsoft sgc":    x509.ExtKeyUsageMicrosoftServerGatedCrypto,
 	"netscape sgc":     x509.ExtKeyUsageNetscapeServerGatedCrypto,
+}
+
+// RFC 5280, 4.2.1.12  Extended Key Usage
+//
+// anyExtendedKeyUsage OBJECT IDENTIFIER ::= { id-ce-extKeyUsage 0 }
+//
+// id-kp OBJECT IDENTIFIER ::= { id-pkix 3 }
+//
+// id-kp-serverAuth             OBJECT IDENTIFIER ::= { id-kp 1 }
+// id-kp-clientAuth             OBJECT IDENTIFIER ::= { id-kp 2 }
+// id-kp-codeSigning            OBJECT IDENTIFIER ::= { id-kp 3 }
+// id-kp-emailProtection        OBJECT IDENTIFIER ::= { id-kp 4 }
+// id-kp-timeStamping           OBJECT IDENTIFIER ::= { id-kp 8 }
+// id-kp-OCSPSigning            OBJECT IDENTIFIER ::= { id-kp 9 }
+var (
+	oidExtKeyUsageAny                        = asn1.ObjectIdentifier{2, 5, 29, 37, 0}
+	oidExtKeyUsageServerAuth                 = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
+	oidExtKeyUsageClientAuth                 = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 2}
+	oidExtKeyUsageCodeSigning                = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 3}
+	oidExtKeyUsageEmailProtection            = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 4}
+	oidExtKeyUsageIPSECEndSystem             = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 5}
+	oidExtKeyUsageIPSECTunnel                = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 6}
+	oidExtKeyUsageIPSECUser                  = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 7}
+	oidExtKeyUsageTimeStamping               = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 8}
+	oidExtKeyUsageOCSPSigning                = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 9}
+	oidExtKeyUsageMicrosoftServerGatedCrypto = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 10, 3, 3}
+	oidExtKeyUsageNetscapeServerGatedCrypto  = asn1.ObjectIdentifier{2, 16, 840, 1, 113730, 4, 1}
+)
+
+// extKeyUsageOIDs contains the mapping between an ExtKeyUsage and its OID.
+var knownExtKeyUsageOIDs = []struct {
+	extKeyUsage x509.ExtKeyUsage
+	oid         asn1.ObjectIdentifier
+}{
+	{x509.ExtKeyUsageAny, oidExtKeyUsageAny},
+	{x509.ExtKeyUsageServerAuth, oidExtKeyUsageServerAuth},
+	{x509.ExtKeyUsageClientAuth, oidExtKeyUsageClientAuth},
+	{x509.ExtKeyUsageCodeSigning, oidExtKeyUsageCodeSigning},
+	{x509.ExtKeyUsageEmailProtection, oidExtKeyUsageEmailProtection},
+	{x509.ExtKeyUsageIPSECEndSystem, oidExtKeyUsageIPSECEndSystem},
+	{x509.ExtKeyUsageIPSECTunnel, oidExtKeyUsageIPSECTunnel},
+	{x509.ExtKeyUsageIPSECUser, oidExtKeyUsageIPSECUser},
+	{x509.ExtKeyUsageTimeStamping, oidExtKeyUsageTimeStamping},
+	{x509.ExtKeyUsageOCSPSigning, oidExtKeyUsageOCSPSigning},
+	{x509.ExtKeyUsageMicrosoftServerGatedCrypto, oidExtKeyUsageMicrosoftServerGatedCrypto},
+	{x509.ExtKeyUsageNetscapeServerGatedCrypto, oidExtKeyUsageNetscapeServerGatedCrypto},
+}
+
+// KnownExtKeyUsageFromOID converts OID to known EKU.
+func KnownExtKeyUsageFromOID(oid asn1.ObjectIdentifier) (eku x509.ExtKeyUsage, ok bool) {
+	for _, pair := range knownExtKeyUsageOIDs {
+		if oid.Equal(pair.oid) {
+			return pair.extKeyUsage, true
+		}
+	}
+	return
+}
+
+// OIDFromKnownExtKeyUsage converts known EKU to OID.
+func OIDFromKnownExtKeyUsage(eku x509.ExtKeyUsage) (oid asn1.ObjectIdentifier, ok bool) {
+	for _, pair := range knownExtKeyUsageOIDs {
+		if eku == pair.extKeyUsage {
+			return pair.oid, true
+		}
+	}
+	return
 }
 
 // An AuthKey contains an entry for a key used for authentication.

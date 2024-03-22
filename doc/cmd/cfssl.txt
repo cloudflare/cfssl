@@ -97,7 +97,7 @@ blank.
 		+ crl sign
 		+ encipher only
 		+ decipher only
-		
+
 	+ Ext Key Usages
 		+ any
 		+ server auth
@@ -112,6 +112,7 @@ blank.
 		+ ocsp signing
 		+ microsoft sgc
 		+ netscape sgc
+		+ any EKU as OID string i.e. 1.3.6.1.5.5.7.3.2
 
     + issuer_urls: a list of Authority Information Access (RFC 5280
       4.2.2.1) URLs pointing to the issuer certificate.
@@ -193,7 +194,7 @@ A minimal configuration file might look like:
 			    }
 		    },
 		    "default": {
-			    "usages": ["digital signature", "email protection"],
+			    "usages": ["digital signature", "1.3.6.1.5.5.7.3.4"],
 			    "expiry": "8000h"
 		    }
 	    },
