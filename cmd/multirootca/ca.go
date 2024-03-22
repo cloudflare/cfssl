@@ -44,6 +44,7 @@ func parseSigner(root *config.Root) (signer.Signer, error) {
 
 var (
 	defaultLabel string
+	mrBundler    *MultirootBundler
 	signers      = map[string]signer.Signer{}
 	whitelists   = map[string]whitelist.NetACL{}
 )
@@ -66,6 +67,11 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
+	mrBundler, err = NewMultirootBundler()
+	if err != nil {
+		log.Fatalf("error creating MultirootBundler: %v", err)
+	}
+
 	for label, root := range roots {
 		s, err := parseSigner(root)
 		if err != nil {
@@ -76,6 +82,13 @@ func main() {
 			whitelists[label] = root.ACL
 		}
 		log.Info("loaded signer ", label)
+
+		if root.RootCA != nil {
+			mrBundler.AddRoot(root.RootCA)
+			log.Info("loaded root CA ", label)
+		}
+		mrBundler.AddIntermediate(root.Certificate)
+		log.Info("loaded intermediate ", label)
 	}
 
 	defaultLabel = *flagDefaultLabel
