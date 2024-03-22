@@ -47,15 +47,15 @@ type OID asn1.ObjectIdentifier
 // https://tools.ietf.org/html/rfc3280.html#page-106.
 // Valid values of Type are "id-qt-unotice" and "id-qt-cps"
 type CertificatePolicy struct {
-	ID         OID
-	Qualifiers []CertificatePolicyQualifier
+	ID         OID `json:"id"`
+	Qualifiers []CertificatePolicyQualifier `json:"qualifiers"`
 }
 
 // CertificatePolicyQualifier represents a single qualifier from an ASN.1
 // PolicyInformation structure.
 type CertificatePolicyQualifier struct {
-	Type  string
-	Value string
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 // AuthRemote is an authenticated remote signer.
@@ -110,7 +110,7 @@ type SigningProfile struct {
 	// linting.
 	ExcludeLintSources []string `json:"ignored_lint_sources"`
 
-	Policies                    []CertificatePolicy
+	Policies                    []CertificatePolicy `json:"cert_policies"`
 	Expiry                      time.Duration
 	Backdate                    time.Duration
 	Provider                    auth.Provider
