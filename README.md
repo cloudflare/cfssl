@@ -396,6 +396,9 @@ filenames in the following way:
 * if __bundle__       is specified,                    __basename-bundle.pem__   will be produced.
 * if __ocspResponse__ is specified,                    __basename-response.der__ will be produced.
 
+If you want to save the files in another directory, you can pass the
+folder path using the `-output` argument.
+
 Instead of saving to a file, you can pass `-stdout` to output the encoded
 contents to standard output.
 
