@@ -1,0 +1,65 @@
+diff -u -r a/crypto/tls/common.go b/heartbleed/tls/common.go
+--- a/crypto/tls/common.go	2015-04-07 23:40:06.000000000 +0100
++++ b/heartbleed/tls/common.go	2014-11-19 22:58:38.000000000 +0000
+@@ -42,6 +42,7 @@
+ 	recordTypeAlert            recordType = 21
+ 	recordTypeHandshake        recordType = 22
+ 	recordTypeApplicationData  recordType = 23
++	recordTypeHeartbeat        recordType = 24
+ )
+ 
+ // TLS handshake message types.
+@@ -72,6 +73,7 @@
+ 	extensionSupportedCurves     uint16 = 10
+ 	extensionSupportedPoints     uint16 = 11
+ 	extensionSignatureAlgorithms uint16 = 13
++	extensionHeartbeat           uint16 = 15
+ 	extensionSessionTicket       uint16 = 35
+ 	extensionNextProtoNeg        uint16 = 13172 // not IANA assigned
+ 	extensionRenegotiationInfo   uint16 = 0xff01
+diff -u -r a/crypto/tls/conn.go b/heartbleed/tls/conn.go
+--- a/crypto/tls/conn.go	2015-04-07 23:40:06.000000000 +0100
++++ b/heartbleed/tls/conn.go	2014-11-19 22:58:38.000000000 +0000
+@@ -53,6 +53,8 @@
+ 	hand     bytes.Buffer // handshake data waiting to be read
+ 
+ 	tmp [16]byte
++
++	Heartbeats chan []byte
+ }
+ 
+ // Access to net.Conn methods.
+@@ -652,6 +654,9 @@
+ 			return c.in.setErrorLocked(c.sendAlert(alertNoRenegotiation))
+ 		}
+ 		c.hand.Write(data)
++
++	case recordTypeHeartbeat:
++		c.Heartbeats <- data
+ 	}
+ 
+ 	if b != nil {
+@@ -686,6 +691,12 @@
+ 	return c.sendAlertLocked(err)
+ }
+ 
++func (c *Conn) SendHeartbeat(data []byte) error {
++	c.Heartbeats = make(chan []byte, 1)
++	_, err := c.writeRecord(recordTypeHeartbeat, data)
++	return err
++}
++
+ // writeRecord writes a TLS record with the given type and payload
+ // to the connection and updates the record layer state.
+ // c.out.Mutex <= L.
+@@ -951,6 +962,10 @@
+ 	return alertErr
+ }
+ 
++func (c *Conn) SendCloseNotify() error {
++	return c.sendAlert(alertCloseNotify)
++}
++
+ // Handshake runs the client or server handshake
+ // protocol if it has not yet been run.
+ // Most uses of this package need not call Handshake
