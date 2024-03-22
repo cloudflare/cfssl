@@ -57,7 +57,7 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		}
 
 		if req.CA.Backdate != "" {
-			policy.Default.Backdate, err = time.ParseDuration(req.CA.Backdate)
+			*policy.Default.Backdate, err = time.ParseDuration(req.CA.Backdate)
 			if err != nil {
 				return
 			}
@@ -251,7 +251,7 @@ func Update(ca *x509.Certificate, priv crypto.Signer) (cert []byte, err error) {
 	}
 
 	validity := ca.NotAfter.Sub(ca.NotBefore)
-	copy.NotBefore = time.Now().Round(time.Minute).Add(-5 * time.Minute)
+	copy.NotBefore = time.Now().Round(time.Second)
 	copy.NotAfter = copy.NotBefore.Add(validity)
 	cert, err = x509.CreateCertificate(rand.Reader, copy, copy, priv.Public(), priv)
 	if err != nil {
