@@ -1,0 +1,52 @@
+name: cfssl
+version: '1.0'
+summary: Cloudflare's PKI and TLS toolkit 
+description: |
+  CFSSL: Cloudflare's PKI and TLS toolkit 
+grade: stable
+confinement: strict
+base: core18
+parts:
+  cfssl:
+    plugin: go
+    source: https://github.com/cloudflare/cfssl.git
+    go-importpath: github.com/cloudflare/cfssl
+    build-packages:
+      - build-essential
+apps:
+  cfssl:
+    command: bin/cfssl
+    daemon: simple
+    restart-condition: on-abnormal
+    plugs:
+      - home
+      - network
+      - network-bind
+  cfssl-bundle:
+    command: bin/cfssl-bundle
+    plugs:
+      - home
+  cfssl-certinfo:
+    command: bin/cfssl-certinfo
+    plugs:
+      - home
+  cfssl-newkey:
+    command: bin/cfssl-newkey
+    plugs:
+      - home
+  cfssl-scan:
+    command: bin/cfssl-scan
+    plugs:
+      - home
+  cfssljson:
+    command: bin/cfssljson
+    plugs:
+      - home
+  mkbundle:
+    command: bin/mkbundle
+    plugs:
+      - home
+  multirootca:
+    command: bin/multirootca
+    plugs:
+      - home
