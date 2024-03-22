@@ -53,8 +53,8 @@ Usage of serve:
                     [-metadata file] [-remote remote_host] [-config config] \
                     [-responder cert] [-responder-key key] \
                     [-tls-cert cert] [-tls-key key] [-mutual-tls-ca ca] [-mutual-tls-cn regex] \
-                    [-tls-remote-ca ca] [-mutual-tls-client-cert cert] [-mutual-tls-client-key key] \
-                    [-db-config db-config] [-disable endpoint[,endpoint]]
+					[-mutual-tls-san regex] [-tls-remote-ca ca] [-mutual-tls-client-cert cert] \
+					[-mutual-tls-client-key key] [-db-config db-config] [-disable endpoint[,endpoint]]
 
 Flags:
 `
@@ -62,7 +62,7 @@ Flags:
 // Flags used by 'cfssl serve'
 var serverFlags = []string{"address", "port", "min-tls-version", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir",
 	"metadata", "remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca",
-	"mutual-tls-cn", "tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable"}
+	"mutual-tls-cn", "mutual-tls-san", "tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable"}
 
 var (
 	conf       cli.Config
@@ -352,6 +352,31 @@ func serverMain(args []string, c cli.Config) error {
 				http.Error(w, "Invalid CN", http.StatusForbidden)
 			})
 		}
+
+		if conf.MutualTLSSANRegex != "" {
+			log.Debugf(`Requiring any SAN matches regex "%s" for client connections`, conf.MutualTLSSANRegex)
+			re, err := regexp.Compile(conf.MutualTLSSANRegex)
+			if err != nil {
+				return fmt.Errorf("malformed SAN regex: %s", err)
+			}
+			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+					for _, name := range r.TLS.PeerCertificates[0].DNSNames {
+						if re.MatchString(name) {
+							http.DefaultServeMux.ServeHTTP(w, r)
+							return
+						}
+					}
+					log.Warningf(`Rejected client cert CN "%s", SANs [%s] does not match regex %s`,
+						r.TLS.PeerCertificates[0].Subject.CommonName,
+						strings.Join(r.TLS.PeerCertificates[0].DNSNames, ", "),
+						conf.MutualTLSCNRegex,
+					)
+				}
+				http.Error(w, "No Valid SAN", http.StatusForbidden)
+			})
+		}
+
 		log.Info("Now listening with mutual TLS on https://", addr)
 		return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
 	}
