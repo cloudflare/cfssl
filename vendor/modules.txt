@@ -40,7 +40,7 @@ github.com/getsentry/sentry-go/internal/ratelimit
 # github.com/go-logr/logr v1.4.1
 ## explicit; go 1.18
 github.com/go-logr/logr
-# github.com/go-sql-driver/mysql v1.8.0
+# github.com/go-sql-driver/mysql v1.8.1
 ## explicit; go 1.18
 github.com/go-sql-driver/mysql
 # github.com/google/certificate-transparency-go v1.1.8
