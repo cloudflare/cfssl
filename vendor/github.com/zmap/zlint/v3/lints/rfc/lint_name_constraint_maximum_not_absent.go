@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -34,13 +34,15 @@ certificate.
 ************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_name_constraint_maximum_not_absent",
-		Description:   "Within the name constraints name form, the maximum field is not used and therefore MUST be absent",
-		Citation:      "RFC 5280: 4.2.1.10",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewNameConstraintMax,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_name_constraint_maximum_not_absent",
+			Description:   "Within the name constraints name form, the maximum field is not used and therefore MUST be absent",
+			Citation:      "RFC 5280: 4.2.1.10",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewNameConstraintMax,
 	})
 }
 

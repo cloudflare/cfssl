@@ -1,7 +1,7 @@
 package community
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -23,13 +23,15 @@ import (
 type IssuerDNLeadingSpace struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_issuer_dn_leading_whitespace",
-		Description:   "AttributeValue in issuer RelativeDistinguishedName sequence SHOULD NOT have leading whitespace",
-		Citation:      "lint.AWSLabs certlint",
-		Source:        lint.Community,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewIssuerDNLeadingSpace,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_issuer_dn_leading_whitespace",
+			Description:   "AttributeValue in issuer RelativeDistinguishedName sequence SHOULD NOT have leading whitespace",
+			Citation:      "lint.AWSLabs certlint",
+			Source:        lint.Community,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewIssuerDNLeadingSpace,
 	})
 }
 

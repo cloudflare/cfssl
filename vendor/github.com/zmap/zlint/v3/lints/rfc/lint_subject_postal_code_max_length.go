@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -33,13 +33,15 @@ RFC 5280: A.1
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_postal_code_max_length",
-		Description:   "The 'PostalCode' field of the subject MUST be less than 17 characters",
-		Citation:      "RFC 5280: A.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectPostalCodeMaxLength,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_postal_code_max_length",
+			Description:   "The 'PostalCode' field of the subject MUST be less than 17 characters",
+			Citation:      "RFC 5280: A.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectPostalCodeMaxLength,
 	})
 }
 
@@ -48,7 +50,7 @@ func NewSubjectPostalCodeMaxLength() lint.LintInterface {
 }
 
 func (l *subjectPostalCodeMaxLength) CheckApplies(c *x509.Certificate) bool {
-	return true
+	return len(c.Subject.PostalCode) > 0
 }
 
 func (l *subjectPostalCodeMaxLength) Execute(c *x509.Certificate) *lint.LintResult {

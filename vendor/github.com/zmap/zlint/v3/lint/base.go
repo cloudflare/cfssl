@@ -1,7 +1,7 @@
 package lint
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -219,6 +219,9 @@ func (l *CertificateLint) CheckEffective(c *x509.Certificate) bool {
 // Execute()
 func (l *CertificateLint) Execute(cert *x509.Certificate, config Configuration) *LintResult {
 	if l.Source == CABFBaselineRequirements && !util.IsServerAuthCert(cert) {
+		return &LintResult{Status: NA}
+	}
+	if l.Source == CABFSMIMEBaselineRequirements && !((util.IsEmailProtectionCert(cert) && util.HasEmailSAN(cert)) || util.IsSMIMEBRCertificate(cert)) {
 		return &LintResult{Status: NA}
 	}
 	lint := l.Lint()

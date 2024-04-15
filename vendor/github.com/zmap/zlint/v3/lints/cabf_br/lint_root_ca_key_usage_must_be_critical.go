@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -23,13 +23,15 @@ import (
 type rootCAKeyUsageMustBeCritical struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_root_ca_key_usage_must_be_critical",
-		Description:   "Root CA certificates MUST have Key Usage Extension marked critical",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewRootCAKeyUsageMustBeCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_root_ca_key_usage_must_be_critical",
+			Description:   "Root CA certificates MUST have Key Usage Extension marked critical",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewRootCAKeyUsageMustBeCritical,
 	})
 }
 

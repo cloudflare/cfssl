@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 type rsaParsedTestsKeySize struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rsa_mod_less_than_2048_bits",
-		Description:   "For certificates valid after 31 Dec 2013, all certificates using RSA public key algorithm MUST have 2048 bits of modulus",
-		Citation:      "BRs: 6.1.5",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.ZeroDate,
-		Lint:          NewRsaParsedTestsKeySize,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rsa_mod_less_than_2048_bits",
+			Description:   "For certificates valid after 31 Dec 2013, all certificates using RSA public key algorithm MUST have 2048 bits of modulus",
+			Citation:      "BRs: 6.1.5",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.ZeroDate,
+		},
+		Lint: NewRsaParsedTestsKeySize,
 	})
 }
 
