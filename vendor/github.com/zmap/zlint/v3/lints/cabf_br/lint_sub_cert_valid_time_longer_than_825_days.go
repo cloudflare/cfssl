@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -23,13 +23,15 @@ import (
 type subCertValidTimeLongerThan825Days struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_sub_cert_valid_time_longer_than_825_days",
-		Description:   "Subscriber Certificates issued after 1 March 2018, but prior to 1 September 2020, MUST NOT have a Validity Period greater than 825 days.",
-		Citation:      "BRs: 6.3.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.SubCert825Days,
-		Lint:          NewSubCertValidTimeLongerThan825Days,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_sub_cert_valid_time_longer_than_825_days",
+			Description:   "Subscriber Certificates issued after 1 March 2018, but prior to 1 September 2020, MUST NOT have a Validity Period greater than 825 days.",
+			Citation:      "BRs: 6.3.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.SubCert825Days,
+		},
+		Lint: NewSubCertValidTimeLongerThan825Days,
 	})
 }
 

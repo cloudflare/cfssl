@@ -1,6 +1,10 @@
 package util
 
-import "github.com/zmap/zcrypto/x509"
+import (
+	"strings"
+
+	"github.com/zmap/zcrypto/x509"
+)
 
 var (
 	// KeyUsageToString maps an x509.KeyUsage bitmask to its name.
@@ -33,4 +37,15 @@ func HasKeyUsage(c *x509.Certificate, usage x509.KeyUsage) bool {
 // KeyUsageIsPresent checks the provided bitmap (keyUsages) for presence of the provided x509.KeyUsage.
 func KeyUsageIsPresent(keyUsages x509.KeyUsage, usage x509.KeyUsage) bool {
 	return keyUsages&usage != 0
+}
+
+// GetKeyUsageStrings returns a list of included key usages
+func GetKeyUsageStrings(keyUsages x509.KeyUsage) []string {
+	var keyUsageStrings []string
+	for ku, name := range KeyUsageToString {
+		if KeyUsageIsPresent(keyUsages, ku) {
+			keyUsageStrings = append(keyUsageStrings, strings.TrimPrefix(name, "KeyUsage"))
+		}
+	}
+	return keyUsageStrings
 }

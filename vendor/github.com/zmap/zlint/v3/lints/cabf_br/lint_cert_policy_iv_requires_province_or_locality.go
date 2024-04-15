@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -35,13 +35,15 @@ the Subject field.
 // 7.1.4.2.2 applies only to subscriber certificates.
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_cert_policy_iv_requires_province_or_locality",
-		Description:   "If certificate policy 2.23.140.1.2.3 is included, localityName or stateOrProvinceName MUST be included in subject",
-		Citation:      "BRs: 7.1.6.4",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV131Date,
-		Lint:          NewCertPolicyIVRequiresProvinceOrLocal,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_cert_policy_iv_requires_province_or_locality",
+			Description:   "If certificate policy 2.23.140.1.2.3 is included, localityName or stateOrProvinceName MUST be included in subject",
+			Citation:      "BRs: 7.1.6.4",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV131Date,
+		},
+		Lint: NewCertPolicyIVRequiresProvinceOrLocal,
 	})
 }
 
