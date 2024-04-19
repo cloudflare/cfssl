@@ -33,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/weppos/publicsuffix-go v0.30.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
