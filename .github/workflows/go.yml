@@ -75,4 +75,4 @@ jobs:
           go-version: 1.18
       - uses: actions/checkout@v4
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v5
