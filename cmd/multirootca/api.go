@@ -30,7 +30,7 @@ var (
 	requests = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "requests_total",
-			Help: "How many requests for each operation type and signer were succesfully processed.",
+			Help: "How many requests for each operation type and signer were successfully processed.",
 		},
 		[]string{"operation", "signer"},
 	)
