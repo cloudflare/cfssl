@@ -36,6 +36,7 @@ Building cfssl requires a
 $ git clone git@github.com:cloudflare/cfssl.git
 $ cd cfssl
 $ make
+$ make install
 ```
 
 The resulting binaries will be in the bin folder:
