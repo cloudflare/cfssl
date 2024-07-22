@@ -75,6 +75,10 @@ type SignRequest struct {
 
 	// Arbitrary metadata to be stored in certdb.
 	Metadata map[string]interface{} `json:"metadata"`
+
+	// Bundle is a boolean specifying whether to include an "optimal"
+	// certificate bundle along with the certificate
+	Bundle bool `json:"bundle,omitempty"`
 }
 
 // appendIf appends to a if s is not an empty string.
