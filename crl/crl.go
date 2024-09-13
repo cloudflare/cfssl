@@ -87,7 +87,7 @@ func NewCRLFromDB(certs []certdb.CertificateRecord, issuerCert *x509.Certificate
 		serialInt.SetString(certRecord.Serial, 10)
 		tempCert := pkix.RevokedCertificate{
 			SerialNumber:   serialInt,
-			RevocationTime: certRecord.RevokedAt,
+			RevocationTime: *certRecord.RevokedAt,
 		}
 		revokedCerts = append(revokedCerts, tempCert)
 	}

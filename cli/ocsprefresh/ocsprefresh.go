@@ -78,7 +78,7 @@ func ocsprefreshMain(args []string, c cli.Config) error {
 
 		if certRecord.Status == "revoked" {
 			req.Reason = int(certRecord.Reason)
-			req.RevokedAt = certRecord.RevokedAt
+			req.RevokedAt = *certRecord.RevokedAt
 		}
 
 		resp, err := s.Sign(req)
