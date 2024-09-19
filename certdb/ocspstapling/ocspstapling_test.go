@@ -106,7 +106,7 @@ func TestStapleSCTList(t *testing.T) {
 			sctA.Timestamp == sctB.Timestamp &&
 			bytes.Equal(sctA.Extensions, sctB.Extensions) &&
 			sctA.Signature.Algorithm == sctB.Signature.Algorithm &&
-			bytes.Equal(sctA.Signature.Signature, sctA.Signature.Signature) {
+			bytes.Equal(sctA.Signature.Signature, sctB.Signature.Signature) {
 			return true
 		}
 		return false
