@@ -2,6 +2,7 @@ package crl
 
 import (
 	"crypto/x509"
+	"math/big"
 	"os"
 	"testing"
 )
@@ -31,20 +32,24 @@ func TestNewCRLFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	crl, err := NewCRLFromFile(serialListBytes, tryTwoCertBytes, tryTwoKeyBytes, "0")
+	crl, err := NewCRLFromFile(serialListBytes, tryTwoCertBytes, tryTwoKeyBytes, "0", big.NewInt(1))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	certList, err := x509.ParseDERCRL(crl)
+	certList, err := x509.ParseRevocationList(crl)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	numCerts := len(certList.TBSCertList.RevokedCertificates)
+	numCerts := len(certList.RevokedCertificateEntries)
 	expectedNum := 4
 	if expectedNum != numCerts {
 		t.Fatal("Wrong number of expired certificates")
+	}
+
+	if big.NewInt(1).Cmp(certList.Number) != 0 {
+		t.Fatal("Wrong CRL number")
 	}
 }
 
@@ -59,19 +64,23 @@ func TestNewCRLFromFileWithoutRevocations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	crl, err := NewCRLFromFile([]byte("\n \n"), tryTwoCertBytes, tryTwoKeyBytes, "0")
+	crl, err := NewCRLFromFile([]byte("\n \n"), tryTwoCertBytes, tryTwoKeyBytes, "0", big.NewInt(0))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	certList, err := x509.ParseDERCRL(crl)
+	certList, err := x509.ParseRevocationList(crl)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	numCerts := len(certList.TBSCertList.RevokedCertificates)
+	numCerts := len(certList.RevokedCertificateEntries)
 	expectedNum := 0
 	if expectedNum != numCerts {
 		t.Fatal("Wrong number of expired certificates")
+	}
+
+	if big.NewInt(0).Cmp(certList.Number) != 0 {
+		t.Fatal("Wrong CRL number")
 	}
 }
