@@ -3,10 +3,13 @@ package sql
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
 	cferr "github.com/cloudflare/cfssl/errors"
+	"github.com/go-sql-driver/mysql"
+	"github.com/mattn/go-sqlite3"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -76,7 +79,37 @@ var _ certdb.Accessor = &Accessor{}
 
 func wrapSQLError(err error) error {
 	if err != nil {
-		return cferr.Wrap(cferr.CertStoreError, cferr.Unknown, err)
+
+		reason := cferr.Unknown
+
+		// Use detailed reason on unique constraint errors (i.e. will allow API client
+		// to detect already used cert serial in DB when API client is
+		// allowed to provide cert serial on cert singing). We don't detect this
+		// kind of problems by querying table for exisitng key before insert/update
+		// to avoid races. Unique constraint errors have different codes in different
+		// DB engines so must be detected separately.
+
+		// MySQL/MariaDB
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			reason = cferr.DuplicateEntry
+		}
+
+		// SQLite
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) && (sqliteErr.Code == sqlite3.ErrConstraint) {
+
+			// Parsing error message is probably the only way to detect duplicate key
+			// errors in SQLite now...
+			if regexp.MustCompile(`(^|\s)UNIQUE constraint failed .*`).MatchString(err.Error()) {
+				reason = cferr.DuplicateEntry
+			}
+		}
+
+		// PostgresSQL
+		// TBD. See also: https://github.com/go-gorm/gorm/issues/4135
+
+		return cferr.Wrap(cferr.CertStoreError, reason, err)
 	}
 	return nil
 }
