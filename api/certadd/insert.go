@@ -55,7 +55,7 @@ type AddRequest struct {
 	Status       string         `json:"status"`
 	Reason       int            `json:"reason"`
 	Expiry       time.Time      `json:"expiry"`
-	RevokedAt    time.Time      `json:"revoked_at"`
+	RevokedAt    *time.Time     `json:"revoked_at"`
 	PEM          string         `json:"pem"`
 	IssuedAt     *time.Time     `json:"issued_at"`
 	NotBefore    *time.Time     `json:"not_before"`
@@ -106,7 +106,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if ocsp.StatusCode[req.Status] == stdocsp.Revoked {
-		if req.RevokedAt == (time.Time{}) {
+		if *req.RevokedAt == (time.Time{}) {
 			return errors.NewBadRequestString("Revoked certificate should specify when it was revoked")
 		}
 
@@ -180,7 +180,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 			Certificate: cert,
 			Status:      req.Status,
 			Reason:      req.Reason,
-			RevokedAt:   req.RevokedAt,
+			RevokedAt:   *req.RevokedAt,
 		}
 		ocspResponse, err := h.signer.Sign(sr)
 		if err != nil {
