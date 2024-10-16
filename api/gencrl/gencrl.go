@@ -3,7 +3,7 @@ package gencrl
 
 import (
 	"crypto/rand"
-	"crypto/x509/pkix"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"math/big"
@@ -24,12 +24,13 @@ type jsonCRLRequest struct {
 	SerialNumber []string `json:"serialNumber"`
 	PrivateKey   string   `json:"issuingKey"`
 	ExpiryTime   string   `json:"expireTime"`
+	CRLNumber    int64    `json:"crlNumber"`
 }
 
 // Handle responds to requests for crl generation. It creates this crl
 // based off of the given certificate, serial numbers, and private key
 func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
-	var revokedCerts []pkix.RevokedCertificate
+	var revokedCerts []x509.RevocationListEntry
 	var oneWeek = time.Duration(604800) * time.Second
 	var newExpiryTime = time.Now()
 
@@ -72,7 +73,7 @@ func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 	for _, value := range req.SerialNumber {
 		tempBigInt := new(big.Int)
 		tempBigInt.SetString(value, 10)
-		tempCert := pkix.RevokedCertificate{
+		tempCert := x509.RevocationListEntry{
 			SerialNumber:   tempBigInt,
 			RevocationTime: time.Now(),
 		}
@@ -85,7 +86,14 @@ func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 		return errors.NewBadRequestString("malformed Private Key")
 	}
 
-	result, err := cert.CreateCRL(rand.Reader, key, revokedCerts, time.Now(), newExpiryTime)
+	tpl := &x509.RevocationList{
+		Issuer:                    cert.Subject,
+		RevokedCertificateEntries: revokedCerts,
+		NextUpdate:                newExpiryTime,
+		ThisUpdate:                time.Now(),
+		Number:                    big.NewInt(req.CRLNumber),
+	}
+	result, err := x509.CreateRevocationList(rand.Reader, tpl, cert, key)
 	if err != nil {
 		log.Debugf("unable to create CRL: %v", err)
 		return err

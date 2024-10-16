@@ -22,6 +22,7 @@ const (
 type testJSON struct {
 	Certificate        string
 	SerialNumber       []string
+	CRLNumber          int64
 	PrivateKey         string
 	ExpiryTime         string
 	ExpectedHTTPStatus int
@@ -31,6 +32,7 @@ type testJSON struct {
 var tester = testJSON{
 	Certificate:        cert,
 	SerialNumber:       []string{"1", "2", "3"},
+	CRLNumber:          1,
 	PrivateKey:         key,
 	ExpiryTime:         "2000",
 	ExpectedHTTPStatus: 200,
@@ -50,7 +52,7 @@ func newCRLServer(t *testing.T) *httptest.Server {
 	return ts
 }
 
-func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, serialList []string) (resp *http.Response, body []byte) {
+func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, serialList []string, number int64) (resp *http.Response, body []byte) {
 	ts := newCRLServer(t)
 	defer ts.Close()
 
@@ -65,6 +67,7 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 	}
 
 	obj["serialNumber"] = serialList
+	obj["crlNumber"] = number
 
 	if issuingKey != "" {
 		c, err := os.ReadFile(issuingKey)
@@ -93,7 +96,7 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 }
 
 func TestCRL(t *testing.T) {
-	resp, body := testCRLCreation(t, tester.PrivateKey, tester.Certificate, tester.ExpiryTime, tester.SerialNumber)
+	resp, body := testCRLCreation(t, tester.PrivateKey, tester.Certificate, tester.ExpiryTime, tester.SerialNumber, tester.CRLNumber)
 	if resp.StatusCode != tester.ExpectedHTTPStatus {
 		t.Logf("expected: %d, have %d", tester.ExpectedHTTPStatus, resp.StatusCode)
 		t.Fatal(resp.Status, tester.ExpectedHTTPStatus, string(body))
