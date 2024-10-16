@@ -29,7 +29,7 @@ import (
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
 	"golang.org/x/crypto/ocsp"
-	"golang.org/x/crypto/pkcs12"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 // OneYear is a time.Duration representing a year's worth of seconds.
@@ -259,7 +259,9 @@ func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certi
 	if err != nil {
 		var pkcs12data interface{}
 		certs = make([]*x509.Certificate, 1)
-		pkcs12data, certs[0], err = pkcs12.Decode(certsDER, password)
+
+		var caCerts []*x509.Certificate
+		pkcs12data, certs[0], caCerts, err = pkcs12.DecodeChain(certsDER, password)
 		if err != nil {
 			certs, err = x509.ParseCertificates(certsDER)
 			if err != nil {
@@ -268,6 +270,8 @@ func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certi
 		} else {
 			key = pkcs12data.(crypto.Signer)
 		}
+
+		certs = append(certs, caCerts...)
 	} else {
 		if pkcs7data.ContentInfo != "SignedData" {
 			return nil, nil, cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed, errors.New("can only extract certificates from signed data content info"))
