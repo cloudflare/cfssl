@@ -525,7 +525,22 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		if err := certRecord.SetMetadata(req.Metadata); err != nil {
 			return nil, err
 		}
-		if err := certRecord.SetSANs(certTBS.DNSNames); err != nil {
+
+		var ipStrings []string
+		for _, ip := range certTBS.IPAddresses {
+			ipStrings = append(ipStrings, ip.String())
+		}
+
+		var uriStrings []string
+		for _, uri := range certTBS.URIs {
+			uriStrings = append(uriStrings, uri.String())
+		}
+
+		allSANs := append(certTBS.DNSNames, certTBS.EmailAddresses...)
+		allSANs = append(allSANs, ipStrings...)
+		allSANs = append(allSANs, uriStrings...)
+
+		if err := certRecord.SetSANs(allSANs); err != nil {
 			return nil, err
 		}
 
