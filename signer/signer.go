@@ -8,6 +8,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -263,8 +264,9 @@ type subjectPublicKeyInfo struct {
 }
 
 // ComputeSKI derives an SKI from the certificate's public key in a
-// standard manner. This is done by computing the SHA-1 digest of the
-// SubjectPublicKeyInfo component of the certificate.
+// standard manner. This is done by computing the SHA-256 digest of the
+// SubjectPublicKeyInfo component of the certificate, and returning the
+// leftmost 160 bits, per RFC 7093 Section 2(1).
 func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 	pub := template.PublicKey
 	encodedPub, err := x509.MarshalPKIXPublicKey(pub)
@@ -278,8 +280,8 @@ func ComputeSKI(template *x509.Certificate) ([]byte, error) {
 		return nil, err
 	}
 
-	pubHash := sha1.Sum(subPKI.SubjectPublicKey.Bytes)
-	return pubHash[:], nil
+	pubHash := sha256.Sum256(subPKI.SubjectPublicKey.Bytes)
+	return pubHash[:20], nil
 }
 
 // FillTemplate is a utility function that tries to load as much of
