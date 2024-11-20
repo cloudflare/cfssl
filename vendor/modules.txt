@@ -119,13 +119,14 @@ github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v3 v3.5.0
+# github.com/zmap/zlint/v3 v3.6.2
 ## explicit; go 1.18
 github.com/zmap/zlint/v3
 github.com/zmap/zlint/v3/lint
 github.com/zmap/zlint/v3/lints/apple
 github.com/zmap/zlint/v3/lints/cabf_br
 github.com/zmap/zlint/v3/lints/cabf_ev
+github.com/zmap/zlint/v3/lints/cabf_smime_br
 github.com/zmap/zlint/v3/lints/community
 github.com/zmap/zlint/v3/lints/etsi
 github.com/zmap/zlint/v3/lints/mozilla

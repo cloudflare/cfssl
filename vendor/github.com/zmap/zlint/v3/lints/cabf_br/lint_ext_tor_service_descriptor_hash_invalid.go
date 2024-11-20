@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -27,13 +27,15 @@ import (
 type torServiceDescHashInvalid struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_tor_service_descriptor_hash_invalid",
-		Description:   "certificates with v2 .onion names need valid TorServiceDescriptors in extension",
-		Citation:      "BRs: Ballot 201, Ballot SC27",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV201Date,
-		Lint:          NewTorServiceDescHashInvalid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_tor_service_descriptor_hash_invalid",
+			Description:   "certificates with v2 .onion names need valid TorServiceDescriptors in extension",
+			Citation:      "BRs: Ballot 201, Ballot SC27",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV201Date,
+		},
+		Lint: NewTorServiceDescHashInvalid,
 	})
 }
 

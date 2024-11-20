@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -38,13 +38,15 @@ is zero.  GeneralizedTime values MUST NOT include fractional seconds.
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_generalized_time_includes_fraction_seconds",
-		Description:   "Generalized time values MUST NOT include fractional seconds",
-		Citation:      "RFC 5280: 4.1.2.5.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewGeneralizedTimeFraction,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_generalized_time_includes_fraction_seconds",
+			Description:   "Generalized time values MUST NOT include fractional seconds",
+			Citation:      "RFC 5280: 4.1.2.5.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewGeneralizedTimeFraction,
 	})
 }
 

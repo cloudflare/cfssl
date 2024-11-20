@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -30,13 +30,15 @@ This extension MUST appear as a critical extension. The cA field MUST be set tru
 ***********************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_root_ca_basic_constraints_path_len_constraint_field_present",
-		Description:   "Root CA certificate basicConstraint extension pathLenConstraint field SHOULD NOT be present",
-		Citation:      "BRs: 7.1.2.1",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewRootCaPathLenPresent,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_root_ca_basic_constraints_path_len_constraint_field_present",
+			Description:   "Root CA certificate basicConstraint extension pathLenConstraint field SHOULD NOT be present",
+			Citation:      "BRs: 7.1.2.1",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewRootCaPathLenPresent,
 	})
 }
 

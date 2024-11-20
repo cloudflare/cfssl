@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -41,13 +41,15 @@ RFC 3279: 2.3.1  RSA Keys
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rsa_allowed_ku_no_encipherment_ca",
-		Description:   "If Key usage value keyCertSign or cRLSign is present in a CA certificate both keyEncipherment and dataEncipherment SHOULD NOT be present",
-		Citation:      "RFC 3279: 2.3.1",
-		Source:        lint.RFC3279,
-		EffectiveDate: util.RFC3279Date,
-		Lint:          NewRsaAllowedKUCaNoEncipherment,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rsa_allowed_ku_no_encipherment_ca",
+			Description:   "If Key usage value keyCertSign or cRLSign is present in a CA certificate both keyEncipherment and dataEncipherment SHOULD NOT be present",
+			Citation:      "RFC 3279: 2.3.1",
+			Source:        lint.RFC3279,
+			EffectiveDate: util.RFC3279Date,
+		},
+		Lint: NewRsaAllowedKUCaNoEncipherment,
 	})
 }
 

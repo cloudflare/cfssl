@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -34,13 +34,15 @@ The name constraints extension, which MUST be used only in a CA
 ***********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_name_constraints_not_in_ca",
-		Description:   "The name constraints extension MUST only be used in CA certificates",
-		Citation:      "RFC 5280: 4.2.1.10",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewNameConstraintNotCa,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_name_constraints_not_in_ca",
+			Description:   "The name constraints extension MUST only be used in CA certificates",
+			Citation:      "RFC 5280: 4.2.1.10",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewNameConstraintNotCa,
 	})
 }
 

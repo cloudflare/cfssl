@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -33,13 +33,15 @@ RSA: The CA SHALL confirm that the value of the public exponent is an odd number
 *******************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_rsa_public_exponent_not_in_range",
-		Description:   "RSA: Public exponent SHOULD be in the range between 2^16 + 1 and 2^256 - 1",
-		Citation:      "BRs: 6.1.6",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV113Date,
-		Lint:          NewRsaParsedTestsExpInRange,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_rsa_public_exponent_not_in_range",
+			Description:   "RSA: Public exponent SHOULD be in the range between 2^16 + 1 and 2^256 - 1",
+			Citation:      "BRs: 6.1.6",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV113Date,
+		},
+		Lint: NewRsaParsedTestsExpInRange,
 	})
 }
 
