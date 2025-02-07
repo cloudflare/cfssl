@@ -194,7 +194,9 @@ func (c *JSONClient) GetAndParse(ctx context.Context, path string, params map[st
 
 	// Read everything now so http.Client can reuse the connection.
 	body, err := io.ReadAll(httpRsp.Body)
-	httpRsp.Body.Close()
+	if err := httpRsp.Body.Close(); err != nil {
+		return nil, nil, err
+	}
 	if err != nil {
 		return nil, nil, RspError{Err: fmt.Errorf("failed to read response body: %v", err), StatusCode: httpRsp.StatusCode, Body: body}
 	}
@@ -240,13 +242,19 @@ func (c *JSONClient) PostAndParse(ctx context.Context, path string, req, rsp int
 	var body []byte
 	if httpRsp != nil {
 		body, err = io.ReadAll(httpRsp.Body)
-		httpRsp.Body.Close()
+		if err := httpRsp.Body.Close(); err != nil {
+			return nil, nil, err
+		}
 	}
 	if err != nil {
 		if httpRsp != nil {
 			return nil, nil, RspError{StatusCode: httpRsp.StatusCode, Body: body, Err: err}
 		}
 		return nil, nil, err
+	}
+	if httpRsp.Request.Method != http.MethodPost {
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections#permanent_redirections
+		return nil, nil, fmt.Errorf("POST request to %q was converted to %s request to %q", fullURI, httpRsp.Request.Method, httpRsp.Request.URL)
 	}
 
 	if httpRsp.StatusCode == http.StatusOK {
