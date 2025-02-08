@@ -2,11 +2,12 @@ package client
 
 import (
 	"crypto/tls"
-	"github.com/cloudflare/cfssl/auth"
-	"github.com/cloudflare/cfssl/helpers"
 	"net"
 	"strings"
 	"testing"
+
+	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 var (
@@ -60,10 +61,20 @@ func TestInvalidPort(t *testing.T) {
 }
 
 func TestAuthSign(t *testing.T) {
-	s := NewServer(".X")
 	testProvider, _ = auth.New(testKey, nil)
+	s := NewAuthServer(".X", nil, testProvider)
 	testRequest := []byte(`testing 1 2 3`)
 	as, err := s.AuthSign(testRequest, testAD, testProvider)
+	if as != nil || err == nil {
+		t.Fatal("expected error with auth sign function")
+	}
+}
+
+func TestBundleAuthSign(t *testing.T) {
+	testProvider, _ = auth.New(testKey, nil)
+	s := NewAuthServer(".X", nil, testProvider)
+	testRequest := []byte(`testing 1 2 3`)
+	_, as, err := s.BundleAuthSign(testRequest, testAD, testProvider)
 	if as != nil || err == nil {
 		t.Fatal("expected error with auth sign function")
 	}
@@ -82,6 +93,14 @@ func TestDefaultAuthSign(t *testing.T) {
 func TestSign(t *testing.T) {
 	s := NewServer(".X")
 	sign, err := s.Sign([]byte{5, 5, 5, 5})
+	if sign != nil || err == nil {
+		t.Fatalf("expected error with sign function")
+	}
+}
+
+func TestBundleSign(t *testing.T) {
+	s := NewServer(".X")
+	_, sign, err := s.BundleSign([]byte{5, 5, 5, 5})
 	if sign != nil || err == nil {
 		t.Fatalf("expected error with sign function")
 	}

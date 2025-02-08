@@ -104,6 +104,17 @@ func (g *orderedListGroup) AuthSign(req, id []byte, provider auth.Provider) (res
 	return nil, err
 }
 
+func (g *orderedListGroup) BundleAuthSign(req, id []byte, provider auth.Provider) (ca []byte, cert []byte, err error) {
+	for i := range g.remotes {
+		ca, cert, err = g.remotes[i].BundleAuthSign(req, id, provider)
+		if err == nil {
+			return ca, cert, nil
+		}
+	}
+
+	return nil, nil, err
+}
+
 func (g *orderedListGroup) Sign(jsonData []byte) (resp []byte, err error) {
 	for i := range g.remotes {
 		resp, err = g.remotes[i].Sign(jsonData)
@@ -113,6 +124,17 @@ func (g *orderedListGroup) Sign(jsonData []byte) (resp []byte, err error) {
 	}
 
 	return nil, err
+}
+
+func (g *orderedListGroup) BundleSign(jsonData []byte) (ca []byte, cert []byte, err error) {
+	for i := range g.remotes {
+		ca, cert, err = g.remotes[i].BundleSign(jsonData)
+		if err == nil {
+			return ca, cert, nil
+		}
+	}
+
+	return nil, nil, err
 }
 
 func (g *orderedListGroup) Info(jsonData []byte) (resp *info.Resp, err error) {
