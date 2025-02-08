@@ -60,7 +60,7 @@ snapshot:
 	--rm \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/goreleaser/goreleaser-cross:latest --clean --snapshot --skip-publish
+    ghcr.io/goreleaser/goreleaser-cross:latest --clean --snapshot --skip=publish
 
 .PHONY: github-release
 github-release:
@@ -73,15 +73,8 @@ github-release:
     -w /cross \
     ghcr.io/goreleaser/goreleaser-cross:latest --clean
 
-.PHONY: docker-build
-docker-build:
-	docker build -f Dockerfile -t cfssl/cfssl:$(VERSION) .
-.PHONY: docker-push
-docker-push:
-	docker push cfssl/cfssl:$(VERSION)
-
 .PHONY: release
-release: github-release docker-build docker-push
+release: github-release
 
 BUILD_PATH   := $(CURDIR)/build
 INSTALL_PATH := $(BUILD_PATH)/usr/local/bin
