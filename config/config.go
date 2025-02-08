@@ -112,7 +112,7 @@ type SigningProfile struct {
 
 	Policies                    []CertificatePolicy
 	Expiry                      time.Duration
-	Backdate                    time.Duration
+	Backdate                    *time.Duration
 	Provider                    auth.Provider
 	PrevProvider                auth.Provider // to suppport key rotation
 	RemoteProvider              auth.Provider
@@ -210,7 +210,7 @@ func (p *SigningProfile) populate(cfg *Config) error {
 				return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
 			}
 
-			p.Backdate = dur
+			p.Backdate = &dur
 		}
 
 		if !p.NotBefore.IsZero() && !p.NotAfter.IsZero() && p.NotAfter.Before(p.NotBefore) {
