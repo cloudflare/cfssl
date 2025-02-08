@@ -26,6 +26,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/cfssl
     ldflags:
@@ -63,6 +64,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/cfssl-bundle
     ldflags:
@@ -100,6 +102,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/cfssl-certinfo
     ldflags:
@@ -137,6 +140,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/cfssl-newkey
     ldflags:
@@ -174,6 +178,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/cfssl-scan
     ldflags:
@@ -211,6 +216,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/cfssljson
     ldflags:
@@ -248,6 +254,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/mkbundle
     ldflags:
@@ -285,6 +292,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - ppc64le
       - s390x
     main: ./cmd/multirootca
     ldflags:

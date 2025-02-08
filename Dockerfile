@@ -4,8 +4,8 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 RUN echo "I am running on $BUILDPLATFORM, building for $TARGETPLATFORM" 
 
-LABEL org.opencontainers.image.source https://github.com/cloudflare/cfssl
-LABEL org.opencontainers.image.description "Cloudflare's PKI toolkit"
+LABEL org.opencontainers.image.source=https://github.com/cloudflare/cfssl
+LABEL org.opencontainers.image.description="Cloudflare's PKI toolkit"
 
 ARG TARGETOS
 ARG TARGETARCH
