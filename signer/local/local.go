@@ -308,9 +308,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	// Copy out only the fields from the CSR authorized by policy.
 	safeTemplate := x509.Certificate{}
 	// If the profile contains no explicit whitelist, assume that all fields
-	// should be copied from the CSR.
+	// (except EKUs) should be copied from the CSR.
 	if profile.CSRWhitelist == nil {
 		safeTemplate = *csrTemplate
+		safeTemplate.UnknownExtKeyUsage = []asn1.ObjectIdentifier{}
 	} else {
 		if profile.CSRWhitelist.Subject {
 			safeTemplate.Subject = csrTemplate.Subject
@@ -335,6 +336,10 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 		if profile.CSRWhitelist.URIs {
 			safeTemplate.URIs = csrTemplate.URIs
+		}
+		if profile.CSRWhitelist.EKUs {
+			// Will be further filtered in signer.FillTemplate call below.
+			safeTemplate.UnknownExtKeyUsage = csrTemplate.UnknownExtKeyUsage
 		}
 	}
 
