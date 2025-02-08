@@ -122,7 +122,7 @@ type SigningProfile struct {
 	CSRWhitelist                *CSRWhitelist
 	NameWhitelist               *regexp.Regexp
 	ExtensionWhitelist          map[string]bool
-	ClientProvidesSerialNumbers bool
+	ClientProvidesSerialNumbers bool `json:"client_provides_serial_numbers"`
 	// LintRegistry is the collection of lints that should be used if
 	// LintErrLevel is configured. By default all ZLint lints are used. If
 	// ExcludeLints or ExcludeLintSources are set then this registry will be
