@@ -107,7 +107,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		return err
 	}
 
-	var issuedAt, notBefore *time.Time
+	var issuedAt, notBefore, revokedAt *time.Time
 	if cr.IssuedAt != nil {
 		t := cr.IssuedAt.UTC()
 		issuedAt = &t
@@ -116,6 +116,11 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		t := cr.NotBefore.UTC()
 		notBefore = &t
 	}
+	if cr.RevokedAt != nil {
+		t := cr.RevokedAt.UTC()
+		revokedAt = &t
+	}
+
 	res, err := d.db.NamedExec(insertSQL, &certdb.CertificateRecord{
 		Serial:       cr.Serial,
 		AKI:          cr.AKI,
@@ -123,7 +128,7 @@ func (d *Accessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		Status:       cr.Status,
 		Reason:       cr.Reason,
 		Expiry:       cr.Expiry.UTC(),
-		RevokedAt:    cr.RevokedAt.UTC(),
+		RevokedAt:    revokedAt,
 		PEM:          cr.PEM,
 		IssuedAt:     issuedAt,
 		NotBefore:    notBefore,
