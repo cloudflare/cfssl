@@ -13,6 +13,7 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/auth"
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/signer"
 )
 
@@ -312,6 +313,17 @@ var signTests = []signTest{
 	{
 		Hosts:              []string{},
 		Subject:            &signer.Subject{CN: "example.com"},
+		CSRFile:            testCSRFile,
+		ExpectedHTTPStatus: http.StatusOK,
+		ExpectedSuccess:    true,
+		ExpectedErrorCode:  0,
+	},
+	{
+		Hosts: []string{},
+		Subject: &signer.Subject{
+			CN:    "example.com",
+			Names: []csr.Name{csr.Name{E: "jdoe@example.com"}},
+		},
 		CSRFile:            testCSRFile,
 		ExpectedHTTPStatus: http.StatusOK,
 		ExpectedSuccess:    true,
