@@ -99,7 +99,6 @@ func TestRemoteMutualTLSInfo(t *testing.T) {
 }
 
 func remoteTLSInfo(t *testing.T, isMutual bool) {
-	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	certPool, err := helpers.LoadPEMCertPool(testCaFile)
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +159,6 @@ func TestRemoteMutualTLSSign(t *testing.T) {
 }
 
 func remoteTLSSign(t *testing.T, isMutual bool) {
-	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	certPool, err := helpers.LoadPEMCertPool(testCaFile)
 	if err != nil {
 		t.Fatal(err)

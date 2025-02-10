@@ -184,7 +184,6 @@ var bundleTests = []bundleTest{
 }
 
 func TestBundle(t *testing.T) {
-	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	for i, test := range bundleTests {
 		resp, body := testBundleFile(t, test.Domain, test.IP, test.CertFile, test.KeyFile, test.Flavor)
 		if resp.StatusCode != test.ExpectedHTTPStatus {

@@ -6,8 +6,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
-	"github.com/cloudflare/cfssl/helpers"
 	"math"
+
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 // HashUbiquity represents a score for how ubiquitous a given hash
@@ -132,9 +133,9 @@ func CompareChainKeyAlgoUbiquity(chain1, chain2 []*x509.Certificate) int {
 	return int(kau1) - int(kau2)
 }
 
-// CompareExpiryUbiquity ranks two certificate chains based on the exiry dates of intermediates and roots.
+// CompareExpiryUbiquity ranks two certificate chains based on the expiry dates of intermediates and roots.
 // Certs expire later are ranked higher than ones expire earlier. The ranking between chains are determined by
-// the first pair of intermediates, scanned from the root level,  that ar ranked differently.
+// the first pair of intermediates, scanned from the root level, that are ranked differently.
 func CompareExpiryUbiquity(chain1, chain2 []*x509.Certificate) int {
 	for i := 0; ; i++ {
 		if i >= len(chain1) || i >= len(chain2) {
