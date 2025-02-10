@@ -85,13 +85,6 @@ steps:
 
       # Wait for trillian logserver to be up
       until nc -z deployment_trillian-log-server_1 8090; do echo .; sleep 5; done
-
-      # Reset the CT test database
-      export CT_GO_PATH="$$(go list -f '{{.Dir}}' github.com/google/certificate-transparency-go)"
-      export MYSQL_HOST="mysql"
-      export MYSQL_ROOT_PASSWORD="zaphod"
-      export MYSQL_USER_HOST="%"
-      yes | bash "$${CT_GO_PATH}/scripts/resetctdb.sh" --verbose
   waitFor: ['prepare']
 
 # Run the presubmit tests

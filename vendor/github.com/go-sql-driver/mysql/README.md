@@ -326,7 +326,7 @@ It's possible to access the last inserted ID and number of affected rows for mul
 
 ```go
 conn, _ := db.Conn(ctx)
-conn.Raw(func(conn any) error {
+conn.Raw(func(conn interface{}) error {
   ex := conn.(driver.Execer)
   res, err := ex.Exec(`
   UPDATE point SET x = 1 WHERE y = 2;

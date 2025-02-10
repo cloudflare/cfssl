@@ -22,15 +22,14 @@ import (
 )
 
 type processCollector struct {
-	collectFn         func(chan<- Metric)
-	pidFn             func() (int, error)
-	reportErrors      bool
-	cpuTotal          *Desc
-	openFDs, maxFDs   *Desc
-	vsize, maxVsize   *Desc
-	rss               *Desc
-	startTime         *Desc
-	inBytes, outBytes *Desc
+	collectFn       func(chan<- Metric)
+	pidFn           func() (int, error)
+	reportErrors    bool
+	cpuTotal        *Desc
+	openFDs, maxFDs *Desc
+	vsize, maxVsize *Desc
+	rss             *Desc
+	startTime       *Desc
 }
 
 // ProcessCollectorOpts defines the behavior of a process metrics collector
@@ -101,16 +100,6 @@ func NewProcessCollector(opts ProcessCollectorOpts) Collector {
 			"Start time of the process since unix epoch in seconds.",
 			nil, nil,
 		),
-		inBytes: NewDesc(
-			ns+"process_network_receive_bytes_total",
-			"Number of bytes received by the process over the network.",
-			nil, nil,
-		),
-		outBytes: NewDesc(
-			ns+"process_network_transmit_bytes_total",
-			"Number of bytes sent by the process over the network.",
-			nil, nil,
-		),
 	}
 
 	if opts.PidFn == nil {
@@ -140,8 +129,6 @@ func (c *processCollector) Describe(ch chan<- *Desc) {
 	ch <- c.maxVsize
 	ch <- c.rss
 	ch <- c.startTime
-	ch <- c.inBytes
-	ch <- c.outBytes
 }
 
 // Collect returns the current state of all metrics of the collector.
