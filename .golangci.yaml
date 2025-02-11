@@ -5,6 +5,4 @@ linters:
     - gosimple
     - ineffassign
     - unused
-    - deadcode
     - errcheck
-    - varcheck

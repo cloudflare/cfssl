@@ -916,7 +916,6 @@ func TestBundlerWithEmptyRootInfo(t *testing.T) {
 }
 
 func TestBundlerClientAuth(t *testing.T) {
-	t.Skip("expired cert https://github.com/cloudflare/cfssl/issues/1237")
 	b, err := NewBundler("testdata/client-auth/root.pem", "testdata/client-auth/int.pem")
 	if err != nil {
 		t.Fatal(err)
