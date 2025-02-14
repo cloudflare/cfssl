@@ -10,7 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [stable, oldstable]
+        # starting with go 1.24 the GODEBUG=x509sha1=1 flag has been removed. 
+        # many tests rely on sha1 certificates. After resolving #1413 we can
+        # run these on stable and old stable again.
+        go: ['1.23', '1.22']
     services:
       # Label used to access the service container
       postgres:
@@ -76,4 +79,9 @@ jobs:
           go-version: 1.18
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
-
+        with:
+          # There is a breaking change in 1.58 that causes the linter not to recognize 
+          # internal imports or standard library imports and results in linting errors
+          # that cannot be ignored.
+          # e.g certdb/certdb.go:5:2: could not import encoding/json (Config.Importer.Import(encoding/json) returned nil but no error) (typecheck)
+          version: v1.57
