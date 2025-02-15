@@ -33,6 +33,49 @@ const (
 	curveP521 = 521
 )
 
+var (
+	emailOidInts = []int{1, 2, 840, 113549, 1, 9, 1}
+	emailOid     = asn1.ObjectIdentifier(emailOidInts)
+	uidOidInts   = []int{0, 9, 2342, 19200300, 100, 1, 1}
+	uidOid       = asn1.ObjectIdentifier(uidOidInts)
+	dcOidInts    = []int{0, 9, 2342, 19200300, 100, 1, 25}
+	dcOid        = asn1.ObjectIdentifier(dcOidInts)
+)
+
+// Returns email from the attributes if it exists
+func GetEmail(extraNames []pkix.AttributeTypeAndValue) (ok bool, email string) {
+	for _, en := range extraNames {
+		if emailOid.Equal(en.Type) {
+			sval, svalOk := en.Value.(string)
+			if svalOk {
+				return true, sval
+			}
+		}
+	}
+	return false, ""
+}
+
+// Adds the email to the attributes
+func AddEmail(extraNames []pkix.AttributeTypeAndValue, email string) []pkix.AttributeTypeAndValue {
+	extraNames = append(extraNames,
+		pkix.AttributeTypeAndValue{Type: emailOid, Value: email})
+	return extraNames
+}
+
+// Adds the UID to the attributes
+func AddUid(extraNames []pkix.AttributeTypeAndValue, uid string) []pkix.AttributeTypeAndValue {
+	extraNames = append(extraNames,
+		pkix.AttributeTypeAndValue{Type: uidOid, Value: uid})
+	return extraNames
+}
+
+// Adds the Domain Component to the attributes
+func AddDc(extraNames []pkix.AttributeTypeAndValue, domainComponent string) []pkix.AttributeTypeAndValue {
+	extraNames = append(extraNames,
+		pkix.AttributeTypeAndValue{Type: dcOid, Value: domainComponent})
+	return extraNames
+}
+
 // A Name contains the SubjectInfo fields.
 type Name struct {
 	C            string            `json:"C,omitempty" yaml:"C,omitempty"`   // Country
@@ -209,7 +252,7 @@ func (cr *CertificateRequest) Name() (pkix.Name, error) {
 			name.ExtraNames = append(name.ExtraNames, pkix.AttributeTypeAndValue{Type: oid, Value: v})
 		}
 		if n.E != "" {
-			name.ExtraNames = append(name.ExtraNames, pkix.AttributeTypeAndValue{Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}, Value: n.E})
+			name.ExtraNames = append(name.ExtraNames, pkix.AttributeTypeAndValue{Type: emailOid, Value: n.E})
 		}
 	}
 	name.SerialNumber = cr.SerialNumber
@@ -339,7 +382,18 @@ func getNames(sub pkix.Name) []Name {
 	nl := len(sub.Locality)
 	np := len(sub.Province)
 
-	n := max(nc, norg, nou, nl, np)
+	ne := 0
+	emailOk, email := GetEmail(sub.ExtraNames)
+	if emailOk {
+		ne = 1
+	} else {
+		emailOk, email = GetEmail(sub.Names)
+		if emailOk {
+			ne = 1
+		}
+	}
+
+	n := max(nc, norg, nou, nl, np, ne)
 
 	names := make([]Name, n)
 	for i := range names {
@@ -357,6 +411,10 @@ func getNames(sub pkix.Name) []Name {
 		}
 		if i < np {
 			names[i].ST = sub.Province[i]
+		}
+
+		if ne == 1 {
+			names[i].E = email
 		}
 	}
 	return names
