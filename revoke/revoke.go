@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +32,9 @@ var HTTPClient = http.DefaultClient
 // status of a certificate (i.e. due to network failure) causes
 // verification to fail (a hard failure).
 var HardFail = false
+
+// NoFailOnUnreachableCRLHost is to define whether the CRL check should fail on unreachable host.
+var NoFailOnUnreachableCRLHost = false
 
 // CRLSet associates a PKIX certificate list with the URL the CRL is
 // fetched from.
@@ -61,6 +65,7 @@ func ldapURL(url string) bool {
 // - true, true:   the certificate was checked successfully, and it is revoked.
 // - true, false:  failure to check revocation status causes verification to fail
 func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
+	oneSuccessfulCRLCheck := false
 	for _, url := range cert.CRLDistributionPoints {
 		if ldapURL(url) {
 			log.Infof("skipping LDAP CRL: %s", url)
@@ -69,6 +74,9 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 
 		if revoked, ok, err := certIsRevokedCRL(cert, url); !ok {
 			log.Warning("error checking revocation via CRL")
+			if NoFailOnUnreachableCRLHost && strings.Contains(err.Error(), "no such host") {
+				continue
+			}
 			if HardFail {
 				return true, false, err
 			}
@@ -76,7 +84,13 @@ func revCheck(cert *x509.Certificate) (revoked, ok bool, err error) {
 		} else if revoked {
 			log.Info("certificate is revoked via CRL")
 			return true, true, err
+		} else {
+			oneSuccessfulCRLCheck = true
 		}
+	}
+
+	if NoFailOnUnreachableCRLHost && oneSuccessfulCRLCheck {
+		return false, true, nil
 	}
 
 	if revoked, ok, err := certIsRevokedOCSP(cert, HardFail); !ok {
