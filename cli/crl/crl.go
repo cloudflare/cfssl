@@ -2,6 +2,7 @@
 package crl
 
 import (
+	"math/big"
 	"os"
 
 	"github.com/cloudflare/cfssl/certdb/dbconf"
@@ -83,7 +84,7 @@ func generateCRL(c cli.Config) (crlBytes []byte, err error) {
 		return nil, err
 	}
 
-	req, err := crl.NewCRLFromDB(certs, issuerCert, key, c.CRLExpiration)
+	req, err := crl.NewCRLFromDB(certs, issuerCert, key, c.CRLExpiration, big.NewInt(c.CRLNumber))
 	if err != nil {
 		return nil, err
 	}
