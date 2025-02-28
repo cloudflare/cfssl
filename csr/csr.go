@@ -42,7 +42,7 @@ type Name struct {
 	OU           string            `json:"OU,omitempty" yaml:"OU,omitempty"` // OrganisationalUnitName
 	E            string            `json:"E,omitempty" yaml:"E,omitempty"`
 	SerialNumber string            `json:"SerialNumber,omitempty" yaml:"SerialNumber,omitempty"`
-	OID          map[string]string `json:"OID,omitempty", yaml:"OID,omitempty"`
+	OID          map[string]string `json:"OID,omitempty" yaml:"OID,omitempty"`
 }
 
 // A KeyRequest contains the algorithm and key size for a new private key.
