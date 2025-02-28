@@ -95,6 +95,12 @@ func (s *Subject) Name() pkix.Name {
 		appendIf(n.L, &name.Locality)
 		appendIf(n.O, &name.Organization)
 		appendIf(n.OU, &name.OrganizationalUnit)
+
+		// We have to handle Email by its OID
+		if n.E != "" {
+			name.Names = csr.AddEmail(name.Names, n.E)
+			name.ExtraNames = csr.AddEmail(name.ExtraNames, n.E)
+		}
 	}
 	name.SerialNumber = s.SerialNumber
 	return name
