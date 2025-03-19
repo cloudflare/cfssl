@@ -117,7 +117,7 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 	}
 
 	template.SerialNumber = serialNumber
-	template.NotBefore = now.Add(-5 * time.Minute).UTC()
+	template.NotBefore = now.Round(time.Second).UTC()
 	template.NotAfter = now.Add(expiry).UTC()
 	template.KeyUsage = ku
 	template.ExtKeyUsage = eku
