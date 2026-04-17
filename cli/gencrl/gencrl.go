@@ -2,9 +2,11 @@
 package gencrl
 
 import (
+	"math/big"
+	"strings"
+
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/crl"
-	"strings"
 )
 
 var gencrlUsageText = `cfssl gencrl -- generate a new Certificate Revocation List
@@ -20,7 +22,7 @@ Arguments:
 
 Flags:
 `
-var gencrlFlags = []string{}
+var gencrlFlags = []string{"crl-number"}
 
 func gencrlMain(args []string, c cli.Config) (err error) {
 	serialList, args, err := cli.PopFirstArgument(args)
@@ -69,7 +71,7 @@ func gencrlMain(args []string, c cli.Config) (err error) {
 
 	}
 
-	req, err := crl.NewCRLFromFile(serialListBytes, certFileBytes, keyBytes, timeString)
+	req, err := crl.NewCRLFromFile(serialListBytes, certFileBytes, keyBytes, timeString, big.NewInt(int64(c.CRLNumber)))
 	if err != nil {
 		return
 	}

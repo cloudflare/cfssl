@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"math/big"
 	"os"
 	"strconv"
@@ -19,9 +18,9 @@ import (
 
 // NewCRLFromFile takes in a list of serial numbers, one per line, as well as the issuing certificate
 // of the CRL, and the private key. This function is then used to parse the list and generate a CRL
-func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) ([]byte, error) {
+func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string, number *big.Int) ([]byte, error) {
 
-	var revokedCerts []pkix.RevokedCertificate
+	var revokedCerts []x509.RevocationListEntry
 	var oneWeek = time.Duration(604800) * time.Second
 
 	expiryInt, err := strconv.ParseInt(expiryTime, 0, 32)
@@ -51,7 +50,7 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 
 		tempBigInt := new(big.Int)
 		tempBigInt.SetString(value, 10)
-		tempCert := pkix.RevokedCertificate{
+		tempCert := x509.RevocationListEntry{
 			SerialNumber:   tempBigInt,
 			RevocationTime: time.Now(),
 		}
@@ -71,13 +70,13 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 		return nil, err
 	}
 
-	return CreateGenericCRL(revokedCerts, key, issuerCert, newExpiryTime)
+	return CreateGenericCRL(revokedCerts, key, issuerCert, newExpiryTime, number)
 }
 
 // NewCRLFromDB takes in a list of CertificateRecords, as well as the issuing certificate
 // of the CRL, and the private key. This function is then used to parse the records and generate a CRL
-func NewCRLFromDB(certs []certdb.CertificateRecord, issuerCert *x509.Certificate, key crypto.Signer, expiryTime time.Duration) ([]byte, error) {
-	var revokedCerts []pkix.RevokedCertificate
+func NewCRLFromDB(certs []certdb.CertificateRecord, issuerCert *x509.Certificate, key crypto.Signer, expiryTime time.Duration, number *big.Int) ([]byte, error) {
+	var revokedCerts []x509.RevocationListEntry
 
 	newExpiryTime := time.Now().Add(expiryTime)
 
@@ -85,20 +84,28 @@ func NewCRLFromDB(certs []certdb.CertificateRecord, issuerCert *x509.Certificate
 	for _, certRecord := range certs {
 		serialInt := new(big.Int)
 		serialInt.SetString(certRecord.Serial, 10)
-		tempCert := pkix.RevokedCertificate{
+		tempCert := x509.RevocationListEntry{
 			SerialNumber:   serialInt,
 			RevocationTime: certRecord.RevokedAt,
 		}
 		revokedCerts = append(revokedCerts, tempCert)
 	}
 
-	return CreateGenericCRL(revokedCerts, key, issuerCert, newExpiryTime)
+	return CreateGenericCRL(revokedCerts, key, issuerCert, newExpiryTime, number)
 }
 
 // CreateGenericCRL is a helper function that takes in all of the information above, and then calls the createCRL
 // function. This outputs the bytes of the created CRL.
-func CreateGenericCRL(certList []pkix.RevokedCertificate, key crypto.Signer, issuingCert *x509.Certificate, expiryTime time.Time) ([]byte, error) {
-	crlBytes, err := issuingCert.CreateCRL(rand.Reader, key, certList, time.Now(), expiryTime)
+func CreateGenericCRL(certList []x509.RevocationListEntry, key crypto.Signer, issuingCert *x509.Certificate, expiryTime time.Time, number *big.Int) ([]byte, error) {
+	tpl := &x509.RevocationList{
+		Issuer:                    issuingCert.Subject,
+		RevokedCertificateEntries: certList,
+		NextUpdate:                expiryTime,
+		ThisUpdate:                time.Now(),
+		Number:                    number,
+	}
+
+	crlBytes, err := x509.CreateRevocationList(rand.Reader, tpl, issuingCert, key)
 	if err != nil {
 		log.Debugf("error creating CRL: %s", err)
 	}

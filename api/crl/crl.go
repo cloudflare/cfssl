@@ -4,6 +4,8 @@ package crl
 import (
 	"crypto"
 	"crypto/x509"
+	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"time"
@@ -84,7 +86,16 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	result, err := crl.NewCRLFromDB(certs, h.ca, h.key, newExpiryTime)
+	number := new(big.Int)
+	numberString := r.URL.Query().Get("crl-number")
+	if numberString != "" {
+		log.Infof("requested CRL number of %s", numberString)
+		if _, err = fmt.Sscan(numberString, number); err != nil {
+			return err
+		}
+	}
+
+	result, err := crl.NewCRLFromDB(certs, h.ca, h.key, newExpiryTime, number)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package crl
 
 import (
 	"crypto/x509"
+	"math/big"
 	"testing"
 	"time"
 
@@ -42,15 +43,15 @@ func prepDB() (err error) {
 	return
 }
 
-func verifyCRL(t *testing.T, crlBytesDER []byte, serial string, expireAfter time.Duration) {
-	parsedCrl, err := x509.ParseCRL(crlBytesDER)
+func verifyCRL(t *testing.T, crlBytesDER []byte, serial string, expireAfter time.Duration, number *big.Int) {
+	parsedCrl, err := x509.ParseRevocationList(crlBytesDER)
 	if err != nil {
 		t.Fatal("failed to get certificate ", err)
 	}
-	if !parsedCrl.HasExpired(time.Now().Add(expireAfter)) {
-		t.Fatal("the CRL should have expired")
+	if !parsedCrl.NextUpdate.Before(time.Now().Add(expireAfter)) {
+		t.Fatalf("the CRL should have expired")
 	}
-	certs := parsedCrl.TBSCertList.RevokedCertificates
+	certs := parsedCrl.RevokedCertificateEntries
 	if len(certs) != 1 {
 		t.Fatal("failed to get one certificate")
 	}
@@ -60,6 +61,10 @@ func verifyCRL(t *testing.T, crlBytesDER []byte, serial string, expireAfter time
 	if cert.SerialNumber.String() != serial {
 		t.Fatal("cert was not correctly inserted in CRL, serial was " + cert.SerialNumber.String())
 	}
+
+	if number.Cmp(parsedCrl.Number) != 0 {
+		t.Fatalf("CRL number was incorrect: %s, expect: %s", parsedCrl.Number, number)
+	}
 }
 
 func TestRevokeMain(t *testing.T) {
@@ -68,12 +73,12 @@ func TestRevokeMain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	crlBytes, err := generateCRL(cli.Config{CAFile: testCaFile, CAKeyFile: testCaKeyFile, DBConfigFile: "../testdata/db-config.json"})
+	crlBytes, err := generateCRL(cli.Config{CAFile: testCaFile, CAKeyFile: testCaKeyFile, DBConfigFile: "../testdata/db-config.json", CRLExpiration: time.Minute})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	verifyCRL(t, crlBytes, "1", 7*helpers.OneDay+time.Second)
+	verifyCRL(t, crlBytes, "1", 7*helpers.OneDay+time.Second, big.NewInt(0))
 }
 
 func TestRevokeExpiry(t *testing.T) {
@@ -87,5 +92,19 @@ func TestRevokeExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	verifyCRL(t, crlBytes, "1", 23*time.Hour+time.Second)
+	verifyCRL(t, crlBytes, "1", 23*time.Hour+time.Second, big.NewInt(0))
+}
+
+func TestRevokeNumber(t *testing.T) {
+	err := prepDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	crlBytes, err := generateCRL(cli.Config{CAFile: testCaFile, CAKeyFile: testCaKeyFile, DBConfigFile: "../testdata/db-config.json", CRLExpiration: time.Minute, CRLNumber: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	verifyCRL(t, crlBytes, "1", 23*time.Hour+time.Second, big.NewInt(1))
 }
