@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -28,13 +28,15 @@ Conforming CAs MUST mark this extension as critical.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_policy_constraints_not_critical",
-		Description:   "Conforming CAs MUST mark the policy constraints extension as critical",
-		Citation:      "RFC 5280: 4.2.1.11",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewPolicyConstraintsCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_policy_constraints_not_critical",
+			Description:   "Conforming CAs MUST mark the policy constraints extension as critical",
+			Citation:      "RFC 5280: 4.2.1.11",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewPolicyConstraintsCritical,
 	})
 }
 

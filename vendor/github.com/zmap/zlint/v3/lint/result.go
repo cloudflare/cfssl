@@ -1,7 +1,7 @@
 package lint
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -62,8 +62,9 @@ var (
 // LintResult contains a LintStatus, and an optional human-readable description.
 // The output of a lint is a LintResult.
 type LintResult struct {
-	Status  LintStatus `json:"result"`
-	Details string     `json:"details,omitempty"`
+	Status       LintStatus   `json:"result"`
+	Details      string       `json:"details,omitempty"`
+	LintMetadata LintMetadata `json:"-"`
 }
 
 // MarshalJSON implements the json.Marshaler interface.

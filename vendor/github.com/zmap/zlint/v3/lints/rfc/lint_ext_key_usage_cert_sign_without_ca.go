@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -34,13 +34,15 @@ The cA boolean indicates whether the certified public key may be used
 ************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_key_usage_cert_sign_without_ca",
-		Description:   "if the keyCertSign bit is asserted, then the cA bit in the basic constraints extension MUST also be asserted",
-		Citation:      "RFC 5280: 4.2.1.3 & 4.2.1.9",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewKeyUsageCertSignNoCa,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_key_usage_cert_sign_without_ca",
+			Description:   "if the keyCertSign bit is asserted, then the cA bit in the basic constraints extension MUST also be asserted",
+			Citation:      "RFC 5280: 4.2.1.3 & 4.2.1.9",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewKeyUsageCertSignNoCa,
 	})
 }
 

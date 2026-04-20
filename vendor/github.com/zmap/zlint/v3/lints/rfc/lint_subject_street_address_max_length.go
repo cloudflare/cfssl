@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -31,13 +31,15 @@ ub-street-address INTEGER ::= 128
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_street_address_max_length",
-		Description:   "The 'StreetAddress' field of the subject MUST be less than 129 characters",
-		Citation:      "ITU-T X.520 (02/2001) UpperBounds",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectStreetAddressMaxLength,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_street_address_max_length",
+			Description:   "The 'StreetAddress' field of the subject MUST be less than 129 characters",
+			Citation:      "ITU-T X.520 (02/2001) UpperBounds",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectStreetAddressMaxLength,
 	})
 }
 
@@ -46,7 +48,7 @@ func NewSubjectStreetAddressMaxLength() lint.LintInterface {
 }
 
 func (l *subjectStreetAddressMaxLength) CheckApplies(c *x509.Certificate) bool {
-	return true
+	return len(c.Subject.StreetAddress) > 0
 }
 
 func (l *subjectStreetAddressMaxLength) Execute(c *x509.Certificate) *lint.LintResult {

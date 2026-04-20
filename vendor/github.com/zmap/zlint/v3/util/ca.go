@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -57,6 +57,22 @@ func IsServerAuthCert(cert *x509.Certificate) bool {
 	}
 	for _, eku := range cert.ExtKeyUsage {
 		if eku == x509.ExtKeyUsageAny || eku == x509.ExtKeyUsageServerAuth {
+			return true
+		}
+	}
+	return false
+}
+
+// IsEmailProtectionCert returns true if the certificate presented is for use protecting emails.
+// A certificate is for use protecting emails if it contains the Any Purpose or emailProtection
+// EKUs or if the certificate contains no EKUs.  This last point is a way of being overly cautious
+// and choosing to prefer false positives over false negatives.
+func IsEmailProtectionCert(cert *x509.Certificate) bool {
+	if len(cert.ExtKeyUsage) == 0 {
+		return true
+	}
+	for _, eku := range cert.ExtKeyUsage {
+		if eku == x509.ExtKeyUsageAny || eku == x509.ExtKeyUsageEmailProtection {
 			return true
 		}
 	}

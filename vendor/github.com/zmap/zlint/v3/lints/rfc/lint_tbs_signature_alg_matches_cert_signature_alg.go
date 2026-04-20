@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -34,13 +34,15 @@ tbsCertificate
 ********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_cert_sig_alg_not_match_tbs_sig_alg",
-		Description:   "Certificate signature field must match TBSCertificate signature field",
-		Citation:      "RFC 5280, Section 4.1.1.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewMismatchingSigAlg,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_cert_sig_alg_not_match_tbs_sig_alg",
+			Description:   "Certificate signature field must match TBSCertificate signature field",
+			Citation:      "RFC 5280, Section 4.1.1.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewMismatchingSigAlg,
 	})
 }
 

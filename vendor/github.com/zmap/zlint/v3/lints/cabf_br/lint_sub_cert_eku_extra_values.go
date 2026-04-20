@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -32,13 +32,15 @@ present.
 *******************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_cert_eku_extra_values",
-		Description:   "Subscriber Certificate: extKeyUsage values other than id-kp-serverAuth, id-kp-clientAuth, and id-kp-emailProtection SHOULD NOT be present.",
-		Citation:      "BRs: 7.1.2.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewSubExtKeyUsageLegalUsage,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_cert_eku_extra_values",
+			Description:   "Subscriber Certificate: extKeyUsage values other than id-kp-serverAuth, id-kp-clientAuth, and id-kp-emailProtection SHOULD NOT be present.",
+			Citation:      "BRs: 7.1.2.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewSubExtKeyUsageLegalUsage,
 	})
 }
 

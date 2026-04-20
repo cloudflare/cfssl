@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -34,13 +34,15 @@ be used.
 **********************************************************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_subject_contains_noninformational_value",
-		Description:   "Subject name fields must not contain '.','-',' ' or any other indication that the field has been omitted",
-		Citation:      "BRs: 7.1.4.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewIllegalChar,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_subject_contains_noninformational_value",
+			Description:   "Subject name fields must not contain '.','-',' ' or any other indication that the field has been omitted",
+			Citation:      "BRs: 7.1.4.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewIllegalChar,
 	})
 }
 

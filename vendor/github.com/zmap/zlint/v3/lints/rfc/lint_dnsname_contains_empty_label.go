@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 type DNSNameEmptyLabel struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_rfc_dnsname_empty_label",
-		Description:   "DNSNames should not have an empty label.",
-		Citation:      "RFC5280: 4.2.1.6",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC5280Date,
-		Lint:          NewDNSNameEmptyLabel,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_rfc_dnsname_empty_label",
+			Description:   "DNSNames should not have an empty label.",
+			Citation:      "RFC5280: 4.2.1.6",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC5280Date,
+		},
+		Lint: NewDNSNameEmptyLabel,
 	})
 }
 

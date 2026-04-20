@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,14 +25,16 @@ import (
 type dsaParamsMissing struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:            "e_dsa_params_missing",
-		Description:     "DSA: Certificates MUST include all domain parameters",
-		Citation:        "BRs v1.7.0: 6.1.6",
-		Source:          lint.CABFBaselineRequirements,
-		EffectiveDate:   util.CABEffectiveDate,
-		IneffectiveDate: util.CABFBRs_1_7_1_Date,
-		Lint:            NewDsaParamsMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:            "e_dsa_params_missing",
+			Description:     "DSA: Certificates MUST include all domain parameters",
+			Citation:        "BRs v1.7.0: 6.1.6",
+			Source:          lint.CABFBaselineRequirements,
+			EffectiveDate:   util.CABEffectiveDate,
+			IneffectiveDate: util.CABFBRs_1_7_1_Date,
+		},
+		Lint: NewDsaParamsMissing,
 	})
 }
 

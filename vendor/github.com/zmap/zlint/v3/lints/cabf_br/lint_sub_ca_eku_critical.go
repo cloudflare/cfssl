@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -31,13 +31,15 @@ If present, this extension SHOULD be marked non‐critical.
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_ca_eku_critical",
-		Description:   "Subordinate CA certificate extkeyUsage extension should be marked non-critical if present",
-		Citation:      "BRs: 7.1.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABV116Date,
-		Lint:          NewSubCAEKUCrit,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_ca_eku_critical",
+			Description:   "Subordinate CA certificate extkeyUsage extension should be marked non-critical if present",
+			Citation:      "BRs: 7.1.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABV116Date,
+		},
+		Lint: NewSubCAEKUCrit,
 	})
 }
 

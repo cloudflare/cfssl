@@ -1,51 +1,102 @@
-# Script to create new lint from template
+#!/usr/bin/env bash
 
-USAGE="Usage: $0 <ARG1> <ARG2> <ARG3>
+function usage() {
+  echo "./newLint.sh [-h|--help] -r|--req <REQUIREMENT> -f|--file <FILENAME> -s|--struct <STRUCTNAME>"
+  echo ""
+  echo "Options:"
+  echo "  -h|--help   Prints this help text."
+  echo "  -r|--req    The name of the requirements body governing this lint. Valid options are $(valid_requirement_names)."
+  echo "  -f|--file   The target filename for the given lint (no file extension is required)."
+  echo "  -s|--struct The name of the Golang struct to create."
+  echo ""
+  echo "Example:"
+  echo "  $ ./newLint.sh --req rfc --file crl_must_be_good --struct CrlMustBeGood "
+  echo "    Created lint file /home/chris/projects/zlint/v3/lints/rfc/lint_crl_must_be_good.go with struct name CrlMustBeGood"
+  echo "    Created test file /home/chris/projects/zlint/v3/lints/rfc/lint_crl_must_be_good_test.go"
+}
 
-ARG1: Path_name
-ARG2: File_name/TestName (no 'lint_' prefix)
-ARG3: Struct_name"
+function git_root() {
+    git rev-parse --show-toplevel
+}
 
-if [ $# -eq 0 ]; then
-    echo "No arguments provided..."
-    echo "$USAGE"
-    exit 1
+# Searches within the v3/lints directory for a subdirectory matching
+# the name of the governing requirements body provided by the -r|--req flag.
+#
+# Exits with error code 1 if no such directory is found
+function requirement_dir_exists() {
+    exists=$(find "$(git_root)/v3/lints/" -maxdepth 1 -type d -not -name lints -name "${1}")
+    if [ -z "${exists}" ]; then
+      echo "Unknown requirements body (${1}). Valid options are $(valid_requirement_names)."
+      usage
+      exit 1
+    fi
+}
+
+# Echoes out a comma separated list of directories within v3/lints
+function valid_requirement_names() {
+    names=$(find "$(git_root)/v3/lints/" -type d -not -name "lints" -exec basename {} \;)
+    echo -n "${names}" | tr '\n' ', '
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -r | --req)
+      requirement_dir_exists "${2}"
+      REQUIREMENT="${2}"
+      shift 2
+      ;;
+    -f | --file)
+      LINTNAME="${2}"
+      FILENAME="lint_${LINTNAME}.go"
+      TEST_FILENAME="lint_${LINTNAME}_test.go"
+      shift 2
+      ;;
+    -s | --struct)
+      STRUCTNAME="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z "${REQUIREMENT}" ]; then
+  echo "The -r|--req flag is required. Valid options are $(valid_requirement_names)"
+  usage
+  exit 1
 fi
 
-if [ $# -eq 1 ]; then
-    echo "Not enough arguments provided..."
-    echo "$USAGE"
-    exit 1
+if [ -z "${LINTNAME}" ]; then
+  echo "The -f|--file flag is required."
+  usage
+  exit 1
 fi
 
-if [ $# -eq 2 ]; then
-    echo "Not enough arguments provided..."
-    echo "$USAGE"
-    exit 1
+if [ -z "${STRUCTNAME}" ]; then
+  echo "The -s|--strut flag is required."
+  usage
+  exit 1
 fi
 
-if [ ! -d lints/$1 ]
-then
-   echo "Directory 'lints/$1' does not exist. Can't make new file."
-   exit 1
-fi
+PATHNAME="$(git_root)/v3/lints/${REQUIREMENT}/${FILENAME}"
+TEST_PATHNAME="$(git_root)/v3/lints/${REQUIREMENT}/${TEST_FILENAME}"
 
-
-if [ -e lints/$1/lint_$2.go ]
-then
-   echo "File already exists. Can't make new file."
-   exit 1
-fi
-
-PATHNAME=$1
-LINTNAME=$2
-# Remove the first two characters from ${LINTNAME} and save the resulting string into FILENAME
-FILENAME=${LINTNAME:2}
-STRUCTNAME=$3
-
-sed -e "s/PACKAGE/${PATHNAME}/" \
+sed -e "s/PACKAGE/${REQUIREMENT}/" \
     -e "s/PASCAL_CASE_SUBST/${STRUCTNAME^}/g" \
     -e "s/SUBST/${STRUCTNAME}/g" \
-    -e "s/SUBTEST/${LINTNAME}/g" template > lints/${PATHNAME}/lint_${FILENAME}.go
+    -e "s/SUBTEST/${LINTNAME}/g" "$(git_root)/v3/template" > "${PATHNAME}"
 
-echo "Created file lints/${PATHNAME}/lint_${FILENAME}.go with struct name ${STRUCTNAME}"
+sed -e "s/PACKAGE/${REQUIREMENT}/" \
+    -e "s/PASCAL_CASE_SUBST/${STRUCTNAME^}/g" \
+    -e "s/SUBST/${STRUCTNAME}/g" \
+    -e "s/SUBTEST/${LINTNAME}/g" "$(git_root)/v3/test_template" > "${TEST_PATHNAME}"
+
+echo "Created lint file ${PATHNAME} with struct name ${STRUCTNAME}"
+echo "Created test file ${TEST_PATHNAME}"
