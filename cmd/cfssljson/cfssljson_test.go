@@ -18,3 +18,38 @@ func TestReadFile(t *testing.T) {
 		t.Fatal("File not read correctly")
 	}
 }
+
+func TestIsDirectory(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		ok, err := isDirectory("testdata")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ok == false {
+			t.Fatal("should be a directory")
+		}
+	})
+
+	t.Run("NOK - Not a directory", func(t *testing.T) {
+		ok, err := isDirectory("cfssljson.go")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ok == true {
+			t.Fatal("should not be a directory")
+		}
+	})
+
+	t.Run("NOK - File not present", func(t *testing.T) {
+		ok, err := isDirectory("notpresent")
+		if err == nil {
+			t.Fatal(err)
+		}
+
+		if ok == true {
+			t.Fatal("should not exist")
+		}
+	})
+}
