@@ -26,13 +26,14 @@ const (
 func prepDB() (certdb.Accessor, error) {
 	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	expirationTime := time.Now().AddDate(1, 0, 0)
+	timeNow := time.Now()
 	var cert = certdb.CertificateRecord{
 		Serial:    "1",
 		AKI:       fakeAKI,
 		Expiry:    expirationTime,
 		PEM:       "revoked cert",
 		Status:    "revoked",
-		RevokedAt: time.Now(),
+		RevokedAt: &timeNow,
 		Reason:    4,
 	}
 
