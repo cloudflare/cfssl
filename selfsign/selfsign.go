@@ -88,7 +88,7 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 	pubhash.Write(subPKI.SubjectPublicKey.Bytes)
 
 	var (
-		eku             []x509.ExtKeyUsage
+		eku             []asn1.ObjectIdentifier
 		ku              x509.KeyUsage
 		expiry          time.Duration
 		crlURL, ocspURL string
@@ -120,7 +120,15 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 	template.NotBefore = now.Add(-5 * time.Minute).UTC()
 	template.NotAfter = now.Add(expiry).UTC()
 	template.KeyUsage = ku
-	template.ExtKeyUsage = eku
+
+	for _, oidProfile := range eku {
+		if e, ok := config.KnownExtKeyUsageFromOID(oidProfile); ok {
+			template.ExtKeyUsage = append(template.ExtKeyUsage, e)
+		} else {
+			template.UnknownExtKeyUsage = append(template.UnknownExtKeyUsage, oidProfile)
+		}
+	}
+
 	template.BasicConstraintsValid = true
 	template.IsCA = profile.CAConstraint.IsCA
 	template.SubjectKeyId = pubhash.Sum(nil)
