@@ -95,7 +95,12 @@ func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 		return
 	}
 
-	signReq := signer.SignRequest{Hosts: req.Hosts, Request: string(csrPEM)}
+	signReq := signer.SignRequest{
+		Hosts:     req.Hosts,
+		Request:   string(csrPEM),
+		NotBefore: req.CA.NotBefore,
+		NotAfter:  req.CA.NotAfter,
+	}
 	cert, err = s.Sign(signReq)
 
 	return
