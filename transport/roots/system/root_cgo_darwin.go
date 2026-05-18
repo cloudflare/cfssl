@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build darwin && cgo && !arm && !arm64 && !ios
-// +build darwin,cgo,!arm,!arm64,!ios
+//go:build darwin && cgo && !ios
+// +build darwin,cgo,!ios
 
 package system
 
