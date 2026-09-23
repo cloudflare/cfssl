@@ -8,7 +8,9 @@ import (
 	"net/http/httputil"
 
 	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/api/signhandler"
 	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -20,7 +22,8 @@ import (
 // A SignatureResponse contains only a certificate, as there is no other
 // useful data for the CA to return at this time.
 type SignatureResponse struct {
-	Certificate string `json:"certificate"`
+	Certificate string          `json:"certificate"`
+	Bundle      *bundler.Bundle `json:"bundle,omitempty"`
 }
 
 type filter func(string, *signer.SignRequest) bool
@@ -185,7 +188,23 @@ func dispatchRequest(w http.ResponseWriter, req *http.Request) {
 	log.Infof("signature: requester=%s, label=%s, profile=%s, serialno=%s",
 		req.RemoteAddr, sigRequest.Label, sigRequest.Profile, x509Cert.SerialNumber)
 
-	res := api.NewSuccessResponse(&SignatureResponse{Certificate: string(cert)})
+	sigResp := &SignatureResponse{Certificate: string(cert)}
+
+	if sigRequest.Bundle {
+		if mrBundler == nil {
+			fail(w, req, http.StatusInternalServerError, 1, signhandler.NoBundlerMessage, "")
+			return
+		}
+
+		bundle, err := mrBundler.BundleFromPEMorDER(cert, nil, bundler.Optimal, "")
+		if err != nil {
+			fail(w, req, http.StatusInternalServerError, 1, "error creating bundle", fmt.Sprintf("%v", err))
+			return
+		}
+
+		sigResp.Bundle = bundle
+	}
+	res := api.NewSuccessResponse(sigResp)
 	jenc := json.NewEncoder(w)
 	err = jenc.Encode(res)
 	if err != nil {
