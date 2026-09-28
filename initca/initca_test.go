@@ -3,7 +3,9 @@ package initca
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/mldsa"
 	"crypto/rsa"
+	"crypto/x509"
 	"os"
 	"strings"
 	"testing"
@@ -24,6 +26,9 @@ var validKeyParams = []csr.KeyRequest{
 	{A: "ecdsa", S: 384},
 	{A: "ecdsa", S: 521},
 	{A: "ed25519"},
+	{A: "mldsa44"},
+	{A: "mldsa65"},
+	{A: "mldsa87"},
 }
 
 var validCAConfigs = []csr.CAConfig{
@@ -63,6 +68,8 @@ var invalidCryptoParams = []csr.KeyRequest{
 	// Bad param
 	{A: "rsaCrypto", S: 2048},
 	{A: "ecdsa", S: 2000},
+	// Invalid ML-DSA variant
+	{A: "mldsa99"},
 }
 
 func TestInitCA(t *testing.T) {
@@ -393,6 +400,67 @@ func TestRenewMismatch(t *testing.T) {
 	_, err := RenewFromPEM(testECDSACAFile, testRSACAKeyFile)
 	if err == nil {
 		t.Fatal("Fail to detect cert/key mismatch")
+	}
+}
+
+func TestRenewMLDSA(t *testing.T) {
+	tests := []struct {
+		name    string
+		algo    string
+		params  mldsa.Parameters
+		sigAlgo x509.SignatureAlgorithm
+	}{
+		{name: "MLDSA44", algo: "mldsa44", params: mldsa.MLDSA44(), sigAlgo: x509.MLDSA44},
+		{name: "MLDSA65", algo: "mldsa65", params: mldsa.MLDSA65(), sigAlgo: x509.MLDSA65},
+		{name: "MLDSA87", algo: "mldsa87", params: mldsa.MLDSA87(), sigAlgo: x509.MLDSA87},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			certPEM, _, keyPEM, err := New(&csr.CertificateRequest{
+				CN:         "ML-DSA test CA",
+				KeyRequest: &csr.KeyRequest{A: tt.algo},
+			})
+			if err != nil {
+				t.Fatalf("creating CA: %v", err)
+			}
+			cert, err := helpers.ParseCertificatePEM(certPEM)
+			if err != nil {
+				t.Fatalf("parsing CA certificate: %v", err)
+			}
+			key, err := helpers.ParsePrivateKeyPEM(keyPEM)
+			if err != nil {
+				t.Fatalf("parsing CA key: %v", err)
+			}
+
+			renewedPEM, err := RenewFromSigner(cert, key)
+			if err != nil {
+				t.Fatalf("renewing CA: %v", err)
+			}
+			renewed, err := helpers.ParseCertificatePEM(renewedPEM)
+			if err != nil {
+				t.Fatalf("parsing renewed certificate: %v", err)
+			}
+			if err := renewed.CheckSignatureFrom(renewed); err != nil {
+				t.Fatalf("checking renewed certificate signature: %v", err)
+			}
+			if renewed.SignatureAlgorithm != tt.sigAlgo {
+				t.Fatalf("signature algorithm = %v, want %v", renewed.SignatureAlgorithm, tt.sigAlgo)
+			}
+			if renewed.PublicKeyAlgorithm != x509.MLDSA {
+				t.Fatalf("public key algorithm = %v, want ML-DSA", renewed.PublicKeyAlgorithm)
+			}
+			renewedPublicKey, ok := renewed.PublicKey.(*mldsa.PublicKey)
+			if !ok {
+				t.Fatalf("public key type = %T, want *mldsa.PublicKey", renewed.PublicKey)
+			}
+			if renewedPublicKey.Parameters() != tt.params {
+				t.Fatalf("parameters = %v, want %v", renewedPublicKey.Parameters(), tt.params)
+			}
+			if !renewedPublicKey.Equal(cert.PublicKey) {
+				t.Fatal("renewal changed the public key")
+			}
+		})
 	}
 }
 

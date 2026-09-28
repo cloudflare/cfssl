@@ -1,8 +1,17 @@
+version: "2"
+
 linters:
-  disable:
-    - staticcheck
+  default: none
+  enable:
     - govet
-    - gosimple
-    - ineffassign
-    - unused
-    - errcheck
+  exclusions:
+    paths:
+      # Fork of an old crypto/tls; test.sh skips it too.
+      - scan/crypto
+    rules:
+      # The stray comma in the Name.OID struct tag hides its yaml key, so YAML
+      # libraries use their default key. Fixing it would change YAML behavior.
+      - path: csr/csr\.go
+        linters:
+          - govet
+        text: structtag

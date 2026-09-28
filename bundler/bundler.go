@@ -7,6 +7,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -55,6 +57,7 @@ const (
 const (
 	sha2Warning          = "The bundle contains certificates signed with advanced hash functions such as SHA2, which are problematic for certain operating systems, e.g. Windows XP SP2."
 	ecdsaWarning         = "The bundle contains ECDSA signatures, which are problematic for certain operating systems, e.g. Windows XP, Android 2.2 and Android 2.3."
+	mldsaWarning         = "The bundle contains ML-DSA keys, which many operating systems and TLS clients do not support yet."
 	expiringWarningStub  = "The bundle is expiring within 30 days."
 	untrustedWarningStub = "The bundle may not be trusted by the following platform(s):"
 	ubiquityWarning      = "Unable to measure bundle ubiquity: No platform metadata present."
@@ -603,6 +606,14 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 			if !(bytes.Equal(cert.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
+		case cert.PublicKeyAlgorithm == x509.MLDSA:
+			var mldsaPublicKey *mldsa.PublicKey
+			if mldsaPublicKey, ok = key.Public().(*mldsa.PublicKey); !ok {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
+			if !cert.PublicKey.(*mldsa.PublicKey).Equal(mldsaPublicKey) {
+				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
+			}
 		default:
 			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
@@ -611,6 +622,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		case cert.PublicKeyAlgorithm == x509.RSA:
 		case cert.PublicKeyAlgorithm == x509.ECDSA:
 		case cert.PublicKeyAlgorithm == x509.Ed25519:
+		case cert.PublicKeyAlgorithm == x509.MLDSA:
 		default:
 			return nil, errors.New(errors.PrivateKeyError, errors.NotRSAOrECCOrEd25519)
 		}
@@ -693,10 +705,10 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 		statusCode |= errors.BundleNotUbiquitousBit
 		messages = append(messages, sha2Warning)
 	}
-	// Check if bundle contains ECDSA signatures.
+	// Check if bundle contains ECDSA or ML-DSA keys.
 	if ubiquity.ChainKeyAlgoUbiquity(bundle.Chain) <= ubiquity.ECDSA256Ubiquity {
 		statusCode |= errors.BundleNotUbiquitousBit
-		messages = append(messages, ecdsaWarning)
+		messages = append(messages, keyAlgoWarnings(bundle.Chain)...)
 	}
 
 	// when forcing a bundle, bundle ubiquity doesn't matter
@@ -750,6 +762,27 @@ func addSHA1DeprecationWarnings(statusCode int, messages []string, chain []*x509
 	log.Debug("Populate SHA1 deprecation warning.")
 	statusCode |= errors.BundleNotUbiquitousBit
 	return statusCode, append(messages, sha1Messages...)
+}
+
+// keyAlgoWarnings names the non-ubiquitous public-key algorithms in chain.
+// Chains without an ML-DSA key always get the ECDSA warning, which is also
+// what key algorithms that ubiquity cannot score have historically received.
+func keyAlgoWarnings(chain []*x509.Certificate) []string {
+	hasMLDSA := chainHasKeyAlgo(chain, x509.MLDSA)
+	var warnings []string
+	if !hasMLDSA || chainHasKeyAlgo(chain, x509.ECDSA) {
+		warnings = append(warnings, ecdsaWarning)
+	}
+	if hasMLDSA {
+		warnings = append(warnings, mldsaWarning)
+	}
+	return warnings
+}
+
+func chainHasKeyAlgo(chain []*x509.Certificate, algo x509.PublicKeyAlgorithm) bool {
+	return slices.ContainsFunc(chain, func(cert *x509.Certificate) bool {
+		return cert.PublicKeyAlgorithm == algo
+	})
 }
 
 // checkExpiringCerts returns indices of certs that are expiring within 30 days.

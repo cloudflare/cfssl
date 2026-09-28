@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"flag"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -42,6 +43,21 @@ func parseSigner(root *config.Root) (signer.Signer, error) {
 	}
 }
 
+func loadSigners(roots config.RootList, destination map[string]signer.Signer, destinationWhitelists map[string]whitelist.NetACL) error {
+	for label, root := range roots {
+		s, err := parseSigner(root)
+		if err != nil {
+			return fmt.Errorf("load signer %q: %w", label, err)
+		}
+		destination[label] = s
+		if root.ACL != nil {
+			destinationWhitelists[label] = root.ACL
+		}
+		log.Info("loaded signer ", label)
+	}
+	return nil
+}
+
 var (
 	defaultLabel string
 	signers      = map[string]signer.Signer{}
@@ -66,16 +82,8 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	for label, root := range roots {
-		s, err := parseSigner(root)
-		if err != nil {
-			log.Criticalf("%v", err)
-		}
-		signers[label] = s
-		if root.ACL != nil {
-			whitelists[label] = root.ACL
-		}
-		log.Info("loaded signer ", label)
+	if err := loadSigners(roots, signers, whitelists); err != nil {
+		log.Fatalf("%v", err)
 	}
 
 	defaultLabel = *flagDefaultLabel

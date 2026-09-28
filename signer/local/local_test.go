@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -1463,20 +1464,32 @@ func TestSignFromPrecert(t *testing.T) {
 		t.Fatal("Certificate without SCT list extension was returned")
 	}
 
+	// Find CT poison extension index by OID
+	poisonIdx := -1
+	for i, ext := range precert.Extensions {
+		if ext.Id.Equal(signer.CTPoisonOID) {
+			poisonIdx = i
+			break
+		}
+	}
+	if poisonIdx == -1 {
+		t.Fatal("precert does not contain CT poison extension")
+	}
+
 	// Break poison extension
-	precert.Extensions[7].Value = []byte{1, 3, 3, 7}
+	precert.Extensions[poisonIdx].Value = []byte{1, 3, 3, 7}
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with invalid poison extension")
 	}
 
-	precert.Extensions[7].Critical = false
+	precert.Extensions[poisonIdx].Critical = false
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with non-critical poison extension")
 	}
 
-	precert.Extensions = append(precert.Extensions[:7], precert.Extensions[8:]...)
+	precert.Extensions = append(precert.Extensions[:poisonIdx], precert.Extensions[poisonIdx+1:]...)
 	_, err = testSigner.SignFromPrecert(precert, scts)
 	if err == nil {
 		t.Fatal("SignFromPrecert didn't fail with missing poison extension")
@@ -1492,6 +1505,10 @@ func TestSignFromPrecert(t *testing.T) {
 func TestLint(t *testing.T) {
 	k, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	serial := big.NewInt(1337)
+	policyOID, err := x509.OIDFromInts([]uint64{1, 2, 3})
+	if err != nil {
+		t.Fatalf("failed to construct certificate policy OID: %v", err)
+	}
 
 	// jankyTemplate is an x509 cert template that mostly passes through zlint
 	// without errors/warnings. It is used as the basis of both the signer's issuing
@@ -1500,14 +1517,12 @@ func TestLint(t *testing.T) {
 		Subject: pkix.Name{
 			CommonName: "janky.cert",
 		},
-		SerialNumber: serial,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(0, 0, 90),
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		PolicyIdentifiers: []asn1.ObjectIdentifier{
-			{1, 2, 3},
-		},
+		SerialNumber:          serial,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(0, 0, 90),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		Policies:              []x509.OID{policyOID},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 		IssuingCertificateURL: []string{"http://ca.cpu"},
@@ -1939,4 +1954,95 @@ func TestCopyExtensionsDisabledDoesNotCopy(t *testing.T) {
 			t.Errorf("custom extension (OID %s) should NOT be in cert when CopyExtensions is false", customOID)
 		}
 	}
+}
+
+// TestSignMLDSACSRDefaultProfileKeyUsage verifies that a certificate issued
+// for an ML-DSA CSR under the default profile does not carry keyEncipherment,
+// which RFC 9881 prohibits for ML-DSA subject keys.
+func TestSignMLDSACSRDefaultProfileKeyUsage(t *testing.T) {
+	tests := []struct {
+		name      string
+		newSigner func(t *testing.T) *Signer
+	}{
+		{
+			name: "ECDSACA",
+			newSigner: func(t *testing.T) *Signer {
+				return newCustomSigner(t, testECDSACaFile, testECDSACaKeyFile)
+			},
+		},
+		{
+			name:      "MLDSA65CA",
+			newSigner: newMLDSA65CASigner,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.newSigner(t)
+
+			csrPEM, _, err := csr.ParseRequest(&csr.CertificateRequest{
+				CN:         "mldsa.example.com",
+				Hosts:      []string{"mldsa.example.com"},
+				KeyRequest: &csr.KeyRequest{A: "mldsa44"},
+			})
+			if err != nil {
+				t.Fatalf("generating ML-DSA-44 CSR: %v", err)
+			}
+
+			certPEM, err := s.Sign(signer.SignRequest{Request: string(csrPEM)})
+			if err != nil {
+				t.Fatalf("signing: %v", err)
+			}
+
+			cert, err := helpers.ParseCertificatePEM(certPEM)
+			if err != nil {
+				t.Fatalf("parsing signed cert: %v", err)
+			}
+			if _, ok := cert.PublicKey.(*mldsa.PublicKey); !ok {
+				t.Fatalf("public key type = %T, want *mldsa.PublicKey", cert.PublicKey)
+			}
+			if cert.KeyUsage != x509.KeyUsageDigitalSignature {
+				t.Errorf("KeyUsage = %#b, want %#b (digitalSignature only)", cert.KeyUsage, x509.KeyUsageDigitalSignature)
+			}
+			if err := cert.CheckSignatureFrom(s.ca); err != nil {
+				t.Errorf("CheckSignatureFrom(CA) failed: %v", err)
+			}
+		})
+	}
+}
+
+// newMLDSA65CASigner returns a Signer with the default policy backed by a
+// freshly generated, self-signed ML-DSA-65 CA.
+func newMLDSA65CASigner(t *testing.T) *Signer {
+	t.Helper()
+
+	key, err := mldsa.GenerateKey(mldsa.MLDSA65())
+	if err != nil {
+		t.Fatalf("generating ML-DSA-65 key: %v", err)
+	}
+	now := time.Now()
+	template := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "ML-DSA-65 test CA"},
+		NotBefore:             now.Add(-time.Minute),
+		NotAfter:              now.Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		SignatureAlgorithm:    x509.MLDSA65,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, key.Public(), key)
+	if err != nil {
+		t.Fatalf("creating ML-DSA-65 CA certificate: %v", err)
+	}
+	caCert, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatalf("parsing ML-DSA-65 CA certificate: %v", err)
+	}
+
+	s, err := NewSigner(key, caCert, signer.DefaultSigAlgo(key), nil)
+	if err != nil {
+		t.Fatalf("creating signer: %v", err)
+	}
+	return s
 }

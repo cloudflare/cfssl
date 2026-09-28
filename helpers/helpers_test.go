@@ -5,8 +5,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -99,7 +101,7 @@ func TestKeyLength(t *testing.T) {
 	}
 
 	// test the rsa branch
-	rsaPriv, _ := rsa.GenerateKey(rand.Reader, 256)
+	rsaPriv, _ := rsa.GenerateKey(rand.Reader, 2048)
 	rsaIn, _ := rsaPriv.Public().(*rsa.PublicKey)
 	expRsa := rsaIn.N.BitLen()
 	outRsa := KeyLength(rsaIn)
@@ -280,6 +282,50 @@ func TestSignatureString(t *testing.T) {
 	}
 	if SignatureString(math.MaxInt32) != "Unknown Signature" {
 		t.Fatal("Signature String functioning improperly")
+	}
+}
+
+func TestMLDSAAlgorithmStrings(t *testing.T) {
+	tests := []struct {
+		name string
+		algo x509.SignatureAlgorithm
+	}{
+		{name: "MLDSA44", algo: x509.MLDSA44},
+		{name: "MLDSA65", algo: x509.MLDSA65},
+		{name: "MLDSA87", algo: x509.MLDSA87},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := SignatureString(tt.algo); got != tt.name {
+				t.Errorf("SignatureString(%v) = %q, want %q", tt.algo, got, tt.name)
+			}
+			if got := HashAlgoString(tt.algo); got != tt.name {
+				t.Errorf("HashAlgoString(%v) = %q, want %q", tt.algo, got, tt.name)
+			}
+		})
+	}
+}
+
+func TestStringTLSVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		want    uint16
+	}{
+		{name: "TLS 1.0", version: "1.0", want: tls.VersionTLS10},
+		{name: "TLS 1.1", version: "1.1", want: tls.VersionTLS11},
+		{name: "TLS 1.2", version: "1.2", want: tls.VersionTLS12},
+		{name: "TLS 1.3", version: "1.3", want: tls.VersionTLS13},
+		{name: "unrecognised falls back to TLS 1.0", version: "bogus", want: tls.VersionTLS10},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := StringTLSVersion(tt.version); got != tt.want {
+				t.Errorf("StringTLSVersion(%q) = %s, want %s", tt.version, tls.VersionName(got), tls.VersionName(tt.want))
+			}
+		})
 	}
 }
 
@@ -675,5 +721,30 @@ func TestSCTListFromOCSPResponse(t *testing.T) {
 	}
 	if !sctEquals(zeroSCT, lst[0]) {
 		t.Fatal("SCTs don't match")
+	}
+}
+
+func TestSignerAlgoMLDSA(t *testing.T) {
+	tests := []struct {
+		name   string
+		params mldsa.Parameters
+		want   x509.SignatureAlgorithm
+	}{
+		{"MLDSA44", mldsa.MLDSA44(), x509.MLDSA44},
+		{"MLDSA65", mldsa.MLDSA65(), x509.MLDSA65},
+		{"MLDSA87", mldsa.MLDSA87(), x509.MLDSA87},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			priv, err := mldsa.GenerateKey(tt.params)
+			if err != nil {
+				t.Fatalf("GenerateKey failed: %v", err)
+			}
+			got := SignerAlgo(priv)
+			if got != tt.want {
+				t.Errorf("SignerAlgo() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

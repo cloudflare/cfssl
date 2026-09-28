@@ -1,6 +1,10 @@
 module github.com/cloudflare/cfssl
 
-go 1.20
+go 1.27
+
+// cfssl_trust ships a root with a negative serial number (EC-ACC), which
+// crypto/x509 rejects by default since Go 1.23.
+godebug x509negativeserial=1
 
 require (
 	bitbucket.org/liamstask/goose v0.0.0-20150115234039-8488cc47d90c
