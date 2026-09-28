@@ -10,11 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # starting with go 1.24 the GODEBUG=x509sha1=1 flag has been removed.
-        # many tests rely on sha1 certificates. After resolving #1413 we can
-        # run these on stable and oldstable again. Min version (1.20) can
-        # always be run.
-        go: ['1.23', '1.22', '1.20']
+        # Go 1.27 is the module minimum (crypto/mldsa).
+        go: ['1.27']
     services:
       # Label used to access the service container
       postgres:
@@ -46,7 +43,6 @@ jobs:
 
     env:
       GOFLAGS: "-mod=vendor"
-      GODEBUG: "x509sha1=1"
       BUILD_TAGS: "postgresql"
       PGHOST: localhost
       MYSQL_HOST: 127.0.0.1
@@ -68,6 +64,13 @@ jobs:
       - run: ./bin/goose -path certdb/mysql up;
       - name: Test
         run: ./test.sh
+      - name: Test ML-DSA in FIPS mode
+        env:
+          GOFIPS140: latest
+          GODEBUG: "fips140=on"
+        run: |
+          go test ./csr ./signer ./helpers ./helpers/derhelpers ./crl ./bundler -run MLDSA
+          go test ./initca -run '^(TestInitCA|TestRenewMLDSA)$'
       - uses: codecov/codecov-action@v4
 
   golangci:
@@ -77,12 +80,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
+          go-version: "1.27"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
-          # There is a breaking change in 1.58 that causes the linter not to recognize 
-          # internal imports or standard library imports and results in linting errors
-          # that cannot be ignored.
-          # e.g certdb/certdb.go:5:2: could not import encoding/json (Config.Importer.Import(encoding/json) returned nil but no error) (typecheck)
-          version: v1.57
+          version: v2.13.2

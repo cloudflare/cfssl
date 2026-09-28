@@ -30,6 +30,8 @@ const (
 	interL1Key          = "testdata/inter-L1.key"
 	interL2SHA2         = "testdata/inter-L2.pem"
 	interL2Key          = "testdata/inter-L2.key"
+	// EC-ACC root from cloudflare/cfssl_trust, which has a negative serial.
+	negativeSerialRoot = "testdata/negative-serial-root.pem"
 )
 
 // Simply create a bundler
@@ -59,6 +61,38 @@ func TestNewBundlerMissingIntermediate(t *testing.T) {
 	// generate a function checking error content
 	errorCheck := ExpectErrorMessage(`"code":3001`)
 	errorCheck(t, err)
+}
+
+func TestNewBundlerFromPEMAcceptsNegativeSerialRoot(t *testing.T) {
+	caBundlePEM, err := os.ReadFile(testCaBundle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	negativeSerialPEM, err := os.ReadFile(negativeSerialRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	intBundlePEM, err := os.ReadFile(testIntCaBundle)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	caBundlePEM = bytes.Join([][]byte{caBundlePEM, negativeSerialPEM}, []byte("\n"))
+	b, err := NewBundlerFromPEM(caBundlePEM, intBundlePEM)
+	if err != nil {
+		t.Fatalf("NewBundlerFromPEM rejected a root bundle containing a negative-serial root: %v", err)
+	}
+
+	root, err := helpers.ParseCertificatePEM(negativeSerialPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if root.SerialNumber.Sign() >= 0 {
+		t.Fatalf("%s serial number %s is not negative", negativeSerialRoot, root.SerialNumber)
+	}
+	if !b.KnownIssuers[string(root.Signature)] {
+		t.Fatal("negative-serial root is missing from the bundler's known issuers")
+	}
 }
 
 // JSON object of a bundle

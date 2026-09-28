@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -112,6 +113,21 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		keyType = "DSA"
 	case x509.Ed25519:
 		keyType = "Ed25519"
+	case x509.MLDSA:
+		if pub, ok := b.Cert.PublicKey.(*mldsa.PublicKey); ok {
+			switch {
+			case pub.Parameters() == mldsa.MLDSA44():
+				keyType = "ML-DSA-44"
+			case pub.Parameters() == mldsa.MLDSA65():
+				keyType = "ML-DSA-65"
+			case pub.Parameters() == mldsa.MLDSA87():
+				keyType = "ML-DSA-87"
+			default:
+				keyType = "ML-DSA"
+			}
+		} else {
+			keyType = "ML-DSA"
+		}
 	default:
 		keyType = "Unknown"
 	}
@@ -126,6 +142,9 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	case ed25519.PrivateKey:
 		keyBytes, _ = derhelpers.MarshalEd25519PrivateKey(key)
 		keyString = PemBlockToString(&pem.Block{Type: "Ed25519 PRIVATE KEY", Bytes: keyBytes})
+	case *mldsa.PrivateKey:
+		keyBytes, _ = x509.MarshalPKCS8PrivateKey(key)
+		keyString = PemBlockToString(&pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
 	case fmt.Stringer:
 		keyString = key.String()
 	}

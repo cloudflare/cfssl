@@ -8,7 +8,7 @@
 
 CFSSL is CloudFlare's PKI/TLS swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling TLS
-certificates. It requires Go 1.20+ to build.
+certificates. It requires Go 1.27+ to build.
 
 Note that certain linux distributions have certain algorithms removed
 (RHEL-based distributions in particular), so the golang from the
@@ -30,7 +30,7 @@ CFSSL consists of:
 ### Building
 
 Building cfssl requires a
-[working Go 1.20+ installation](http://golang.org/doc/install).
+[working Go 1.27+ installation](http://golang.org/doc/install).
 
 ```
 $ git clone git@github.com:cloudflare/cfssl.git
@@ -61,7 +61,7 @@ You can set the `GOOS` and `GOARCH` environment variables to have Go cross compi
 
 ### Installation
 
-Installation requires a [working Go 1.20+ installation](http://golang.org/doc/install).
+Installation requires a [working Go 1.27+ installation](http://golang.org/doc/install).
 Alternatively, [prebuilt binaries are available](https://github.com/cloudflare/cfssl/releases)
 
 ```
@@ -337,7 +337,7 @@ for configuring and running the CA.
 verifying certificates. It can be installed with
 
 ```
-go get github.com/cloudflare/cfssl/cmd/mkbundle
+go install github.com/cloudflare/cfssl/cmd/mkbundle@latest
 ```
 
 It takes a collection of certificates, checks for CRL revocation (OCSP
@@ -377,19 +377,11 @@ filenames in the following way:
 Instead of saving to a file, you can pass `-stdout` to output the encoded
 contents to standard output.
 
-### Static Builds
+### Embedded Web Assets
 
-By default, the web assets are accessed from disk, based on their
-relative locations. If you wish to distribute a single,
-statically-linked, `cfssl` binary, you’ll want to embed these resources
-before building. This can by done with the
-[go.rice](https://github.com/GeertJohan/go.rice) tool.
-
-```
-pushd cli/serve && rice embed-go && popd
-```
-
-Then building with `go build` will use the embedded resources.
+The web assets served by `cfssl serve` are embedded in the binary with
+`go:embed`, so `go build` needs no extra step to produce a single `cfssl`
+binary that includes them.
 
 ### Additional Documentation
 

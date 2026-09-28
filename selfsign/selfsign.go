@@ -98,9 +98,14 @@ func Sign(priv crypto.Signer, csrPEM []byte, profile *config.SigningProfile) ([]
 	// This should be used when validating the profile at load, and isn't used
 	// here.
 	ku, eku, _ = profile.Usages()
+	profileKU := ku
+	ku = signer.KeyUsageForPublicKey(pub, ku)
 	expiry = profile.Expiry
 
-	if ku == 0 && len(eku) == 0 {
+	// If the profile lists key usages but none are valid for the subject key,
+	// fail closed: issuing with only the extended key usages would omit the
+	// keyUsage extension, leaving the key unrestricted under RFC 5280.
+	if ku == 0 && (len(eku) == 0 || profileKU != 0) {
 		err = cferr.New(cferr.PolicyError, cferr.NoKeyUsages)
 		return nil, err
 	}

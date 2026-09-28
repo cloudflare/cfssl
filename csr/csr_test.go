@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -46,6 +47,10 @@ func TestKeyRequest(t *testing.T) {
 	case ed25519.PrivateKey:
 		if kr.Algo() != "ed25519" {
 			t.Fatal("Ed25519 key generated, but expected", kr.Algo())
+		}
+	case *mldsa.PrivateKey:
+		if kr.Algo() != "mldsa44" && kr.Algo() != "mldsa65" && kr.Algo() != "mldsa87" {
+			t.Fatal("ML-DSA key generated, but expected", kr.Algo())
 		}
 	}
 }
@@ -328,6 +333,117 @@ func TestED25519Generation(t *testing.T) {
 	}
 	if sa := kr.SigAlgo(); sa == x509.UnknownSignatureAlgorithm {
 		t.Fatal("Invalid signature algorithm!")
+	}
+}
+
+func TestMLDSAGeneration(t *testing.T) {
+	tests := []struct {
+		algo   string
+		params mldsa.Parameters
+		sigAlg x509.SignatureAlgorithm
+	}{
+		{"mldsa44", mldsa.MLDSA44(), x509.MLDSA44},
+		{"mldsa65", mldsa.MLDSA65(), x509.MLDSA65},
+		{"mldsa87", mldsa.MLDSA87(), x509.MLDSA87},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.algo, func(t *testing.T) {
+			kr := &KeyRequest{A: tt.algo}
+			priv, err := kr.Generate()
+			if err != nil {
+				t.Fatalf("Generate() failed: %v", err)
+			}
+			mldsaKey, ok := priv.(*mldsa.PrivateKey)
+			if !ok {
+				t.Fatalf("expected *mldsa.PrivateKey, got %T", priv)
+			}
+			pub := mldsaKey.PublicKey()
+			if pub.Parameters() != tt.params {
+				t.Fatalf("expected parameters %v, got %v", tt.params, pub.Parameters())
+			}
+			if sa := kr.SigAlgo(); sa != tt.sigAlg {
+				t.Fatalf("expected SigAlgo %v, got %v", tt.sigAlg, sa)
+			}
+		})
+	}
+}
+
+func TestMLDSAGenerationIgnoresSize(t *testing.T) {
+	kr := &KeyRequest{A: "mldsa65", S: 999}
+	priv, err := kr.Generate()
+	if err != nil {
+		t.Fatalf("Generate() should succeed ignoring Size: %v", err)
+	}
+	if _, ok := priv.(*mldsa.PrivateKey); !ok {
+		t.Fatalf("expected *mldsa.PrivateKey, got %T", priv)
+	}
+}
+
+func TestMLDSAUnknownVariant(t *testing.T) {
+	request := &KeyRequest{A: "mldsa99"}
+	if _, err := request.Generate(); err == nil {
+		t.Fatal("Generate() accepted an unknown ML-DSA variant")
+	}
+	if got := request.SigAlgo(); got != x509.UnknownSignatureAlgorithm {
+		t.Fatalf("SigAlgo() = %v, want UnknownSignatureAlgorithm", got)
+	}
+}
+
+func TestMLDSACertRequest(t *testing.T) {
+	tests := []string{"mldsa44", "mldsa65", "mldsa87"}
+	for _, algo := range tests {
+		t.Run(algo, func(t *testing.T) {
+			req := &CertificateRequest{
+				Names: []Name{
+					{
+						C:  "US",
+						ST: "California",
+						L:  "San Francisco",
+						O:  "CloudFlare",
+						OU: "Systems Engineering",
+					},
+				},
+				CN:         "cloudflare.com",
+				Hosts:      []string{"cloudflare.com", "www.cloudflare.com"},
+				KeyRequest: &KeyRequest{A: algo},
+			}
+			csrBytes, keyBytes, err := ParseRequest(req)
+			if err != nil {
+				t.Fatalf("ParseRequest() failed: %v", err)
+			}
+
+			// Verify key PEM block type
+			block, _ := pem.Decode(keyBytes)
+			if block == nil {
+				t.Fatal("failed to decode private key PEM")
+			}
+			if block.Type != "PRIVATE KEY" {
+				t.Fatalf("expected PEM type 'PRIVATE KEY', got %q", block.Type)
+			}
+
+			// Verify round-trip via PKCS#8
+			parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+			if err != nil {
+				t.Fatalf("ParsePKCS8PrivateKey() failed: %v", err)
+			}
+			if _, ok := parsed.(*mldsa.PrivateKey); !ok {
+				t.Fatalf("expected *mldsa.PrivateKey, got %T", parsed)
+			}
+
+			// Verify CSR
+			csrBlock, _ := pem.Decode(csrBytes)
+			if csrBlock == nil {
+				t.Fatal("failed to decode CSR PEM")
+			}
+			csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+			if err != nil {
+				t.Fatalf("ParseCertificateRequest() failed: %v", err)
+			}
+			if csr.PublicKeyAlgorithm != x509.MLDSA {
+				t.Fatalf("expected PublicKeyAlgorithm MLDSA, got %v", csr.PublicKeyAlgorithm)
+			}
+		})
 	}
 }
 
