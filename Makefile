@@ -54,13 +54,17 @@ __check_defined = \
 	$(if $(value $1),, \
 		$(error Undefined $1$(if $2, ($2))))
 
+# goreleaser defaults to one build per CPU, which can OOM the Docker VM
+# (especially under amd64 emulation on Apple Silicon).
+GORELEASER_PARALLELISM ?= 4
+
 .PHONY: snapshot
 snapshot:
 	docker run \
 	--rm \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/goreleaser/goreleaser-cross:latest --clean --snapshot --skip=publish
+    ghcr.io/goreleaser/goreleaser-cross:latest --clean --snapshot --skip=publish --parallelism $(GORELEASER_PARALLELISM)
 
 .PHONY: github-release
 github-release:
@@ -71,7 +75,7 @@ github-release:
 	-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/goreleaser/goreleaser-cross:latest --clean
+    ghcr.io/goreleaser/goreleaser-cross:latest --clean --parallelism $(GORELEASER_PARALLELISM)
 
 .PHONY: release
 release: github-release
