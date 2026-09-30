@@ -1,3 +1,4 @@
+version: 2
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
@@ -302,7 +303,7 @@ builds:
     ldflags:
       - -s -w -X github.com/cloudflare/cfssl/cli/version.version={{.Version}}
 archives:
-  - format: binary
+  - formats: [binary]
     allow_different_binary_count: true # https://github.com/goreleaser/goreleaser/pull/1841
 release:
   github:
