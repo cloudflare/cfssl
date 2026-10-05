@@ -245,7 +245,6 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 
 	var r pkix.RDNSequence
 	_, err = asn1.Unmarshal(csrv.RawSubject, &r)
-
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
 		return

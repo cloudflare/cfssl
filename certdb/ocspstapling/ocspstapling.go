@@ -26,7 +26,8 @@ var sctExtOid = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 11129, 2, 4, 5}
 // NOTE: This function is patterned after the exported Sign method in
 // https://github.com/cloudflare/cfssl/blob/master/signer/local/local.go
 func StapleSCTList(acc certdb.Accessor, serial, aki string, scts []ct.SignedCertificateTimestamp,
-	responderCert, issuer *x509.Certificate, priv crypto.Signer) error {
+	responderCert, issuer *x509.Certificate, priv crypto.Signer,
+) error {
 	ocspRecs, err := acc.GetOCSP(serial, aki)
 	if err != nil {
 		return err

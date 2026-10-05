@@ -188,7 +188,6 @@ func TestName(t *testing.T) {
 	if !reflect.DeepEqual([]string{"Cool Locality", "Another Cool Locality"}, name.Locality) {
 		t.Errorf("Locality: want %s, got %s", []string{"CA"}, name.Locality)
 	}
-
 }
 
 func TestDefaultSigAlgoMLDSA(t *testing.T) {

@@ -415,7 +415,7 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	}
 
 	inWrite := make(chan bool, 1)
-	var errConnClosed = errors.New("conn closed for test")
+	errConnClosed := errors.New("conn closed for test")
 	conn.writeFunc = func(p []byte) (n int, err error) {
 		inWrite <- true
 		<-connClosed

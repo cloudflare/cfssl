@@ -28,7 +28,7 @@ type TrustStore struct {
 // Pool returns a certificate pool containing the certificates
 // loaded into the provider.
 func (ts *TrustStore) Pool() *x509.CertPool {
-	var pool = x509.NewCertPool()
+	pool := x509.NewCertPool()
 	for _, cert := range ts.roots {
 		pool.AddCert(cert)
 	}
@@ -37,7 +37,7 @@ func (ts *TrustStore) Pool() *x509.CertPool {
 
 // Certificates returns a slice of the loaded certificates.
 func (ts *TrustStore) Certificates() []*x509.Certificate {
-	var roots = make([]*x509.Certificate, 0, len(ts.roots))
+	roots := make([]*x509.Certificate, 0, len(ts.roots))
 	for _, cert := range ts.roots {
 		roots = append(roots, cert)
 	}
@@ -74,7 +74,7 @@ type Trusted interface {
 func New(rootDefs []*core.Root) (*TrustStore, error) {
 	var err error
 
-	var store = &TrustStore{}
+	store := &TrustStore{}
 	var roots []*x509.Certificate
 
 	if len(rootDefs) == 0 {

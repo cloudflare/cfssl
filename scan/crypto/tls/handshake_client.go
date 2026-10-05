@@ -485,8 +485,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 func (hs *clientHandshakeState) establishKeys() error {
 	c := hs.c
 
-	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
-		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.hello.random, hs.serverHello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
+	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.hello.random, hs.serverHello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 	var clientCipher, serverCipher any
 	var clientHash, serverHash macFunction
 	if hs.suite.cipher != nil {

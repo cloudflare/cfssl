@@ -127,7 +127,6 @@ func makeCertificate() (serialNumber *big.Int, cert *x509.Certificate, pemBytes 
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, issuer, &privKey.PublicKey, privKey)
-
 	if err != nil {
 		return
 	}
@@ -147,7 +146,6 @@ func TestInsertValidCertificate(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +213,6 @@ func TestInsertMissingSerial(t *testing.T) {
 	}
 
 	_, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +236,6 @@ func TestInsertMissingAKI(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +259,6 @@ func TestInsertMissingExpiry(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +282,6 @@ func TestInsertMissingPEM(t *testing.T) {
 	}
 
 	serialNumber, cert, _, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,7 +305,6 @@ func TestInsertInvalidSerial(t *testing.T) {
 	}
 
 	_, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +329,6 @@ func TestInsertInvalidAKI(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +353,6 @@ func TestInsertInvalidStatus(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,7 +377,6 @@ func TestInsertInvalidPEM(t *testing.T) {
 	}
 
 	serialNumber, cert, _, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +401,6 @@ func TestInsertInvalidExpiry(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +425,6 @@ func TestInsertWrongSerial(t *testing.T) {
 	}
 
 	_, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,7 +449,6 @@ func TestInsertWrongAKI(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +473,6 @@ func TestInsertWrongExpiry(t *testing.T) {
 	}
 
 	serialNumber, _, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -511,7 +497,6 @@ func TestInsertRevokedCertificate(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -556,7 +541,6 @@ func TestInsertRevokedCertificateWithoutTime(t *testing.T) {
 	}
 
 	serialNumber, cert, pemBytes, signer, err := makeCertificate()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -573,5 +557,4 @@ func TestInsertRevokedCertificateWithoutTime(t *testing.T) {
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatal("Expected HTTP Bad Request", resp.StatusCode, string(body))
 	}
-
 }

@@ -20,9 +20,8 @@ import (
 // NewCRLFromFile takes in a list of serial numbers, one per line, as well as the issuing certificate
 // of the CRL, and the private key. This function is then used to parse the list and generate a CRL
 func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) ([]byte, error) {
-
 	var revokedCerts []pkix.RevokedCertificate
-	var oneWeek = time.Duration(604800) * time.Second
+	oneWeek := time.Duration(604800) * time.Second
 
 	expiryInt, err := strconv.ParseInt(expiryTime, 0, 32)
 	if err != nil {
@@ -104,5 +103,4 @@ func CreateGenericCRL(certList []pkix.RevokedCertificate, key crypto.Signer, iss
 	}
 
 	return crlBytes, err
-
 }

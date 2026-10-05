@@ -59,7 +59,7 @@ func selfSignMain(args []string, c cli.Config) (err error) {
 		return
 	}
 
-	var req = csr.New()
+	req := csr.New()
 	err = json.Unmarshal(csrFileBytes, req)
 	if err != nil {
 		return

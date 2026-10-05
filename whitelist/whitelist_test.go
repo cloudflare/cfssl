@@ -149,8 +149,10 @@ func TestMarshalHostFail(t *testing.T) {
 	}
 }
 
-var shutdown = make(chan struct{}, 1)
-var proceed = make(chan struct{}, 0)
+var (
+	shutdown = make(chan struct{}, 1)
+	proceed  = make(chan struct{}, 0)
+)
 
 func setupTestServer(t *testing.T, wl ACL) {
 	ln, err := net.Listen("tcp", "127.0.0.1:4141")
@@ -221,7 +223,6 @@ func TestNetConn(t *testing.T) {
 		t.Fatalf("Expected OK, but received %s", body)
 	}
 	conn.Close()
-
 }
 
 func TestBasicDumpLoad(t *testing.T) {
@@ -264,7 +265,6 @@ func TestHTTPRequestLookup(t *testing.T) {
 	if _, err := HTTPRequestLookup(req); err == nil {
 		t.Fatal("Address should fail with an invalid argument")
 	}
-
 }
 
 type stubConn struct {
@@ -310,7 +310,7 @@ func (conn *stubConn) SetWriteDeadline(t time.Time) error {
 }
 
 func TestStubConn(t *testing.T) {
-	var conn = new(stubConn)
+	conn := new(stubConn)
 	_, err := NetConnLookup(conn)
 	if err == nil {
 		t.Fatal("Address should fail to return an address")
@@ -321,7 +321,6 @@ func TestStubConn(t *testing.T) {
 	if err == nil {
 		t.Fatal("Address should fail to return an address")
 	}
-
 }
 
 func TestValidIP(t *testing.T) {

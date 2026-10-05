@@ -104,7 +104,7 @@ func NewBasic() *Basic {
 func (wl *Basic) MarshalJSON() ([]byte, error) {
 	wl.lock.Lock()
 	defer wl.lock.Unlock()
-	var ss = make([]string, 0, len(wl.whitelist))
+	ss := make([]string, 0, len(wl.whitelist))
 	for ip := range wl.whitelist {
 		ss = append(ss, ip)
 	}
@@ -154,7 +154,7 @@ func DumpBasic(wl *Basic) []byte {
 	wl.lock.Lock()
 	defer wl.lock.Unlock()
 
-	var addrs = make([]string, 0, len(wl.whitelist))
+	addrs := make([]string, 0, len(wl.whitelist))
 	for ip := range wl.whitelist {
 		addrs = append(addrs, ip)
 	}

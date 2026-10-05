@@ -60,9 +60,11 @@ Flags:
 `
 
 // Flags used by 'cfssl serve'
-var serverFlags = []string{"address", "port", "min-tls-version", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir",
+var serverFlags = []string{
+	"address", "port", "min-tls-version", "ca", "ca-key", "ca-bundle", "int-bundle", "int-dir",
 	"metadata", "remote", "config", "responder", "responder-key", "tls-key", "tls-cert", "mutual-tls-ca",
-	"mutual-tls-cn", "tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable"}
+	"mutual-tls-cn", "tls-remote-ca", "mutual-tls-client-cert", "mutual-tls-client-key", "db-config", "disable",
+}
 
 var (
 	conf       cli.Config
@@ -106,8 +108,10 @@ func (s *staticFS) Open(name string) (fs.File, error) {
 	return s.fs.Open(name)
 }
 
-var errBadSigner = errors.New("signer not initialized")
-var errNoCertDBConfigured = errors.New("cert db not configured (missing -db-config)")
+var (
+	errBadSigner          = errors.New("signer not initialized")
+	errNoCertDBConfigured = errors.New("cert db not configured (missing -db-config)")
+)
 
 var endpoints = map[string]func() (http.Handler, error){
 	"sign": func() (http.Handler, error) {
@@ -361,7 +365,6 @@ func serverMain(args []string, c cli.Config) error {
 		TLSConfig: &tlscfg,
 	}
 	return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
-
 }
 
 // Command assembles the definition of Command 'serve'

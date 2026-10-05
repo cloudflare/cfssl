@@ -104,7 +104,6 @@ func (src DBSource) Response(req *ocsp.Request) ([]byte, http.Header, error) {
 		return nil, nil, errors.New("called with nil DB accessor")
 	}
 	records, err := src.Accessor.GetOCSP(strSN, aki)
-
 	// Response() logs when there are errors obtaining the OCSP response
 	// and returns nil, false.
 	if err != nil {
@@ -168,7 +167,6 @@ func NewSourceFromFile(responseFile string) (Source, error) {
 func NewSourceFromDB(DBConfigFile string) (Source, error) {
 	// Load DB from cofiguration file
 	db, err := dbconf.DBFromConfig(DBConfigFile)
-
 	if err != nil {
 		return nil, err
 	}

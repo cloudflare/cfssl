@@ -24,21 +24,23 @@ const (
 	testCaKeyFile = "../local/testdata/ca_key.pem"
 )
 
-var expiry = 1 * time.Minute
-var validLocalConfig = &config.Config{
-	Signing: &config.Signing{
-		Profiles: map[string]*config.SigningProfile{
-			"valid": {
+var (
+	expiry           = 1 * time.Minute
+	validLocalConfig = &config.Config{
+		Signing: &config.Signing{
+			Profiles: map[string]*config.SigningProfile{
+				"valid": {
+					Usage:  []string{"digital signature"},
+					Expiry: expiry,
+				},
+			},
+			Default: &config.SigningProfile{
 				Usage:  []string{"digital signature"},
 				Expiry: expiry,
 			},
 		},
-		Default: &config.SigningProfile{
-			Usage:  []string{"digital signature"},
-			Expiry: expiry,
-		},
-	},
-}
+	}
+)
 
 var validMinimalRemoteConfig = `
 {

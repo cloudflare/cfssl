@@ -55,7 +55,7 @@ func TestServe(t *testing.T) {
 	}
 
 	var c cli.Config
-	var test = []string{"test"}
+	test := []string{"test"}
 	if err := serverMain(test, c); err == nil {
 		t.Fatalf("There should be an error for argument")
 	}

@@ -97,7 +97,7 @@ func NewBasicNet() *BasicNet {
 // MarshalJSON serialises a network whitelist to a comma-separated
 // list of networks.
 func (wl *BasicNet) MarshalJSON() ([]byte, error) {
-	var ss = make([]string, 0, len(wl.whitelist))
+	ss := make([]string, 0, len(wl.whitelist))
 	for i := range wl.whitelist {
 		ss = append(ss, wl.whitelist[i].String())
 	}

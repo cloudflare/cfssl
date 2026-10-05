@@ -68,7 +68,7 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
-	var input = map[string]any{}
+	input := map[string]any{}
 	var outs []outputFile
 	var cert string
 	var key string
@@ -114,7 +114,7 @@ func main() {
 		outs = append(outs, outputFile{
 			Filename: baseName + ".pem",
 			Contents: cert,
-			Perms:    0664,
+			Perms:    0o664,
 		})
 	}
 
@@ -127,7 +127,7 @@ func main() {
 		outs = append(outs, outputFile{
 			Filename: baseName + "-key.pem",
 			Contents: key,
-			Perms:    0600,
+			Perms:    0o600,
 		})
 	}
 
@@ -137,7 +137,7 @@ func main() {
 			Filename: baseName + "-key.enc",
 			Contents: encKey,
 			IsBinary: true,
-			Perms:    0600,
+			Perms:    0o600,
 		})
 	}
 
@@ -150,7 +150,7 @@ func main() {
 		outs = append(outs, outputFile{
 			Filename: baseName + ".csr",
 			Contents: csr,
-			Perms:    0644,
+			Perms:    0o644,
 		})
 	}
 
@@ -173,12 +173,12 @@ func main() {
 			outs = append(outs, outputFile{
 				Filename: baseName + "-bundle.pem",
 				Contents: certificateBundle + "\n" + rootCertificate,
-				Perms:    0644,
+				Perms:    0o644,
 			})
 			outs = append(outs, outputFile{
 				Filename: baseName + "-root.pem",
 				Contents: rootCertificate,
-				Perms:    0644,
+				Perms:    0o644,
 			})
 		}
 	}
@@ -194,7 +194,7 @@ func main() {
 			Filename: baseName + "-response.der",
 			Contents: string(resp),
 			IsBinary: true,
-			Perms:    0644,
+			Perms:    0o644,
 		})
 	}
 

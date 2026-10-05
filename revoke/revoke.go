@@ -34,8 +34,10 @@ var HardFail = false
 
 // CRLSet associates a PKIX certificate list with the URL the CRL is
 // fetched from.
-var CRLSet = map[string]*pkix.CertificateList{}
-var crlLock = new(sync.Mutex)
+var (
+	CRLSet  = map[string]*pkix.CertificateList{}
+	crlLock = new(sync.Mutex)
+)
 
 // We can't handle LDAP certificates, so this checks to see if the
 // URL string points to an LDAP resource so that we can ignore it.
@@ -124,7 +126,6 @@ func getIssuer(cert *x509.Certificate) *x509.Certificate {
 	}
 
 	return issuer
-
 }
 
 // check a cert against a specific CRL. Returns the same bool pair
@@ -138,7 +139,7 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool, err
 	}
 	crlLock.Unlock()
 
-	var shouldFetchCRL = true
+	shouldFetchCRL := true
 	if ok {
 		if !crl.HasExpired(time.Now()) {
 			shouldFetchCRL = false

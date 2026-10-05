@@ -263,7 +263,6 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 		priv, ok := cert.PrivateKey.(*ecdsa.PrivateKey)
 		if !ok {
 			return fail(errors.New("crypto/tls: private key type does not match public key type"))
-
 		}
 		if pub.X.Cmp(priv.X) != 0 || pub.Y.Cmp(priv.Y) != 0 {
 			return fail(errors.New("crypto/tls: private key does not match public key"))

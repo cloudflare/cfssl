@@ -407,7 +407,6 @@ func TestSign(t *testing.T) {
 		}
 
 	}
-
 }
 
 func newTestAuthHandler(t *testing.T) http.Handler {

@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.WriteFile(*filename, data, 0644)
+	err = os.WriteFile(*filename, data, 0o644)
 	if err != nil {
 		log.Fatal(err)
 	}

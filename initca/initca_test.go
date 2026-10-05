@@ -46,6 +46,7 @@ var invalidCAConfig = csr.CAConfig{
 	// Expiry must be a duration string
 	Expiry: "2116/12/31",
 }
+
 var csrFiles = []string{
 	"testdata/rsa2048.csr",
 	"testdata/rsa3072.csr",
@@ -56,12 +57,14 @@ var csrFiles = []string{
 	"testdata/ed25519.csr",
 }
 
-var testRSACAFile = "testdata/5min-rsa.pem"
-var testRSACAKeyFile = "testdata/5min-rsa-key.pem"
-var testECDSACAFile = "testdata/5min-ecdsa.pem"
-var testECDSACAKeyFile = "testdata/5min-ecdsa-key.pem"
-var testED25519CAFile = "testdata/5min-ed25519.pem"
-var testED25519CAKeyFile = "testdata/5min-ed25519-key.pem"
+var (
+	testRSACAFile        = "testdata/5min-rsa.pem"
+	testRSACAKeyFile     = "testdata/5min-rsa-key.pem"
+	testECDSACAFile      = "testdata/5min-ecdsa.pem"
+	testECDSACAKeyFile   = "testdata/5min-ecdsa-key.pem"
+	testED25519CAFile    = "testdata/5min-ed25519.pem"
+	testED25519CAKeyFile = "testdata/5min-ed25519-key.pem"
+)
 
 var invalidCryptoParams = []csr.KeyRequest{
 	// Weak Key
@@ -195,6 +198,7 @@ func TestInitCA(t *testing.T) {
 		}
 	}
 }
+
 func TestInvalidCAConfig(t *testing.T) {
 	hostname := "example.com"
 	req := &csr.CertificateRequest{
@@ -218,6 +222,7 @@ func TestInvalidCAConfig(t *testing.T) {
 		t.Fatalf("InitCA with bad CAConfig should fail: %v", invalidCAConfig)
 	}
 }
+
 func TestInvalidCryptoParams(t *testing.T) {
 	var req *csr.CertificateRequest
 	hostname := "cloudflare.com"

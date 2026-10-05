@@ -257,7 +257,7 @@ func (hs *serverHandshakeState) checkForResumption() bool {
 	}
 
 	var ok bool
-	var sessionTicket = append([]uint8{}, hs.clientHello.sessionTicket...)
+	sessionTicket := append([]uint8{}, hs.clientHello.sessionTicket...)
 	if hs.sessionState, ok = c.decryptTicket(sessionTicket); !ok {
 		return false
 	}
@@ -526,8 +526,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 func (hs *serverHandshakeState) establishKeys() error {
 	c := hs.c
 
-	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
-		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
+	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV := keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 
 	var clientCipher, serverCipher any
 	var clientHash, serverHash macFunction

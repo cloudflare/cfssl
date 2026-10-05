@@ -18,7 +18,6 @@ func TestSystemRoots(t *testing.T) {
 
 	sysRoots := initSystemRoots()         // actual system roots
 	execRoots, err := execSecurityRoots() // non-cgo roots
-
 	if err != nil {
 		t.Fatalf("failed to read system roots: %v", err)
 	}

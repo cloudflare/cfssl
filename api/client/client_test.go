@@ -2,11 +2,12 @@ package client
 
 import (
 	"crypto/tls"
-	"github.com/cloudflare/cfssl/auth"
-	"github.com/cloudflare/cfssl/helpers"
 	"net"
 	"strings"
 	"testing"
+
+	"github.com/cloudflare/cfssl/auth"
+	"github.com/cloudflare/cfssl/helpers"
 )
 
 var (
@@ -24,13 +25,11 @@ func TestNewServer(t *testing.T) {
 	s2 := NewServer("1.1.1.1:[]")
 	if s != nil {
 		t.Fatalf("%v", s2)
-
 	}
 
 	_, port, _ := net.SplitHostPort("")
 	if port != "" {
 		t.Fatalf("%v", port)
-
 	}
 
 	s = NewServer("http://127.0.0.1:8888")
@@ -97,7 +96,7 @@ func TestNewMutualTLSServer(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error with sign function")
 	}
-	if !(strings.Contains(err.Error(), "Post")) && !(strings.Contains(err.Error(), "https://nohost:8888/api/v1/cfssl/sign")) && !(strings.Contains(err.Error(), "dial tcp: lookup nohost: no such host")) {
+	if !strings.Contains(err.Error(), "Post") && !strings.Contains(err.Error(), "https://nohost:8888/api/v1/cfssl/sign") && !strings.Contains(err.Error(), "dial tcp: lookup nohost: no such host") {
 		t.Fatalf("no error message %v", err)
 	}
 }

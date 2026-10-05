@@ -104,7 +104,6 @@ func testInsertCertificateAndGetCertificate(ta TestAccessor, t *testing.T) {
 	}
 
 	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +150,6 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 	}
 
 	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,6 +173,7 @@ func testInsertCertificateAndGetUnexpiredCertificate(ta TestAccessor, t *testing
 		t.Error("Should have 0 unexpiredFiltered certificate record:", l)
 	}
 }
+
 func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
@@ -219,7 +218,6 @@ func testInsertCertificateAndGetUnexpiredCertificateNullCommonName(ta TestAccess
 	}
 
 	unexpired, err := ta.Accessor.GetUnexpiredCertificates()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +344,6 @@ func testInsertOCSPAndGetOCSP(ta TestAccessor, t *testing.T) {
 	}
 
 	unexpired, err := ta.Accessor.GetUnexpiredOCSPs()
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -387,7 +384,6 @@ func testInsertOCSPAndGetUnexpiredOCSP(ta TestAccessor, t *testing.T) {
 	}
 
 	unexpired, err := ta.Accessor.GetUnexpiredOCSPs()
-
 	if err != nil {
 		t.Fatal(err)
 	}

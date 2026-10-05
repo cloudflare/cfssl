@@ -24,7 +24,6 @@ func simpleHandle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return SendResponse(w, ty)
-
 }
 
 func cleverHandle(w http.ResponseWriter, r *http.Request) error {

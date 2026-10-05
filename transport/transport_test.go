@@ -51,7 +51,7 @@ func removeIfPresent(path string) error {
 
 func TestMain(m *testing.M) {
 	if fi, err := os.Stat("testdata"); os.IsNotExist(err) {
-		err = os.Mkdir("testdata", 0755)
+		err = os.Mkdir("testdata", 0o755)
 		if err != nil {
 			log.Fatalf("unable to setup testdata directory: %v", err)
 		}
@@ -121,7 +121,7 @@ var (
 )
 
 func TestTransportSetup(t *testing.T) {
-	var before = 55 * time.Second
+	before := 55 * time.Second
 	var err error
 
 	tr, err = New(before, testIdentity)
@@ -220,7 +220,7 @@ func testListen(t *testing.T) {
 }
 
 func TestListener(t *testing.T) {
-	var before = 55 * time.Second
+	before := 55 * time.Second
 
 	trl, err := New(before, testLIdentity)
 	if err != nil {

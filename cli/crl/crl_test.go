@@ -23,7 +23,7 @@ const (
 func prepDB() (err error) {
 	db := testdb.SQLiteDB("../../certdb/testdb/certstore_development.db")
 	expirationTime := time.Now().AddDate(1, 0, 0)
-	var cert = certdb.CertificateRecord{
+	cert := certdb.CertificateRecord{
 		Serial:    "1",
 		AKI:       fakeAKI,
 		Expiry:    expirationTime,

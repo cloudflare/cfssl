@@ -396,7 +396,6 @@ type Generator struct {
 // ProcessRequest validates and processes the incoming request. It is
 // a wrapper around a validator and the ParseRequest function.
 func (g *Generator) ProcessRequest(req *CertificateRequest) (csr, key []byte, err error) {
-
 	log.Info("generate received request")
 	err = g.Validator(req)
 	if err != nil {
@@ -447,7 +446,7 @@ func GenerateDER(priv crypto.Signer, req *CertificateRequest) (csr []byte, err e
 		return nil, err
 	}
 
-	var tpl = x509.CertificateRequest{
+	tpl := x509.CertificateRequest{
 		Subject:            subj,
 		SignatureAlgorithm: sigAlgo,
 	}
@@ -498,7 +497,6 @@ func GenerateDER(priv crypto.Signer, req *CertificateRequest) (csr []byte, err e
 // Generate creates a new CSR(PEM encoded) from a CertificateRequest structure and
 // an existing key. The KeyRequest field is ignored.
 func Generate(priv crypto.Signer, req *CertificateRequest) (csr []byte, err error) {
-
 	csr, err = GenerateDER(priv, req)
 	if err != nil {
 		return
@@ -520,7 +518,6 @@ func appendCAInfoToCSR(reqConf *CAConfig, csr *x509.CertificateRequest) error {
 		pathlen = -1
 	}
 	val, err := asn1.Marshal(BasicConstraints{true, pathlen})
-
 	if err != nil {
 		return err
 	}

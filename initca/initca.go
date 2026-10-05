@@ -217,7 +217,7 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 		if ed25519PublicKey, ok = priv.Public().(ed25519.PublicKey); !ok {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
-		if !(bytes.Equal(ca.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
+		if !bytes.Equal(ca.PublicKey.(ed25519.PublicKey), ed25519PublicKey) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
 	case ca.PublicKeyAlgorithm == x509.MLDSA:
@@ -236,7 +236,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	req := csr.ExtractCertificateRequest(ca)
 	cert, _, err := NewFromSigner(req, priv)
 	return cert, err
-
 }
 
 // CAPolicy contains the CA issuing policy as default policy.

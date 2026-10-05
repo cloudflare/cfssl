@@ -304,8 +304,10 @@ func TestBlockSize(t *testing.T) {
 	}
 }
 
-var bench = New()
-var buf = make([]byte, 8192)
+var (
+	bench = New()
+	buf   = make([]byte, 8192)
+)
 
 func benchmarkSize(b *testing.B, size int) {
 	b.SetBytes(int64(size))

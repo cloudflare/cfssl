@@ -13,10 +13,9 @@ import (
 
 // main defines the scan usage and registers all defined commands and flags.
 func main() {
-
-	var scanFlagSet = flag.NewFlagSet("scan", flag.ExitOnError)
+	scanFlagSet := flag.NewFlagSet("scan", flag.ExitOnError)
 	var c cli.Config
-	var usageText = `cfssl scan -- scan a host for issues
+	usageText := `cfssl scan -- scan a host for issues
 Usage of scan:
         cfssl scan [-family regexp] [-scanner regexp] [-timeout duration] [-ip IPAddr] [-num-workers num] [-max-hosts num] [-csv hosts.csv] HOST+
         cfssl scan -list

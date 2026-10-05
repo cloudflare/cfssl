@@ -106,7 +106,8 @@ func TestStartCFSSLServer(t *testing.T) {
 	// Now we make the request and check the output.
 	remoteServerString := "-remote=" + "http://" + addressToTest + ":" + strconv.Itoa(portToTest)
 	command := exec.Command(
-		"cfssl", "gencert", remoteServerString, "-hostname="+baseRequest.CN, tempFile)
+		"cfssl", "gencert", remoteServerString, "-hostname="+baseRequest.CN, tempFile,
+	)
 	CLIOutput, err := command.CombinedOutput()
 	os.Remove(tempFile)
 	if err != nil {
@@ -138,7 +139,6 @@ func TestStartCFSSLServer(t *testing.T) {
 }
 
 func TestCreateCertificateChain(t *testing.T) {
-
 	// N is the number of certificates that will be chained together.
 	N := 10
 
@@ -215,7 +215,8 @@ func TestCreateCertificateChain(t *testing.T) {
 
 		requests[i].CN = cn + tld
 		requests[i].Names = []csr.Name{
-			{C: country,
+			{
+				C:  country,
 				ST: state,
 				L:  locality,
 				O:  org,
@@ -276,7 +277,6 @@ func TestCreateCertificateChain(t *testing.T) {
 }
 
 func TestCreateSelfSignedCert(t *testing.T) {
-
 	// --- TEST: Create a self-signed certificate from a CSR. --- //
 
 	// Generate a self-signed certificate from the request.
@@ -315,14 +315,14 @@ func TestCreateSelfSignedCert(t *testing.T) {
 
 	if !reflect.DeepEqual(certFromCode, certFromCLI) {
 		unequalFields := checkFields(
-			*certFromCode, *certFromCLI, reflect.TypeOf(*certFromCode))
+			*certFromCode, *certFromCLI, reflect.TypeOf(*certFromCode),
+		)
 		t.Log("The following fields were unequal:")
 		for _, field := range unequalFields {
 			t.Log(field)
 		}
 		t.Fatal("Certificates unequal.")
 	}
-
 }
 
 // Compare two x509 certificate chains. We only compare relevant data to
@@ -394,7 +394,8 @@ func checkFieldsOfChains(chain1, chain2 []*x509.Certificate) [][]string {
 	var unequalFields [][]string
 	for i := 0; i < int(minLen); i++ {
 		unequalFields = append(unequalFields, checkFields(
-			*chain1[i], *chain2[i], typeOfCert))
+			*chain1[i], *chain2[i], typeOfCert,
+		))
 	}
 
 	return unequalFields

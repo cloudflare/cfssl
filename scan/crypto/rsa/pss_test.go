@@ -199,7 +199,7 @@ func TestPSSNilOpts(t *testing.T) {
 }
 
 func TestPSSSigning(t *testing.T) {
-	var saltLengthCombinations = []struct {
+	saltLengthCombinations := []struct {
 		signSaltLength, verifySaltLength int
 		good                             bool
 	}{

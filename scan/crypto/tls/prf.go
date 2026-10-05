@@ -116,10 +116,12 @@ const (
 	finishedVerifyLength = 12 // Length of verify_data in a Finished message.
 )
 
-var masterSecretLabel = []byte("master secret")
-var keyExpansionLabel = []byte("key expansion")
-var clientFinishedLabel = []byte("client finished")
-var serverFinishedLabel = []byte("server finished")
+var (
+	masterSecretLabel   = []byte("master secret")
+	keyExpansionLabel   = []byte("key expansion")
+	clientFinishedLabel = []byte("client finished")
+	serverFinishedLabel = []byte("server finished")
+)
 
 func prfAndHashForVersion(version uint16, suite *cipherSuite) (func(result, secret, label, seed []byte), crypto.Hash) {
 	switch version {
@@ -283,8 +285,10 @@ func finishedSum30(md5, sha1 hash.Hash, masterSecret []byte, magic []byte) []byt
 	return ret
 }
 
-var ssl3ClientFinishedMagic = [4]byte{0x43, 0x4c, 0x4e, 0x54}
-var ssl3ServerFinishedMagic = [4]byte{0x53, 0x52, 0x56, 0x52}
+var (
+	ssl3ClientFinishedMagic = [4]byte{0x43, 0x4c, 0x4e, 0x54}
+	ssl3ServerFinishedMagic = [4]byte{0x53, 0x52, 0x56, 0x52}
+)
 
 // clientSum returns the contents of the verify_data member of a client's
 // Finished message.

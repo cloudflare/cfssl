@@ -118,9 +118,11 @@ func TestBlockGeneric(t *testing.T) {
 	}
 }
 
-var bench = New()
-var buf = make([]byte, 8192+1)
-var sum = make([]byte, bench.Size())
+var (
+	bench = New()
+	buf   = make([]byte, 8192+1)
+	sum   = make([]byte, bench.Size())
+)
 
 func benchmarkSize(b *testing.B, size int, unaligned bool) {
 	b.SetBytes(int64(size))

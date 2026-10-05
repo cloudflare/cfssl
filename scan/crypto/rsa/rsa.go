@@ -30,8 +30,10 @@ import (
 	"math/big"
 )
 
-var bigZero = big.NewInt(0)
-var bigOne = big.NewInt(1)
+var (
+	bigZero = big.NewInt(0)
+	bigOne  = big.NewInt(1)
+)
 
 // A PublicKey represents the public part of an RSA key.
 type PublicKey struct {

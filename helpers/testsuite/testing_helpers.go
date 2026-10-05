@@ -122,7 +122,8 @@ func StartCFSSLServer(address string, portNumber int, serverData CFSSLServerData
 		}
 		return nilServer, errors.New(
 			"Error occurred on server: address " + address + ":" +
-				strconv.Itoa(portNumber) + " already in use.")
+				strconv.Itoa(portNumber) + " already in use.",
+		)
 	case <-time.After(startupTime):
 		return &CFSSLServer{command.Process, tempFiles}, nil
 	}
@@ -322,7 +323,7 @@ func createTempFile(data []byte) (fileName string, err error) {
 		}
 	}
 
-	readWritePermissions := os.FileMode(0664)
+	readWritePermissions := os.FileMode(0o664)
 	err = os.WriteFile(tempFileName, data, readWritePermissions)
 	if err != nil {
 		return "", err

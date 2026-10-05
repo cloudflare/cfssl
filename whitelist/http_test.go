@@ -22,8 +22,10 @@ func (h *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(h.Message))
 }
 
-var testAllowHandler = newTestHandler("OK")
-var testDenyHandler = newTestHandler("NO")
+var (
+	testAllowHandler = newTestHandler("OK")
+	testDenyHandler  = newTestHandler("NO")
+)
 
 func testHTTPResponse(url string, t *testing.T) string {
 	resp, err := http.Get(url)
@@ -167,7 +169,6 @@ func TestBasicHTTPWorkers(t *testing.T) {
 	}
 
 	wg.Wait()
-
 }
 
 func TestFailHTTP(t *testing.T) {
@@ -193,8 +194,10 @@ func newTestHandlerFunc(m string) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-var testAllowHandlerFunc = newTestHandlerFunc("OK")
-var testDenyHandlerFunc = newTestHandlerFunc("NO")
+var (
+	testAllowHandlerFunc = newTestHandlerFunc("OK")
+	testDenyHandlerFunc  = newTestHandlerFunc("NO")
+)
 
 func TestSetupHandlerFuncFails(t *testing.T) {
 	wl := NewBasic()
@@ -322,7 +325,6 @@ func TestBasicNetHTTPWorkers(t *testing.T) {
 	}
 
 	wg.Wait()
-
 }
 
 func TestNetFailHTTP(t *testing.T) {

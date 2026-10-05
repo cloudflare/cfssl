@@ -152,11 +152,11 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	if len(b.Hostnames) == 0 {
 		b.buildHostnames()
 	}
-	var ocspSupport = false
+	ocspSupport := false
 	if b.Cert.OCSPServer != nil {
 		ocspSupport = true
 	}
-	var crlSupport = false
+	crlSupport := false
 	if b.Cert.CRLDistributionPoints != nil {
 		crlSupport = true
 	}
