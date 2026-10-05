@@ -63,7 +63,7 @@ Example:
             "description": "Scans for host's SSL/TLS version and cipher suite negotiation",
             "scanners": {
                 "CipherSuite": {
-                    "description": "Determines host's cipher suites accepted and prefered order"
+                    "description": "Determines host's cipher suites accepted and preferred order"
                 },
                 "SigAlgs": {
                     "description": "Determines host's accepted signature and hash algorithms"
