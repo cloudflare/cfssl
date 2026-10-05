@@ -221,7 +221,7 @@ type logEvent struct {
 	Method   string        `json:"method,omitempty"`
 	Path     string        `json:"path,omitempty"`
 	Body     string        `json:"body,omitempty"`
-	Received time.Time     `json:"received,omitempty"`
+	Received time.Time     `json:"received"`
 	Took     time.Duration `json:"took,omitempty"`
 	Headers  http.Header   `json:"headers,omitempty"`
 

@@ -42,7 +42,7 @@ func cleverHandle(w http.ResponseWriter, r *http.Request) error {
 	return SendResponse(w, ty)
 }
 
-func post(t *testing.T, obj map[string]interface{}, ts *httptest.Server) (resp *http.Response, body []byte) {
+func post(t *testing.T, obj map[string]any, ts *httptest.Server) (resp *http.Response, body []byte) {
 	blob, err := json.Marshal(obj)
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +77,7 @@ func TestRigidHandle(t *testing.T) {
 	defer ts.Close()
 
 	// Response to compliment
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	obj["compliment"] = "it's good"
 	resp, body := post(t, obj, ts)
 
@@ -97,7 +97,7 @@ func TestRigidHandle(t *testing.T) {
 	}
 
 	// Response to critique
-	obj = map[string]interface{}{}
+	obj = map[string]any{}
 	obj["critique"] = "it's bad"
 	resp, body = post(t, obj, ts)
 
@@ -117,7 +117,7 @@ func TestRigidHandle(t *testing.T) {
 	}
 
 	// reject mixed review
-	obj = map[string]interface{}{}
+	obj = map[string]any{}
 	obj["critique"] = "it's OK"
 	obj["compliment"] = "it's not bad"
 	resp, _ = post(t, obj, ts)
@@ -127,7 +127,7 @@ func TestRigidHandle(t *testing.T) {
 	}
 
 	// reject empty review
-	obj = map[string]interface{}{}
+	obj = map[string]any{}
 	resp, _ = post(t, obj, ts)
 
 	if resp.StatusCode != http.StatusBadRequest {
@@ -147,7 +147,7 @@ func TestCleverHandle(t *testing.T) {
 	defer ts.Close()
 
 	// Response ty to compliment
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	obj["compliment"] = "it's good"
 	resp, body := post(t, obj, ts)
 
@@ -167,7 +167,7 @@ func TestCleverHandle(t *testing.T) {
 	}
 
 	// Response deny to critique
-	obj = map[string]interface{}{}
+	obj = map[string]any{}
 	obj["critique"] = "it's bad"
 	resp, body = post(t, obj, ts)
 
@@ -187,7 +187,7 @@ func TestCleverHandle(t *testing.T) {
 	}
 
 	// Be polite to mixed review
-	obj = map[string]interface{}{}
+	obj = map[string]any{}
 	obj["critique"] = "it's OK"
 	obj["compliment"] = "it's not bad"
 	_, body = post(t, obj, ts)
@@ -204,7 +204,7 @@ func TestCleverHandle(t *testing.T) {
 	}
 
 	// reject empty review
-	obj = map[string]interface{}{}
+	obj = map[string]any{}
 	resp, _ = post(t, obj, ts)
 
 	if resp.StatusCode != http.StatusBadRequest {

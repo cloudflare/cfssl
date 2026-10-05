@@ -58,7 +58,7 @@ func intermediateCAScan(addr, hostname string) (grade Grade, output Output, err 
 			b.Bundle(chain, nil, bundler.Force)
 		}
 	}()
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		go func() {
 			for addr := range addrs {
 				conn, err := tls.DialWithDialer(dialer, Network, addr, config)

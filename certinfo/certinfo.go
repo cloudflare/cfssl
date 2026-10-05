@@ -17,8 +17,8 @@ import (
 
 // Certificate represents a JSON description of an X.509 certificate.
 type Certificate struct {
-	Subject            Name      `json:"subject,omitempty"`
-	Issuer             Name      `json:"issuer,omitempty"`
+	Subject            Name      `json:"subject"`
+	Issuer             Name      `json:"issuer"`
 	SerialNumber       string    `json:"serial_number,omitempty"`
 	SANs               []string  `json:"sans,omitempty"`
 	NotBefore          time.Time `json:"not_before"`
@@ -31,16 +31,16 @@ type Certificate struct {
 
 // Name represents a JSON description of a PKIX Name
 type Name struct {
-	CommonName         string        `json:"common_name,omitempty"`
-	SerialNumber       string        `json:"serial_number,omitempty"`
-	Country            string        `json:"country,omitempty"`
-	Organization       string        `json:"organization,omitempty"`
-	OrganizationalUnit string        `json:"organizational_unit,omitempty"`
-	Locality           string        `json:"locality,omitempty"`
-	Province           string        `json:"province,omitempty"`
-	StreetAddress      string        `json:"street_address,omitempty"`
-	PostalCode         string        `json:"postal_code,omitempty"`
-	Names              []interface{} `json:"names,omitempty"`
+	CommonName         string `json:"common_name,omitempty"`
+	SerialNumber       string `json:"serial_number,omitempty"`
+	Country            string `json:"country,omitempty"`
+	Organization       string `json:"organization,omitempty"`
+	OrganizationalUnit string `json:"organizational_unit,omitempty"`
+	Locality           string `json:"locality,omitempty"`
+	Province           string `json:"province,omitempty"`
+	StreetAddress      string `json:"street_address,omitempty"`
+	PostalCode         string `json:"postal_code,omitempty"`
+	Names              []any  `json:"names,omitempty"`
 	// ExtraNames         []interface{} `json:"extra_names,omitempty"`
 }
 
@@ -71,16 +71,16 @@ func ParseName(name pkix.Name) Name {
 }
 
 func formatKeyID(id []byte) string {
-	var s string
+	var s strings.Builder
 
 	for i, c := range id {
 		if i > 0 {
-			s += ":"
+			s.WriteString(":")
 		}
-		s += fmt.Sprintf("%02X", c)
+		s.WriteString(fmt.Sprintf("%02X", c))
 	}
 
-	return s
+	return s.String()
 }
 
 // ParseCertificate parses an x509 certificate.

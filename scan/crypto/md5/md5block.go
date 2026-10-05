@@ -44,7 +44,7 @@ func blockGeneric(dig *digest, p []byte) {
 		} else {
 			X = &xbuf
 			j := 0
-			for i := 0; i < 16; i++ {
+			for i := range 16 {
 				X[i&15] = uint32(p[j]) | uint32(p[j+1])<<8 | uint32(p[j+2])<<16 | uint32(p[j+3])<<24
 				j += 4
 			}

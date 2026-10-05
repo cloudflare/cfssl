@@ -52,7 +52,7 @@ func testRevokeCert(t *testing.T, dbAccessor certdb.Accessor, serial, aki, reaso
 	ts := httptest.NewServer(NewHandler(dbAccessor))
 	defer ts.Close()
 
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 
 	obj["serial"] = serial
 	obj["authority_key_id"] = aki
@@ -230,7 +230,7 @@ func TestOCSPGeneration(t *testing.T) {
 	defer ts.Close()
 
 	// 6. Prepare the revocation request
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 
 	obj["serial"] = revokedSerialStr
 	obj["authority_key_id"] = revokedAKI

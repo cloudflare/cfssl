@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -36,10 +37,8 @@ func validator(req *csr.CertificateRequest) error {
 		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
 	}
 
-	for i := range req.Names {
-		if csr.IsNameEmpty(req.Names[i]) {
-			return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
-		}
+	if slices.ContainsFunc(req.Names, csr.IsNameEmpty) {
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
 	}
 
 	return nil

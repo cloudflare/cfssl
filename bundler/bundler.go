@@ -834,15 +834,16 @@ func untrustedPlatformsWarning(platforms []string) string {
 		return ""
 	}
 
-	msg := untrustedWarningStub
+	var msg strings.Builder
+	msg.WriteString(untrustedWarningStub)
 	for i, platform := range platforms {
 		if i > 0 {
-			msg += ","
+			msg.WriteString(",")
 		}
-		msg += " " + platform
+		msg.WriteString(" " + platform)
 	}
-	msg += "."
-	return msg
+	msg.WriteString(".")
+	return msg.String()
 }
 
 // Optimal chains are the shortest chains, with newest intermediates and most advanced crypto suite being the tie breaker.
@@ -882,7 +883,7 @@ func diff(chain1, chain2 []*x509.Certificate) bool {
 	if len(chain1) != len(chain2) {
 		diff = true
 	} else {
-		for i := 0; i < len(chain1); i++ {
+		for i := range chain1 {
 			cert1 := chain1[i]
 			cert2 := chain2[i]
 			// Use signature to differentiate.

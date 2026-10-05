@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -108,13 +109,7 @@ func TestInitCA(t *testing.T) {
 			}
 
 			// Verify if the CRL is set
-			crlSet := false
-			for _, certCrl := range cert.CRLDistributionPoints {
-				if certCrl == crl {
-					crlSet = true
-					break
-				}
-			}
+			crlSet := slices.Contains(cert.CRLDistributionPoints, crl)
 			if !crlSet {
 				t.Fatal("Missing CRL on certificate")
 			}

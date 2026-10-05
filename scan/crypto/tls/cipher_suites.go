@@ -67,7 +67,7 @@ type cipherSuite struct {
 	ka     func(version uint16) keyAgreement
 	// flags is a bitmask of the suite* values, above.
 	flags  int
-	cipher func(key, iv []byte, isRead bool) interface{}
+	cipher func(key, iv []byte, isRead bool) any
 	mac    func(version uint16, macKey []byte) macFunction
 	aead   func(key, fixedNonce []byte) cipher.AEAD
 }
@@ -94,12 +94,12 @@ var cipherSuites = []*cipherSuite{
 	{TLS_RSA_WITH_3DES_EDE_CBC_SHA, 24, 20, 8, rsaKA, 0, cipher3DES, macSHA1, nil},
 }
 
-func cipherRC4(key, iv []byte, isRead bool) interface{} {
+func cipherRC4(key, iv []byte, isRead bool) any {
 	cipher, _ := rc4.NewCipher(key)
 	return cipher
 }
 
-func cipher3DES(key, iv []byte, isRead bool) interface{} {
+func cipher3DES(key, iv []byte, isRead bool) any {
 	block, _ := des.NewTripleDESCipher(key)
 	if isRead {
 		return cipher.NewCBCDecrypter(block, iv)
@@ -107,7 +107,7 @@ func cipher3DES(key, iv []byte, isRead bool) interface{} {
 	return cipher.NewCBCEncrypter(block, iv)
 }
 
-func cipherAES(key, iv []byte, isRead bool) interface{} {
+func cipherAES(key, iv []byte, isRead bool) any {
 	block, _ := aes.NewCipher(key)
 	if isRead {
 		return cipher.NewCBCDecrypter(block, iv)

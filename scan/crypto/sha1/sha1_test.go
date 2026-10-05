@@ -53,14 +53,14 @@ var golden = []sha1Test{
 }
 
 func TestGolden(t *testing.T) {
-	for i := 0; i < len(golden); i++ {
+	for i := range golden {
 		g := golden[i]
 		s := fmt.Sprintf("%x", Sum([]byte(g.in)))
 		if s != g.out {
 			t.Fatalf("Sum function: sha1(%s) = %s want %s", g.in, s, g.out)
 		}
 		c := New()
-		for j := 0; j < 3; j++ {
+		for j := range 3 {
 			if j < 2 {
 				io.WriteString(c, g.in)
 			} else {

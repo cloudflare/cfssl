@@ -104,15 +104,15 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 type halfConn struct {
 	sync.Mutex
 
-	err            error       // first permanent error
-	version        uint16      // protocol version
-	cipher         interface{} // cipher algorithm
+	err            error  // first permanent error
+	version        uint16 // protocol version
+	cipher         any    // cipher algorithm
 	mac            macFunction
 	seq            [8]byte  // 64-bit sequence number
 	bfree          *block   // list of free blocks
 	additionalData [13]byte // to avoid allocs; interface method args escape
 
-	nextCipher interface{} // next encryption state
+	nextCipher any         // next encryption state
 	nextMac    macFunction // next MAC algorithm
 
 	// used to save allocating a new buffer for each MAC.
@@ -133,7 +133,7 @@ func (hc *halfConn) error() error {
 
 // prepareCipherSpec sets the encryption and MAC states
 // that a subsequent changeCipherSpec will use.
-func (hc *halfConn) prepareCipherSpec(version uint16, cipher interface{}, mac macFunction) {
+func (hc *halfConn) prepareCipherSpec(version uint16, cipher any, mac macFunction) {
 	hc.version = version
 	hc.nextCipher = cipher
 	hc.nextMac = mac
@@ -716,10 +716,7 @@ func (c *Conn) sendAlert(err alert) error {
 func (c *Conn) writeRecord(typ recordType, data []byte) (n int, err error) {
 	b := c.out.newBlock()
 	for len(data) > 0 {
-		m := len(data)
-		if m > maxPlaintext {
-			m = maxPlaintext
-		}
+		m := min(len(data), maxPlaintext)
 		explicitIVLen := 0
 		explicitIVIsSeq := false
 
@@ -792,7 +789,7 @@ func (c *Conn) writeRecord(typ recordType, data []byte) (n int, err error) {
 // readHandshake reads the next handshake message from
 // the record layer.
 // c.in.Mutex < L; c.out.Mutex < L.
-func (c *Conn) readHandshake() (interface{}, error) {
+func (c *Conn) readHandshake() (any, error) {
 	for c.hand.Len() < 4 {
 		if err := c.in.err; err != nil {
 			return nil, err

@@ -40,7 +40,7 @@ func testHTTPResponse(url string, t *testing.T) string {
 }
 
 func testWorker(url string, t *testing.T, wg *sync.WaitGroup) {
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		response := testHTTPResponse(url, t)
 		if response != "NO" {
 			log.Fatalf("Expected NO, but got %s", response)
@@ -161,7 +161,7 @@ func TestBasicHTTPWorkers(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	defer srv.Close()
 
-	for i := 0; i < 16; i++ {
+	for range 16 {
 		wg.Add(1)
 		go testWorker(srv.URL, t, wg)
 	}
@@ -316,7 +316,7 @@ func TestBasicNetHTTPWorkers(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	defer srv.Close()
 
-	for i := 0; i < 16; i++ {
+	for range 16 {
 		wg.Add(1)
 		go testWorker(srv.URL, t, wg)
 	}

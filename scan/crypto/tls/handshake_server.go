@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 )
 
 // serverHandshakeState contains details of a server handshake in progress.
@@ -135,23 +136,10 @@ Curves:
 		}
 	}
 
-	supportedPointFormat := false
-	for _, pointFormat := range hs.clientHello.supportedPoints {
-		if pointFormat == pointFormatUncompressed {
-			supportedPointFormat = true
-			break
-		}
-	}
+	supportedPointFormat := slices.Contains(hs.clientHello.supportedPoints, pointFormatUncompressed)
 	hs.ellipticOk = supportedCurve && supportedPointFormat
 
-	foundCompression := false
-	// We only support null compression, so check that the client offered it.
-	for _, compression := range hs.clientHello.compressionMethods {
-		if compression == compressionNone {
-			foundCompression = true
-			break
-		}
-	}
+	foundCompression := slices.Contains(hs.clientHello.compressionMethods, compressionNone)
 
 	if !foundCompression {
 		c.sendAlert(alertHandshakeFailure)
@@ -281,14 +269,7 @@ func (hs *serverHandshakeState) checkForResumption() bool {
 		return false
 	}
 
-	cipherSuiteOk := false
-	// Check that the client is still offering the ciphersuite in the session.
-	for _, id := range hs.clientHello.cipherSuites {
-		if id == hs.sessionState.cipherSuite {
-			cipherSuiteOk = true
-			break
-		}
-	}
+	cipherSuiteOk := slices.Contains(hs.clientHello.cipherSuites, hs.sessionState.cipherSuite)
 	if !cipherSuiteOk {
 		return false
 	}
@@ -548,7 +529,7 @@ func (hs *serverHandshakeState) establishKeys() error {
 	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
 
-	var clientCipher, serverCipher interface{}
+	var clientCipher, serverCipher any
 	var clientHash, serverHash macFunction
 
 	if hs.suite.aead == nil {

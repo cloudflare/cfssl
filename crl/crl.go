@@ -41,10 +41,10 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 	}
 
 	// Split input file by new lines
-	individualCerts := strings.Split(string(serialList), "\n")
+	individualCerts := strings.SplitSeq(string(serialList), "\n")
 
 	// For every new line, create a new revokedCertificate and add it to slice
-	for _, value := range individualCerts {
+	for value := range individualCerts {
 		if len(strings.TrimSpace(value)) == 0 {
 			continue
 		}

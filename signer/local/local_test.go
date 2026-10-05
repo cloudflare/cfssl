@@ -21,6 +21,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -1722,7 +1723,7 @@ func marshalKeyUsage(t *testing.T, ku x509.KeyUsage) []byte {
 	var padBits int
 	if b[1] != 0 {
 		usedBytes = 2
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			if b[1]&(1<<uint(i)) != 0 {
 				padBits = i
 				break
@@ -1730,7 +1731,7 @@ func marshalKeyUsage(t *testing.T, ku x509.KeyUsage) []byte {
 		}
 	} else {
 		usedBytes = 1
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			if b[0]&(1<<uint(i)) != 0 {
 				padBits = i
 				break
@@ -1838,13 +1839,7 @@ func TestCopyExtensionsDoesNotOverrideKeyUsage(t *testing.T) {
 		}
 	}
 
-	foundServerAuth := false
-	for _, eku := range cert.ExtKeyUsage {
-		if eku == x509.ExtKeyUsageServerAuth {
-			foundServerAuth = true
-			break
-		}
-	}
+	foundServerAuth := slices.Contains(cert.ExtKeyUsage, x509.ExtKeyUsageServerAuth)
 	if !foundServerAuth {
 		t.Errorf("certificate missing serverAuth EKU from profile")
 	}

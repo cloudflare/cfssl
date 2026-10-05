@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"slices"
 	"strconv"
 )
 
@@ -116,13 +117,7 @@ NextCipherSuite:
 		if ok {
 			// Check that the ciphersuite/version used for the
 			// previous session are still valid.
-			cipherSuiteOk := false
-			for _, id := range hello.cipherSuites {
-				if id == candidateSession.cipherSuite {
-					cipherSuiteOk = true
-					break
-				}
-			}
+			cipherSuiteOk := slices.Contains(hello.cipherSuites, candidateSession.cipherSuite)
 
 			versOk := candidateSession.vers >= c.config.minVersion() &&
 				candidateSession.vers <= c.config.maxVersion()
@@ -492,7 +487,7 @@ func (hs *clientHandshakeState) establishKeys() error {
 
 	clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.hello.random, hs.serverHello.random, hs.suite.macLen, hs.suite.keyLen, hs.suite.ivLen)
-	var clientCipher, serverCipher interface{}
+	var clientCipher, serverCipher any
 	var clientHash, serverHash macFunction
 	if hs.suite.cipher != nil {
 		clientCipher = hs.suite.cipher(clientKey, clientIV, false /* not for reading */)
@@ -656,10 +651,8 @@ func clientSessionCacheKey(serverAddr net.Addr, config *Config) string {
 // indicating if the fallback case was reached.
 func mutualProtocol(protos, preferenceProtos []string) (string, bool) {
 	for _, s := range preferenceProtos {
-		for _, c := range protos {
-			if s == c {
-				return s, false
-			}
+		if slices.Contains(protos, s) {
+			return s, false
 		}
 	}
 

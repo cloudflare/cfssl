@@ -250,7 +250,7 @@ var endpoints = map[string]func() (http.Handler, error){
 func registerHandlers() {
 	disabled := make(map[string]bool)
 	if conf.Disable != "" {
-		for _, endpoint := range strings.Split(conf.Disable, ",") {
+		for endpoint := range strings.SplitSeq(conf.Disable, ",") {
 			disabled[endpoint] = true
 		}
 	}

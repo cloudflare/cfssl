@@ -14,7 +14,7 @@ import (
 
 type StringLookup struct{}
 
-func (lu StringLookup) Address(args ...interface{}) (net.IP, error) {
+func (lu StringLookup) Address(args ...any) (net.IP, error) {
 	if len(args) != 1 {
 		return nil, errors.New("whitelist: lookup requires a string")
 	}

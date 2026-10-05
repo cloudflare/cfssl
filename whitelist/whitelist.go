@@ -168,9 +168,9 @@ func DumpBasic(wl *Basic) []byte {
 // LoadBasic loads a whitelist from a byteslice.
 func LoadBasic(in []byte) (*Basic, error) {
 	wl := NewBasic()
-	addrs := strings.Split(string(in), "\n")
+	addrs := strings.SplitSeq(string(in), "\n")
 
-	for _, addr := range addrs {
+	for addr := range addrs {
 		ip := net.ParseIP(addr)
 		if ip == nil {
 			return nil, errors.New("whitelist: invalid address")

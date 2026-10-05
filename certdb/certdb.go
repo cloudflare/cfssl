@@ -28,7 +28,7 @@ type CertificateRecord struct {
 }
 
 // SetMetadata sets the metadata json
-func (c *CertificateRecord) SetMetadata(meta map[string]interface{}) error {
+func (c *CertificateRecord) SetMetadata(meta map[string]any) error {
 	marshaled, err := json.Marshal(meta)
 	if err != nil {
 		return err
@@ -38,8 +38,8 @@ func (c *CertificateRecord) SetMetadata(meta map[string]interface{}) error {
 }
 
 // GetMetadata returns the json metadata
-func (c *CertificateRecord) GetMetadata() (map[string]interface{}, error) {
-	var meta map[string]interface{}
+func (c *CertificateRecord) GetMetadata() (map[string]any, error) {
+	var meta map[string]any
 	err := c.MetadataJSON.Unmarshal(&meta)
 	return meta, err
 }

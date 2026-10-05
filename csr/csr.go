@@ -351,7 +351,7 @@ func getNames(sub pkix.Name) []Name {
 	// anonymous func for finding the max of a list of integer
 	max := func(v1 int, vn ...int) (max int) {
 		max = v1
-		for i := 0; i < len(vn); i++ {
+		for i := range vn {
 			if vn[i] > max {
 				max = vn[i]
 			}

@@ -249,7 +249,7 @@ func TestCreateCertificateChain(t *testing.T) {
 	}
 
 	mismatchOccurred := false
-	for i := 0; i < len(chain); i++ {
+	for i := range chain {
 		certEqualsRequest, unequalFields := certEqualsRequest(chain[i], requests[i])
 		if !certEqualsRequest {
 			mismatchOccurred = true
@@ -332,7 +332,7 @@ func chainsEqual(chain1, chain2 []*x509.Certificate) bool {
 		return false
 	}
 
-	for i := 0; i < len(chain1); i++ {
+	for i := range chain1 {
 		cert1 := nullifyTimeDependency(chain1[i])
 		cert2 := nullifyTimeDependency(chain2[i])
 		if !reflect.DeepEqual(cert1, cert2) {
@@ -370,7 +370,7 @@ func nullifyTimeDependency(cert *x509.Certificate) *x509.Certificate {
 
 // Compares two structs and returns a list containing the names of all fields
 // for which the two structs hold different values.
-func checkFields(struct1, struct2 interface{}, typeOfStructs reflect.Type) []string {
+func checkFields(struct1, struct2 any, typeOfStructs reflect.Type) []string {
 	v1 := reflect.ValueOf(struct1)
 	v2 := reflect.ValueOf(struct2)
 

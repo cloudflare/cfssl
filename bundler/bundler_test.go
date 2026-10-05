@@ -238,7 +238,7 @@ func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var obj map[string]interface{}
+	var obj map[string]any
 	err = json.Unmarshal(jsonBytes, &obj)
 	if err != nil {
 		t.Fatal(err)
@@ -274,7 +274,7 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var obj map[string]interface{}
+	var obj map[string]any
 	err = json.Unmarshal(jsonBytes, &obj)
 	if err != nil {
 		t.Fatal(err)

@@ -51,7 +51,7 @@ type clientTest struct {
 	cert []byte
 	// key, if not nil, contains either a *rsa.PrivateKey or
 	// *ecdsa.PrivateKey which is the private key for the reference server.
-	key interface{}
+	key any
 	// extensions, if not nil, contains a list of extension data to be returned
 	// from the ServerHello. The data should be in standard TLS format with
 	// a 2-byte uint16 type, 2-byte data length, followed by the extension data.
@@ -76,7 +76,7 @@ func (test *clientTest) connFromCommand() (conn *recordingConn, child *exec.Cmd,
 	certPath := tempFile(string(cert))
 	defer os.Remove(certPath)
 
-	var key interface{} = testRSAPrivateKey
+	var key any = testRSAPrivateKey
 	if test.key != nil {
 		key = test.key
 	}
@@ -146,7 +146,7 @@ func (test *clientTest) connFromCommand() (conn *recordingConn, child *exec.Cmd,
 	// has started listening. Thus we are forced to poll until we get a
 	// connection.
 	var tcpConn net.Conn
-	for i := uint(0); i < 5; i++ {
+	for i := range uint(5) {
 		tcpConn, err = net.DialTCP("tcp", nil, &net.TCPAddr{
 			IP:   net.IPv4(127, 0, 0, 1),
 			Port: serverPort,
@@ -499,10 +499,10 @@ func TestLRUClientSessionCache(t *testing.T) {
 	keys := []string{"0", "1", "2", "3", "4", "5", "6"}
 
 	// Add 4 entries to the cache and look them up.
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		cache.Put(keys[i], &cs[i])
 	}
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if s, ok := cache.Get(keys[i]); !ok || s != &cs[i] {
 			t.Fatalf("session cache failed lookup for added key: %s", keys[i])
 		}
@@ -512,7 +512,7 @@ func TestLRUClientSessionCache(t *testing.T) {
 	for i := 4; i < 6; i++ {
 		cache.Put(keys[i], &cs[i])
 	}
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		if s, ok := cache.Get(keys[i]); ok || s != nil {
 			t.Fatalf("session cache should have evicted key: %s", keys[i])
 		}

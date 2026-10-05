@@ -36,10 +36,10 @@ type ResponseMessage struct {
 
 // Response represents the format of a CFSSL output
 type Response struct {
-	Success  bool                   `json:"success"`
-	Result   map[string]interface{} `json:"result"`
-	Errors   []ResponseMessage      `json:"errors"`
-	Messages []ResponseMessage      `json:"messages"`
+	Success  bool              `json:"success"`
+	Result   map[string]any    `json:"result"`
+	Errors   []ResponseMessage `json:"errors"`
+	Messages []ResponseMessage `json:"messages"`
 }
 
 type outputFile struct {
@@ -68,7 +68,7 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
-	var input = map[string]interface{}{}
+	var input = map[string]any{}
 	var outs []outputFile
 	var cert string
 	var key string
@@ -154,8 +154,8 @@ func main() {
 		})
 	}
 
-	if result, ok := input["result"].(map[string]interface{}); ok {
-		if bundle, ok := result["bundle"].(map[string]interface{}); ok {
+	if result, ok := input["result"].(map[string]any); ok {
+		if bundle, ok := result["bundle"].(map[string]any); ok {
 
 			// if we've gotten this deep then we're trying to parse out
 			// a bundle, now we fail if we can't find the keys we need.

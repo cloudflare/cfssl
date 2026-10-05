@@ -20,7 +20,7 @@ func blockGeneric(dig *digest, p []byte) {
 	for len(p) >= chunk {
 		// Can interlace the computation of w with the
 		// rounds below if needed for speed.
-		for i := 0; i < 16; i++ {
+		for i := range 16 {
 			j := i * 4
 			w[i] = uint32(p[j])<<24 | uint32(p[j+1])<<16 | uint32(p[j+2])<<8 | uint32(p[j+3])
 		}

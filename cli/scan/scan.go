@@ -24,7 +24,7 @@ Flags:
 `
 var scanFlags = []string{"list", "family", "scanner", "timeout", "ip", "ca-bundle", "num-workers", "csv", "max-hosts"}
 
-func printJSON(v interface{}) {
+func printJSON(v any) {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		fmt.Println(err)
@@ -44,7 +44,7 @@ func newContext(c cli.Config, numWorkers int) *context {
 		hosts: make(chan string, numWorkers),
 	}
 	ctx.Add(numWorkers)
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		go ctx.runWorker()
 	}
 	return ctx

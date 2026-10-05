@@ -247,7 +247,7 @@ func testHash(t *testing.T, name, in, outHex string, oneShotResult []byte, diges
 		return
 	}
 
-	for pass := 0; pass < 3; pass++ {
+	for pass := range 3 {
 		if pass < 2 {
 			io.WriteString(digestFunc, in)
 		} else {

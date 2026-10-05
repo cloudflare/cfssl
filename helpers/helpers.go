@@ -64,7 +64,7 @@ var Jul2012 = InclusiveDate(2012, time.July, 01)
 var Apr2015 = InclusiveDate(2015, time.April, 01)
 
 // KeyLength returns the bit size of ECDSA, RSA or Ed25519 PublicKey
-func KeyLength(key interface{}) int {
+func KeyLength(key any) int {
 	if key == nil {
 		return 0
 	}
@@ -276,7 +276,7 @@ func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certi
 	certsDER = bytes.TrimSpace(certsDER)
 	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
 	if err != nil {
-		var pkcs12data interface{}
+		var pkcs12data any
 		certs = make([]*x509.Certificate, 1)
 		pkcs12data, certs[0], err = pkcs12.Decode(certsDER, password)
 		if err != nil {
