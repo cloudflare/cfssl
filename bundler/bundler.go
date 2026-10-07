@@ -280,12 +280,11 @@ func (b *Bundler) BundleFromRemote(serverName, ip string, flavor BundleFlavor) (
 	}
 
 	// Dial by IP if present
-	var dialName string
+	host := serverName
 	if ip != "" {
-		dialName = ip + ":443"
-	} else {
-		dialName = serverName + ":443"
+		host = ip
 	}
+	dialName := net.JoinHostPort(host, "443")
 
 	log.Debugf("bundling from remote %s", dialName)
 

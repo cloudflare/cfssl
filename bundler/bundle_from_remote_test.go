@@ -50,6 +50,13 @@ func TestBundleFromRemote(t *testing.T) {
 			wantDialName: remoteIP + ":443",
 			wantHostname: remoteWildcard,
 		},
+		{
+			name:         "explicit IPv6 literal",
+			hostname:     "www.remote.test",
+			ip:           "2001:db8::1",
+			wantDialName: "[2001:db8::1]:443",
+			wantHostname: remoteWildcard,
+		},
 	}
 
 	for _, flavor := range []BundleFlavor{Ubiquitous, Optimal} {
