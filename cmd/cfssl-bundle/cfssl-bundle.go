@@ -12,10 +12,9 @@ import (
 
 // main defines the bundle usage and registers all defined commands and flags.
 func main() {
-
-	var bundleFlagSet = flag.NewFlagSet("bundle", flag.ExitOnError)
+	bundleFlagSet := flag.NewFlagSet("bundle", flag.ExitOnError)
 	var c cli.Config
-	var usageText = `cfssl-bundle -- create a certificate bundle that contains the client cert
+	usageText := `cfssl-bundle -- create a certificate bundle that contains the client cert
 
 	Usage of bundle:
 		- Bundle local certificate files

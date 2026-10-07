@@ -186,9 +186,11 @@ func (d *Accessor) GetUnexpiredCertificatesByLabel(labels []string) (crs []certd
 	}
 
 	query, args, err := sqlx.In(
-		fmt.Sprintf(`SELECT %s FROM certificates WHERE CURRENT_TIMESTAMP < expiry AND ca_label IN (?)`,
+		fmt.Sprintf(
+			`SELECT %s FROM certificates WHERE CURRENT_TIMESTAMP < expiry AND ca_label IN (?)`,
 			sqlstruct.Columns(certdb.CertificateRecord{}),
-		), labels)
+		), labels,
+	)
 	if err != nil {
 		return nil, wrapSQLError(err)
 	}
@@ -393,7 +395,6 @@ func (d *Accessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error 
 		Expiry: expiry.UTC(),
 		Serial: serial,
 	})
-
 	if err != nil {
 		return wrapSQLError(err)
 	}

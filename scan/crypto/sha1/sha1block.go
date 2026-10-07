@@ -20,7 +20,7 @@ func blockGeneric(dig *digest, p []byte) {
 	for len(p) >= chunk {
 		// Can interlace the computation of w with the
 		// rounds below if needed for speed.
-		for i := 0; i < 16; i++ {
+		for i := range 16 {
 			j := i * 4
 			w[i] = uint32(p[j])<<24 | uint32(p[j+1])<<16 | uint32(p[j+2])<<8 | uint32(p[j+3])
 		}
@@ -39,7 +39,7 @@ func blockGeneric(dig *digest, p []byte) {
 			a, b, c, d, e = t, a, b30, c, d
 		}
 		for ; i < 20; i++ {
-			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[(i)&0xf]
+			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[i&0xf]
 			w[i&0xf] = tmp<<1 | tmp>>(32-1)
 
 			f := b&c | (^b)&d
@@ -49,7 +49,7 @@ func blockGeneric(dig *digest, p []byte) {
 			a, b, c, d, e = t, a, b30, c, d
 		}
 		for ; i < 40; i++ {
-			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[(i)&0xf]
+			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[i&0xf]
 			w[i&0xf] = tmp<<1 | tmp>>(32-1)
 			f := b ^ c ^ d
 			a5 := a<<5 | a>>(32-5)
@@ -58,7 +58,7 @@ func blockGeneric(dig *digest, p []byte) {
 			a, b, c, d, e = t, a, b30, c, d
 		}
 		for ; i < 60; i++ {
-			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[(i)&0xf]
+			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[i&0xf]
 			w[i&0xf] = tmp<<1 | tmp>>(32-1)
 			f := ((b | c) & d) | (b & c)
 
@@ -68,7 +68,7 @@ func blockGeneric(dig *digest, p []byte) {
 			a, b, c, d, e = t, a, b30, c, d
 		}
 		for ; i < 80; i++ {
-			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[(i)&0xf]
+			tmp := w[(i-3)&0xf] ^ w[(i-8)&0xf] ^ w[(i-14)&0xf] ^ w[i&0xf]
 			w[i&0xf] = tmp<<1 | tmp>>(32-1)
 			f := b ^ c ^ d
 			a5 := a<<5 | a>>(32-5)

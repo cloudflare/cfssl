@@ -28,7 +28,6 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-
 }
 
 var (

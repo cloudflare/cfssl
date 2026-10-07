@@ -79,7 +79,7 @@ func newMultiInfoServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(newTestMultiHandler(t))
 }
 
-func testInfoFile(t *testing.T, req map[string]interface{}) (resp *http.Response, body []byte) {
+func testInfoFile(t *testing.T, req map[string]any) (resp *http.Response, body []byte) {
 	ts := newInfoServer(t)
 	defer ts.Close()
 
@@ -99,7 +99,7 @@ func testInfoFile(t *testing.T, req map[string]interface{}) (resp *http.Response
 	return
 }
 
-func testMultiInfoFile(t *testing.T, req map[string]interface{}) (resp *http.Response, body []byte) {
+func testMultiInfoFile(t *testing.T, req map[string]any) (resp *http.Response, body []byte) {
 	ts := newMultiInfoServer(t)
 	defer ts.Close()
 
@@ -120,7 +120,7 @@ func testMultiInfoFile(t *testing.T, req map[string]interface{}) (resp *http.Res
 }
 
 type infoTest struct {
-	RequestObject      map[string]interface{}
+	RequestObject      map[string]any
 	ExpectedHTTPStatus int
 	ExpectedSuccess    bool
 	ExpectedErrorCode  int
@@ -128,7 +128,7 @@ type infoTest struct {
 
 var infoTests = []infoTest{
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label":   "",
 			"profile": "",
 		},
@@ -137,7 +137,7 @@ var infoTests = []infoTest{
 		0,
 	},
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label": 123,
 		},
 		http.StatusBadRequest,
@@ -148,7 +148,7 @@ var infoTests = []infoTest{
 
 var multiInfoTests = []infoTest{
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label":   "",
 			"profile": "",
 		},
@@ -157,7 +157,7 @@ var multiInfoTests = []infoTest{
 		0,
 	},
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label":   "test1",
 			"profile": "",
 		},
@@ -166,7 +166,7 @@ var multiInfoTests = []infoTest{
 		0,
 	},
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label":   "test2",
 			"profile": "",
 		},
@@ -175,7 +175,7 @@ var multiInfoTests = []infoTest{
 		0,
 	},
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label":   "badlabel",
 			"profile": "",
 		},
@@ -184,7 +184,7 @@ var multiInfoTests = []infoTest{
 		http.StatusBadRequest,
 	},
 	{
-		map[string]interface{}{
+		map[string]any{
 			"label": 123,
 		},
 		http.StatusBadRequest,

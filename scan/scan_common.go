@@ -55,7 +55,7 @@ func (g Grade) String() string {
 }
 
 // Output is the result of a scan, to be stored for potential use by later Scanners.
-type Output interface{}
+type Output any
 
 // multiscan scans all DNS addresses returned for the host, returning the lowest grade
 // and the concatenation of all the output.

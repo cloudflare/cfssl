@@ -124,7 +124,7 @@ func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, er
 	if IntermediateStash != "" {
 		if _, err = os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
 			log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
-			err = os.MkdirAll(IntermediateStash, 0755)
+			err = os.MkdirAll(IntermediateStash, 0o755)
 			if err != nil {
 				log.Errorf("failed to create intermediate stash directory %s: %v",
 					IntermediateStash, err)
@@ -135,7 +135,6 @@ func NewBundler(caBundleFile, intBundleFile string, opt ...Option) (*Bundler, er
 	}
 
 	return NewBundlerFromPEM(caBundle, intBundle, opt...)
-
 }
 
 // NewBundlerFromPEM creates a new Bundler from PEM-encoded root certificates and
@@ -445,11 +444,11 @@ func (b *Bundler) verifyChain(chain []*fetchedIntermediate) bool {
 		if IntermediateStash != "" {
 			fileName := filepath.Join(IntermediateStash, cert.Name)
 
-			var block = pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
+			block := pem.Block{Type: "CERTIFICATE", Bytes: cert.Cert.Raw}
 
 			log.Debugf("write intermediate to stash directory: %s", fileName)
 			// If the write fails, verification should not fail.
-			err = os.WriteFile(fileName, pem.EncodeToMemory(&block), 0644)
+			err = os.WriteFile(fileName, pem.EncodeToMemory(&block), 0o644)
 			if err != nil {
 				log.Errorf("failed to write new intermediate: %v", err)
 			} else {
@@ -487,7 +486,7 @@ func (b *Bundler) fetchIntermediates(certs []*x509.Certificate) (err error) {
 		log.Debugf("searching intermediates")
 		if _, err := os.Stat(IntermediateStash); err != nil && os.IsNotExist(err) {
 			log.Infof("intermediate stash directory %s doesn't exist, creating", IntermediateStash)
-			err = os.MkdirAll(IntermediateStash, 0755)
+			err = os.MkdirAll(IntermediateStash, 0o755)
 			if err != nil {
 				log.Errorf("failed to create intermediate stash directory %s: %v", IntermediateStash, err)
 				return err
@@ -603,7 +602,7 @@ func (b *Bundler) Bundle(certs []*x509.Certificate, key crypto.Signer, flavor Bu
 			if ed25519PublicKey, ok = key.Public().(ed25519.PublicKey); !ok {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
-			if !(bytes.Equal(cert.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
+			if !bytes.Equal(cert.PublicKey.(ed25519.PublicKey), ed25519PublicKey) {
 				return nil, errors.New(errors.PrivateKeyError, errors.KeyMismatch)
 			}
 		case cert.PublicKeyAlgorithm == x509.MLDSA:
@@ -834,15 +833,16 @@ func untrustedPlatformsWarning(platforms []string) string {
 		return ""
 	}
 
-	msg := untrustedWarningStub
+	var msg strings.Builder
+	msg.WriteString(untrustedWarningStub)
 	for i, platform := range platforms {
 		if i > 0 {
-			msg += ","
+			msg.WriteString(",")
 		}
-		msg += " " + platform
+		msg.WriteString(" " + platform)
 	}
-	msg += "."
-	return msg
+	msg.WriteString(".")
+	return msg.String()
 }
 
 // Optimal chains are the shortest chains, with newest intermediates and most advanced crypto suite being the tie breaker.
@@ -882,7 +882,7 @@ func diff(chain1, chain2 []*x509.Certificate) bool {
 	if len(chain1) != len(chain2) {
 		diff = true
 	} else {
-		for i := 0; i < len(chain1); i++ {
+		for i := range chain1 {
 			cert1 := chain1[i]
 			cert2 := chain2[i]
 			// Use signature to differentiate.

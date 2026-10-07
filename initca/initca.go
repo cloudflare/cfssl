@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -36,10 +37,8 @@ func validator(req *csr.CertificateRequest) error {
 		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
 	}
 
-	for i := range req.Names {
-		if csr.IsNameEmpty(req.Names[i]) {
-			return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
-		}
+	if slices.ContainsFunc(req.Names, csr.IsNameEmpty) {
+		return cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest, errors.New("missing subject information"))
 	}
 
 	return nil
@@ -218,7 +217,7 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 		if ed25519PublicKey, ok = priv.Public().(ed25519.PublicKey); !ok {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
-		if !(bytes.Equal(ca.PublicKey.(ed25519.PublicKey), ed25519PublicKey)) {
+		if !bytes.Equal(ca.PublicKey.(ed25519.PublicKey), ed25519PublicKey) {
 			return nil, cferr.New(cferr.PrivateKeyError, cferr.KeyMismatch)
 		}
 	case ca.PublicKeyAlgorithm == x509.MLDSA:
@@ -237,7 +236,6 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	req := csr.ExtractCertificateRequest(ca)
 	cert, _, err := NewFromSigner(req, priv)
 	return cert, err
-
 }
 
 // CAPolicy contains the CA issuing policy as default policy.

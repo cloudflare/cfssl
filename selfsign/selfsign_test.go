@@ -2,8 +2,8 @@ package selfsign
 
 import (
 	"crypto/x509"
-	"encoding/pem"
 	"encoding/asn1"
+	"encoding/pem"
 	"net"
 	"net/url"
 	"os"
@@ -102,10 +102,9 @@ func TestSANs(t *testing.T) {
 	if !reflect.DeepEqual(cert.URIs, expectedURIs) {
 		t.Errorf("cert should have contained URIs %#v but had %#v", expectedURIs, cert.URIs)
 	}
-
 }
 
-func TestExtensions(t *testing.T){
+func TestExtensions(t *testing.T) {
 	csrBytes, err := os.ReadFile(extCsrFile)
 	if err != nil {
 		t.Fatal(err)
@@ -135,17 +134,17 @@ func TestExtensions(t *testing.T){
 
 	// Testing for 1.3.6.1.4.1.311.84.1.1=ASN1:UTF8String:example1
 	extFound := false
-	sampleCustomOid := asn1.ObjectIdentifier{1,3,6,1,4,1,311,84,1,1}
+	sampleCustomOid := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 311, 84, 1, 1}
 	sampleValue := "example1"
 
 	for _, e := range cert.Extensions {
-		if(e.Id.Equal(sampleCustomOid) ){
+		if e.Id.Equal(sampleCustomOid) {
 			var extValue string
 			_, err = asn1.Unmarshal(e.Value, &extValue)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if(extValue == sampleValue){
+			if extValue == sampleValue {
 				extFound = true
 			}
 		}

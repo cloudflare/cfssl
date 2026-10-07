@@ -25,7 +25,6 @@ const threeMonths = 2190 * time.Hour
 // parseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
 func parseCertificateRequest(priv crypto.Signer, csrBytes []byte) (template *x509.Certificate, err error) {
-
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)

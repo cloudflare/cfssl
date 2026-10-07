@@ -86,14 +86,14 @@ var golden224 = []sha256Test{
 }
 
 func TestGolden(t *testing.T) {
-	for i := 0; i < len(golden); i++ {
+	for i := range golden {
 		g := golden[i]
 		s := fmt.Sprintf("%x", Sum256([]byte(g.in)))
 		if s != g.out {
 			t.Fatalf("Sum256 function: sha256(%s) = %s want %s", g.in, s, g.out)
 		}
 		c := New()
-		for j := 0; j < 3; j++ {
+		for j := range 3 {
 			if j < 2 {
 				io.WriteString(c, g.in)
 			} else {
@@ -108,14 +108,14 @@ func TestGolden(t *testing.T) {
 			c.Reset()
 		}
 	}
-	for i := 0; i < len(golden224); i++ {
+	for i := range golden224 {
 		g := golden224[i]
 		s := fmt.Sprintf("%x", Sum224([]byte(g.in)))
 		if s != g.out {
 			t.Fatalf("Sum224 function: sha224(%s) = %s want %s", g.in, s, g.out)
 		}
 		c := New224()
-		for j := 0; j < 3; j++ {
+		for j := range 3 {
 			if j < 2 {
 				io.WriteString(c, g.in)
 			} else {
@@ -150,8 +150,10 @@ func TestBlockSize(t *testing.T) {
 	}
 }
 
-var bench = New()
-var buf = make([]byte, 8192)
+var (
+	bench = New()
+	buf   = make([]byte, 8192)
+)
 
 func benchmarkSize(b *testing.B, size int) {
 	b.SetBytes(int64(size))

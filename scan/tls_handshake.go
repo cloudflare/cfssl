@@ -42,7 +42,7 @@ var TLSHandshake = &Family{
 }
 
 func getCipherIndex(ciphers []uint16, serverCipher uint16) (cipherIndex int, err error) {
-	//func getCipherIndex(ciphers []uint16, serverCipher uint16) (cipherIndex int, err error) {
+	// func getCipherIndex(ciphers []uint16, serverCipher uint16) (cipherIndex int, err error) {
 	//	fmt.Println(serverCipher, ciphers)
 	var cipherID uint16
 	for cipherIndex, cipherID = range ciphers {
@@ -126,7 +126,7 @@ func allCiphersIDs() []uint16 {
 }
 
 func allECDHECiphersIDs() []uint16 {
-	var ecdheCiphers = map[uint16]tls.CipherSuite{
+	ecdheCiphers := map[uint16]tls.CipherSuite{
 		0xC006: {Name: "TLS_ECDHE_ECDSA_WITH_NULL_SHA", ForwardSecret: true, EllipticCurve: true},
 		0xC007: {Name: "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", ShortName: "ECDHE-ECDSA-RC4-SHA", ForwardSecret: true, EllipticCurve: true},
 		0xC008: {Name: "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", ShortName: "ECDHE-ECDSA-DES-CBC3-SHA", ForwardSecret: true, EllipticCurve: true},
@@ -345,7 +345,7 @@ func sigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) 
 
 // certSigAlgScan returns the server certificate with various sigature and hash algorithms in the ClientHello
 func certSigAlgsScan(addr, hostname string) (grade Grade, output Output, err error) {
-	var certSigAlgs = make(map[string]string)
+	certSigAlgs := make(map[string]string)
 	for _, sigAlg := range tls.AllSignatureAndHashAlgorithms {
 		_, _, derCerts, e := sayHello(addr, hostname, nil, nil, tls.VersionTLS12, []tls.SignatureAndHash{sigAlg})
 		if e == nil {
@@ -369,12 +369,11 @@ func certSigAlgsScan(addr, hostname string) (grade Grade, output Output, err err
 		err = errors.New("no SigAlgs supported")
 	}
 	return
-
 }
 
 // certSigAlgScan returns the server certificate with various ciphers in the ClientHello
 func certSigAlgsScanByCipher(addr, hostname string) (grade Grade, output Output, err error) {
-	var certSigAlgs = make(map[string]string)
+	certSigAlgs := make(map[string]string)
 	for cipherID := range tls.CipherSuites {
 		_, _, derCerts, e := sayHello(addr, hostname, []uint16{cipherID}, nil, tls.VersionTLS12, []tls.SignatureAndHash{})
 		if e == nil {

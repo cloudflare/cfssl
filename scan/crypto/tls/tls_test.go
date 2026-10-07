@@ -276,7 +276,7 @@ func TestTLSUniqueMatches(t *testing.T) {
 
 	serverTLSUniques := make(chan []byte)
 	go func() {
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			sconn, err := ln.Accept()
 			if err != nil {
 				t.Fatal(err)
@@ -342,7 +342,7 @@ func TestVerifyHostnameResumed(t *testing.T) {
 	config := &Config{
 		ClientSessionCache: NewLRUClientSessionCache(32),
 	}
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		c, err := Dial("tcp", "www.google.com:https", config)
 		if err != nil {
 			t.Fatalf("Dial #%d: %v", i, err)
@@ -415,7 +415,7 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 	}
 
 	inWrite := make(chan bool, 1)
-	var errConnClosed = errors.New("conn closed for test")
+	errConnClosed := errors.New("conn closed for test")
 	conn.writeFunc = func(p []byte) (n int, err error) {
 		inWrite <- true
 		<-connClosed

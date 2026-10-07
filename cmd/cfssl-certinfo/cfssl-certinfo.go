@@ -16,11 +16,10 @@ import (
 
 // main defines the newkey usage and registers all defined commands and flags.
 func main() {
-
-	var certinfoFlagSet = flag.NewFlagSet("certinfo", flag.ExitOnError)
+	certinfoFlagSet := flag.NewFlagSet("certinfo", flag.ExitOnError)
 	var c cli.Config
 	registerFlags(&c, certinfoFlagSet)
-	var usageText = `cfssl-certinfo -- output certinfo about the given cert
+	usageText := `cfssl-certinfo -- output certinfo about the given cert
 
 	Usage of certinfo:
 		- Data from local certificate files

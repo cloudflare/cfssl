@@ -114,8 +114,10 @@ type bundleObject struct {
 	Status      BundleStatus
 }
 
-var testBundleIssuerString = `/Country=US/Organization=CFSSL Test CA/CommonName=CFSSL Test Root CA`
-var testBundleSubjectString = `/Country=US/Province=California/Locality=San Francisco/Organization=CFSSL Test/OrganizationalUnit=Test PKI/CommonName=CFSSL Test Intermediate CA`
+var (
+	testBundleIssuerString  = `/Country=US/Organization=CFSSL Test CA/CommonName=CFSSL Test Root CA`
+	testBundleSubjectString = `/Country=US/Province=California/Locality=San Francisco/Organization=CFSSL Test/OrganizationalUnit=Test PKI/CommonName=CFSSL Test Intermediate CA`
+)
 
 // Test marshal to JSON
 // Also serves as a JSON format regression test.
@@ -130,7 +132,6 @@ func TestBundleMarshalJSON(t *testing.T) {
 		t.Fatalf("BundleFromPEMorDER failed: %v", err)
 	}
 	jsonBytes, err := json.Marshal(bundle)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,12 +234,11 @@ func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
 	bundle, _ := b.BundleFromFile(leafECDSA256, leafKeyECDSA256, Optimal, "")
 	jsonBytes, err := json.Marshal(bundle)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var obj map[string]interface{}
+	var obj map[string]any
 	err = json.Unmarshal(jsonBytes, &obj)
 	if err != nil {
 		t.Fatal(err)
@@ -262,19 +262,17 @@ func TestBundleWithECDSAKeyMarshalJSON(t *testing.T) {
 	if keyType != "256-bit ECDSA" {
 		t.Fatal("Incorrect key type:", keyType)
 	}
-
 }
 
 func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 	b := newCustomizedBundlerFromFile(t, testCFSSLRootBundle, testCFSSLIntBundle, "")
 	bundle, _ := b.BundleFromFile(leafRSA2048, leafKeyRSA2048, Optimal, "")
 	jsonBytes, err := json.Marshal(bundle)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var obj map[string]interface{}
+	var obj map[string]any
 	err = json.Unmarshal(jsonBytes, &obj)
 	if err != nil {
 		t.Fatal(err)
@@ -300,7 +298,6 @@ func TestBundleWithRSAKeyMarshalJSON(t *testing.T) {
 	if keyType != "2048-bit RSA" {
 		t.Fatal("Incorrect key type:", keyType)
 	}
-
 }
 
 // Test marshal to JSON on hostnames
@@ -320,7 +317,6 @@ func TestBundleHostnamesMarshalJSON(t *testing.T) {
 	if !bytes.Equal(hostnames, expected) {
 		t.Fatal("Hostnames construction failed for test intermediate cert.", string(hostnames))
 	}
-
 }
 
 // Tests on verifying the rebundle flag and error code in Bundle.Status when rebundling.
@@ -354,7 +350,6 @@ func TestRebundleFromPEM(t *testing.T) {
 	if len(newBundle.Status.ExpiringSKIs) != 0 || !newBundle.Status.IsRebundled || newBundle.Status.Code&errors.BundleExpiringBit != 0 {
 		t.Fatal("Rebundle Status is incorrect.")
 	}
-
 }
 
 // Test on verifying ubiquitous messaging in Bundle.Status.
@@ -389,7 +384,6 @@ func TestUbiquitousBundle(t *testing.T) {
 	ubiquitousBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed")
-
 	}
 	if len(ubiquitousBundle.Chain) != 3 {
 		t.Fatal("Ubiquitous bundle failed")
@@ -411,7 +405,6 @@ func TestUbiquityBundleWithoutMetadata(t *testing.T) {
 	nuBundle, err := b.BundleFromFile(leafECDSA256, "", Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous-fall-back-to-optimal bundle failed: ", err)
-
 	}
 	if len(nuBundle.Chain) != 2 {
 		t.Fatal("Ubiquitous-fall-back-to-optimal bundle failed")
@@ -632,7 +625,6 @@ func TestForceBundleNoFallback(t *testing.T) {
 	if bundle.Status.IsRebundled {
 		t.Fatal("rebundle should happen here")
 	}
-
 }
 
 // Regression test: platform coverage must be considered before SHA-2
@@ -735,7 +727,6 @@ func TestSHA2Warning(t *testing.T) {
 	ubiquitousBundle, err := b.BundleFromPEMorDER(sha2InterBytes, nil, Ubiquitous, "")
 	if err != nil {
 		t.Fatal("Ubiquitous bundle failed")
-
 	}
 	checkSHA2WarningAndCode(t, ubiquitousBundle, true)
 }
@@ -808,7 +799,6 @@ func newCustomizedBundlerFromFile(t *testing.T, caBundle, intBundle, adhocInters
 
 	}
 	return
-
 }
 
 // newBundlerWithoutInters is a helper function that returns a bundler with an empty

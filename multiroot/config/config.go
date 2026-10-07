@@ -307,7 +307,7 @@ func Parse(filename string) (RootList, error) {
 		return nil, err
 	}
 
-	var rootList = RootList{}
+	rootList := RootList{}
 	for label, entries := range cfgMap {
 		root, err := LoadRoot(entries)
 		if err != nil {

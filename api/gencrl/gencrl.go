@@ -30,8 +30,8 @@ type jsonCRLRequest struct {
 // based off of the given certificate, serial numbers, and private key
 func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 	var revokedCerts []pkix.RevokedCertificate
-	var oneWeek = time.Duration(604800) * time.Second
-	var newExpiryTime = time.Now()
+	oneWeek := time.Duration(604800) * time.Second
+	newExpiryTime := time.Now()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

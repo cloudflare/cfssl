@@ -150,7 +150,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	result := map[string]interface{}{"certificate": string(cert)}
+	result := map[string]any{"certificate": string(cert)}
 	if req.Bundle {
 		if h.bundler == nil {
 			return api.SendResponseWithMessage(w, result, NoBundlerMessage,
@@ -281,7 +281,7 @@ func (h *AuthHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	result := map[string]interface{}{"certificate": string(cert)}
+	result := map[string]any{"certificate": string(cert)}
 	if req.Bundle {
 		if h.bundler == nil {
 			return api.SendResponseWithMessage(w, result, NoBundlerMessage,

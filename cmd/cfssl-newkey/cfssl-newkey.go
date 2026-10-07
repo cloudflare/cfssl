@@ -12,11 +12,10 @@ import (
 
 // main defines the newkey usage and registers all defined commands and flags.
 func main() {
-
-	var newkeyFlagSet = flag.NewFlagSet("newkey", flag.ExitOnError)
+	newkeyFlagSet := flag.NewFlagSet("newkey", flag.ExitOnError)
 	var c cli.Config
 
-	var usageText = `cfssl-newkey -- generate a new key and CSR
+	usageText := `cfssl-newkey -- generate a new key and CSR
 
 	Usage of genkey:
         	newkey CSRJSON

@@ -247,7 +247,7 @@ func testHash(t *testing.T, name, in, outHex string, oneShotResult []byte, diges
 		return
 	}
 
-	for pass := 0; pass < 3; pass++ {
+	for pass := range 3 {
 		if pass < 2 {
 			io.WriteString(digestFunc, in)
 		} else {
@@ -304,8 +304,10 @@ func TestBlockSize(t *testing.T) {
 	}
 }
 
-var bench = New()
-var buf = make([]byte, 8192)
+var (
+	bench = New()
+	buf   = make([]byte, 8192)
+)
 
 func benchmarkSize(b *testing.B, size int) {
 	b.SetBytes(int64(size))

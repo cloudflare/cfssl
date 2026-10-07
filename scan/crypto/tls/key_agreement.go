@@ -18,8 +18,10 @@ import (
 	"math/big"
 )
 
-var errClientKeyExchange = errors.New("tls: invalid ClientKeyExchange message")
-var errServerKeyExchange = errors.New("tls: invalid ServerKeyExchange message")
+var (
+	errClientKeyExchange = errors.New("tls: invalid ClientKeyExchange message")
+	errServerKeyExchange = errors.New("tls: invalid ServerKeyExchange message")
+)
 
 // rsaKeyAgreement implements the standard TLS key agreement where the client
 // encrypts the pre-master secret to the server's public key.
@@ -166,7 +168,6 @@ func curveForCurveID(id CurveID) (elliptic.Curve, bool) {
 	default:
 		return nil, false
 	}
-
 }
 
 // ecdheRSAKeyAgreement implements a TLS key agreement where the server

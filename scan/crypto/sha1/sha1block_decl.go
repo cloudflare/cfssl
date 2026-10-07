@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build amd64 || amd64p32 || arm || 386
-// +build amd64 amd64p32 arm 386
 
 package sha1
 

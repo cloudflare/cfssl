@@ -52,7 +52,7 @@ var golden = []md5Test{
 }
 
 func TestGolden(t *testing.T) {
-	for i := 0; i < len(golden); i++ {
+	for i := range golden {
 		g := golden[i]
 		s := fmt.Sprintf("%x", Sum([]byte(g.in)))
 		if s != g.out {
@@ -60,7 +60,7 @@ func TestGolden(t *testing.T) {
 		}
 		c := New()
 		buf := make([]byte, len(g.in)+4)
-		for j := 0; j < 3+4; j++ {
+		for j := range 3 + 4 {
 			if j < 2 {
 				io.WriteString(c, g.in)
 			} else if j == 2 {
@@ -87,15 +87,15 @@ func TestLarge(t *testing.T) {
 	ok := "2bb571599a4180e1d542f76904adc3df" // md5sum of "0123456789" * 1000
 	block := make([]byte, 10004)
 	c := New()
-	for offset := 0; offset < 4; offset++ {
-		for i := 0; i < N; i++ {
+	for offset := range 4 {
+		for i := range N {
 			block[offset+i] = '0' + byte(i%10)
 		}
 		for blockSize := 10; blockSize <= N; blockSize *= 10 {
 			blocks := N / blockSize
 			b := block[offset : offset+blockSize]
 			c.Reset()
-			for i := 0; i < blocks; i++ {
+			for range blocks {
 				c.Write(b)
 			}
 			s := fmt.Sprintf("%x", c.Sum(nil))
@@ -118,9 +118,11 @@ func TestBlockGeneric(t *testing.T) {
 	}
 }
 
-var bench = New()
-var buf = make([]byte, 8192+1)
-var sum = make([]byte, bench.Size())
+var (
+	bench = New()
+	buf   = make([]byte, 8192+1)
+	sum   = make([]byte, bench.Size())
+)
 
 func benchmarkSize(b *testing.B, size int, unaligned bool) {
 	b.SetBytes(int64(size))

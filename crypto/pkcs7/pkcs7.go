@@ -128,7 +128,6 @@ type EncryptedContentInfo struct {
 // ParsePKCS7 attempts to parse the DER encoded bytes of a
 // PKCS7 structure.
 func ParsePKCS7(raw []byte) (msg *PKCS7, err error) {
-
 	var pkcs7 initPKCS7
 	_, err = asn1.Unmarshal(raw, &pkcs7)
 	if err != nil {
@@ -183,5 +182,4 @@ func ParsePKCS7(raw []byte) (msg *PKCS7, err error) {
 	}
 
 	return msg, nil
-
 }

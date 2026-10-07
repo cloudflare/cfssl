@@ -52,7 +52,7 @@ const (
 )
 
 func TestParseCertificatesDER(t *testing.T) {
-	var password = []string{"password", "", ""}
+	password := []string{"password", "", ""}
 	for i, testFile := range []string{testPKCS12Passwordispassword, testPKCS12EmptyPswd, testCertDERFile} {
 		testDER, err := os.ReadFile(testFile)
 		if err != nil {
@@ -110,7 +110,7 @@ func TestKeyLength(t *testing.T) {
 		t.Fatal("KeyLength malfunctioning on rsa input")
 	}
 
-	//test the ed25519 branch
+	// test the ed25519 branch
 	_, ed25519priv, _ := ed25519.GenerateKey(rand.Reader)
 	ed25519In, _ := ed25519priv.Public().(ed25519.PublicKey)
 	expEd25519 := len(ed25519In)
@@ -118,7 +118,6 @@ func TestKeyLength(t *testing.T) {
 	if expEd25519 != outEd25519 {
 		t.Fatal("KeyLength malfunctioning on ed25519 input")
 	}
-
 }
 
 func TestExpiryTime(t *testing.T) {
@@ -144,22 +143,22 @@ func TestExpiryTime(t *testing.T) {
 }
 
 func TestMonthsValid(t *testing.T) {
-	var cert = &x509.Certificate{
-		NotBefore: time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
-		NotAfter:  time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
+	cert := &x509.Certificate{
+		NotBefore: time.Date(2015, time.April, 0o1, 0, 0, 0, 0, time.UTC),
+		NotAfter:  time.Date(2015, time.April, 0o1, 0, 0, 0, 0, time.UTC),
 	}
 
 	if MonthsValid(cert) != 0 {
 		t.Fail()
 	}
 
-	cert.NotAfter = time.Date(2016, time.April, 01, 0, 0, 0, 0, time.UTC)
+	cert.NotAfter = time.Date(2016, time.April, 0o1, 0, 0, 0, 0, time.UTC)
 	if MonthsValid(cert) != 12 {
 		t.Fail()
 	}
 
 	// extra days should be rounded up to 1 month
-	cert.NotAfter = time.Date(2016, time.April, 02, 0, 0, 0, 0, time.UTC)
+	cert.NotAfter = time.Date(2016, time.April, 0o2, 0, 0, 0, 0, time.UTC)
 	if MonthsValid(cert) != 13 {
 		t.Fail()
 	}
@@ -167,29 +166,29 @@ func TestMonthsValid(t *testing.T) {
 
 func TestHasValidExpiry(t *testing.T) {
 	// Issue period > April 1, 2015
-	var cert = &x509.Certificate{
-		NotBefore: time.Date(2015, time.April, 01, 0, 0, 0, 0, time.UTC),
-		NotAfter:  time.Date(2016, time.April, 01, 0, 0, 0, 0, time.UTC),
+	cert := &x509.Certificate{
+		NotBefore: time.Date(2015, time.April, 0o1, 0, 0, 0, 0, time.UTC),
+		NotAfter:  time.Date(2016, time.April, 0o1, 0, 0, 0, 0, time.UTC),
 	}
 
 	if !ValidExpiry(cert) {
 		t.Fail()
 	}
 
-	cert.NotAfter = time.Date(2019, time.April, 01, 01, 0, 0, 0, time.UTC)
+	cert.NotAfter = time.Date(2019, time.April, 0o1, 0o1, 0, 0, 0, time.UTC)
 	if ValidExpiry(cert) {
 		t.Fail()
 	}
 
 	// Issue period < July 1, 2012
-	cert.NotBefore = time.Date(2009, time.March, 01, 0, 0, 0, 0, time.UTC)
+	cert.NotBefore = time.Date(2009, time.March, 0o1, 0, 0, 0, 0, time.UTC)
 	if ValidExpiry(cert) {
 		t.Fail()
 	}
 
 	// Issue period July 1, 2012 - April 1, 2015
-	cert.NotBefore = time.Date(2012, time.July, 01, 0, 0, 0, 0, time.UTC)
-	cert.NotAfter = time.Date(2017, time.July, 01, 0, 0, 0, 0, time.UTC)
+	cert.NotBefore = time.Date(2012, time.July, 0o1, 0, 0, 0, 0, time.UTC)
+	cert.NotAfter = time.Date(2017, time.July, 0o1, 0, 0, 0, 0, time.UTC)
 	if !ValidExpiry(cert) {
 		t.Fail()
 	}
@@ -409,11 +408,9 @@ func TestSelfSignedCertificatePEM(t *testing.T) {
 	if err == nil {
 		t.Fatal("Incorrect cert failed to produce an error")
 	}
-
 }
 
 func TestParsePrivateKeyPEM(t *testing.T) {
-
 	// expected cases
 	testRSAPEM, err := os.ReadFile(testPrivateRSAKey)
 	if err != nil {
@@ -468,7 +465,6 @@ func TestParsePrivateKeyPEM(t *testing.T) {
 			t.Fatal("Incorrect private key failed to produce an error")
 		}
 	}
-
 }
 
 // Imported from signers/local/testdata/
@@ -533,8 +529,10 @@ func TestParseOldCSR(t *testing.T) {
 }
 
 // Imported from signers/local/testdata/
-const clientCertFile = "testdata/ca.pem"
-const clientKeyFile = "testdata/ca_key.pem"
+const (
+	clientCertFile = "testdata/ca.pem"
+	clientKeyFile  = "testdata/ca_key.pem"
+)
 
 func TestClientCertParams(t *testing.T) {
 	_, err := LoadClientCertificate(testCertFile, testPrivateRSAKey)
@@ -640,7 +638,7 @@ func TestDeserializeSCTList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !sctEquals(zeroSCT, (deserializedSCTList)[0]) {
+	if !sctEquals(zeroSCT, deserializedSCTList[0]) {
 		t.Fatal("SCTs don't match")
 	}
 

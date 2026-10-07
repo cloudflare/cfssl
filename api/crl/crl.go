@@ -68,7 +68,7 @@ func NewHandler(dbAccessor certdb.Accessor, caPath string, caKeyPath string) (ht
 // Handle responds to revocation requests. It attempts to revoke
 // a certificate with a given serial number
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	var newExpiryTime = 7 * helpers.OneDay
+	newExpiryTime := 7 * helpers.OneDay
 
 	certs, err := h.dbAccessor.GetRevokedAndUnexpiredCertificates()
 	if err != nil {

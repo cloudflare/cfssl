@@ -148,7 +148,7 @@ func (d *digest) checkSum() [Size]byte {
 
 	// Length in bits.
 	len <<= 3
-	for i := uint(0); i < 8; i++ {
+	for i := range uint(8) {
 		tmp[i] = byte(len >> (56 - 8*i))
 	}
 	d.Write(tmp[0:8])

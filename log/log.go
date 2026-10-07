@@ -85,78 +85,78 @@ func print(l int, msg string) {
 	}
 }
 
-func outputf(l int, format string, v []interface{}) {
+func outputf(l int, format string, v []any) {
 	print(l, fmt.Sprintf(format, v...))
 }
 
-func output(l int, v []interface{}) {
+func output(l int, v []any) {
 	print(l, fmt.Sprint(v...))
 }
 
 // Fatalf logs a formatted message at the "fatal" level and then exits. The
 // arguments are handled in the same manner as fmt.Printf.
-func Fatalf(format string, v ...interface{}) {
+func Fatalf(format string, v ...any) {
 	outputf(LevelFatal, format, v)
 	os.Exit(1)
 }
 
 // Fatal logs its arguments at the "fatal" level and then exits.
-func Fatal(v ...interface{}) {
+func Fatal(v ...any) {
 	output(LevelFatal, v)
 	os.Exit(1)
 }
 
 // Criticalf logs a formatted message at the "critical" level. The
 // arguments are handled in the same manner as fmt.Printf.
-func Criticalf(format string, v ...interface{}) {
+func Criticalf(format string, v ...any) {
 	outputf(LevelCritical, format, v)
 }
 
 // Critical logs its arguments at the "critical" level.
-func Critical(v ...interface{}) {
+func Critical(v ...any) {
 	output(LevelCritical, v)
 }
 
 // Errorf logs a formatted message at the "error" level. The arguments
 // are handled in the same manner as fmt.Printf.
-func Errorf(format string, v ...interface{}) {
+func Errorf(format string, v ...any) {
 	outputf(LevelError, format, v)
 }
 
 // Error logs its arguments at the "error" level.
-func Error(v ...interface{}) {
+func Error(v ...any) {
 	output(LevelError, v)
 }
 
 // Warningf logs a formatted message at the "warning" level. The
 // arguments are handled in the same manner as fmt.Printf.
-func Warningf(format string, v ...interface{}) {
+func Warningf(format string, v ...any) {
 	outputf(LevelWarning, format, v)
 }
 
 // Warning logs its arguments at the "warning" level.
-func Warning(v ...interface{}) {
+func Warning(v ...any) {
 	output(LevelWarning, v)
 }
 
 // Infof logs a formatted message at the "info" level. The arguments
 // are handled in the same manner as fmt.Printf.
-func Infof(format string, v ...interface{}) {
+func Infof(format string, v ...any) {
 	outputf(LevelInfo, format, v)
 }
 
 // Info logs its arguments at the "info" level.
-func Info(v ...interface{}) {
+func Info(v ...any) {
 	output(LevelInfo, v)
 }
 
 // Debugf logs a formatted message at the "debug" level. The arguments
 // are handled in the same manner as fmt.Printf.
-func Debugf(format string, v ...interface{}) {
+func Debugf(format string, v ...any) {
 	outputf(LevelDebug, format, v)
 }
 
 // Debug logs its arguments at the "debug" level.
-func Debug(v ...interface{}) {
+func Debug(v ...any) {
 	output(LevelDebug, v)
 }

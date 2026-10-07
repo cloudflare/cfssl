@@ -238,7 +238,7 @@ func testSignFile(t *testing.T, hosts []string, subject *signer.Subject, csrFile
 			t.Fatal(err)
 		}
 	}
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	if hosts != nil {
 		obj["hosts"] = hosts
 	}
@@ -407,7 +407,6 @@ func TestSign(t *testing.T) {
 		}
 
 	}
-
 }
 
 func newTestAuthHandler(t *testing.T) http.Handler {
@@ -452,7 +451,7 @@ func testAuthSignFile(t *testing.T, hosts []string, subject *signer.Subject, csr
 			t.Fatal(err)
 		}
 	}
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	if hosts != nil {
 		obj["hosts"] = hosts
 	}

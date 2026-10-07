@@ -26,7 +26,7 @@ type clientHelloMsg struct {
 	alpnProtocols       []string
 }
 
-func (m *clientHelloMsg) equal(i interface{}) bool {
+func (m *clientHelloMsg) equal(i any) bool {
 	m1, ok := i.(*clientHelloMsg)
 	if !ok {
 		return false
@@ -313,7 +313,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 	}
 	numCipherSuites := cipherSuiteLen / 2
 	m.cipherSuites = make([]uint16, numCipherSuites)
-	for i := 0; i < numCipherSuites; i++ {
+	for i := range numCipherSuites {
 		m.cipherSuites[i] = uint16(data[2+2*i])<<8 | uint16(data[3+2*i])
 		if m.cipherSuites[i] == scsvRenegotiation {
 			m.secureRenegotiation = true
@@ -411,7 +411,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 			numCurves := l / 2
 			m.supportedCurves = make([]CurveID, numCurves)
 			d := data[2:]
-			for i := 0; i < numCurves; i++ {
+			for i := range numCurves {
 				m.supportedCurves[i] = CurveID(d[0])<<8 | CurveID(d[1])
 				d = d[2:]
 			}
@@ -498,7 +498,7 @@ type serverHelloMsg struct {
 	alpnProtocol        string
 }
 
-func (m *serverHelloMsg) equal(i interface{}) bool {
+func (m *serverHelloMsg) equal(i any) bool {
 	m1, ok := i.(*serverHelloMsg)
 	if !ok {
 		return false
@@ -605,10 +605,7 @@ func (m *serverHelloMsg) marshal() []byte {
 		z = z[4:]
 
 		for _, v := range m.nextProtos {
-			l := len(v)
-			if l > 255 {
-				l = 255
-			}
+			l := min(len(v), 255)
 			z[0] = byte(l)
 			copy(z[1:], []byte(v[0:l]))
 			z = z[1+l:]
@@ -808,7 +805,7 @@ type certificateMsg struct {
 	certificates [][]byte
 }
 
-func (m *certificateMsg) equal(i interface{}) bool {
+func (m *certificateMsg) equal(i any) bool {
 	m1, ok := i.(*certificateMsg)
 	if !ok {
 		return false
@@ -895,7 +892,7 @@ type serverKeyExchangeMsg struct {
 	key []byte
 }
 
-func (m *serverKeyExchangeMsg) equal(i interface{}) bool {
+func (m *serverKeyExchangeMsg) equal(i any) bool {
 	m1, ok := i.(*serverKeyExchangeMsg)
 	if !ok {
 		return false
@@ -936,7 +933,7 @@ type certificateStatusMsg struct {
 	response   []byte
 }
 
-func (m *certificateStatusMsg) equal(i interface{}) bool {
+func (m *certificateStatusMsg) equal(i any) bool {
 	m1, ok := i.(*certificateStatusMsg)
 	if !ok {
 		return false
@@ -998,7 +995,7 @@ func (m *certificateStatusMsg) unmarshal(data []byte) bool {
 
 type serverHelloDoneMsg struct{}
 
-func (m *serverHelloDoneMsg) equal(i interface{}) bool {
+func (m *serverHelloDoneMsg) equal(i any) bool {
 	_, ok := i.(*serverHelloDoneMsg)
 	return ok
 }
@@ -1018,7 +1015,7 @@ type clientKeyExchangeMsg struct {
 	ciphertext []byte
 }
 
-func (m *clientKeyExchangeMsg) equal(i interface{}) bool {
+func (m *clientKeyExchangeMsg) equal(i any) bool {
 	m1, ok := i.(*clientKeyExchangeMsg)
 	if !ok {
 		return false
@@ -1062,7 +1059,7 @@ type finishedMsg struct {
 	verifyData []byte
 }
 
-func (m *finishedMsg) equal(i interface{}) bool {
+func (m *finishedMsg) equal(i any) bool {
 	m1, ok := i.(*finishedMsg)
 	if !ok {
 		return false
@@ -1099,7 +1096,7 @@ type nextProtoMsg struct {
 	proto string
 }
 
-func (m *nextProtoMsg) equal(i interface{}) bool {
+func (m *nextProtoMsg) equal(i any) bool {
 	m1, ok := i.(*nextProtoMsg)
 	if !ok {
 		return false
@@ -1113,10 +1110,7 @@ func (m *nextProtoMsg) marshal() []byte {
 	if m.raw != nil {
 		return m.raw
 	}
-	l := len(m.proto)
-	if l > 255 {
-		l = 255
-	}
+	l := min(len(m.proto), 255)
 
 	padding := 32 - (l+2)%32
 	length := l + padding + 2
@@ -1176,7 +1170,7 @@ type certificateRequestMsg struct {
 	certificateAuthorities [][]byte
 }
 
-func (m *certificateRequestMsg) equal(i interface{}) bool {
+func (m *certificateRequestMsg) equal(i any) bool {
 	m1, ok := i.(*certificateRequestMsg)
 	if !ok {
 		return false
@@ -1330,7 +1324,7 @@ type certificateVerifyMsg struct {
 	signature           []byte
 }
 
-func (m *certificateVerifyMsg) equal(i interface{}) bool {
+func (m *certificateVerifyMsg) equal(i any) bool {
 	m1, ok := i.(*certificateVerifyMsg)
 	if !ok {
 		return false
@@ -1412,7 +1406,7 @@ type newSessionTicketMsg struct {
 	ticket []byte
 }
 
-func (m *newSessionTicketMsg) equal(i interface{}) bool {
+func (m *newSessionTicketMsg) equal(i any) bool {
 	m1, ok := i.(*newSessionTicketMsg)
 	if !ok {
 		return false

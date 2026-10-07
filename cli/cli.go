@@ -81,7 +81,7 @@ func PopFirstArgument(args []string) (string, []string, error) {
 // Start is the entrance point of cfssl command line tools.
 func Start(cmds map[string]*Command) error {
 	// cfsslFlagSet is the flag sets for cfssl.
-	var cfsslFlagSet = flag.NewFlagSet("cfssl", flag.ExitOnError)
+	cfsslFlagSet := flag.NewFlagSet("cfssl", flag.ExitOnError)
 	var c Config
 
 	registerFlags(&c, cfsslFlagSet)

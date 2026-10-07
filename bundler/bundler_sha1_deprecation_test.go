@@ -185,7 +185,6 @@ func makeCASignerFromFile(certFile, keyFile string, sigAlgo x509.SignatureAlgori
 	}
 
 	return makeCASigner(certBytes, keyBytes, sigAlgo, t)
-
 }
 
 func makeCASigner(certBytes, keyBytes []byte, sigAlgo x509.SignatureAlgorithm, t *testing.T) signer.Signer {

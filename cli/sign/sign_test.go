@@ -9,16 +9,20 @@ import (
 )
 
 func TestSignFromConfig(t *testing.T) {
-	_, err := SignerFromConfig(cli.Config{CAFile: "../../testdata/server.crt",
-		CAKeyFile: "../../testdata/server.key", Hostname: "www.cloudflare.com", Remote: "127.0.0.1:8888"})
+	_, err := SignerFromConfig(cli.Config{
+		CAFile:    "../../testdata/server.crt",
+		CAKeyFile: "../../testdata/server.key", Hostname: "www.cloudflare.com", Remote: "127.0.0.1:8888",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSignerMain(t *testing.T) {
-	err := signerMain([]string{"../../testdata/server.csr"}, cli.Config{CAFile: "../../testdata/server.crt",
-		CAKeyFile: "../../testdata/server.key", Hostname: "www.cloudflare.com"})
+	err := signerMain([]string{"../../testdata/server.csr"}, cli.Config{
+		CAFile:    "../../testdata/server.crt",
+		CAKeyFile: "../../testdata/server.key", Hostname: "www.cloudflare.com",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +47,8 @@ func TestSignerWithDB(t *testing.T) {
 			CAFile:       "../../testdata/server.crt",
 			CAKeyFile:    "../../testdata/server.key",
 			Hostname:     "www.cloudflare.com",
-			DBConfigFile: "../testdata/db-config.json"})
+			DBConfigFile: "../testdata/db-config.json",
+		})
 	if err != nil {
 		t.Fatal(err)
 	}

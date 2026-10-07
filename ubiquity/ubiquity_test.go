@@ -37,7 +37,6 @@ func init() {
 	ecdsa256Cert = readCert(ecdsa256)
 	ecdsa384Cert = readCert(ecdsa384)
 	ecdsa521Cert = readCert(ecdsa521)
-
 }
 
 func TestCertHashPriority(t *testing.T) {
@@ -78,6 +77,7 @@ func TestCertKeyAlgoPriority(t *testing.T) {
 		t.Fatal("Incorrect hash priority")
 	}
 }
+
 func TestChainHashPriority(t *testing.T) {
 	var chain []*x509.Certificate
 	var p int
@@ -97,6 +97,7 @@ func TestChainKeyAlgoPriority(t *testing.T) {
 		t.Fatal("Incorrect chain key algo priority")
 	}
 }
+
 func TestCertHashUbiquity(t *testing.T) {
 	if hashUbiquity(rsa2048Cert) != SHA2Ubiquity {
 		t.Fatal("incorrect hash ubiquity")
@@ -176,7 +177,6 @@ func TestChainKeyAlgoUbiquity(t *testing.T) {
 	if ChainKeyAlgoUbiquity(chain) != keyAlgoUbiquity(ecdsa256Cert) {
 		t.Fatal("Incorrect chain hash ubiquity")
 	}
-
 }
 
 func TestChainExpiryUbiquity(t *testing.T) {
@@ -286,7 +286,6 @@ func TestPlatformKeyStoreUbiquity(t *testing.T) {
 	if len(u3) != 2 {
 		t.Fatal("Incorrect UntrustedPlatforms")
 	}
-
 }
 
 func TestEmptyPlatformList(t *testing.T) {
@@ -429,7 +428,6 @@ func TestFilterChainHashPriority(t *testing.T) {
 	if ret[0][0] != ecdsa384Cert {
 		t.Fatal("Incorrect chain hash priority filtering")
 	}
-
 }
 
 func TestFilterChainKeyAlgoPriority(t *testing.T) {

@@ -42,7 +42,6 @@ func HTTPRequestLookup(req *http.Request) (net.IP, error) {
 
 	ip := net.ParseIP(addr)
 	return ip, nil
-
 }
 
 // Handler wraps an HTTP handler with IP whitelisting.

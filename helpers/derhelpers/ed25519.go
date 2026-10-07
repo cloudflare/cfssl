@@ -8,8 +8,10 @@ import (
 	"errors"
 )
 
-var errEd25519WrongID = errors.New("incorrect object identifier")
-var errEd25519WrongKeyType = errors.New("incorrect key type")
+var (
+	errEd25519WrongID      = errors.New("incorrect object identifier")
+	errEd25519WrongKeyType = errors.New("incorrect key type")
+)
 
 // ed25519OID is the OID for the Ed25519 signature scheme: see
 // https://datatracker.ietf.org/doc/draft-ietf-curdle-pkix-04.
