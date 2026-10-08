@@ -27,6 +27,7 @@ import (
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/info"
@@ -254,6 +255,16 @@ func PopulateSubjectFromCSR(s *signer.Subject, req pkix.Name) pkix.Name {
 	if name.SerialNumber == "" {
 		name.SerialNumber = req.SerialNumber
 	}
+	// Handle Email by the OID
+	emailOk, email := csr.GetEmail(name.ExtraNames)
+	if !emailOk || email == "" {
+		emailOk, email = csr.GetEmail(req.ExtraNames)
+		if emailOk {
+			name.Names = csr.AddEmail(req.Names, email)
+			name.ExtraNames = csr.AddEmail(req.ExtraNames, email)
+		}
+	}
+
 	return name
 }
 
