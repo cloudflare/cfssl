@@ -120,6 +120,16 @@ func TestBundleFromRemoteDialErrors(t *testing.T) {
 			ip:           "300.300.300.300",
 			wantDialName: "300.300.300.300:443",
 		},
+		{
+			name:         "IPv6 literal as hostname",
+			hostname:     "2001:db8::1",
+			wantDialName: "[2001:db8::1]:443",
+		},
+		{
+			name:         "bracketed IPv6 literal",
+			ip:           "[2001:db8::1]",
+			wantDialName: "[2001:db8::1]:443",
+		},
 	}
 
 	for _, flavor := range []BundleFlavor{Ubiquitous, Optimal} {
