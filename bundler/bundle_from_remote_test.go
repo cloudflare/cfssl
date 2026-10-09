@@ -50,6 +50,13 @@ func TestBundleFromRemote(t *testing.T) {
 			wantDialName: remoteIP + ":443",
 			wantHostname: remoteWildcard,
 		},
+		{
+			name:         "explicit IPv6 literal",
+			hostname:     "www.remote.test",
+			ip:           "2001:db8::1",
+			wantDialName: "[2001:db8::1]:443",
+			wantHostname: remoteWildcard,
+		},
 	}
 
 	for _, flavor := range []BundleFlavor{Ubiquitous, Optimal} {
@@ -112,6 +119,16 @@ func TestBundleFromRemoteDialErrors(t *testing.T) {
 			name:         "invalid explicit IP",
 			ip:           "300.300.300.300",
 			wantDialName: "300.300.300.300:443",
+		},
+		{
+			name:         "IPv6 literal as hostname",
+			hostname:     "2001:db8::1",
+			wantDialName: "[2001:db8::1]:443",
+		},
+		{
+			name:         "bracketed IPv6 literal",
+			ip:           "[2001:db8::1]",
+			wantDialName: "[2001:db8::1]:443",
 		},
 	}
 
