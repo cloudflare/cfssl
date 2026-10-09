@@ -33,7 +33,7 @@ var PKI = &Family{
 // getChain is a helper function that retreives the host's certificate chain.
 func getChain(addr string, config *tls.Config) (chain []*x509.Certificate, err error) {
 	var conn *tls.Conn
-	conn, err = tls.DialWithDialer(Dialer, Network, addr, config)
+	conn, err = dialTLS(Network, addr, config)
 	if err != nil {
 		return
 	}
