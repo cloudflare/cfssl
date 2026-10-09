@@ -130,7 +130,7 @@ func onCloudFlareScan(addr, hostname string) (grade Grade, output Output, err er
 
 // tcpDialScan tests that the host can be connected to through TCP.
 func tcpDialScan(addr, hostname string) (grade Grade, output Output, err error) {
-	conn, err := Dialer.Dial(Network, addr)
+	conn, err := dial(Network, addr)
 	if err != nil {
 		return
 	}
@@ -145,13 +145,13 @@ func tlsDialScan(addr, hostname string) (grade Grade, output Output, err error) 
 	var conn *tls.Conn
 	config := defaultTLSConfig(hostname)
 
-	if conn, err = tls.DialWithDialer(Dialer, Network, addr, config); err != nil {
+	if conn, err = dialTLS(Network, addr, config); err != nil {
 		return
 	}
 	conn.Close()
 
 	config.InsecureSkipVerify = false
-	if conn, err = tls.DialWithDialer(Dialer, Network, addr, config); err != nil {
+	if conn, err = dialTLS(Network, addr, config); err != nil {
 		grade = Warning
 		return
 	}
