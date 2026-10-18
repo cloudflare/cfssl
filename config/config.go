@@ -214,7 +214,8 @@ func (p *SigningProfile) populate(cfg *Config) error {
 		}
 
 		if !p.NotBefore.IsZero() && !p.NotAfter.IsZero() && p.NotAfter.Before(p.NotBefore) {
-			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy, err)
+			return cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,
+				errors.New("not_after is before not_before"))
 		}
 
 		if len(p.Policies) > 0 {
