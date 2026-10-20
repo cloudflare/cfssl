@@ -127,3 +127,52 @@ func TestNewCRLFromFileMLDSA(t *testing.T) {
 		})
 	}
 }
+
+func TestNewCRLFromFileCRLFAndWhitespace(t *testing.T) {
+	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tryTwoCertBytes, err := os.ReadFile(tryTwoCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	crl, err := NewCRLFromFile([]byte("1\r\n2\r\n 3 \n"), tryTwoCertBytes, tryTwoKeyBytes, "0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	certList, err := x509.ParseDERCRL(crl)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	revoked := certList.TBSCertList.RevokedCertificates
+	if len(revoked) != 3 {
+		t.Fatalf("expected 3 revoked certificates, got %d", len(revoked))
+	}
+	for i, rc := range revoked {
+		if want := int64(i + 1); rc.SerialNumber.Int64() != want {
+			t.Fatalf("revoked certificate %d: expected serial %d, got %v", i, want, rc.SerialNumber)
+		}
+	}
+}
+
+func TestNewCRLFromFileInvalidSerial(t *testing.T) {
+	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tryTwoCertBytes, err := os.ReadFile(tryTwoCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = NewCRLFromFile([]byte("1\nnot-a-serial\n"), tryTwoCertBytes, tryTwoKeyBytes, "0")
+	if err == nil {
+		t.Fatal("expected an error for an invalid serial number")
+	}
+}
