@@ -58,13 +58,17 @@ __check_defined = \
 # (especially under amd64 emulation on Apple Silicon).
 GORELEASER_PARALLELISM ?= 4
 
+# Pin the image: :latest follows whichever release line goreleaser-cross
+# published last, which can be older than the go directive in go.mod.
+GORELEASER_CROSS_IMAGE ?= ghcr.io/goreleaser/goreleaser-cross:v1.27.3
+
 .PHONY: snapshot
 snapshot:
 	docker run \
 	--rm \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/goreleaser/goreleaser-cross:latest --clean --snapshot --skip=publish --parallelism $(GORELEASER_PARALLELISM)
+    $(GORELEASER_CROSS_IMAGE) --clean --snapshot --skip=publish --parallelism $(GORELEASER_PARALLELISM)
 
 .PHONY: github-release
 github-release:
@@ -75,7 +79,7 @@ github-release:
 	-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
     -v $(PWD):/cross \
     -w /cross \
-    ghcr.io/goreleaser/goreleaser-cross:latest --clean --parallelism $(GORELEASER_PARALLELISM)
+    $(GORELEASER_CROSS_IMAGE) --clean --parallelism $(GORELEASER_PARALLELISM)
 
 .PHONY: release
 release: github-release
