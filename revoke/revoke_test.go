@@ -1,10 +1,16 @@
 package revoke
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
-	// "crypto/x509/pkix"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -206,6 +212,93 @@ func TestCachedCRLSet(t *testing.T) {
 	VerifyCertificate(goodCert)
 	if revoked, ok := VerifyCertificate(goodCert); !ok || revoked {
 		t.Fatalf("Previously fetched CRL's should be read smoothly and unrevoked")
+	}
+}
+
+func TestCachedCRLCheckedAgainstCurrentIssuer(t *testing.T) {
+	now := time.Now()
+	newIssuer := func(serial int64) (*x509.Certificate, *ecdsa.PrivateKey) {
+		t.Helper()
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		template := &x509.Certificate{
+			SerialNumber:          big.NewInt(serial),
+			Subject:               pkix.Name{CommonName: fmt.Sprintf("issuer %d", serial)},
+			NotBefore:             now.Add(-time.Hour),
+			NotAfter:              now.Add(time.Hour),
+			KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+			IsCA:                  true,
+			BasicConstraintsValid: true,
+			SubjectKeyId:          []byte{byte(serial)},
+		}
+		der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		issuer, err := x509.ParseCertificate(der)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return issuer, key
+	}
+	issuerA, keyA := newIssuer(1)
+	issuerB, _ := newIssuer(2)
+	crlDER, err := x509.CreateRevocationList(rand.Reader, &x509.RevocationList{
+		Number:     big.NewInt(1),
+		ThisUpdate: now.Add(-time.Minute),
+		NextUpdate: now.Add(time.Hour),
+	}, issuerA, keyA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	crl, err := x509.ParseCRL(crlDER)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/issuer-a":
+			w.Write(issuerA.Raw)
+		case "/issuer-b":
+			w.Write(issuerB.Raw)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	crlURL := server.URL + "/shared.crl"
+	crlLock.Lock()
+	CRLSet[crlURL] = crl
+	crlLock.Unlock()
+	t.Cleanup(func() {
+		crlLock.Lock()
+		delete(CRLSet, crlURL)
+		crlLock.Unlock()
+	})
+
+	for _, tc := range []struct {
+		name      string
+		issuerURL string
+		wantOK    bool
+	}{
+		{name: "matching issuer", issuerURL: server.URL + "/issuer-a", wantOK: true},
+		{name: "different issuer", issuerURL: server.URL + "/issuer-b"},
+		{name: "matching issuer again", issuerURL: server.URL + "/issuer-a", wantOK: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cert := &x509.Certificate{
+				SerialNumber:          big.NewInt(99),
+				IssuingCertificateURL: []string{tc.issuerURL},
+			}
+			revoked, ok, err := certIsRevokedCRL(cert, crlURL)
+			if revoked || ok != tc.wantOK || (err == nil) != tc.wantOK {
+				t.Errorf("certIsRevokedCRL() = (%v, %v, %v), want revoked=false, ok=%v", revoked, ok, err, tc.wantOK)
+			}
+		})
 	}
 }
 
