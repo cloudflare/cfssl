@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"math/big"
 	"os"
 	"strconv"
@@ -45,12 +46,15 @@ func NewCRLFromFile(serialList, issuerFile, keyFile []byte, expiryTime string) (
 
 	// For every new line, create a new revokedCertificate and add it to slice
 	for _, value := range individualCerts {
-		if len(strings.TrimSpace(value)) == 0 {
+		value = strings.TrimSpace(value)
+		if len(value) == 0 {
 			continue
 		}
 
-		tempBigInt := new(big.Int)
-		tempBigInt.SetString(value, 10)
+		tempBigInt, ok := new(big.Int).SetString(value, 10)
+		if !ok {
+			return nil, fmt.Errorf("invalid serial number %q: serial numbers must be decimal", value)
+		}
 		tempCert := pkix.RevokedCertificate{
 			SerialNumber:   tempBigInt,
 			RevocationTime: time.Now(),
