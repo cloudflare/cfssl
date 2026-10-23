@@ -19,6 +19,23 @@ func TestNew(t *testing.T) {
 		t.Fatal("expected failure with improperly-hex-encoded key")
 	}
 
+	if _, err := New("", nil); err == nil {
+		t.Fatal("expected failure with empty key")
+	}
+
+	t.Setenv("CFSSL_AUTH_EMPTY", "")
+	if _, err := New("env:CFSSL_AUTH_EMPTY", nil); err == nil {
+		t.Fatal("expected failure with empty env key")
+	}
+
+	emptyFile := t.TempDir() + "/empty.key"
+	if err := os.WriteFile(emptyFile, []byte("   \n"), 0o600); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if _, err := New("file:"+emptyFile, nil); err == nil {
+		t.Fatal("expected failure with empty file key")
+	}
+
 	testProvider, err = New(testKey, nil)
 	if err != nil {
 		t.Fatalf("%v", err)
