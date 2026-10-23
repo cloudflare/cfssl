@@ -30,7 +30,7 @@ func (c *Conn) SayHello(newSigAls []SignatureAndHash) (cipherID, curveType uint1
 	// exchange messages by reading off the certificate
 	// message and, if necessary, the OCSP stapling
 	// message
-	var msg interface{}
+	var msg any
 	msg, err = c.readHandshake()
 	if err != nil {
 		return

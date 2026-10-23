@@ -229,7 +229,7 @@ func (srv *server) authReq(req, ID []byte, provider auth.Provider, target string
 		return nil, err
 	}
 
-	result, ok := response.Result.(map[string]interface{})
+	result, ok := response.Result.(map[string]any)
 	if !ok {
 		return nil, errors.New(errors.APIClientError, errors.JSONError)
 	}
@@ -263,9 +263,9 @@ func (srv *server) Info(jsonData []byte) (*info.Resp, error) {
 	if val, ok := res["certificate"]; ok {
 		info.Certificate = val.(string)
 	}
-	var usages []interface{}
+	var usages []any
 	if val, ok := res["usages"]; ok && val != nil {
-		usages = val.([]interface{})
+		usages = val.([]any)
 	}
 	if val, ok := res["expiry"]; ok && val != nil {
 		info.ExpiryString = val.(string)
@@ -279,13 +279,13 @@ func (srv *server) Info(jsonData []byte) (*info.Resp, error) {
 	return info, nil
 }
 
-func (srv *server) getResultMap(jsonData []byte, target string) (result map[string]interface{}, err error) {
+func (srv *server) getResultMap(jsonData []byte, target string) (result map[string]any, err error) {
 	url := srv.getURL(target)
 	response, err := srv.post(url, jsonData)
 	if err != nil {
 		return
 	}
-	result, ok := response.Result.(map[string]interface{})
+	result, ok := response.Result.(map[string]any)
 	if !ok {
 		err = errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New("response is formatted improperly"))
 		return

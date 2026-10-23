@@ -27,7 +27,7 @@ type sessionState struct {
 	usedOldKey bool
 }
 
-func (s *sessionState) equal(i interface{}) bool {
+func (s *sessionState) equal(i any) bool {
 	s1, ok := i.(*sessionState)
 	if !ok {
 		return false

@@ -93,7 +93,7 @@ func main() {
 		log.Criticalf("%v", err)
 	}
 
-	var localhost = whitelist.NewBasic()
+	localhost := whitelist.NewBasic()
 	localhost.Add(net.ParseIP("127.0.0.1"))
 	localhost.Add(net.ParseIP("::1"))
 
@@ -109,5 +109,4 @@ func main() {
 		log.Info("Now listening on https:// ", *flagAddr)
 		log.Fatal(http.ListenAndServeTLS(*flagAddr, *flagEndpointCert, *flagEndpointKey, nil))
 	}
-
 }

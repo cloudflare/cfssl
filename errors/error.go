@@ -101,8 +101,8 @@ const (
 )
 
 const (
-	certificateInvalid = 10 * (iota + 1) //121X
-	unknownAuthority                     //122x
+	certificateInvalid = 10 * (iota + 1) // 121X
+	unknownAuthority                     // 122x
 )
 
 // The following represent private-key non-parsing errors, and must be
@@ -111,20 +111,20 @@ const (
 	// Encrypted indicates that the private key is a PKCS #8 encrypted
 	// private key. At this time, CFSSL does not support decrypting
 	// these keys.
-	Encrypted Reason = 100 * (iota + 1) //21XX
+	Encrypted Reason = 100 * (iota + 1) // 21XX
 
 	// NotRSAOrECCOrEd25519 indicates that they key is not an RSA or ECC or Ed25519
 	// private key; these are the only two private key types supported
 	// at this time by CFSSL.
-	NotRSAOrECCOrEd25519 //22XX
+	NotRSAOrECCOrEd25519 // 22XX
 
 	// KeyMismatch indicates that the private key does not match
 	// the public key or certificate being presented with the key.
-	KeyMismatch //23XX
+	KeyMismatch // 23XX
 
 	// GenerationFailed indicates that a private key could not
 	// be generated.
-	GenerationFailed //24XX
+	GenerationFailed // 24XX
 
 	// Unavailable indicates that a private key mechanism (such as
 	// PKCS #11) was requested but support for that mechanism is
@@ -219,7 +219,6 @@ func (e *Error) Error() string {
 		panic(err)
 	}
 	return string(marshaled)
-
 }
 
 // New returns an error that contains  an error code and message derived from
@@ -434,5 +433,4 @@ func Wrap(category Category, reason Reason, err error) *Error {
 	}
 
 	return &Error{ErrorCode: errorCode, Message: err.Error()}
-
 }

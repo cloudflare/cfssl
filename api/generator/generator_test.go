@@ -99,8 +99,8 @@ func TestCSRValidate(t *testing.T) {
 }
 
 func TestNewCertGeneratorHandlerFromSigner(t *testing.T) {
-	var expiry = 1 * time.Minute
-	var CAConfig = &config.Config{
+	expiry := 1 * time.Minute
+	CAConfig := &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
 				"signature": {

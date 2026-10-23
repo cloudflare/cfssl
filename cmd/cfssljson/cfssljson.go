@@ -36,10 +36,10 @@ type ResponseMessage struct {
 
 // Response represents the format of a CFSSL output
 type Response struct {
-	Success  bool                   `json:"success"`
-	Result   map[string]interface{} `json:"result"`
-	Errors   []ResponseMessage      `json:"errors"`
-	Messages []ResponseMessage      `json:"messages"`
+	Success  bool              `json:"success"`
+	Result   map[string]any    `json:"result"`
+	Errors   []ResponseMessage `json:"errors"`
+	Messages []ResponseMessage `json:"messages"`
 }
 
 type outputFile struct {
@@ -68,7 +68,7 @@ func main() {
 		baseName = flag.Arg(0)
 	}
 
-	var input = map[string]interface{}{}
+	input := map[string]any{}
 	var outs []outputFile
 	var cert string
 	var key string
@@ -114,7 +114,7 @@ func main() {
 		outs = append(outs, outputFile{
 			Filename: baseName + ".pem",
 			Contents: cert,
-			Perms:    0664,
+			Perms:    0o664,
 		})
 	}
 
@@ -127,7 +127,7 @@ func main() {
 		outs = append(outs, outputFile{
 			Filename: baseName + "-key.pem",
 			Contents: key,
-			Perms:    0600,
+			Perms:    0o600,
 		})
 	}
 
@@ -137,7 +137,7 @@ func main() {
 			Filename: baseName + "-key.enc",
 			Contents: encKey,
 			IsBinary: true,
-			Perms:    0600,
+			Perms:    0o600,
 		})
 	}
 
@@ -150,12 +150,12 @@ func main() {
 		outs = append(outs, outputFile{
 			Filename: baseName + ".csr",
 			Contents: csr,
-			Perms:    0644,
+			Perms:    0o644,
 		})
 	}
 
-	if result, ok := input["result"].(map[string]interface{}); ok {
-		if bundle, ok := result["bundle"].(map[string]interface{}); ok {
+	if result, ok := input["result"].(map[string]any); ok {
+		if bundle, ok := result["bundle"].(map[string]any); ok {
 
 			// if we've gotten this deep then we're trying to parse out
 			// a bundle, now we fail if we can't find the keys we need.
@@ -173,12 +173,12 @@ func main() {
 			outs = append(outs, outputFile{
 				Filename: baseName + "-bundle.pem",
 				Contents: certificateBundle + "\n" + rootCertificate,
-				Perms:    0644,
+				Perms:    0o644,
 			})
 			outs = append(outs, outputFile{
 				Filename: baseName + "-root.pem",
 				Contents: rootCertificate,
-				Perms:    0644,
+				Perms:    0o644,
 			})
 		}
 	}
@@ -194,7 +194,7 @@ func main() {
 			Filename: baseName + "-response.der",
 			Contents: string(resp),
 			IsBinary: true,
-			Perms:    0644,
+			Perms:    0o644,
 		})
 	}
 

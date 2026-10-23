@@ -60,7 +60,8 @@ func NewSigner(priv crypto.Signer, cert *x509.Certificate, sigAlgo x509.Signatur
 	if policy == nil {
 		policy = &config.Signing{
 			Profiles: map[string]*config.SigningProfile{},
-			Default:  config.DefaultConfig()}
+			Default:  config.DefaultConfig(),
+		}
 	}
 
 	if !policy.Valid() {
@@ -278,7 +279,6 @@ func OverrideHosts(template *x509.Certificate, hosts []string) {
 			template.DNSNames = append(template.DNSNames, hosts[i])
 		}
 	}
-
 }
 
 // Sign signs a new certificate based on the PEM-encoded client
@@ -435,7 +435,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		}
 	}
 
-	var distPoints = safeTemplate.CRLDistributionPoints
+	distPoints := safeTemplate.CRLDistributionPoints
 	err = signer.FillTemplate(&safeTemplate, s.policy.Default, profile, req.NotBefore, req.NotAfter)
 	if err != nil {
 		return nil, err
@@ -444,12 +444,12 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		safeTemplate.CRLDistributionPoints = distPoints
 	}
 
-	var certTBS = safeTemplate
+	certTBS := safeTemplate
 
 	if len(profile.CTLogServers) > 0 || req.ReturnPrecert {
 		// Add a poison extension which prevents validation
-		var poisonExtension = pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
-		var poisonedPreCert = certTBS
+		poisonExtension := pkix.Extension{Id: signer.CTPoisonOID, Critical: true, Value: []byte{0x05, 0x00}}
+		poisonedPreCert := certTBS
 		poisonedPreCert.ExtraExtensions = append(safeTemplate.ExtraExtensions, poisonExtension)
 		cert, err = s.sign(&poisonedPreCert, profile.LintErrLevel, profile.LintRegistry)
 		if err != nil {
@@ -491,7 +491,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 			return nil, cferr.Wrap(cferr.CTError, cferr.Unknown, err)
 		}
 
-		var SCTListExtension = pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
+		SCTListExtension := pkix.Extension{Id: signer.SCTListOID, Critical: false, Value: serializedSCTList}
 		certTBS.ExtraExtensions = append(certTBS.ExtraExtensions, SCTListExtension)
 	}
 
@@ -508,7 +508,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 
 	if s.dbAccessor != nil {
 		now := time.Now()
-		var certRecord = certdb.CertificateRecord{
+		certRecord := certdb.CertificateRecord{
 			Serial: certTBS.SerialNumber.String(),
 			// this relies on the specific behavior of x509.CreateCertificate
 			// which sets the AuthorityKeyId from the signer's SubjectKeyId

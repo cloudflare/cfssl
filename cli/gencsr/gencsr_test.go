@@ -40,7 +40,7 @@ func (pipe *stdoutRedirect) readAll() ([]byte, error) {
 }
 
 func checkResponse(out []byte) error {
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(out, &response); err != nil {
 		return err
 	}

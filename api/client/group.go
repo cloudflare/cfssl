@@ -45,7 +45,7 @@ func StrategyFromString(s string) Strategy {
 // NewGroup will use the collection of remotes specified with the
 // given strategy.
 func NewGroup(remotes []string, tlsConfig *tls.Config, strategy Strategy) (Remote, error) {
-	var servers = make([]*server, len(remotes))
+	servers := make([]*server, len(remotes))
 	for i := range remotes {
 		u, err := normalizeURL(remotes[i])
 		if err != nil {
@@ -67,7 +67,7 @@ type orderedListGroup struct {
 }
 
 func (g *orderedListGroup) Hosts() []string {
-	var hosts = make([]string, 0, len(g.remotes))
+	hosts := make([]string, 0, len(g.remotes))
 	for _, srv := range g.remotes {
 		srvHosts := srv.Hosts()
 		hosts = append(hosts, srvHosts[0])

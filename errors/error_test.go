@@ -326,7 +326,6 @@ func TestHTTP(t *testing.T) {
 	if err.StatusCode != 400 {
 		t.Fatal("New Bad Request Unwanted Parameter error code construction failed")
 	}
-
 }
 
 func TestHTTPErrorString(t *testing.T) {

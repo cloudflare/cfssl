@@ -76,7 +76,7 @@ type SignRequest struct {
 	ReturnPrecert bool
 
 	// Arbitrary metadata to be stored in certdb.
-	Metadata map[string]interface{} `json:"metadata"`
+	Metadata map[string]any `json:"metadata"`
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -245,7 +245,6 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 
 	var r pkix.RDNSequence
 	_, err = asn1.Unmarshal(csrv.RawSubject, &r)
-
 	if err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
 		return
@@ -482,7 +481,7 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 
 type policyInformation struct {
 	PolicyIdentifier asn1.ObjectIdentifier
-	Qualifiers       []interface{} `asn1:"tag:optional,omitempty"`
+	Qualifiers       []any `asn1:"tag:optional,omitempty"`
 }
 
 type cpsPolicyQualifier struct {

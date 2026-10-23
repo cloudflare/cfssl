@@ -9,7 +9,6 @@ import (
 )
 
 func TestGencertMain(t *testing.T) {
-
 	c := cli.Config{
 		IsCA: true,
 	}
@@ -45,7 +44,6 @@ func TestGencertMain(t *testing.T) {
 		CAKeyFile: "../testdata/ca-key.pem",
 	}
 	err = gencertMain([]string{}, c)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +76,6 @@ func TestGencertFile(t *testing.T) {
 		CAKeyFile: "file:../testdata/ca-key.pem",
 	}
 	err = gencertMain([]string{}, c)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +113,6 @@ func TestGencertEnv(t *testing.T) {
 		CAKeyFile: "env:ca_key",
 	}
 	err = gencertMain([]string{}, c)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +209,6 @@ func TestBadGencertMain(t *testing.T) {
 	if err == nil {
 		t.Fatal("Invalid remote, should reort error")
 	}
-
 }
 
 func TestOidMain(t *testing.T) {

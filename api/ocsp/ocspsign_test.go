@@ -48,7 +48,7 @@ func testSignFile(t *testing.T, certFile, status string, reason int, revokedAt s
 	ts := newSignServer(t)
 	defer ts.Close()
 
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	if certFile != "" {
 		c, err := os.ReadFile(certFile)
 		if err != nil {
@@ -188,7 +188,7 @@ func TestSign(t *testing.T) {
 			continue
 		}
 
-		result, ok := message.Result.(map[string]interface{})
+		result, ok := message.Result.(map[string]any)
 		if !ok {
 			t.Logf("failed to read result")
 			t.Fatal(resp.Status, test.ExpectedHTTPStatus, string(body))

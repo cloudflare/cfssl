@@ -21,6 +21,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -58,7 +59,7 @@ func newTestSigner(t *testing.T) (s *Signer) {
 }
 
 func TestNewSignerFromFilePolicy(t *testing.T) {
-	var CAConfig = &config.Config{
+	CAConfig := &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
 				"signature": {
@@ -84,7 +85,7 @@ func TestNewSignerFromFilePolicy(t *testing.T) {
 }
 
 func TestNewSignerFromFileInvalidPolicy(t *testing.T) {
-	var invalidConfig = &config.Config{
+	invalidConfig := &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
 				"invalid": {
@@ -110,7 +111,7 @@ func TestNewSignerFromFileInvalidPolicy(t *testing.T) {
 }
 
 func TestNewSignerFromFileNoUsageInPolicy(t *testing.T) {
-	var invalidConfig = &config.Config{
+	invalidConfig := &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
 				"invalid": {
@@ -136,7 +137,6 @@ func TestNewSignerFromFileNoUsageInPolicy(t *testing.T) {
 }
 
 func TestNewSignerFromFileEdgeCases(t *testing.T) {
-
 	res, err := NewSignerFromFile("nil", "nil", nil)
 	if res != nil && err == nil {
 		t.Fatal("Incorrect inputs failed to produce correct results")
@@ -161,7 +161,7 @@ func TestNewSignerFromFileEdgeCases(t *testing.T) {
 func TestNewSignerFromFilePolicyLinting(t *testing.T) {
 	// CAConfig is a config that has an explicit "signature" profile that enables
 	// pre-issuance linting.
-	var CAConfig = &config.Config{
+	CAConfig := &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
 				"signature": {
@@ -436,11 +436,11 @@ const (
 )
 
 func TestCAIssuing(t *testing.T) {
-	var caCerts = []string{testCaFile, testECDSACaFile}
-	var caKeys = []string{testCaKeyFile, testECDSACaKeyFile}
-	var interCSRs = []string{ecdsaInterCSR, rsaInterCSR}
-	var interKeys = []string{ecdsaInterKey, rsaInterKey}
-	var CAPolicy = &config.Signing{
+	caCerts := []string{testCaFile, testECDSACaFile}
+	caKeys := []string{testCaKeyFile, testECDSACaKeyFile}
+	interCSRs := []string{ecdsaInterCSR, rsaInterCSR}
+	interKeys := []string{ecdsaInterKey, rsaInterKey}
+	CAPolicy := &config.Signing{
 		Default: &config.SigningProfile{
 			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "1h",
@@ -448,7 +448,7 @@ func TestCAIssuing(t *testing.T) {
 			CAConstraint: config.CAConstraint{IsCA: true, MaxPathLenZero: true},
 		},
 	}
-	var hostname = "cloudflare-inter.com"
+	hostname := "cloudflare-inter.com"
 	// Each RSA or ECDSA root CA issues two intermediate CAs (one ECDSA and one RSA).
 	// For each intermediate CA, use it to issue additional RSA and ECDSA intermediate CSRs.
 	for i, caFile := range caCerts {
@@ -479,7 +479,8 @@ func TestCAIssuing(t *testing.T) {
 					signer.SignRequest{
 						Hosts:   signer.SplitHosts(hostname),
 						Request: string(anotherCSRBytes),
-					})
+					},
+				)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -499,7 +500,6 @@ func TestCAIssuing(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestPopulateSubjectFromCSR(t *testing.T) {
@@ -568,8 +568,8 @@ func TestPopulateSubjectFromCSR(t *testing.T) {
 	if name.SerialNumber != fullName.SerialNumber {
 		t.Fatalf("Failed to replace empty serial number: want %#v, got %#v", fullName.SerialNumber, name.SerialNumber)
 	}
-
 }
+
 func TestOverrideSubject(t *testing.T) {
 	csrPEM, err := os.ReadFile(fullSubjectCSR)
 	if err != nil {
@@ -591,7 +591,6 @@ func TestOverrideSubject(t *testing.T) {
 	}
 
 	certPEM, err := s.Sign(request)
-
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -665,7 +664,6 @@ func TestOverwriteHosts(t *testing.T) {
 				Subject: nil,
 			}
 			certPEM, err := s.Sign(request)
-
 			if err != nil {
 				t.Fatalf("%v", err)
 			}
@@ -705,7 +703,6 @@ func TestOverwriteHosts(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestOverrideValidity(t *testing.T) {
@@ -817,7 +814,7 @@ func expectEmpty(t *testing.T, s []string, n string) {
 }
 
 func TestCASignPathlen(t *testing.T) {
-	var csrPathlenTests = []struct {
+	csrPathlenTests := []struct {
 		name       string
 		caCertFile string
 		caKeyFile  string
@@ -931,7 +928,8 @@ func TestCASignPathlen(t *testing.T) {
 				Usage:        []string{"cert sign", "crl sign"},
 				ExpiryString: "1h",
 				Expiry:       1 * time.Hour,
-				CAConstraint: config.CAConstraint{IsCA: testCase.caProfile,
+				CAConstraint: config.CAConstraint{
+					IsCA:           testCase.caProfile,
 					MaxPathLen:     testCase.pathlen,
 					MaxPathLenZero: testCase.isZero,
 				},
@@ -1163,7 +1161,6 @@ func TestNameWhitelistSign(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-
 }
 
 func TestExtensionSign(t *testing.T) {
@@ -1263,7 +1260,7 @@ func TestCTFailure(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	var config = &config.Signing{
+	config := &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
 			CAConstraint: config.CAConstraint{IsCA: true},
@@ -1300,7 +1297,7 @@ func TestCTSuccess(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	var config = &config.Signing{
+	config := &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
 			CAConstraint: config.CAConstraint{IsCA: true},
@@ -1323,14 +1320,13 @@ func TestCTSuccess(t *testing.T) {
 		Hosts:   []string{"example.com"},
 	}
 	_, err = testSigner.Sign(validReq)
-
 	if err != nil {
 		t.Fatal("Expected CT log submission success")
 	}
 }
 
 func TestReturnPrecert(t *testing.T) {
-	var config = &config.Signing{
+	config := &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
 			CAConstraint: config.CAConstraint{IsCA: true},
@@ -1376,7 +1372,7 @@ func TestReturnPrecert(t *testing.T) {
 }
 
 func TestSignFromPrecert(t *testing.T) {
-	var config = &config.Signing{
+	config := &config.Signing{
 		Default: &config.SigningProfile{
 			Expiry:       helpers.OneYear,
 			CAConstraint: config.CAConstraint{IsCA: true},
@@ -1722,7 +1718,7 @@ func marshalKeyUsage(t *testing.T, ku x509.KeyUsage) []byte {
 	var padBits int
 	if b[1] != 0 {
 		usedBytes = 2
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			if b[1]&(1<<uint(i)) != 0 {
 				padBits = i
 				break
@@ -1730,7 +1726,7 @@ func marshalKeyUsage(t *testing.T, ku x509.KeyUsage) []byte {
 		}
 	} else {
 		usedBytes = 1
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			if b[0]&(1<<uint(i)) != 0 {
 				padBits = i
 				break
@@ -1838,13 +1834,7 @@ func TestCopyExtensionsDoesNotOverrideKeyUsage(t *testing.T) {
 		}
 	}
 
-	foundServerAuth := false
-	for _, eku := range cert.ExtKeyUsage {
-		if eku == x509.ExtKeyUsageServerAuth {
-			foundServerAuth = true
-			break
-		}
-	}
+	foundServerAuth := slices.Contains(cert.ExtKeyUsage, x509.ExtKeyUsageServerAuth)
 	if !foundServerAuth {
 		t.Errorf("certificate missing serverAuth EKU from profile")
 	}

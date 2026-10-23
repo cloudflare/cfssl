@@ -40,7 +40,6 @@ func TestParseSerialNumber(t *testing.T) {
 			PEM:    certificate,
 		},
 	)
-
 	if err != nil {
 		t.Log(err.Error())
 		t.FailNow()
@@ -140,7 +139,6 @@ func certificateToPEMBlock(cert []byte) (string, error) {
 		Type:  "CERTIFICATE",
 		Bytes: cert,
 	})
-
 	if err != nil {
 		return "", err
 	}

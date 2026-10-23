@@ -41,12 +41,12 @@ func TestLoadSigner(t *testing.T) {
 	lca.KeyFile = filepath.Join(tmpDir, "KeyFile")
 	lca.CertFile = filepath.Join(tmpDir, "CertFile")
 
-	err = os.WriteFile(lca.KeyFile, keyPEM, 0644)
+	err = os.WriteFile(lca.KeyFile, keyPEM, 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = os.WriteFile(lca.CertFile, certPEM, 0644)
+	err = os.WriteFile(lca.CertFile, certPEM, 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -58,7 +58,7 @@ func TestKeyRequest(t *testing.T) {
 // TestPKIXName validates building a pkix.Name structure from a
 // CertificateRequest.
 func TestPKIXName(t *testing.T) {
-	var cr = &CertificateRequest{
+	cr := &CertificateRequest{
 		CN: "Test Common Name",
 		Names: []Name{
 			{
@@ -102,7 +102,7 @@ func TestPKIXName(t *testing.T) {
 // TestParseRequest ensures that a valid certificate request does not
 // error.
 func TestParseRequest(t *testing.T) {
-	var cr = &CertificateRequest{
+	cr := &CertificateRequest{
 		CN: "Test Common Name",
 		Names: []Name{
 			{
@@ -165,7 +165,7 @@ func TestParseRequest(t *testing.T) {
 // TestParseRequestCA ensures that a valid CA certificate request does not
 // error and the resulting CSR includes the BasicConstraint extension
 func TestParseRequestCA(t *testing.T) {
-	var cr = &CertificateRequest{
+	cr := &CertificateRequest{
 		CN: "Test Common Name",
 		Names: []Name{
 			{
@@ -226,7 +226,7 @@ func TestParseRequestCA(t *testing.T) {
 // with an unspecified pathlen does not error and the resulting CSR includes
 // the BasicConstraint extension
 func TestParseRequestCANoPathlen(t *testing.T) {
-	var cr = &CertificateRequest{
+	cr := &CertificateRequest{
 		CN: "Test Common Name",
 		Names: []Name{
 			{
@@ -506,7 +506,7 @@ func TestBadKeyRequest(t *testing.T) {
 // TestDefaultKeyRequest makes sure that certificate requests without
 // explicit key requests fall back to the default key request.
 func TestDefaultKeyRequest(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -550,7 +550,7 @@ func TestDefaultKeyRequest(t *testing.T) {
 // TestRSACertRequest validates parsing a certificate request with an
 // RSA key.
 func TestRSACertRequest(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -573,7 +573,7 @@ func TestRSACertRequest(t *testing.T) {
 // TestED25519CertRequest validates parsing a certificate request with an
 // ED25519 key.
 func TestED25519CertRequest(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -595,7 +595,7 @@ func TestED25519CertRequest(t *testing.T) {
 
 // TestBadCertRequest checks for failure conditions of ParseRequest.
 func TestBadCertRequest(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -630,7 +630,7 @@ func testValidator(req *CertificateRequest) error {
 // and returns a certificate request and key.
 func TestGenerator(t *testing.T) {
 	g := &Generator{testValidator}
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -679,7 +679,6 @@ func TestGenerator(t *testing.T) {
 	if len(csr.URIs) != 1 {
 		t.Fatal("SAN parsing error")
 	}
-
 }
 
 // TestBadGenerator ensures that a request that fails the validator is
@@ -769,7 +768,7 @@ func TestIsNameEmpty(t *testing.T) {
 }
 
 func TestGenerate(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -822,7 +821,7 @@ func TestGenerate(t *testing.T) {
 }
 
 func TestGenerateASN1(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -877,7 +876,7 @@ func TestGenerateASN1(t *testing.T) {
 // TestReGenerate ensures Regenerate() is abel to use the provided CSR as a template for signing a new
 // CSR using priv.
 func TestReGenerate(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -920,7 +919,7 @@ func TestReGenerate(t *testing.T) {
 // TestBadReGenerator ensures that a request that fails the ParseCSR is
 // not processed.
 func TestBadReGenerate(t *testing.T) {
-	var req = &CertificateRequest{
+	req := &CertificateRequest{
 		Names: []Name{
 			{
 				C:  "US",
@@ -1003,7 +1002,7 @@ func TestExtractCertificateRequest(t *testing.T) {
 
 // TestDelegationCSR tests that we create requests with the DC extension
 func TestDelegationCSR(t *testing.T) {
-	var cr = &CertificateRequest{
+	cr := &CertificateRequest{
 		CN: "Test Common Name",
 		Names: []Name{
 			{

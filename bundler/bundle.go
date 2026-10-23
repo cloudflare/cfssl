@@ -25,7 +25,7 @@ type Bundle struct {
 	Chain       []*x509.Certificate
 	Cert        *x509.Certificate
 	Root        *x509.Certificate
-	Key         interface{}
+	Key         any
 	Issuer      *pkix.Name
 	Subject     *pkix.Name
 	Expires     time.Time
@@ -152,11 +152,11 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 	if len(b.Hostnames) == 0 {
 		b.buildHostnames()
 	}
-	var ocspSupport = false
+	ocspSupport := false
 	if b.Cert.OCSPServer != nil {
 		ocspSupport = true
 	}
-	var crlSupport = false
+	crlSupport := false
 	if b.Cert.CRLDistributionPoints != nil {
 		crlSupport = true
 	}
@@ -164,7 +164,7 @@ func (b *Bundle) MarshalJSON() ([]byte, error) {
 		rootBytes = b.Root.Raw
 	}
 
-	return json.Marshal(map[string]interface{}{
+	return json.Marshal(map[string]any{
 		"bundle":       chain(b.Chain),
 		"root":         PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: rootBytes}),
 		"crt":          PemBlockToString(&pem.Block{Type: "CERTIFICATE", Bytes: b.Cert.Raw}),

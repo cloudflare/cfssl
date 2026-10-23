@@ -35,8 +35,10 @@ Flags:
 `
 
 // Flags of 'cfssl sign'
-var signerFlags = []string{"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote",
-	"mutual-tls-cert", "mutual-tls-key", "db-config"}
+var signerFlags = []string{
+	"hostname", "csr", "ca", "ca-key", "config", "profile", "label", "remote",
+	"mutual-tls-cert", "mutual-tls-key", "db-config",
+}
 
 // SignerFromConfigAndDB takes the Config and creates the appropriate
 // signer.Signer object with a specified db

@@ -179,7 +179,7 @@ func nonZeroRandomBytes(s []byte, rand io.Reader) (err error) {
 		return
 	}
 
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		for s[i] == 0 {
 			_, err = io.ReadFull(rand, s[i:i+1])
 			if err != nil {
@@ -320,7 +320,7 @@ func pkcs1v15HashInfo(hash crypto.Hash, inLen int) (hashLen int, prefix []byte, 
 // needed.
 func copyWithLeftPad(dest, src []byte) {
 	numPaddingBytes := len(dest) - len(src)
-	for i := 0; i < numPaddingBytes; i++ {
+	for i := range numPaddingBytes {
 		dest[i] = 0
 	}
 	copy(dest[numPaddingBytes:], src)

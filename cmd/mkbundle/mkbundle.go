@@ -75,7 +75,7 @@ func worker(paths chan string, bundler chan *x509.Certificate, pool *sync.WaitGr
 // certificates have been processed.
 func supervisor(paths chan string, bundler chan *x509.Certificate, numWorkers int) {
 	var workerPool sync.WaitGroup
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		workerPool.Add(1)
 		go worker(paths, bundler, &workerPool)
 	}

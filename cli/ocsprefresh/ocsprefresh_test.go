@@ -50,7 +50,6 @@ func TestOCSPRefreshMain(t *testing.T) {
 		DBConfigFile:     "../testdata/db-config.json",
 		Interval:         helpers.OneDay,
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +84,6 @@ func TestOCSPRefreshMain(t *testing.T) {
 		DBConfigFile:     "../testdata/db-config.json",
 		Interval:         helpers.OneDay,
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}

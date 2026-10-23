@@ -8,9 +8,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 )
 
-var (
-	version = "dev"
-)
+var version = "dev"
 
 // Usage text for 'cfssl version'
 var versionUsageText = `cfssl version -- print out the version of CF SSL

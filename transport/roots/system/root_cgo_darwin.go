@@ -62,6 +62,7 @@ int FetchPEMRootsCFSSLTransport(CFDataRef *pemRoots) {
 }
 */
 import "C"
+
 import (
 	"crypto/x509"
 	"unsafe"

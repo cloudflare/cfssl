@@ -24,7 +24,7 @@ func main() {
 	flag.StringVar(&conf, "f", "client.json", "config `file` to use")
 	flag.Parse()
 
-	var id = new(core.Identity)
+	id := new(core.Identity)
 	data, err := os.ReadFile(conf)
 	if err != nil {
 		exlib.Err(1, err, "reading config file")

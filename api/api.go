@@ -171,14 +171,14 @@ type ResponseMessage struct {
 // responses.
 type Response struct {
 	Success  bool              `json:"success"`
-	Result   interface{}       `json:"result"`
+	Result   any               `json:"result"`
 	Errors   []ResponseMessage `json:"errors"`
 	Messages []ResponseMessage `json:"messages"`
 }
 
 // NewSuccessResponse is a shortcut for creating new successful API
 // responses.
-func NewSuccessResponse(result interface{}) Response {
+func NewSuccessResponse(result any) Response {
 	return Response{
 		Success:  true,
 		Result:   result,
@@ -189,7 +189,7 @@ func NewSuccessResponse(result interface{}) Response {
 
 // NewSuccessResponseWithMessage is a shortcut for creating new successul API
 // responses that includes a message.
-func NewSuccessResponseWithMessage(result interface{}, message string, code int) Response {
+func NewSuccessResponseWithMessage(result any, message string, code int) Response {
 	return Response{
 		Success:  true,
 		Result:   result,
@@ -211,7 +211,7 @@ func NewErrorResponse(message string, code int) Response {
 
 // SendResponse builds a response from the result, sets the JSON
 // header, and writes to the http.ResponseWriter.
-func SendResponse(w http.ResponseWriter, result interface{}) error {
+func SendResponse(w http.ResponseWriter, result any) error {
 	response := NewSuccessResponse(result)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
@@ -222,7 +222,7 @@ func SendResponse(w http.ResponseWriter, result interface{}) error {
 // SendResponseWithMessage builds a response from the result and the
 // provided message, sets the JSON header, and writes to the
 // http.ResponseWriter.
-func SendResponseWithMessage(w http.ResponseWriter, result interface{}, message string, code int) error {
+func SendResponseWithMessage(w http.ResponseWriter, result any, message string, code int) error {
 	response := NewSuccessResponseWithMessage(result, message, code)
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)

@@ -352,8 +352,8 @@ func TestSqliteRealResponse(t *testing.T) {
 	// Manually run the query "SELECT max(version_id) FROM goose_db_version;"
 	// on testdata/sqlite_test.db after running this test to verify that the
 	// DB was properly connected to.
-
 }
+
 func TestNewSqliteSource(t *testing.T) {
 	dbpath := "testdata/db-config.json"
 	_, err := NewSourceFromDB(dbpath)

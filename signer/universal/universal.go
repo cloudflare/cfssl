@@ -166,7 +166,6 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 		return s.remote.Sign(req)
 	}
 	return s.local.Sign(req)
-
 }
 
 // Info sends an info request to the remote or local CFSSL server
@@ -181,7 +180,6 @@ func (s *Signer) Info(req info.Req) (resp *info.Resp, err error) {
 		return s.remote.Info(req)
 	}
 	return s.local.Info(req)
-
 }
 
 // SetDBAccessor sets the signer's cert db accessor.

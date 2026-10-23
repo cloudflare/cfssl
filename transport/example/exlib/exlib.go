@@ -20,7 +20,7 @@ var Before = 5 * time.Minute
 // Err displays a formatting error message to standard error,
 // appending the error string, and exits with the status code from
 // `exit`, à la err(3).
-func Err(exit int, err error, format string, a ...interface{}) {
+func Err(exit int, err error, format string, a ...any) {
 	format = fmt.Sprintf("[%s] %s", progname, format)
 	format += ": %v\n"
 	a = append(a, err)
@@ -30,7 +30,7 @@ func Err(exit int, err error, format string, a ...interface{}) {
 
 // Errx displays a formatted error message to standard error and exits
 // with the status code from `exit`, à la errx(3).
-func Errx(exit int, format string, a ...interface{}) {
+func Errx(exit int, format string, a ...any) {
 	format = fmt.Sprintf("[%s] %s", progname, format)
 	format += "\n"
 	fmt.Fprintf(os.Stderr, format, a...)
@@ -39,7 +39,7 @@ func Errx(exit int, format string, a ...interface{}) {
 
 // Warn displays a formatted error message to standard output,
 // appending the error string, à la warn(3).
-func Warn(err error, format string, a ...interface{}) (int, error) {
+func Warn(err error, format string, a ...any) (int, error) {
 	format = fmt.Sprintf("[%s] %s", progname, format)
 	format += ": %v\n"
 	a = append(a, err)

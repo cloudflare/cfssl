@@ -299,16 +299,16 @@ func TestInvalidProfile(t *testing.T) {
 }
 
 func TestRemoteProfiles(t *testing.T) {
-	var validRemoteProfile = &SigningProfile{
+	validRemoteProfile := &SigningProfile{
 		RemoteName:   "localhost",
 		RemoteServer: "localhost:8080",
 	}
 
-	var invalidRemoteProfile = &SigningProfile{
+	invalidRemoteProfile := &SigningProfile{
 		RemoteName: "localhost",
 	}
 
-	var invalidRemoteAuthProfile = &SigningProfile{
+	invalidRemoteAuthProfile := &SigningProfile{
 		RemoteName:   "localhost",
 		RemoteServer: "localhost:8080",
 		AuthKeyName:  "blahblah",
@@ -363,7 +363,7 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	var validProfiles = []*SigningProfile{
+	validProfiles := []*SigningProfile{
 		{
 			ExpiryString: "8760h",
 		},
@@ -375,7 +375,7 @@ func TestParse(t *testing.T) {
 		},
 	}
 
-	var invalidProfiles = []*SigningProfile{
+	invalidProfiles := []*SigningProfile{
 		nil,
 		{},
 		{
@@ -406,7 +406,6 @@ func TestParse(t *testing.T) {
 			t.Fatalf("Nil profile should not be parsable")
 		}
 	}
-
 }
 
 func TestPopulateLintRegistry(t *testing.T) {
@@ -455,7 +454,8 @@ func TestLoadFile(t *testing.T) {
 }
 
 func TestLoadInvalidConfigFile(t *testing.T) {
-	invalidConfigFiles := []string{"", "testdata/no_such_file",
+	invalidConfigFiles := []string{
+		"", "testdata/no_such_file",
 		"testdata/invalid_default.json",
 		"testdata/invalid_profiles.json",
 		"testdata/invalid_usage.json",
@@ -475,7 +475,6 @@ func TestLoadInvalidConfigFile(t *testing.T) {
 }
 
 func TestNeedLocalSigner(t *testing.T) {
-
 	c, err := LoadConfig([]byte(validMixedConfig))
 	if err != nil {
 		t.Fatal("load valid config failed:", err)
@@ -535,7 +534,6 @@ func TestOverrideRemotes(t *testing.T) {
 			t.Fatal("failed to override profile's RemoteServer")
 		}
 	}
-
 }
 
 func TestAuthRemoteConfig(t *testing.T) {

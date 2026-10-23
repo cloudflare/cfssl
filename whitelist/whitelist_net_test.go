@@ -85,7 +85,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestFailPermitted(t *testing.T) {
-	var ip = []byte{0, 0}
+	ip := []byte{0, 0}
 	if testNet.Permitted(ip) {
 		t.Fatal("Expected failure checking invalid IP address.")
 	}

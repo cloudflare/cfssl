@@ -19,7 +19,6 @@ const (
 )
 
 func TestNewCRLFromFile(t *testing.T) {
-
 	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
 	if err != nil {
 		t.Fatal(err)

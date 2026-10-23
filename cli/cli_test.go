@@ -22,7 +22,6 @@ func TestHelp(t *testing.T) {
 	if !called {
 		t.Fatal("flag -help is not recognized correctly.")
 	}
-
 }
 
 // 'cfssl -badflag' should trigger parse error and usage invocation.
@@ -34,7 +33,6 @@ func TestUnknownFlag(t *testing.T) {
 	if !called {
 		t.Fatal("Bad flag is not caught.")
 	}
-
 }
 
 // 'cfssl badcommand' should trigger parse error and usage invocation.
@@ -115,7 +113,7 @@ func TestPopFirstArg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//test invalid argument
+	// test invalid argument
 	_, _, err = PopFirstArgument([]string{})
 	if err == nil {
 		t.Fatal("No argument given, should return error")

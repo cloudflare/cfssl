@@ -11,7 +11,7 @@ import (
 	"testing/quick"
 )
 
-var tests = []interface{}{
+var tests = []any{
 	&clientHelloMsg{},
 	&serverHelloMsg{},
 	&finishedMsg{},
@@ -29,7 +29,7 @@ var tests = []interface{}{
 type testMessage interface {
 	marshal() []byte
 	unmarshal([]byte) bool
-	equal(interface{}) bool
+	equal(any) bool
 }
 
 func TestMarshalUnmarshal(t *testing.T) {
@@ -69,7 +69,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 				// have parsable prefixes because the extension
 				// data is optional and the length of the
 				// Finished varies across versions.
-				for j := 0; j < len(marshaled); j++ {
+				for j := range marshaled {
 					if m2.unmarshal(marshaled[0:j]) {
 						t.Errorf("#%d unmarshaled a prefix of length %d of %#v", i, j, m1)
 						break
@@ -85,7 +85,7 @@ func TestFuzz(t *testing.T) {
 	for _, iface := range tests {
 		m := iface.(testMessage)
 
-		for j := 0; j < 1000; j++ {
+		for range 1000 {
 			len := rand.Intn(100)
 			bytes := randomBytes(len, rand)
 			// This just looks for crashes due to bounds errors etc.
@@ -96,7 +96,7 @@ func TestFuzz(t *testing.T) {
 
 func randomBytes(n int, rand *rand.Rand) []byte {
 	r := make([]byte, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r[i] = byte(rand.Int31())
 	}
 	return r
@@ -162,7 +162,7 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 
 		n := rand.Intn(10)
 		m.nextProtos = make([]string, n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			m.nextProtos[i] = randomString(20, rand)
 		}
 	}
@@ -190,7 +190,7 @@ func (*certificateMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateMsg{}
 	numCerts := rand.Intn(20)
 	m.certificates = make([][]byte, numCerts)
-	for i := 0; i < numCerts; i++ {
+	for i := range numCerts {
 		m.certificates[i] = randomBytes(rand.Intn(10)+1, rand)
 	}
 	return reflect.ValueOf(m)
@@ -201,7 +201,7 @@ func (*certificateRequestMsg) Generate(rand *rand.Rand, size int) reflect.Value 
 	m.certificateTypes = randomBytes(rand.Intn(5)+1, rand)
 	numCAs := rand.Intn(100)
 	m.certificateAuthorities = make([][]byte, numCAs)
-	for i := 0; i < numCAs; i++ {
+	for i := range numCAs {
 		m.certificateAuthorities[i] = randomBytes(rand.Intn(15)+1, rand)
 	}
 	return reflect.ValueOf(m)
@@ -255,7 +255,7 @@ func (*sessionState) Generate(rand *rand.Rand, size int) reflect.Value {
 	s.masterSecret = randomBytes(rand.Intn(100), rand)
 	numCerts := rand.Intn(20)
 	s.certificates = make([][]byte, numCerts)
-	for i := 0; i < numCerts; i++ {
+	for i := range numCerts {
 		s.certificates[i] = randomBytes(rand.Intn(10)+1, rand)
 	}
 	return reflect.ValueOf(s)

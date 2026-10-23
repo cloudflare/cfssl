@@ -57,14 +57,14 @@ func InclusiveDate(year int, month time.Month, day int) time.Time {
 
 // Jul2012 is the July 2012 CAB Forum deadline for when CAs must stop
 // issuing certificates valid for more than 5 years.
-var Jul2012 = InclusiveDate(2012, time.July, 01)
+var Jul2012 = InclusiveDate(2012, time.July, 0o1)
 
 // Apr2015 is the April 2015 CAB Forum deadline for when CAs must stop
 // issuing certificates valid for more than 39 months.
-var Apr2015 = InclusiveDate(2015, time.April, 01)
+var Apr2015 = InclusiveDate(2015, time.April, 0o1)
 
 // KeyLength returns the bit size of ECDSA, RSA or Ed25519 PublicKey
-func KeyLength(key interface{}) int {
+func KeyLength(key any) int {
 	if key == nil {
 		return 0
 	}
@@ -256,7 +256,6 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 		var cert []*x509.Certificate
 		cert, certsPEM, err = ParseOneCertificateFromPEM(certsPEM)
 		if err != nil {
-
 			return nil, cferr.New(cferr.CertificateError, cferr.ParseFailed)
 		} else if cert == nil {
 			break
@@ -276,7 +275,7 @@ func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certi
 	certsDER = bytes.TrimSpace(certsDER)
 	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
 	if err != nil {
-		var pkcs12data interface{}
+		var pkcs12data any
 		certs = make([]*x509.Certificate, 1)
 		pkcs12data, certs[0], err = pkcs12.Decode(certsDER, password)
 		if err != nil {
@@ -336,7 +335,6 @@ func ParseCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 // multiple certificates, from the top of certsPEM, which itself may
 // contain multiple PEM encoded certificate objects.
 func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, error) {
-
 	block, rest := pem.Decode(certsPEM)
 	if block == nil {
 		return nil, rest, nil
@@ -357,7 +355,7 @@ func ParseOneCertificateFromPEM(certsPEM []byte) ([]*x509.Certificate, []byte, e
 		}
 		return certs, rest, nil
 	}
-	var certs = []*x509.Certificate{cert}
+	certs := []*x509.Certificate{cert}
 	return certs, rest, nil
 }
 
@@ -468,7 +466,6 @@ func ParseCSRPEM(csrPEM []byte) (*x509.CertificateRequest, error) {
 		return nil, cferr.New(cferr.CSRError, cferr.DecodeFailed)
 	}
 	csrObject, err := x509.ParseCertificateRequest(block.Bytes)
-
 	if err != nil {
 		return nil, err
 	}

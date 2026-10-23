@@ -246,7 +246,6 @@ func TestRemoteSignBadServerAndOverride(t *testing.T) {
 	if err != nil {
 		t.Fatal("Fail to parse returned certificate:", err)
 	}
-
 }
 
 // helper functions
@@ -321,8 +320,8 @@ func closeTestServer(t *testing.T, ts *httptest.Server) {
 // newHandler generates a new sign handler (or info handler) using the certificate
 // authority private key and certficate to sign certificates.
 func newHandler(t *testing.T, caFile, caKeyFile, op string) (http.Handler, error) {
-	var expiry = 1 * time.Minute
-	var CAConfig = &config.Config{
+	expiry := 1 * time.Minute
+	CAConfig := &config.Config{
 		Signing: &config.Signing{
 			Profiles: map[string]*config.SigningProfile{
 				"signature": {

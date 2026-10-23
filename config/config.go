@@ -703,7 +703,7 @@ func LoadFile(path string) (*Config, error) {
 // LoadConfig attempts to load the configuration from a byte slice.
 // On error, it returns nil.
 func LoadConfig(config []byte) (*Config, error) {
-	var cfg = &Config{}
+	cfg := &Config{}
 	err := json.Unmarshal(config, &cfg)
 	if err != nil {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidPolicy,

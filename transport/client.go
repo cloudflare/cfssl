@@ -139,7 +139,7 @@ func (tr *Transport) TLSServerConfig() (*tls.Config, error) {
 // is longer than the certificate's lifetime, every update check will
 // trigger a new certificate to be generated.
 func New(before time.Duration, identity *core.Identity) (*Transport, error) {
-	var tr = &Transport{
+	tr := &Transport{
 		Before:   before,
 		Identity: identity,
 		Backoff:  &backoff.Backoff{},
@@ -253,7 +253,6 @@ func (tr *Transport) RefreshKeys() (err error) {
 		if tr.Provider.Persistent() {
 			log.Debug("storing the certificate")
 			err = tr.Provider.Store()
-
 			if err != nil {
 				log.Debugf("the provider failed to store the certificate: %v", err)
 				if tr.Provider.SignalFailure(err) {

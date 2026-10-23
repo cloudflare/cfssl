@@ -54,7 +54,7 @@ func testCRLCreation(t *testing.T, issuingKey, certFile string, expiry string, s
 	ts := newCRLServer(t)
 	defer ts.Close()
 
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 
 	if certFile != "" {
 		c, err := os.ReadFile(certFile)

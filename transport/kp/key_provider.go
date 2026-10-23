@@ -298,7 +298,7 @@ func (sp *StandardProvider) Load() (err error) {
 		return
 	}
 
-	var clearKey = true
+	clearKey := true
 	defer func() {
 		if err != nil {
 			if clearKey {
@@ -409,12 +409,12 @@ func (sp *StandardProvider) Store() error {
 		return errors.New("transport: provider does not have a key and certificate")
 	}
 
-	err := os.WriteFile(sp.Paths.CertFile, sp.internal.certPEM, 0644)
+	err := os.WriteFile(sp.Paths.CertFile, sp.internal.certPEM, 0o644)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(sp.Paths.KeyFile, sp.internal.keyPEM, 0600)
+	return os.WriteFile(sp.Paths.KeyFile, sp.internal.keyPEM, 0o600)
 }
 
 // X509KeyPair returns a tls.Certificate for the provider.

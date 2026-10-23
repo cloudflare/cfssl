@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -296,10 +297,5 @@ func mustReadCertificate(t *testing.T, filename string) *x509.Certificate {
 }
 
 func containsString(values []string, want string) bool {
-	for _, value := range values {
-		if value == want {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(values, want)
 }

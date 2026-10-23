@@ -22,7 +22,7 @@ func main() {
 	flag.StringVar(&conf, "f", "server.json", "config `file` to use")
 	flag.Parse()
 
-	var id = new(core.Identity)
+	id := new(core.Identity)
 	data, err := os.ReadFile(conf)
 	if err != nil {
 		exlib.Err(1, err, "reading config file")
@@ -43,7 +43,7 @@ func main() {
 		exlib.Err(1, err, "setting up listener")
 	}
 
-	var errChan = make(chan error, 0)
+	errChan := make(chan error, 0)
 	go func(ec <-chan error) {
 		for {
 			err, ok := <-ec
