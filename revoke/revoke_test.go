@@ -229,3 +229,18 @@ func TestNoOCSPServers(t *testing.T) {
 		t.Fatalf("OCSP falsely registered as enabled for this certificate")
 	}
 }
+
+func TestNoFailOnUnreachableCRLHost(t *testing.T) {
+	cert := mustParse(goodComodoCA)
+	cert.CRLDistributionPoints[0] = "http://crl.unreachablehost.com/nocrl"
+	if revoked, ok, err := VerifyCertificateError(cert); ok || revoked {
+		t.Fatalf("Fetching error encountered %v", err)
+	}
+
+	NoFailOnUnreachableCRLHost = true
+	if revoked, ok, err := VerifyCertificateError(cert); !ok || revoked {
+		t.Fatalf("Fetching error encountered, unreachable host skipped %v, %v, %v", revoked, ok, err)
+	}
+
+	NoFailOnUnreachableCRLHost = false
+}
