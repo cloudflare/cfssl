@@ -6,3 +6,4 @@ bin
 *.rpm
 test
 .DS_Store
+*.exe
