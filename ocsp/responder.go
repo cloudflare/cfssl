@@ -280,22 +280,13 @@ func (rs Responder) ServeHTTP(response http.ResponseWriter, request *http.Reques
 	var err error
 	switch request.Method {
 	case "GET":
-		base64Request, err := url.QueryUnescape(request.URL.Path)
+		base64Request, err := url.PathUnescape(request.URL.Path)
 		if err != nil {
 			log.Debugf("Error decoding URL: %s", request.URL.Path)
 			response.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// url.QueryUnescape not only unescapes %2B escaping, but it additionally
-		// turns the resulting '+' into a space, which makes base64 decoding fail.
-		// So we go back afterwards and turn ' ' back into '+'. This means we
-		// accept some malformed input that includes ' ' or %20, but that's fine.
 		base64RequestBytes := []byte(base64Request)
-		for i := range base64RequestBytes {
-			if base64RequestBytes[i] == ' ' {
-				base64RequestBytes[i] = '+'
-			}
-		}
 		// In certain situations a UA may construct a request that has a double
 		// slash between the host name and the base64 request body due to naively
 		// constructing the request URL. In that case strip the leading slash
