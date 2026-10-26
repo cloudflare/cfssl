@@ -38,7 +38,9 @@ type server struct {
 // are used by the remote.
 type Remote interface {
 	AuthSign(req, id []byte, provider auth.Provider) ([]byte, error)
+	BundleAuthSign(req, id []byte, provider auth.Provider) ([]byte, []byte, error)
 	Sign(jsonData []byte) ([]byte, error)
+	BundleSign(jsonData []byte) ([]byte, []byte, error)
 	Info(jsonData []byte) (*info.Resp, error)
 	Hosts() []string
 	SetReqModifier(func(*http.Request, []byte))
@@ -190,7 +192,18 @@ func (srv *server) post(url string, jsonData []byte) (*api.Response, error) {
 // It takes the serialized JSON request to send, remote address and
 // authentication provider.
 func (srv *server) AuthSign(req, id []byte, provider auth.Provider) ([]byte, error) {
-	return srv.authReq(req, id, provider, "sign")
+	_, cert, err := srv.authReq(req, id, provider, "sign", false)
+	return cert, err
+}
+
+// BundleAuthSign fills out an authenticated signing request to the server,
+// receiving a signed certificate in an "optimal" bundle, the root CA
+// (if provided by the API) or an error in response.
+// It takes the serialized JSON request to send which is required to
+// have the bundle parameter set to true, remote address and authentication
+// provider.
+func (srv *server) BundleAuthSign(req, id []byte, provider auth.Provider) ([]byte, []byte, error) {
+	return srv.authReq(req, id, provider, "sign", true)
 }
 
 // AuthInfo fills out an authenticated info request to the server,
@@ -198,18 +211,19 @@ func (srv *server) AuthSign(req, id []byte, provider auth.Provider) ([]byte, err
 // It takes the serialized JSON request to send, remote address and
 // authentication provider.
 func (srv *server) AuthInfo(req, id []byte, provider auth.Provider) ([]byte, error) {
-	return srv.authReq(req, id, provider, "info")
+	_, cert, err := srv.authReq(req, id, provider, "info", false)
+	return cert, err
 }
 
 // authReq is the common logic for AuthSign and AuthInfo -- perform the given
 // request, and return the resultant certificate.
 // The target is either 'sign' or 'info'.
-func (srv *server) authReq(req, ID []byte, provider auth.Provider, target string) ([]byte, error) {
+func (srv *server) authReq(req, ID []byte, provider auth.Provider, target string, returnBundle bool) ([]byte, []byte, error) {
 	url := srv.getURL("auth" + target)
 
 	token, err := provider.Token(req)
 	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.AuthenticationFailure, err)
+		return nil, nil, errors.Wrap(errors.APIClientError, errors.AuthenticationFailure, err)
 	}
 
 	aReq := &auth.AuthenticatedRequest{
@@ -221,32 +235,54 @@ func (srv *server) authReq(req, ID []byte, provider auth.Provider, target string
 
 	jsonData, err := json.Marshal(aReq)
 	if err != nil {
-		return nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
+		return nil, nil, errors.Wrap(errors.APIClientError, errors.JSONError, err)
 	}
 
 	response, err := srv.post(url, jsonData)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	result, ok := response.Result.(map[string]interface{})
 	if !ok {
-		return nil, errors.New(errors.APIClientError, errors.JSONError)
+		return nil, nil, errors.New(errors.APIClientError, errors.JSONError)
 	}
 
-	cert, ok := result["certificate"].(string)
+	var ca, cert string
+	if returnBundle {
+		bundle, okBundle := result["bundle"].(map[string]interface{})
+		if !okBundle {
+			return nil, nil, errors.New(errors.APIClientError, errors.JSONError)
+		}
+		cert, ok = bundle["bundle"].(string)
+		// The API docs are not clear if root is always returned.
+		// So make sure to not panic and return the bundle even if root is not returned.
+		ca, _ = bundle["root"].(string)
+	} else {
+		cert, ok = result["certificate"].(string)
+	}
 	if !ok {
-		return nil, errors.New(errors.APIClientError, errors.JSONError)
+		return nil, nil, errors.New(errors.APIClientError, errors.JSONError)
 	}
 
-	return []byte(cert), nil
+	return []byte(ca), []byte(cert), nil
 }
 
 // Sign sends a signature request to the remote CFSSL server,
 // receiving a signed certificate or an error in response.
 // It takes the serialized JSON request to send.
 func (srv *server) Sign(jsonData []byte) ([]byte, error) {
-	return srv.request(jsonData, "sign")
+	_, cert, err := srv.request(jsonData, "sign", false)
+	return cert, err
+}
+
+// BundleSign sends a signature request to the remote CFSSL server,
+// receiving a signed certificate in an "optimal" bundle, the root CA
+// (if provided by the API) or an error in response.
+// It takes the serialized JSON request to send which is required to
+// have the bundle parameter set to true.
+func (srv *server) BundleSign(jsonData []byte) ([]byte, []byte, error) {
+	return srv.request(jsonData, "sign", true)
 }
 
 // Info sends an info request to the remote CFSSL server, receiving a
@@ -294,18 +330,33 @@ func (srv *server) getResultMap(jsonData []byte, target string) (result map[stri
 }
 
 // request performs the common logic for Sign and Info, performing the actual
-// request and returning the resultant certificate.
-func (srv *server) request(jsonData []byte, target string) ([]byte, error) {
+// request and returning the resultant certificate or bundle.
+func (srv *server) request(jsonData []byte, target string, returnBundle bool) ([]byte, []byte, error) {
 	result, err := srv.getResultMap(jsonData, target)
 	if err != nil {
-		return nil, err
-	}
-	cert := result["certificate"].(string)
-	if cert != "" {
-		return []byte(cert), nil
+		return nil, nil, err
 	}
 
-	return nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New("response doesn't contain certificate."))
+	var ca, cert, key string
+	if returnBundle {
+		key = "bundle"
+		bundle, okBundle := result[key].(map[string]interface{})
+		if okBundle {
+			cert = bundle[key].(string)
+			// The API docs are not clear if root is always returned.
+			// So make sure to not panic and return the bundle even if root is not returned.
+			ca, _ = bundle["root"].(string)
+		}
+	} else {
+		key = "certificate"
+		cert = result[key].(string)
+	}
+
+	if cert != "" {
+		return []byte(ca), []byte(cert), nil
+	}
+
+	return nil, nil, errors.Wrap(errors.APIClientError, errors.ClientHTTPError, stderr.New(fmt.Sprintf("response doesn't contain %s.", key)))
 }
 
 // AuthRemote acts as a Remote with a default Provider for AuthSign.
@@ -327,6 +378,11 @@ func NewAuthServer(addr string, tlsConfig *tls.Config, provider auth.Provider) *
 // Sign is overloaded to perform an AuthSign request using the default auth provider.
 func (ar *AuthRemote) Sign(req []byte) ([]byte, error) {
 	return ar.AuthSign(req, nil, ar.provider)
+}
+
+// BundleSign is overloaded to perform an BundleAuthSign request using the default auth provider.
+func (ar *AuthRemote) BundleSign(req []byte) ([]byte, []byte, error) {
+	return ar.BundleAuthSign(req, nil, ar.provider)
 }
 
 // normalizeURL checks for http/https protocol, appends "http" as default protocol if not defined in url
