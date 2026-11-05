@@ -69,6 +69,10 @@ const (
 // and checks that the signature verifies under the certificate's public key.
 // It then discards the signature.
 //
+// RenewFromSigner and RenewFromPEM reject unsigned certificates. To reissue
+// an unsigned root, call NewUnsignedFromSigner again with the same raw
+// subject and private key.
+//
 // Relying parties that don't implement RFC 9925 may not accept an unsigned
 // certificate as a trust anchor; for example, OpenSSL 3.6 doesn't treat it as
 // self-signed and fails path building unless partial-chain verification is
@@ -135,6 +139,10 @@ func NewUnsigned(req *csr.CertificateRequest, rawSubject []byte) (cert, key []by
 // checks that the signature verifies under the certificate's public key. If
 // it does not, because priv does not hold the matching private key or is
 // faulty, it returns a KeyMismatch error. It then discards the signature.
+//
+// RenewFromSigner and RenewFromPEM reject unsigned certificates. To reissue
+// an unsigned root, call NewUnsignedFromSigner again with the same raw
+// subject and private key.
 func NewUnsignedFromSigner(req *csr.CertificateRequest, rawSubject []byte, priv crypto.Signer) ([]byte, error) {
 	profile, err := prepareUnsigned(req, rawSubject)
 	if err != nil {
