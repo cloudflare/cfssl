@@ -103,13 +103,16 @@ func (s *Subject) Name() pkix.Name {
 }
 
 // SplitHosts takes a comma-spearated list of hosts and returns a slice
-// with the hosts split
+// with the hosts split. Surrounding whitespace is trimmed and empty entries
+// are dropped, so "a.com, b.com," yields ["a.com", "b.com"].
 func SplitHosts(hostList string) []string {
-	if hostList == "" {
-		return nil
+	var hosts []string
+	for _, host := range strings.Split(hostList, ",") {
+		if host = strings.TrimSpace(host); host != "" {
+			hosts = append(hosts, host)
+		}
 	}
-
-	return strings.Split(hostList, ",")
+	return hosts
 }
 
 // A Signer contains a CA's certificate and private key for signing
