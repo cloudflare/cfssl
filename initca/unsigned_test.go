@@ -111,6 +111,31 @@ func (s mismatchedSigner) Public() crypto.PublicKey {
 	return s.public
 }
 
+// swappingSigner signs with its embedded key but reports decoy as its public
+// key until it is asked to sign, and the embedded key's public key after.
+type swappingSigner struct {
+	crypto.Signer
+	decoy  crypto.PublicKey
+	signed bool
+}
+
+func (s *swappingSigner) Public() crypto.PublicKey {
+	if s.signed {
+		return s.Signer.Public()
+	}
+	return s.decoy
+}
+
+func (s *swappingSigner) Sign(random io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	s.signed = true
+	return s.Signer.Sign(random, digest, opts)
+}
+
+func (s *swappingSigner) SignMessage(random io.Reader, msg []byte, opts crypto.SignerOpts) ([]byte, error) {
+	s.signed = true
+	return crypto.SignMessage(s.Signer, random, msg, opts)
+}
+
 // failingSigner reports the public key of its embedded key but fails to sign
 // with err.
 type failingSigner struct {
@@ -781,18 +806,28 @@ func TestNewUnsigned_RejectsInvalidRawName(t *testing.T) {
 func TestNewUnsignedFromSigner_RejectsMismatchedKey(t *testing.T) {
 	useCAPolicy(t, defaultCAPolicy)
 	rawSubject := taiName(t, trustAnchorArcs...)
-	for _, request := range []csr.KeyRequest{{A: "ecdsa", S: 256}, {A: "ed25519"}, {A: "mldsa44"}} {
-		t.Run(request.Algo(), func(t *testing.T) {
-			priv := mismatchedSigner{
-				Signer: generateSigner(t, request),
-				public: generateSigner(t, request).Public(),
-			}
-			cert, err := NewUnsignedFromSigner(&csr.CertificateRequest{}, rawSubject, priv)
-			requireErrorCode(t, err, codeKeyMismatch)
-			if cert != nil {
-				t.Errorf("returned cert %q, want nil", cert)
-			}
-		})
+	signers := []struct {
+		name string
+		wrap func(priv crypto.Signer, other crypto.PublicKey) crypto.Signer
+	}{
+		{"reports another key", func(priv crypto.Signer, other crypto.PublicKey) crypto.Signer {
+			return mismatchedSigner{Signer: priv, public: other}
+		}},
+		{"reports another key until it signs", func(priv crypto.Signer, other crypto.PublicKey) crypto.Signer {
+			return &swappingSigner{Signer: priv, decoy: other}
+		}},
+	}
+	for _, request := range []csr.KeyRequest{{A: "ecdsa", S: 256}, {A: "ed25519"}, {A: "mldsa44"}, {A: "rsa", S: 2048}} {
+		for _, s := range signers {
+			t.Run(request.Algo()+"/"+s.name, func(t *testing.T) {
+				priv := s.wrap(generateSigner(t, request), generateSigner(t, request).Public())
+				cert, err := NewUnsignedFromSigner(&csr.CertificateRequest{}, rawSubject, priv)
+				requireErrorCode(t, err, codeKeyMismatch)
+				if cert != nil {
+					t.Errorf("returned cert %q, want nil", cert)
+				}
+			})
+		}
 	}
 }
 

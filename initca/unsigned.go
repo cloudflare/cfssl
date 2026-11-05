@@ -132,9 +132,9 @@ func NewUnsigned(req *csr.CertificateRequest, rawSubject []byte) (cert, key []by
 // names.
 //
 // Before returning, NewUnsignedFromSigner signs the certificate with priv and
-// checks that the signature verifies under priv.Public(). If it does not,
-// because priv does not hold the matching private key or is faulty, it
-// returns a KeyMismatch error. It then discards the signature.
+// checks that the signature verifies under the certificate's public key. If
+// it does not, because priv does not hold the matching private key or is
+// faulty, it returns a KeyMismatch error. It then discards the signature.
 func NewUnsignedFromSigner(req *csr.CertificateRequest, rawSubject []byte, priv crypto.Signer) ([]byte, error) {
 	profile, err := prepareUnsigned(req, rawSubject)
 	if err != nil {
@@ -301,7 +301,9 @@ func createUnsigned(profile *config.SigningProfile, rawSubject []byte, priv cryp
 		return nil, wrapError(cferr.CertificateError, cferr.Unknown, err)
 	}
 
-	// Fail closed even if CreateCertificate stops verifying the signature.
+	// CreateCertificate checks the signature against a fresh priv.Public(),
+	// not the key in the certificate, so a signer whose Public() changes
+	// while signing gets past it.
 	if err := checkPossession(der); err != nil {
 		return nil, err
 	}
