@@ -254,50 +254,8 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 		return
 	}
 
-	switch priv := priv.(type) {
-	case *rsa.PrivateKey:
-		key = x509.MarshalPKCS1PrivateKey(priv)
-		block := pem.Block{
-			Type:  "RSA PRIVATE KEY",
-			Bytes: key,
-		}
-		key = pem.EncodeToMemory(&block)
-	case *ecdsa.PrivateKey:
-		key, err = x509.MarshalECPrivateKey(priv)
-		if err != nil {
-			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
-			return
-		}
-		block := pem.Block{
-			Type:  "EC PRIVATE KEY",
-			Bytes: key,
-		}
-		key = pem.EncodeToMemory(&block)
-	case ed25519.PrivateKey:
-		key, err = derhelpers.MarshalEd25519PrivateKey(priv)
-		if err != nil {
-			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
-			return
-		}
-		block := pem.Block{
-			Type:  "Ed25519 PRIVATE KEY",
-			Bytes: key,
-		}
-		key = pem.EncodeToMemory(&block)
-	case *mldsa.PrivateKey:
-		key, err = x509.MarshalPKCS8PrivateKey(priv)
-		if err != nil {
-			err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
-			return
-		}
-		block := pem.Block{
-			Type:  "PRIVATE KEY",
-			Bytes: key,
-		}
-		key = pem.EncodeToMemory(&block)
-	default:
-		err = cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown,
-			fmt.Errorf("unsupported generated private key type %T", priv))
+	key, err = MarshalPrivateKeyPEM(priv)
+	if err != nil {
 		return
 	}
 
@@ -307,6 +265,40 @@ func ParseRequest(req *CertificateRequest) (csr, key []byte, err error) {
 		err = cferr.Wrap(cferr.CSRError, cferr.BadRequest, err)
 	}
 	return
+}
+
+// MarshalPrivateKeyPEM PEM-encodes priv in the format that ParseRequest uses
+// for the keys it generates: PKCS #1 ("RSA PRIVATE KEY") for RSA, SEC 1
+// ("EC PRIVATE KEY") for ECDSA, "Ed25519 PRIVATE KEY" for Ed25519 and
+// PKCS #8 ("PRIVATE KEY") for ML-DSA. Other key types are rejected.
+func MarshalPrivateKeyPEM(priv crypto.PrivateKey) ([]byte, error) {
+	var block pem.Block
+	switch priv := priv.(type) {
+	case *rsa.PrivateKey:
+		block = pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}
+	case *ecdsa.PrivateKey:
+		der, err := x509.MarshalECPrivateKey(priv)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+		}
+		block = pem.Block{Type: "EC PRIVATE KEY", Bytes: der}
+	case ed25519.PrivateKey:
+		der, err := derhelpers.MarshalEd25519PrivateKey(priv)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+		}
+		block = pem.Block{Type: "Ed25519 PRIVATE KEY", Bytes: der}
+	case *mldsa.PrivateKey:
+		der, err := x509.MarshalPKCS8PrivateKey(priv)
+		if err != nil {
+			return nil, cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown, err)
+		}
+		block = pem.Block{Type: "PRIVATE KEY", Bytes: der}
+	default:
+		return nil, cferr.Wrap(cferr.PrivateKeyError, cferr.Unknown,
+			fmt.Errorf("unsupported generated private key type %T", priv))
+	}
+	return pem.EncodeToMemory(&block), nil
 }
 
 // ExtractCertificateRequest extracts a CertificateRequest from

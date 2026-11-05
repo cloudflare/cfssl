@@ -1,21 +1,26 @@
 package csr
 
 import (
+	"bytes"
 	"crypto"
+	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/mldsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
+	"github.com/cloudflare/cfssl/helpers/derhelpers"
 )
 
 // TestNew validate the CertificateRequest created to return with a KeyRequest
@@ -1045,5 +1050,126 @@ func TestDelegationCSR(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("generated csr has no extension")
+	}
+}
+
+func marshalPKCS8(priv crypto.PrivateKey) ([]byte, error) {
+	return x509.MarshalPKCS8PrivateKey(priv)
+}
+
+func TestMarshalPrivateKeyPEM_EncodesSupportedKeys(t *testing.T) {
+	tests := []struct {
+		name     string
+		request  KeyRequest
+		wantType string
+		marshal  func(crypto.PrivateKey) ([]byte, error)
+	}{
+		{"rsa-2048", KeyRequest{A: "rsa", S: 2048}, "RSA PRIVATE KEY", func(priv crypto.PrivateKey) ([]byte, error) {
+			return x509.MarshalPKCS1PrivateKey(priv.(*rsa.PrivateKey)), nil
+		}},
+		{"ecdsa-256", KeyRequest{A: "ecdsa", S: 256}, "EC PRIVATE KEY", func(priv crypto.PrivateKey) ([]byte, error) {
+			return x509.MarshalECPrivateKey(priv.(*ecdsa.PrivateKey))
+		}},
+		{"ecdsa-384", KeyRequest{A: "ecdsa", S: 384}, "EC PRIVATE KEY", func(priv crypto.PrivateKey) ([]byte, error) {
+			return x509.MarshalECPrivateKey(priv.(*ecdsa.PrivateKey))
+		}},
+		{"ecdsa-521", KeyRequest{A: "ecdsa", S: 521}, "EC PRIVATE KEY", func(priv crypto.PrivateKey) ([]byte, error) {
+			return x509.MarshalECPrivateKey(priv.(*ecdsa.PrivateKey))
+		}},
+		{"ed25519", KeyRequest{A: "ed25519"}, "Ed25519 PRIVATE KEY", derhelpers.MarshalEd25519PrivateKey},
+		{"mldsa44", KeyRequest{A: "mldsa44"}, "PRIVATE KEY", marshalPKCS8},
+		{"mldsa65", KeyRequest{A: "mldsa65"}, "PRIVATE KEY", marshalPKCS8},
+		{"mldsa87", KeyRequest{A: "mldsa87"}, "PRIVATE KEY", marshalPKCS8},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			priv, err := tt.request.Generate()
+			if err != nil {
+				t.Fatalf("Generate() error = %v", err)
+			}
+
+			got, err := MarshalPrivateKeyPEM(priv)
+			if err != nil {
+				t.Fatalf("MarshalPrivateKeyPEM() error = %v", err)
+			}
+			block, rest := pem.Decode(got)
+			if block == nil || len(rest) != 0 {
+				t.Fatalf("MarshalPrivateKeyPEM() = %q, want exactly one PEM block", got)
+			}
+			if block.Type != tt.wantType {
+				t.Errorf("PEM type = %q, want %q", block.Type, tt.wantType)
+			}
+			wantDER, err := tt.marshal(priv)
+			if err != nil {
+				t.Fatalf("marshaling key: %v", err)
+			}
+			if !bytes.Equal(block.Bytes, wantDER) {
+				t.Errorf("PEM bytes = % x, want % x", block.Bytes, wantDER)
+			}
+
+			parsed, err := helpers.ParsePrivateKeyPEM(got)
+			if err != nil {
+				t.Fatalf("helpers.ParsePrivateKeyPEM() error = %v", err)
+			}
+			if !parsed.(interface{ Equal(crypto.PrivateKey) bool }).Equal(priv) {
+				t.Errorf("parsed key does not equal the marshaled key")
+			}
+		})
+	}
+}
+
+func TestMarshalPrivateKeyPEM_RejectsUnsupportedKeys(t *testing.T) {
+	ecdhKey, err := ecdh.P256().GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("generating ECDH key: %v", err)
+	}
+	tests := []struct {
+		name string
+		priv crypto.PrivateKey
+	}{
+		{"nil", nil},
+		{"ECDH key", ecdhKey},
+		{"not a key", struct{}{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := MarshalPrivateKeyPEM(tt.priv)
+			if err == nil {
+				t.Fatalf("MarshalPrivateKeyPEM() = %q, want error", got)
+			}
+			if !strings.Contains(err.Error(), `"code":2000`) {
+				t.Errorf("got error %v, want code 2000", err)
+			}
+			if got != nil {
+				t.Errorf("MarshalPrivateKeyPEM() = %q, want nil", got)
+			}
+		})
+	}
+}
+
+func TestParseRequest_KeyMatchesMarshalPrivateKeyPEM(t *testing.T) {
+	for _, request := range []KeyRequest{
+		{A: "rsa", S: 2048},
+		{A: "ecdsa", S: 256},
+		{A: "ed25519"},
+		{A: "mldsa44"},
+	} {
+		t.Run(request.Algo(), func(t *testing.T) {
+			_, key, err := ParseRequest(&CertificateRequest{CN: "Test Common Name", KeyRequest: &request})
+			if err != nil {
+				t.Fatalf("ParseRequest() error = %v", err)
+			}
+			priv, err := helpers.ParsePrivateKeyPEM(key)
+			if err != nil {
+				t.Fatalf("helpers.ParsePrivateKeyPEM() error = %v", err)
+			}
+			remarshaled, err := MarshalPrivateKeyPEM(priv)
+			if err != nil {
+				t.Fatalf("MarshalPrivateKeyPEM() error = %v", err)
+			}
+			if !bytes.Equal(remarshaled, key) {
+				t.Errorf("MarshalPrivateKeyPEM() = %q, want ParseRequest's key %q", remarshaled, key)
+			}
+		})
 	}
 }
