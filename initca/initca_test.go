@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -459,6 +460,50 @@ func TestRenewMLDSA(t *testing.T) {
 			}
 			if !renewedPublicKey.Equal(cert.PublicKey) {
 				t.Fatal("renewal changed the public key")
+			}
+		})
+	}
+}
+
+func TestRenew_RejectsUnsignedRoot(t *testing.T) {
+	useCAPolicy(t, defaultCAPolicy)
+	tests := []struct {
+		name       string
+		rawSubject []byte
+	}{
+		{"trust anchor ID subject", taiName(t, trustAnchorArcs...)},
+		{"common name subject", commonNameDER(t, testCommonName)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			certPEM, keyPEM, err := NewUnsigned(&csr.CertificateRequest{}, tt.rawSubject)
+			if err != nil {
+				t.Fatalf("NewUnsigned() error = %v", err)
+			}
+			priv, err := helpers.ParsePrivateKeyPEM(keyPEM)
+			if err != nil {
+				t.Fatalf("helpers.ParsePrivateKeyPEM() error = %v", err)
+			}
+
+			renewed, err := RenewFromSigner(parseSingleCertificatePEM(t, certPEM), priv)
+			requireErrorCode(t, err, codeInvalidRequest)
+			if renewed != nil {
+				t.Errorf("RenewFromSigner() returned cert %q, want nil", renewed)
+			}
+
+			dir := t.TempDir()
+			caFile := filepath.Join(dir, "ca.pem")
+			keyFile := filepath.Join(dir, "ca-key.pem")
+			if err := os.WriteFile(caFile, certPEM, 0o600); err != nil {
+				t.Fatalf("writing CA certificate: %v", err)
+			}
+			if err := os.WriteFile(keyFile, keyPEM, 0o600); err != nil {
+				t.Fatalf("writing CA key: %v", err)
+			}
+			renewed, err = RenewFromPEM(caFile, keyFile)
+			requireErrorCode(t, err, codeInvalidRequest)
+			if renewed != nil {
+				t.Errorf("RenewFromPEM() returned cert %q, want nil", renewed)
 			}
 		})
 	}

@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"time"
@@ -22,6 +23,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
+	"golang.org/x/crypto/cryptobyte"
+	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
 )
 
 // validator contains the default validation logic for certificate
@@ -121,7 +124,8 @@ func NewFromPEM(req *csr.CertificateRequest, keyFile string) (cert, csrPEM []byt
 // files. The resulting root certificate will have the input CA certificate
 // as the template and have the same expiry length. E.g. the existing CA
 // is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
-// will be valid from now and expire in one year as well.
+// will be valid from now and expire in one year as well. Like RenewFromSigner,
+// it rejects RFC 9925 unsigned certificates.
 func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 	caBytes, err := helpers.ReadBytes(caFile)
 	if err != nil {
@@ -187,7 +191,14 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 // as the template and have the same expiry length. E.g. the existing CA
 // is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
 // will be valid from now and expire in one year as well.
+// RFC 9925 unsigned certificates are rejected, because a CertificateRequest
+// can't represent every raw subject they may have and renewing would sign them.
 func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
+	if isUnsigned(ca) {
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
+			errors.New("cannot renew an RFC 9925 unsigned certificate"))
+	}
+
 	if !ca.IsCA {
 		return nil, errors.New("input certificate is not a CA cert")
 	}
@@ -238,6 +249,17 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	cert, _, err := NewFromSigner(req, priv)
 	return cert, err
 
+}
+
+// isUnsigned reports whether cert is an RFC 9925 unsigned certificate, that
+// is, whether its signature algorithm is id-alg-unsigned.
+func isUnsigned(cert *x509.Certificate) bool {
+	input := cryptobyte.String(cert.RawSignatureAlgorithm)
+	var algorithm cryptobyte.String
+	var oid asn1.ObjectIdentifier
+	return input.ReadASN1(&algorithm, cbasn1.SEQUENCE) &&
+		algorithm.ReadASN1ObjectIdentifier(&oid) &&
+		oid.Equal(idAlgUnsigned)
 }
 
 // CAPolicy contains the CA issuing policy as default policy.
