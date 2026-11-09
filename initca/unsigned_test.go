@@ -444,6 +444,9 @@ func TestNewUnsigned_EncodesUnsignedSignature(t *testing.T) {
 			if root.cert.SignatureAlgorithm != x509.UnknownSignatureAlgorithm {
 				t.Errorf("parsed SignatureAlgorithm = %v, want UnknownSignatureAlgorithm", root.cert.SignatureAlgorithm)
 			}
+			if !helpers.IsUnsigned(root.cert) {
+				t.Error("helpers.IsUnsigned() = false, want true")
+			}
 		})
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"math"
 	"os"
@@ -379,6 +380,48 @@ func TestParseCertificatesPEM(t *testing.T) {
 			t.Fatal("Incorrectly-formatted file failed to produce an error")
 		}
 	}
+}
+
+func TestIsUnsigned(t *testing.T) {
+	signedPEM, err := os.ReadFile(testCertFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signed, err := ParseCertificatePEM(signedPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name string
+		cert *x509.Certificate
+		want bool
+	}{
+		{"id-alg-unsigned", &x509.Certificate{RawSignatureAlgorithm: mustHex(t, "300a06082b06010505070624")}, true},
+		{"id-alg-unsigned with NULL parameters", &x509.Certificate{RawSignatureAlgorithm: mustHex(t, "300c06082b060105050706240500")}, true},
+		{"ecdsa-with-SHA256", &x509.Certificate{RawSignatureAlgorithm: mustHex(t, "300a06082a8648ce3d040302")}, false},
+		{"prefix of id-alg-unsigned", &x509.Certificate{RawSignatureAlgorithm: mustHex(t, "300906072b060105050706")}, false},
+		{"truncated AlgorithmIdentifier", &x509.Certificate{RawSignatureAlgorithm: mustHex(t, "300a06082b060105050706")}, false},
+		{"not parsed from DER", &x509.Certificate{}, false},
+		{"nil", nil, false},
+		{"signed certificate", signed, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsUnsigned(tt.cert); got != tt.want {
+				t.Errorf("IsUnsigned() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func mustHex(t *testing.T, s string) []byte {
+	t.Helper()
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 func TestSelfSignedCertificatePEM(t *testing.T) {
