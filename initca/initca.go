@@ -84,7 +84,11 @@ func applyCAConfig(profile *config.SigningProfile, req *csr.CertificateRequest) 
 // New creates a new root certificate from the certificate request.
 func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	policy := CAPolicy()
-	if err = applyCAConfig(policy.Default, req); err != nil {
+	var profile *config.SigningProfile
+	if policy != nil {
+		profile = policy.Default
+	}
+	if err = applyCAConfig(profile, req); err != nil {
 		return
 	}
 

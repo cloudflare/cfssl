@@ -1058,22 +1058,28 @@ func TestNewUnsigned_ValidatesPolicyAfterApplyingCAConfig(t *testing.T) {
 
 func TestNewUnsigned_RejectsUnusableCAPolicy(t *testing.T) {
 	rawSubject := taiName(t, trustAnchorArcs...)
-	// sameAsNew marks the cases where New fails with the same code. For a nil
-	// policy, New falls back to the local signer's default configuration.
+	// wantNewCode is the code New fails with for the same policy. For a nil
+	// policy, New falls back to the local signer's default configuration,
+	// which does not issue CA certificates, so New returns InvalidRequest.
 	tests := []struct {
-		name      string
-		policy    *config.Signing
-		request   csr.KeyRequest
-		wantCode  int
-		sameAsNew bool
+		name        string
+		policy      *config.Signing
+		request     csr.KeyRequest
+		wantCode    int
+		wantNewCode int
 	}{
-		{name: "nil policy", request: csr.KeyRequest{A: "ecdsa", S: 256}, wantCode: codeInvalidPolicy},
 		{
-			name:      "nil default profile",
-			policy:    &config.Signing{},
-			request:   csr.KeyRequest{A: "ecdsa", S: 256},
-			wantCode:  codeInvalidPolicy,
-			sameAsNew: true,
+			name:        "nil policy",
+			request:     csr.KeyRequest{A: "ecdsa", S: 256},
+			wantCode:    codeInvalidPolicy,
+			wantNewCode: codeInvalidRequest,
+		},
+		{
+			name:        "nil default profile",
+			policy:      &config.Signing{},
+			request:     csr.KeyRequest{A: "ecdsa", S: 256},
+			wantCode:    codeInvalidPolicy,
+			wantNewCode: codeInvalidPolicy,
 		},
 		{
 			name: "no key usage valid for ML-DSA",
@@ -1082,9 +1088,9 @@ func TestNewUnsigned_RejectsUnusableCAPolicy(t *testing.T) {
 				Expiry:       time.Hour,
 				CAConstraint: config.CAConstraint{IsCA: true},
 			}},
-			request:   csr.KeyRequest{A: "mldsa44"},
-			wantCode:  codeNoKeyUsages,
-			sameAsNew: true,
+			request:     csr.KeyRequest{A: "mldsa44"},
+			wantCode:    codeNoKeyUsages,
+			wantNewCode: codeNoKeyUsages,
 		},
 		{
 			name: "no key usage valid for ML-DSA despite extended key usage",
@@ -1093,9 +1099,9 @@ func TestNewUnsigned_RejectsUnusableCAPolicy(t *testing.T) {
 				Expiry:       time.Hour,
 				CAConstraint: config.CAConstraint{IsCA: true},
 			}},
-			request:   csr.KeyRequest{A: "mldsa44"},
-			wantCode:  codeNoKeyUsages,
-			sameAsNew: true,
+			request:     csr.KeyRequest{A: "mldsa44"},
+			wantCode:    codeNoKeyUsages,
+			wantNewCode: codeNoKeyUsages,
 		},
 		{
 			name: "default profile without expiry",
@@ -1103,9 +1109,9 @@ func TestNewUnsigned_RejectsUnusableCAPolicy(t *testing.T) {
 				Usage:        []string{"cert sign", "crl sign"},
 				CAConstraint: config.CAConstraint{IsCA: true},
 			}},
-			request:   csr.KeyRequest{A: "ecdsa", S: 256},
-			wantCode:  codeInvalidPolicy,
-			sameAsNew: true,
+			request:     csr.KeyRequest{A: "ecdsa", S: 256},
+			wantCode:    codeInvalidPolicy,
+			wantNewCode: codeInvalidPolicy,
 		},
 		{
 			name: "profile does not issue CA certificates",
@@ -1113,9 +1119,9 @@ func TestNewUnsigned_RejectsUnusableCAPolicy(t *testing.T) {
 				Usage:  []string{"cert sign", "crl sign"},
 				Expiry: time.Hour,
 			}},
-			request:   csr.KeyRequest{A: "ecdsa", S: 256},
-			wantCode:  codeInvalidRequest,
-			sameAsNew: true,
+			request:     csr.KeyRequest{A: "ecdsa", S: 256},
+			wantCode:    codeInvalidRequest,
+			wantNewCode: codeInvalidRequest,
 		},
 	}
 	for _, tt := range tests {
@@ -1127,10 +1133,8 @@ func TestNewUnsigned_RejectsUnusableCAPolicy(t *testing.T) {
 				t.Errorf("returned cert %q and key %q, want nil", cert, key)
 			}
 
-			if tt.sameAsNew {
-				_, _, _, err := New(&csr.CertificateRequest{CN: testCommonName, KeyRequest: &tt.request})
-				requireErrorCode(t, err, tt.wantCode)
-			}
+			_, _, _, err = New(&csr.CertificateRequest{CN: testCommonName, KeyRequest: &tt.request})
+			requireErrorCode(t, err, tt.wantNewCode)
 		})
 	}
 }
