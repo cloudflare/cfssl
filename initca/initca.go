@@ -48,35 +48,47 @@ func validator(req *csr.CertificateRequest) error {
 	return nil
 }
 
-// New creates a new root certificate from the certificate request.
-func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
-	policy := CAPolicy()
+// applyCAConfig applies the CA settings and CRL distribution point of req to
+// profile. It returns the error from parsing req.CA.Expiry or
+// req.CA.Backdate unchanged.
+func applyCAConfig(profile *config.SigningProfile, req *csr.CertificateRequest) error {
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
-			policy.Default.ExpiryString = req.CA.Expiry
-			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			expiry, err := time.ParseDuration(req.CA.Expiry)
 			if err != nil {
-				return
+				return err
 			}
+			profile.ExpiryString = req.CA.Expiry
+			profile.Expiry = expiry
 		}
 
 		if req.CA.Backdate != "" {
-			policy.Default.Backdate, err = time.ParseDuration(req.CA.Backdate)
+			backdate, err := time.ParseDuration(req.CA.Backdate)
 			if err != nil {
-				return
+				return err
 			}
+			profile.Backdate = backdate
 		}
 
-		policy.Default.CAConstraint.MaxPathLen = req.CA.PathLength
+		profile.CAConstraint.MaxPathLen = req.CA.PathLength
 		if req.CA.PathLength != 0 && req.CA.PathLenZero {
 			log.Infof("ignore invalid 'pathlenzero' value")
 		} else {
-			policy.Default.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
+			profile.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
 		}
 	}
 
 	if req.CRL != "" {
-		policy.Default.CRL = req.CRL
+		profile.CRL = req.CRL
+	}
+	return nil
+}
+
+// New creates a new root certificate from the certificate request.
+func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
+	policy := CAPolicy()
+	if err = applyCAConfig(policy.Default, req); err != nil {
+		return
 	}
 
 	g := &csr.Generator{Validator: validator}

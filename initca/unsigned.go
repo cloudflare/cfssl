@@ -17,7 +17,6 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/helpers"
-	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"golang.org/x/crypto/cryptobyte"
 	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
@@ -180,43 +179,16 @@ func validateUnsignedRequest(req *csr.CertificateRequest) error {
 }
 
 // caProfile returns the default profile of CAPolicy with the CA settings and
-// CRL distribution point of req applied, as New does. It then validates the
-// adjusted policy, as local.NewSigner does for New.
+// CRL distribution point of req applied by applyCAConfig, as New does. It
+// then validates the adjusted policy, as local.NewSigner does for New.
 func caProfile(req *csr.CertificateRequest) (*config.SigningProfile, error) {
 	policy := CAPolicy()
 	if policy == nil || policy.Default == nil {
 		return nil, cferr.New(cferr.PolicyError, cferr.InvalidPolicy)
 	}
 	profile := policy.Default
-
-	if req.CA != nil {
-		if req.CA.Expiry != "" {
-			expiry, err := time.ParseDuration(req.CA.Expiry)
-			if err != nil {
-				return nil, wrapError(cferr.PolicyError, cferr.InvalidRequest, fmt.Errorf("parsing CA expiry: %w", err))
-			}
-			profile.ExpiryString = req.CA.Expiry
-			profile.Expiry = expiry
-		}
-
-		if req.CA.Backdate != "" {
-			backdate, err := time.ParseDuration(req.CA.Backdate)
-			if err != nil {
-				return nil, wrapError(cferr.PolicyError, cferr.InvalidRequest, fmt.Errorf("parsing CA backdate: %w", err))
-			}
-			profile.Backdate = backdate
-		}
-
-		profile.CAConstraint.MaxPathLen = req.CA.PathLength
-		if req.CA.PathLength != 0 && req.CA.PathLenZero {
-			log.Infof("ignore invalid 'pathlenzero' value")
-		} else {
-			profile.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
-		}
-	}
-
-	if req.CRL != "" {
-		profile.CRL = req.CRL
+	if err := applyCAConfig(profile, req); err != nil {
+		return nil, wrapError(cferr.PolicyError, cferr.InvalidRequest, fmt.Errorf("parsing CA settings: %w", err))
 	}
 
 	if !policy.Valid() {
