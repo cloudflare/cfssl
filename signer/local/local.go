@@ -314,6 +314,7 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	} else {
 		if profile.CSRWhitelist.Subject {
 			safeTemplate.Subject = csrTemplate.Subject
+			safeTemplate.RawSubject = csrTemplate.RawSubject
 		}
 		if profile.CSRWhitelist.PublicKeyAlgorithm {
 			safeTemplate.PublicKeyAlgorithm = csrTemplate.PublicKeyAlgorithm
@@ -362,6 +363,11 @@ func (s *Signer) Sign(req signer.SignRequest) (cert []byte, err error) {
 	}
 
 	OverrideHosts(&safeTemplate, req.Hosts)
+	if req.Subject != nil {
+		// RawSubject takes precedence over Subject in x509.CreateCertificate,
+		// so it must not survive an explicit subject override.
+		safeTemplate.RawSubject = nil
+	}
 	safeTemplate.Subject = PopulateSubjectFromCSR(req.Subject, safeTemplate.Subject)
 
 	// If there is a whitelist, ensure that both the Common Name and SAN DNSNames match

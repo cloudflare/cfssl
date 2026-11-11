@@ -270,6 +270,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 
 	template = &x509.Certificate{
 		Subject:            subject,
+		RawSubject:         csrv.RawSubject,
 		PublicKeyAlgorithm: csrv.PublicKeyAlgorithm,
 		PublicKey:          csrv.PublicKey,
 		SignatureAlgorithm: s.SigAlgo(),

@@ -28,7 +28,7 @@ import (
 // authority certificates. The only requirement here is that the
 // certificate have a non-empty subject field.
 func validator(req *csr.CertificateRequest) error {
-	if req.CN != "" {
+	if req.CN != "" || len(req.RawSubject) != 0 {
 		return nil
 	}
 
@@ -186,8 +186,14 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 // The resulting root certificate will have ca certificate
 // as the template and have the same expiry length. E.g. the existing CA
 // is valid for a year from Jan 01 2015 to Jan 01 2016, the renewed certificate
-// will be valid from now and expire in one year as well.
+// will be valid from now and expire in one year as well. An RFC 9925 unsigned
+// certificate is rejected, because renewal would produce a signed certificate.
 func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
+	if helpers.IsUnsigned(ca) {
+		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
+			errors.New("cannot renew an RFC 9925 unsigned certificate"))
+	}
+
 	if !ca.IsCA {
 		return nil, errors.New("input certificate is not a CA cert")
 	}
@@ -235,6 +241,10 @@ func RenewFromSigner(ca *x509.Certificate, priv crypto.Signer) ([]byte, error) {
 	}
 
 	req := csr.ExtractCertificateRequest(ca)
+	// The subject is carried over as encoded so that attributes that
+	// ExtractCertificateRequest cannot represent are not dropped.
+	req.RawSubject = ca.RawSubject
+	req.CN, req.Names, req.SerialNumber = "", nil, ""
 	cert, _, err := NewFromSigner(req, priv)
 	return cert, err
 
