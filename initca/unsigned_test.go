@@ -13,6 +13,7 @@ import (
 	"io"
 	"math/big"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -390,6 +391,7 @@ func TestUnsignRemovesIssuerExtensions(t *testing.T) {
 
 	issuerAltName := asn1.ObjectIdentifier{2, 5, 29, 18}
 	custom := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 99999, 1}
+	customAfter := asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 99999, 2}
 	template := func(extra ...pkix.Extension) *x509.Certificate {
 		return &x509.Certificate{
 			SerialNumber: big.NewInt(2), Subject: pkix.Name{CommonName: "leaf"},
@@ -408,8 +410,9 @@ func TestUnsignRemovesIssuerExtensions(t *testing.T) {
 
 	t.Run("other extensions are kept in order", func(t *testing.T) {
 		orig, der := testCertificate(t, template(
-			pkix.Extension{Id: issuerAltName, Value: []byte{0x30, 0x03, 0x82, 0x01, 'x'}},
 			pkix.Extension{Id: custom, Critical: false, Value: []byte{0x05, 0x00}},
+			pkix.Extension{Id: issuerAltName, Value: []byte{0x30, 0x03, 0x82, 0x01, 'x'}},
+			pkix.Extension{Id: customAfter, Critical: false, Value: []byte{0x05, 0x00}},
 		), root, &leafKey.PublicKey, rootKey)
 		got := parseUnsigned(t, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
 		if hasExtension(orig, issuerAltName) == nil || len(orig.AuthorityKeyId) == 0 {
@@ -425,8 +428,17 @@ func TestUnsignRemovesIssuerExtensions(t *testing.T) {
 		if kept == nil || !bytes.Equal(kept.Value, []byte{0x05, 0x00}) {
 			t.Errorf("custom extension = %v, want it kept unchanged", kept)
 		}
-		if len(got.Extensions) != len(orig.Extensions)-2 {
-			t.Errorf("%d extensions, want %d", len(got.Extensions), len(orig.Extensions)-2)
+		var wantOrder, gotOrder []string
+		for _, ext := range orig.Extensions {
+			if !ext.Id.Equal(issuerAltName) && !ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 35}) {
+				wantOrder = append(wantOrder, ext.Id.String())
+			}
+		}
+		for _, ext := range got.Extensions {
+			gotOrder = append(gotOrder, ext.Id.String())
+		}
+		if !slices.Equal(gotOrder, wantOrder) || len(wantOrder) < 2 {
+			t.Errorf("extensions = %v, want %v in the original order", gotOrder, wantOrder)
 		}
 	})
 
@@ -502,21 +514,37 @@ func TestUnsignedIntermediateIsNotAcceptedInPath(t *testing.T) {
 }
 
 func TestNewUnsignedHasNoSANs(t *testing.T) {
-	certPEM, _, err := NewUnsigned(&csr.CertificateRequest{
-		RawSubject: taiRawSubject(t),
-		Hosts:      []string{"192.0.2.1", "a.example.com", "x@example.com", "https://example.com/ca"},
+	hosts := []string{"192.0.2.1", "a.example.com", "x@example.com", "https://example.com/ca"}
+	check := func(t *testing.T, certPEM []byte) {
+		t.Helper()
+		block, _ := pem.Decode(certPEM)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(cert.DNSNames) != 0 || len(cert.IPAddresses) != 0 || len(cert.EmailAddresses) != 0 || len(cert.URIs) != 0 {
+			t.Errorf("certificate has SANs %v %v %v %v, want none", cert.DNSNames, cert.IPAddresses, cert.EmailAddresses, cert.URIs)
+		}
+	}
+
+	t.Run("NewUnsigned", func(t *testing.T) {
+		certPEM, _, err := NewUnsigned(&csr.CertificateRequest{RawSubject: taiRawSubject(t), Hosts: hosts})
+		if err != nil {
+			t.Fatalf("NewUnsigned() error = %v", err)
+		}
+		check(t, certPEM)
 	})
-	if err != nil {
-		t.Fatalf("NewUnsigned() error = %v", err)
-	}
-	block, _ := pem.Decode(certPEM)
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(cert.DNSNames) != 0 || len(cert.IPAddresses) != 0 || len(cert.EmailAddresses) != 0 || len(cert.URIs) != 0 {
-		t.Errorf("certificate has SANs %v %v %v %v, want none", cert.DNSNames, cert.IPAddresses, cert.EmailAddresses, cert.URIs)
-	}
+	t.Run("NewUnsignedFromSigner", func(t *testing.T) {
+		priv, err := (&csr.KeyRequest{A: "ecdsa", S: 256}).Generate()
+		if err != nil {
+			t.Fatal(err)
+		}
+		certPEM, err := NewUnsignedFromSigner(&csr.CertificateRequest{RawSubject: taiRawSubject(t), Hosts: hosts}, priv.(crypto.Signer))
+		if err != nil {
+			t.Fatalf("NewUnsignedFromSigner() error = %v", err)
+		}
+		check(t, certPEM)
+	})
 }
 
 func TestNewUnsignedDoesNotMutateRequest(t *testing.T) {
@@ -707,4 +735,240 @@ func TestUnsignedRootFailsSignatureChecks(t *testing.T) {
 	if err := cert.CheckSignatureFrom(cert); err == nil {
 		t.Error("CheckSignatureFrom() accepted an unsigned certificate")
 	}
+}
+
+func TestNewUnsignedFromSignerMatchesNewUnsigned(t *testing.T) {
+	raw := taiRawSubject(t)
+	req := func() *csr.CertificateRequest {
+		return &csr.CertificateRequest{
+			RawSubject: raw,
+			CRL:        "http://crl.example.com/root.crl",
+			CA:         &csr.CAConfig{Expiry: "1h", Backdate: "2h"},
+		}
+	}
+	certPEM, keyPEM, err := NewUnsigned(req())
+	if err != nil {
+		t.Fatalf("NewUnsigned() error = %v", err)
+	}
+	priv, err := helpers.ParsePrivateKeyPEM(keyPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fromSignerPEM, err := NewUnsignedFromSigner(req(), priv)
+	if err != nil {
+		t.Fatalf("NewUnsignedFromSigner() error = %v", err)
+	}
+
+	parse := func(certPEM []byte) *x509.Certificate {
+		block, _ := pem.Decode(certPEM)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return cert
+	}
+	want, got := parse(certPEM), parse(fromSignerPEM)
+	if !slices.Equal(got.CRLDistributionPoints, []string{"http://crl.example.com/root.crl"}) {
+		t.Errorf("CRLDistributionPoints = %v, want the requested CRL", got.CRLDistributionPoints)
+	}
+	if !slices.Equal(got.CRLDistributionPoints, want.CRLDistributionPoints) {
+		t.Errorf("CRLDistributionPoints = %v, want NewUnsigned's %v", got.CRLDistributionPoints, want.CRLDistributionPoints)
+	}
+	if backdate := time.Since(got.NotBefore); backdate < time.Hour+55*time.Minute || backdate > 2*time.Hour+5*time.Minute {
+		t.Errorf("NotBefore is %v ago, want about 2h", backdate)
+	}
+	if got.NotAfter.Sub(got.NotBefore) != want.NotAfter.Sub(want.NotBefore) {
+		t.Errorf("validity = %v, want NewUnsigned's %v", got.NotAfter.Sub(got.NotBefore), want.NotAfter.Sub(want.NotBefore))
+	}
+}
+
+// switchingSigner signs the certificate with another key and reports that
+// key from Public() afterwards. The signature then verifies against
+// Public(), which is what x509.CreateCertificate checks, but not against the
+// key in the certificate. Only a check of the certificate's own key detects
+// that.
+type switchingSigner struct {
+	crypto.Signer
+	other    crypto.Signer
+	signs    int
+	switched bool
+}
+
+func (s *switchingSigner) Public() crypto.PublicKey {
+	if s.switched {
+		return s.other.Public()
+	}
+	return s.Signer.Public()
+}
+
+func (s *switchingSigner) Sign(random io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	s.signs++
+	if s.signs == 2 {
+		s.switched = true
+		return s.other.Sign(random, digest, opts)
+	}
+	return s.Signer.Sign(random, digest, opts)
+}
+
+func TestNewUnsignedFromSignerChecksCertificateSignature(t *testing.T) {
+	priv, err := (&csr.KeyRequest{A: "ecdsa", S: 256}).Generate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := (&csr.KeyRequest{A: "ecdsa", S: 256}).Generate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer := &switchingSigner{Signer: priv.(crypto.Signer), other: other.(crypto.Signer)}
+
+	certPEM, err := NewUnsignedFromSigner(&csr.CertificateRequest{RawSubject: taiRawSubject(t)}, signer)
+	if err == nil {
+		t.Fatalf("NewUnsignedFromSigner() = %d bytes, want error", len(certPEM))
+	}
+	if !strings.Contains(err.Error(), `"code":2300`) {
+		t.Errorf("error = %v, want a KeyMismatch (2300) from the signature check", err)
+	}
+}
+
+// A root whose subject can be re-encoded must renew with the subject bytes it
+// had, or certificates issued under it stop verifying against the renewal.
+func TestRenewKeepsRepresentableSubjectBytes(t *testing.T) {
+	cnFirst, err := asn1.Marshal(pkix.RDNSequence{
+		{{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: asn1.RawValue{Class: asn1.ClassUniversal, Tag: asn1.TagUTF8String, Bytes: []byte("root")}}},
+		{{Type: asn1.ObjectIdentifier{2, 5, 4, 10}, Value: asn1.RawValue{Class: asn1.ClassUniversal, Tag: asn1.TagUTF8String, Bytes: []byte("Acme")}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signedPEM, _, key, err := New(&csr.CertificateRequest{RawSubject: cnFirst})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	ca, err := helpers.ParseCertificatePEM(signedPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(ca.RawSubject, cnFirst) {
+		t.Fatalf("New() subject = % x, want the requested bytes", ca.RawSubject)
+	}
+	priv, err := helpers.ParsePrivateKeyPEM(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	renewedPEM, err := RenewFromSigner(ca, priv)
+	if err != nil {
+		t.Fatalf("RenewFromSigner() error = %v", err)
+	}
+	renewed, err := helpers.ParseCertificatePEM(renewedPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(renewed.RawSubject, cnFirst) {
+		t.Errorf("renewed subject = % x, want % x", renewed.RawSubject, cnFirst)
+	}
+}
+
+func TestRenewRejectsEmptySubject(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1), NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour),
+		IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ca, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := RenewFromSigner(ca, key); err == nil {
+		t.Errorf("RenewFromSigner() = %d bytes, want error for a CA with an empty subject", len(out))
+	}
+}
+
+func TestUnsignRejectsUnsuitableInput(t *testing.T) {
+	good, _, _, err := New(&csr.CertificateRequest{CN: "root"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, _ := pem.Decode(good)
+	if _, err := Unsign(good); err != nil {
+		t.Fatalf("Unsign() error = %v", err)
+	}
+
+	emptyRDNIssuer := certWithIssuer(t, block.Bytes, []byte{0x30, 0x02, 0x31, 0x00})
+	emptyIssuer := certWithIssuer(t, block.Bytes, []byte{0x30, 0x00})
+	v1 := certAsV1(t, block.Bytes)
+
+	tests := []struct {
+		name string
+		der  []byte
+	}{
+		{"not a certificate", []byte{0x30, 0x00}},
+		{"trailing data", append(slices.Clone(block.Bytes), 0x00)},
+		{"issuer without attributes", emptyIssuer},
+		{"issuer with an empty RDN", emptyRDNIssuer},
+		{"version 1", v1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := Unsign(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: tt.der}))
+			if err == nil {
+				t.Errorf("Unsign() = %d bytes, want error", len(out))
+			}
+		})
+	}
+}
+
+// certWithIssuer returns der with its issuer replaced by issuer. The
+// signature is left as it was, which Unsign does not verify.
+func certWithIssuer(t *testing.T, der, issuer []byte) []byte {
+	t.Helper()
+	return rewriteTBS(t, der, func(version, serial, sigAlg, oldIssuer, validity, subject, spki, rest []byte) [][]byte {
+		return [][]byte{version, serial, sigAlg, issuer, validity, subject, spki, rest}
+	})
+}
+
+// certAsV1 returns der without its version and extensions fields.
+func certAsV1(t *testing.T, der []byte) []byte {
+	t.Helper()
+	return rewriteTBS(t, der, func(version, serial, sigAlg, issuer, validity, subject, spki, rest []byte) [][]byte {
+		return [][]byte{serial, sigAlg, issuer, validity, subject, spki}
+	})
+}
+
+func rewriteTBS(t *testing.T, der []byte, fields func(version, serial, sigAlg, issuer, validity, subject, spki, rest []byte) [][]byte) []byte {
+	t.Helper()
+	input := cryptobyte.String(der)
+	var cert, tbs, outerAlg, signature cryptobyte.String
+	if !input.ReadASN1(&cert, cbasn1.SEQUENCE) || !cert.ReadASN1(&tbs, cbasn1.SEQUENCE) ||
+		!cert.ReadASN1Element(&outerAlg, cbasn1.SEQUENCE) || !cert.ReadASN1Element(&signature, cbasn1.BIT_STRING) {
+		t.Fatal("malformed certificate")
+	}
+	var version, serial, sigAlg, issuer, validity, subject, spki cryptobyte.String
+	if !tbs.ReadASN1Element(&version, cbasn1.Tag(0).Constructed().ContextSpecific()) ||
+		!tbs.ReadASN1Element(&serial, cbasn1.INTEGER) || !tbs.ReadASN1Element(&sigAlg, cbasn1.SEQUENCE) ||
+		!tbs.ReadASN1Element(&issuer, cbasn1.SEQUENCE) || !tbs.ReadASN1Element(&validity, cbasn1.SEQUENCE) ||
+		!tbs.ReadASN1Element(&subject, cbasn1.SEQUENCE) || !tbs.ReadASN1Element(&spki, cbasn1.SEQUENCE) {
+		t.Fatal("malformed TBSCertificate")
+	}
+	var b cryptobyte.Builder
+	b.AddASN1(cbasn1.SEQUENCE, func(c *cryptobyte.Builder) {
+		c.AddASN1(cbasn1.SEQUENCE, func(tb *cryptobyte.Builder) {
+			for _, field := range fields(version, serial, sigAlg, issuer, validity, subject, spki, tbs) {
+				tb.AddBytes(field)
+			}
+		})
+		c.AddBytes(outerAlg)
+		c.AddBytes(signature)
+	})
+	out, err := b.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }

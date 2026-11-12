@@ -48,6 +48,9 @@ func validator(req *csr.CertificateRequest) error {
 // New creates a new root certificate from the certificate request.
 func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	policy := CAPolicy()
+	if policy != nil && policy.Default != nil {
+		policy.Default.KeepCSRSubject = true
+	}
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
 			policy.Default.ExpiryString = req.CA.Expiry
@@ -148,11 +151,27 @@ func RenewFromPEM(caFile, keyFile string) ([]byte, error) {
 
 // NewFromSigner creates a new root certificate from a crypto.Signer.
 func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPEM []byte, err error) {
+	return newFromSigner(req, priv, false)
+}
+
+// newFromSigner is NewFromSigner. If likeNew is set, req.CA.Backdate and
+// req.CRL are applied as New applies them.
+func newFromSigner(req *csr.CertificateRequest, priv crypto.Signer, likeNew bool) (cert, csrPEM []byte, err error) {
 	policy := CAPolicy()
+	if policy != nil && policy.Default != nil {
+		policy.Default.KeepCSRSubject = true
+	}
 	if req.CA != nil {
 		if req.CA.Expiry != "" {
 			policy.Default.ExpiryString = req.CA.Expiry
 			policy.Default.Expiry, err = time.ParseDuration(req.CA.Expiry)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		if likeNew && req.CA.Backdate != "" {
+			policy.Default.Backdate, err = time.ParseDuration(req.CA.Backdate)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -164,6 +183,10 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 		} else {
 			policy.Default.CAConstraint.MaxPathLenZero = req.CA.PathLenZero
 		}
+	}
+
+	if likeNew && req.CRL != "" {
+		policy.Default.CRL = req.CRL
 	}
 
 	csrPEM, err = csr.Generate(priv, req)

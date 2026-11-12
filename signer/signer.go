@@ -234,6 +234,20 @@ func isCaManagedExtension(oid asn1.ObjectIdentifier) bool {
 	return caManagedExtensionOIDs[oid.String()]
 }
 
+// subjectBytesToKeep returns raw if the certificate should carry the CSR's
+// subject bytes as encoded, and nil if it should be encoded from subject.
+// The bytes are kept if the profile asks for it or if subject cannot be
+// encoded, for example because an attribute value is a RELATIVE-OID.
+func subjectBytesToKeep(p *config.SigningProfile, raw []byte, subject pkix.Name) []byte {
+	if p != nil && p.KeepCSRSubject {
+		return raw
+	}
+	if _, err := asn1.Marshal(subject.ToRDNSequence()); err != nil {
+		return raw
+	}
+	return nil
+}
+
 // ParseCertificateRequest takes an incoming certificate request and
 // builds a certificate template from it.
 func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte) (template *x509.Certificate, err error) {
@@ -270,7 +284,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 
 	template = &x509.Certificate{
 		Subject:            subject,
-		RawSubject:         csrv.RawSubject,
+		RawSubject:         subjectBytesToKeep(p, csrv.RawSubject, subject),
 		PublicKeyAlgorithm: csrv.PublicKeyAlgorithm,
 		PublicKey:          csrv.PublicKey,
 		SignatureAlgorithm: s.SigAlgo(),

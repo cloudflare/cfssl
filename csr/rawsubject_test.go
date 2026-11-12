@@ -3,6 +3,7 @@ package csr
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"testing"
 )
@@ -41,5 +42,25 @@ func TestGenerateRawSubjectConflicts(t *testing.T) {
 		if _, _, err := ParseRequest(req); err == nil {
 			t.Errorf("ParseRequest(%+v) succeeded, want error", req)
 		}
+	}
+}
+
+func TestRawSubjectIsNotRequestInput(t *testing.T) {
+	// base64 of the DER Name 30 00 0b..., a CN of "evil".
+	const input = `{"raw_subject": "MA8xDTALBgNVBAMMBGV2aWw=", "key": {"algo": "ecdsa", "size": 256}}`
+	var req CertificateRequest
+	if err := json.Unmarshal([]byte(input), &req); err != nil {
+		t.Fatal(err)
+	}
+	if len(req.RawSubject) != 0 {
+		t.Errorf("JSON input set RawSubject to % x", req.RawSubject)
+	}
+
+	out, err := json.Marshal(&CertificateRequest{RawSubject: []byte{0x30, 0x00}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(out, []byte("raw_subject")) {
+		t.Errorf("JSON output %s contains raw_subject", out)
 	}
 }

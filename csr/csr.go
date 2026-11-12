@@ -173,8 +173,10 @@ type CertificateRequest struct {
 	CRL               string           `json:"crl_url,omitempty" yaml:"crl_url,omitempty"`
 
 	// RawSubject is a DER-encoded X.501 Name used verbatim as the CSR
-	// subject. It cannot be combined with CN, Names or SerialNumber.
-	RawSubject []byte `json:"raw_subject,omitempty" yaml:"raw_subject,omitempty"`
+	// subject. It cannot be combined with CN, Names or SerialNumber. It can
+	// only be set in code, so that request input decoded from JSON or YAML
+	// cannot supply it.
+	RawSubject []byte `json:"-" yaml:"-"`
 }
 
 // New returns a new, empty CertificateRequest with a
@@ -440,12 +442,12 @@ func Regenerate(priv crypto.Signer, csr []byte) ([]byte, error) {
 	return x509.CreateCertificateRequest(rand.Reader, req, priv)
 }
 
-// validateRawSubject checks that raw is a DER X.501 Name (RFC 5280, Section
+// ValidateRawName checks that raw is a DER X.501 Name (RFC 5280, Section
 // 4.1.2.4): a non-empty SEQUENCE of non-empty SETs, each holding SEQUENCEs of
 // an OBJECT IDENTIFIER and exactly one value, with definite minimal lengths
 // and no trailing data. The DER order of SET elements and the encoding of
 // values are not checked.
-func validateRawSubject(raw []byte) error {
+func ValidateRawName(raw []byte) error {
 	input := cryptobyte.String(raw)
 	var rdnSequence cryptobyte.String
 	if !input.ReadASN1(&rdnSequence, cbasn1.SEQUENCE) || !input.Empty() {
@@ -494,7 +496,7 @@ func GenerateDER(priv crypto.Signer, req *CertificateRequest) (csr []byte, err e
 		if req.CN != "" || len(req.Names) != 0 || req.SerialNumber != "" {
 			return nil, errors.New("raw subject cannot be combined with CN, names or serial number")
 		}
-		if err := validateRawSubject(req.RawSubject); err != nil {
+		if err := ValidateRawName(req.RawSubject); err != nil {
 			return nil, err
 		}
 		tpl.RawSubject = req.RawSubject

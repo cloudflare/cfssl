@@ -2,9 +2,11 @@ package initca
 
 import (
 	"crypto"
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
+	"fmt"
 
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -26,17 +28,30 @@ var idAlgUnsigned = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 6, 36}
 // The input can be a root, an intermediate or an end-entity certificate. The
 // input signature is not verified, so the caller is responsible for deciding
 // that the certificate is trusted, for example because it is about to be
-// installed directly as a trust anchor. A certificate with an empty issuer or
-// an issuerUniqueID is rejected, because RFC 9925, Section 3.2 and RFC 5280
-// forbid the former and RFC 9925 requires senders to omit the latter.
+// installed directly as a trust anchor. The input must parse as an X.509
+// version 3 certificate. A certificate whose issuer has no attributes is
+// rejected, because X.509 and RFC 5280 forbid an empty issuer
+// (RFC 9925, Section 3.2). A certificate with an issuerUniqueID is rejected,
+// because RFC 9925, Section 3.2 requires senders to omit it.
 func Unsign(certPEM []byte) ([]byte, error) {
 	block, rest := pem.Decode(certPEM)
 	if block == nil || block.Type != "CERTIFICATE" || len(rest) != 0 {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.DecodeFailed,
 			errors.New("expected a single CERTIFICATE PEM block"))
 	}
+	input, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+	}
+	if input.Version != 3 {
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed,
+			fmt.Errorf("certificate is version %d, want version 3", input.Version))
+	}
 	der, err := unsignDER(block.Bytes)
 	if err != nil {
+		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
+	}
+	if _, err := x509.ParseCertificate(der); err != nil {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.ParseFailed, err)
 	}
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), nil
@@ -65,10 +80,8 @@ func unsignDER(der []byte) ([]byte, error) {
 		!tbs.ReadASN1Element(&spki, cbasn1.SEQUENCE) {
 		return nil, errMalformedTBSCert
 	}
-	issuerElement := cryptobyte.String(issuer)
-	var issuerRDNs cryptobyte.String
-	if !issuerElement.ReadASN1(&issuerRDNs, cbasn1.SEQUENCE) || issuerRDNs.Empty() {
-		return nil, errors.New("certificate has an empty issuer")
+	if err := csr.ValidateRawName(issuer); err != nil {
+		return nil, fmt.Errorf("issuer: %w", err)
 	}
 	if tbs.PeekASN1Tag(cbasn1.Tag(1).ContextSpecific()) {
 		return nil, errors.New("certificate has an issuerUniqueID")
@@ -191,7 +204,7 @@ func NewUnsignedFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cer
 	}
 	noHosts := *req
 	noHosts.Hosts = nil
-	signed, _, err := NewFromSigner(&noHosts, priv)
+	signed, _, err := newFromSigner(&noHosts, priv, true)
 	if err != nil {
 		return nil, err
 	}
