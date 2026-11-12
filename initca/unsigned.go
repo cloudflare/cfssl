@@ -191,9 +191,13 @@ func NewUnsigned(req *csr.CertificateRequest) (cert, key []byte, err error) {
 
 // NewUnsignedFromSigner returns an RFC 9925 unsigned root for the public key
 // of priv, with the same request rules as NewUnsigned. req.KeyRequest is
-// ignored. The certificate is first signed by priv and the signature is
-// checked under the certificate's public key, which fails with a KeyMismatch
-// error if priv does not hold the private key for the public key it reports.
+// ignored.
+//
+// A signer whose Public method returns a key it does not hold fails earlier,
+// when the CSR is generated. After priv signs the certificate, the signature
+// is checked under the certificate's own public key, which fails with a
+// KeyMismatch error for a signer that signs with different keys across
+// operations.
 func NewUnsignedFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert []byte, err error) {
 	if len(req.RawSubject) == 0 {
 		return nil, cferr.Wrap(cferr.PolicyError, cferr.InvalidRequest,
