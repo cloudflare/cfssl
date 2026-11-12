@@ -286,26 +286,53 @@ func TestSignKeepsSubjectBytesOnlyWhenNeeded(t *testing.T) {
 }
 
 // An attribute value that encoding/asn1 decodes to nil, other than a
-// RELATIVE-OID, must not be copied into the certificate when the profile does
-// not keep the CSR subject.
-func TestSignRejectsUndecodableAttributeValues(t *testing.T) {
+// RELATIVE-OID, is not copied into the certificate when the profile does not
+// keep the CSR subject. On a common attribute it is dropped, as on master. On
+// another attribute encoding fails, as on master.
+func TestSignDropsUndecodableAttributeValues(t *testing.T) {
 	cn := rdn(t, oidCN, stringValue(asn1.TagUTF8String, "device1"))
 	org := rdn(t, oidO, stringValue(asn1.TagUTF8String, "Acme"))
-	universalOrg := rdn(t, oidO, asn1.RawValue{Class: asn1.ClassUniversal, Tag: 28, Bytes: []byte{0, 0, 0, 'E'}})
+	universal := asn1.RawValue{Class: asn1.ClassUniversal, Tag: 28, Bytes: []byte{0, 0, 0, 'E'}}
+	universalOrg := rdn(t, oidO, universal)
+	universalOther := rdn(t, asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 99999, 1}, universal)
 	taiSet := rdn(t, asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 25, 3}, asn1.RawValue{Class: asn1.ClassUniversal, Tag: tagRelativeOID, Bytes: []byte{0x82, 0xda, 0x4b, 0x31, 0x01, 0x01}})
+	universalDER := []byte{28, 4, 0, 0, 0, 'E'}
 
 	for _, tt := range []struct {
 		name    string
 		subject []byte
+		wantErr bool
+		wantTAI bool
 	}{
-		{"UniversalString attribute", name(t, cn, org, universalOrg)},
-		{"UniversalString attribute next to a RELATIVE-OID", name(t, cn, org, universalOrg, taiSet)},
+		{"common attribute", name(t, cn, org, universalOrg), false, false},
+		{"common attribute next to a RELATIVE-OID", name(t, cn, org, universalOrg, taiSet), false, true},
+		{"other attribute", name(t, cn, universalOther), true, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newTestSigner(t)
 			s.policy = whitelistPolicy(nil)
-			if certPEM, err := s.Sign(signer.SignRequest{Request: rawSubjectCSR(t, tt.subject)}); err == nil {
-				t.Errorf("Sign() = %d bytes, want an error", len(certPEM))
+			certPEM, err := s.Sign(signer.SignRequest{Request: rawSubjectCSR(t, tt.subject)})
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("Sign() = %d bytes, want an error", len(certPEM))
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Sign() error = %v", err)
+			}
+			cert, err := helpers.ParseCertificatePEM(certPEM)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Contains(cert.RawSubject, universalDER) {
+				t.Error("the UniversalString value was copied into the subject")
+			}
+			if len(cert.Subject.Organization) != 1 || cert.Subject.Organization[0] != "Acme" {
+				t.Errorf("Organization = %v, want [Acme]", cert.Subject.Organization)
+			}
+			if got := bytes.Contains(cert.RawSubject, []byte{tagRelativeOID, 6, 0x82, 0xda, 0x4b, 0x31, 0x01, 0x01}); got != tt.wantTAI {
+				t.Errorf("subject has the RELATIVE-OID value = %t, want %t", got, tt.wantTAI)
 			}
 		})
 	}
