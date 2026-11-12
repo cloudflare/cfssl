@@ -48,7 +48,7 @@ func validator(req *csr.CertificateRequest) error {
 // New creates a new root certificate from the certificate request.
 func New(req *csr.CertificateRequest) (cert, csrPEM, key []byte, err error) {
 	policy := CAPolicy()
-	if policy != nil && policy.Default != nil {
+	if policy != nil && policy.Default != nil && len(req.RawSubject) != 0 {
 		policy.Default.KeepCSRSubject = true
 	}
 	if req.CA != nil {
@@ -158,7 +158,7 @@ func NewFromSigner(req *csr.CertificateRequest, priv crypto.Signer) (cert, csrPE
 // req.CRL are applied as New applies them.
 func newFromSigner(req *csr.CertificateRequest, priv crypto.Signer, likeNew bool) (cert, csrPEM []byte, err error) {
 	policy := CAPolicy()
-	if policy != nil && policy.Default != nil {
+	if policy != nil && policy.Default != nil && len(req.RawSubject) != 0 {
 		policy.Default.KeepCSRSubject = true
 	}
 	if req.CA != nil {

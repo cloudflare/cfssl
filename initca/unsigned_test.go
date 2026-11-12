@@ -903,22 +903,33 @@ func TestUnsignRejectsUnsuitableInput(t *testing.T) {
 	emptyRDNIssuer := certWithIssuer(t, block.Bytes, []byte{0x30, 0x02, 0x31, 0x00})
 	emptyIssuer := certWithIssuer(t, block.Bytes, []byte{0x30, 0x00})
 	v1 := certAsV1(t, block.Bytes)
+	v2 := versionTwo(t, block.Bytes)
+	criticalAKI := withExtension(t, block.Bytes, criticalAuthorityKeyID())
+	if _, err := x509.ParseCertificate(criticalAKI); err == nil {
+		t.Fatal("x509.ParseCertificate() accepted the critical AKI test input")
+	}
 
 	tests := []struct {
-		name string
-		der  []byte
+		name    string
+		der     []byte
+		wantErr string
 	}{
-		{"not a certificate", []byte{0x30, 0x00}},
-		{"trailing data", append(slices.Clone(block.Bytes), 0x00)},
-		{"issuer without attributes", emptyIssuer},
-		{"issuer with an empty RDN", emptyRDNIssuer},
-		{"version 1", v1},
+		{"not a certificate", []byte{0x30, 0x00}, "x509:"},
+		{"trailing data", append(slices.Clone(block.Bytes), 0x00), "trailing data"},
+		{"issuer without attributes", emptyIssuer, "issuer"},
+		{"issuer with an empty RDN", emptyRDNIssuer, "issuer"},
+		{"version 1", v1, "version 1"},
+		{"version 2", v2, "version 2"},
+		{"critical authority key identifier", criticalAKI, "authority key identifier"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := Unsign(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: tt.der}))
 			if err == nil {
-				t.Errorf("Unsign() = %d bytes, want error", len(out))
+				t.Fatalf("Unsign() = %d bytes, want error", len(out))
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("Unsign() error = %v, want it to mention %q", err, tt.wantErr)
 			}
 		})
 	}
@@ -971,4 +982,97 @@ func rewriteTBS(t *testing.T, der []byte, fields func(version, serial, sigAlg, i
 		t.Fatal(err)
 	}
 	return out
+}
+
+// Roots from requests without a raw subject are encoded as before, including
+// names given through the OID map of csr.Name.
+func TestNewWithoutRawSubjectIsUnchanged(t *testing.T) {
+	signedPEM, _, _, err := New(&csr.CertificateRequest{Names: []csr.Name{
+		{OID: map[string]string{"2.5.4.3": "first"}, C: "US"},
+		{OID: map[string]string{"2.5.4.3": "second"}, O: "Acme"},
+	}})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	cert, err := helpers.ParseCertificatePEM(signedPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cns int
+	for _, rdn := range cert.Subject.Names {
+		if rdn.Type.Equal(asn1.ObjectIdentifier{2, 5, 4, 3}) {
+			cns++
+		}
+	}
+	if cns != 1 || cert.Subject.CommonName != "second" {
+		t.Errorf("subject has %d common names, last %q; want one, \"second\"", cns, cert.Subject.CommonName)
+	}
+}
+
+// withExtension returns der with the DER extension ext added after its other
+// extensions. The signature is not updated, which Unsign does not verify.
+func withExtension(t *testing.T, der []byte, ext []byte) []byte {
+	t.Helper()
+	input := cryptobyte.String(der)
+	var cert, tbs, outerAlg, signature cryptobyte.String
+	if !input.ReadASN1(&cert, cbasn1.SEQUENCE) || !cert.ReadASN1(&tbs, cbasn1.SEQUENCE) ||
+		!cert.ReadASN1Element(&outerAlg, cbasn1.SEQUENCE) || !cert.ReadASN1Element(&signature, cbasn1.BIT_STRING) {
+		t.Fatal("malformed certificate")
+	}
+	extensionsTag := cbasn1.Tag(3).Constructed().ContextSpecific()
+	var fields [][]byte
+	var list cryptobyte.String
+	for !tbs.Empty() {
+		var element cryptobyte.String
+		var tag cbasn1.Tag
+		if !tbs.ReadAnyASN1Element(&element, &tag) {
+			t.Fatal("malformed TBSCertificate field")
+		}
+		if tag != extensionsTag {
+			fields = append(fields, element)
+			continue
+		}
+		var wrapper cryptobyte.String
+		if !element.ReadASN1(&wrapper, extensionsTag) || !wrapper.ReadASN1(&list, cbasn1.SEQUENCE) {
+			t.Fatal("malformed extensions")
+		}
+	}
+
+	var b cryptobyte.Builder
+	b.AddASN1(cbasn1.SEQUENCE, func(c *cryptobyte.Builder) {
+		c.AddASN1(cbasn1.SEQUENCE, func(tb *cryptobyte.Builder) {
+			for _, field := range fields {
+				tb.AddBytes(field)
+			}
+			tb.AddASN1(extensionsTag, func(e *cryptobyte.Builder) {
+				e.AddASN1(cbasn1.SEQUENCE, func(l *cryptobyte.Builder) {
+					l.AddBytes(list)
+					l.AddBytes(ext)
+				})
+			})
+		})
+		c.AddBytes(outerAlg)
+		c.AddBytes(signature)
+	})
+	out, err := b.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// criticalAuthorityKeyID is an authorityKeyIdentifier extension marked
+// critical, which RFC 5280 forbids and x509.ParseCertificate rejects.
+func criticalAuthorityKeyID() []byte {
+	return []byte{
+		0x30, 0x0c, 0x06, 0x03, 0x55, 0x1d, 0x23, 0x01, 0x01, 0xff, 0x04, 0x02, 0x30, 0x00,
+	}
+}
+
+// versionTwo returns der with the version field set to v2.
+func versionTwo(t *testing.T, der []byte) []byte {
+	t.Helper()
+	return rewriteTBS(t, der, func(version, serial, sigAlg, issuer, validity, subject, spki, rest []byte) [][]byte {
+		return [][]byte{{0xa0, 0x03, 0x02, 0x01, 0x01}, serial, sigAlg, issuer, validity, subject, spki}
+	})
 }

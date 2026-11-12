@@ -284,3 +284,55 @@ func TestSignKeepsSubjectBytesOnlyWhenNeeded(t *testing.T) {
 		})
 	}
 }
+
+// An attribute value that encoding/asn1 decodes to nil, other than a
+// RELATIVE-OID, must not be copied into the certificate when the profile does
+// not keep the CSR subject.
+func TestSignRejectsUndecodableAttributeValues(t *testing.T) {
+	cn := rdn(t, oidCN, stringValue(asn1.TagUTF8String, "device1"))
+	org := rdn(t, oidO, stringValue(asn1.TagUTF8String, "Acme"))
+	universalOrg := rdn(t, oidO, asn1.RawValue{Class: asn1.ClassUniversal, Tag: 28, Bytes: []byte{0, 0, 0, 'E'}})
+	taiSet := rdn(t, asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 25, 3}, asn1.RawValue{Class: asn1.ClassUniversal, Tag: tagRelativeOID, Bytes: []byte{0x82, 0xda, 0x4b, 0x31, 0x01, 0x01}})
+
+	for _, tt := range []struct {
+		name    string
+		subject []byte
+	}{
+		{"UniversalString attribute", name(t, cn, org, universalOrg)},
+		{"UniversalString attribute next to a RELATIVE-OID", name(t, cn, org, universalOrg, taiSet)},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newTestSigner(t)
+			s.policy = whitelistPolicy(nil)
+			if certPEM, err := s.Sign(signer.SignRequest{Request: rawSubjectCSR(t, tt.subject)}); err == nil {
+				t.Errorf("Sign() = %d bytes, want an error", len(certPEM))
+			}
+		})
+	}
+}
+
+// A subject with a RELATIVE-OID attribute and a common name, without
+// KeepCSRSubject, is encoded from its decoded form with the RELATIVE-OID value
+// as encoded.
+func TestSignRestoresRelativeOIDValue(t *testing.T) {
+	cn := rdn(t, oidCN, stringValue(asn1.TagUTF8String, "device1"))
+	taiSet := rdn(t, asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 25, 3}, asn1.RawValue{Class: asn1.ClassUniversal, Tag: tagRelativeOID, Bytes: []byte{0x82, 0xda, 0x4b, 0x31, 0x01, 0x01}})
+	subject := name(t, cn, taiSet)
+
+	s := newTestSigner(t)
+	s.policy = whitelistPolicy(nil)
+	certPEM, err := s.Sign(signer.SignRequest{Request: rawSubjectCSR(t, subject)})
+	if err != nil {
+		t.Fatalf("Sign() error = %v", err)
+	}
+	cert, err := helpers.ParseCertificatePEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cert.Subject.CommonName != "device1" {
+		t.Errorf("CommonName = %q, want device1", cert.Subject.CommonName)
+	}
+	if !bytes.Contains(cert.RawSubject, []byte{tagRelativeOID, 6, 0x82, 0xda, 0x4b, 0x31, 0x01, 0x01}) {
+		t.Errorf("RELATIVE-OID value not encoded in the subject: % x", cert.RawSubject)
+	}
+}

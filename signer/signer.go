@@ -18,6 +18,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/cryptobyte"
+	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
@@ -234,16 +237,62 @@ func isCaManagedExtension(oid asn1.ObjectIdentifier) bool {
 	return caManagedExtensionOIDs[oid.String()]
 }
 
-// subjectBytesToKeep returns raw if the certificate should carry the CSR's
-// subject bytes as encoded, and nil if it should be encoded from subject.
-// The bytes are kept if the profile asks for it or if subject cannot be
-// encoded, for example because an attribute value is a RELATIVE-OID.
-func subjectBytesToKeep(p *config.SigningProfile, raw []byte, subject pkix.Name) []byte {
+// subjectBytesToKeep returns raw if the profile asks for the CSR's subject
+// bytes to be kept, and nil if the certificate's subject should be encoded
+// from subject.
+func subjectBytesToKeep(p *config.SigningProfile, raw []byte) []byte {
 	if p != nil && p.KeepCSRSubject {
 		return raw
 	}
-	if _, err := asn1.Marshal(subject.ToRDNSequence()); err != nil {
-		return raw
+	return nil
+}
+
+const tagRelativeOID = cbasn1.Tag(13)
+
+// restoreRelativeOIDValues sets the value of each RELATIVE-OID attribute in r
+// to its encoding in raw, the DER Name that r was decoded from. encoding/asn1
+// decodes such a value to nil, which cannot be encoded again. Other values,
+// including other values that decode to nil, are not changed, so encoding
+// them fails as it does without this function.
+func restoreRelativeOIDValues(r pkix.RDNSequence, raw []byte) error {
+	mismatch := errors.New("subject encoding does not match its decoded form")
+	input := cryptobyte.String(raw)
+	var rdnSequence cryptobyte.String
+	if !input.ReadASN1(&rdnSequence, cbasn1.SEQUENCE) {
+		return mismatch
+	}
+	for _, rdn := range r {
+		var set cryptobyte.String
+		if !rdnSequence.ReadASN1(&set, cbasn1.SET) {
+			return mismatch
+		}
+		for j := range rdn {
+			var attribute cryptobyte.String
+			if !set.ReadASN1(&attribute, cbasn1.SEQUENCE) {
+				return mismatch
+			}
+			var attributeType asn1.ObjectIdentifier
+			if !attribute.ReadASN1ObjectIdentifier(&attributeType) {
+				return mismatch
+			}
+			if !attributeType.Equal(rdn[j].Type) {
+				return mismatch
+			}
+			var value cryptobyte.String
+			var tag cbasn1.Tag
+			if !attribute.ReadAnyASN1(&value, &tag) || !attribute.Empty() {
+				return mismatch
+			}
+			if rdn[j].Value == nil && tag == tagRelativeOID {
+				rdn[j].Value = asn1.RawValue{Class: asn1.ClassUniversal, Tag: int(tagRelativeOID), Bytes: value}
+			}
+		}
+		if !set.Empty() {
+			return mismatch
+		}
+	}
+	if !rdnSequence.Empty() {
+		return mismatch
 	}
 	return nil
 }
@@ -261,6 +310,10 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 	_, err = asn1.Unmarshal(csrv.RawSubject, &r)
 
 	if err != nil {
+		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
+		return
+	}
+	if err = restoreRelativeOIDValues(r, csrv.RawSubject); err != nil {
 		err = cferr.Wrap(cferr.CSRError, cferr.ParseFailed, err)
 		return
 	}
@@ -284,7 +337,7 @@ func ParseCertificateRequest(s Signer, p *config.SigningProfile, csrBytes []byte
 
 	template = &x509.Certificate{
 		Subject:            subject,
-		RawSubject:         subjectBytesToKeep(p, csrv.RawSubject, subject),
+		RawSubject:         subjectBytesToKeep(p, csrv.RawSubject),
 		PublicKeyAlgorithm: csrv.PublicKeyAlgorithm,
 		PublicKey:          csrv.PublicKey,
 		SignatureAlgorithm: s.SigAlgo(),
