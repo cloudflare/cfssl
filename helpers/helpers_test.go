@@ -14,6 +14,7 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"math"
+	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -746,5 +747,41 @@ func TestSignerAlgoMLDSA(t *testing.T) {
 				t.Errorf("SignerAlgo() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestIsUnsigned(t *testing.T) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "test"},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(time.Hour),
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signed, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if IsUnsigned(signed) {
+		t.Error("IsUnsigned() = true for a signed certificate")
+	}
+	if IsUnsigned(nil) {
+		t.Error("IsUnsigned(nil) = true")
+	}
+
+	// Replace the signature algorithm of the signed certificate with
+	// id-alg-unsigned, as RFC 9925 encodes it.
+	unsignedAlg := []byte{0x30, 0x0a, 0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x06, 0x24}
+	unsigned := *signed
+	unsigned.RawSignatureAlgorithm = unsignedAlg
+	if !IsUnsigned(&unsigned) {
+		t.Error("IsUnsigned() = false for id-alg-unsigned")
 	}
 }

@@ -29,6 +29,8 @@ import (
 	ct "github.com/google/certificate-transparency-go"
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
+	"golang.org/x/crypto/cryptobyte"
+	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/crypto/pkcs12"
 )
@@ -310,6 +312,25 @@ func ParseSelfSignedCertificatePEM(certPEM []byte) (*x509.Certificate, error) {
 		return nil, cferr.Wrap(cferr.CertificateError, cferr.VerifyFailed, err)
 	}
 	return cert, nil
+}
+
+// idAlgUnsigned is id-alg-unsigned, the signature algorithm of an unsigned
+// certificate (RFC 9925, Section 3.1).
+var idAlgUnsigned = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 6, 36}
+
+// IsUnsigned reports whether cert has the id-alg-unsigned signature algorithm
+// of an RFC 9925 unsigned certificate. It returns false for nil and for a
+// certificate that was not parsed from DER.
+func IsUnsigned(cert *x509.Certificate) bool {
+	if cert == nil {
+		return false
+	}
+	input := cryptobyte.String(cert.RawSignatureAlgorithm)
+	var algorithm cryptobyte.String
+	var oid asn1.ObjectIdentifier
+	return input.ReadASN1(&algorithm, cbasn1.SEQUENCE) &&
+		algorithm.ReadASN1ObjectIdentifier(&oid) &&
+		oid.Equal(idAlgUnsigned)
 }
 
 // ParseCertificatePEM parses and returns a PEM-encoded certificate,
