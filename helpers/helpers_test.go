@@ -14,7 +14,9 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"math"
+	"math/big"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -746,5 +748,133 @@ func TestSignerAlgoMLDSA(t *testing.T) {
 				t.Errorf("SignerAlgo() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func isASCIISpace(b byte) bool {
+	return b == ' ' || (b >= '\t' && b <= '\r')
+}
+
+// derEndingInSpace calls generate until it returns DER whose last byte is an
+// ASCII whitespace character, which bytes.TrimSpace would remove.
+func derEndingInSpace(t *testing.T, generate func() []byte) []byte {
+	t.Helper()
+	for range 10000 {
+		if der := generate(); isASCIISpace(der[len(der)-1]) {
+			return der
+		}
+	}
+	t.Fatal("no DER ending in whitespace generated")
+	return nil
+}
+
+func TestParseCSRDEREndingInWhitespace(t *testing.T) {
+	der := derEndingInSpace(t, func() []byte {
+		_, priv, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		der, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{Subject: pkix.Name{CommonName: "test"}}, priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return der
+	})
+
+	if _, _, err := ParseCSR(der); err != nil {
+		t.Errorf("ParseCSR(DER ending in %#x) error = %v", der[len(der)-1], err)
+	}
+	if _, _, err := ParseCSR(append(slices.Clone(der), '\n')); err != nil {
+		t.Errorf("ParseCSR(DER with trailing newline) error = %v", err)
+	}
+}
+
+func TestParseCertificatesDEREndingInWhitespace(t *testing.T) {
+	der := derEndingInSpace(t, func() []byte {
+		pub, priv, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		template := &x509.Certificate{
+			SerialNumber: big.NewInt(1),
+			Subject:      pkix.Name{CommonName: "test"},
+			NotBefore:    time.Now(),
+			NotAfter:     time.Now().Add(time.Hour),
+		}
+		der, err := x509.CreateCertificate(rand.Reader, template, template, pub, priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return der
+	})
+
+	certs, _, err := ParseCertificatesDER(der, "")
+	if err != nil || len(certs) != 1 {
+		t.Errorf("ParseCertificatesDER(DER ending in %#x) = %d certs, error %v", der[len(der)-1], len(certs), err)
+	}
+	certs, _, err = ParseCertificatesDER(append(slices.Clone(der), '\n'), "")
+	if err != nil || len(certs) != 1 {
+		t.Errorf("ParseCertificatesDER(DER with trailing newline) = %d certs, error %v", len(certs), err)
+	}
+}
+
+func TestParseDERTrailingBytes(t *testing.T) {
+	cert := func() []byte {
+		pub, priv, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		template := &x509.Certificate{
+			SerialNumber: big.NewInt(1),
+			Subject:      pkix.Name{CommonName: "test"},
+			NotBefore:    time.Now(),
+			NotAfter:     time.Now().Add(time.Hour),
+		}
+		der, err := x509.CreateCertificate(rand.Reader, template, template, pub, priv)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return der
+	}
+	first, second := cert(), cert()
+
+	tests := []struct {
+		name    string
+		in      []byte
+		want    int
+		wantErr bool
+	}{
+		{"one certificate", first, 1, false},
+		{"leading and trailing whitespace", append(append([]byte("\n "), first...), " \n"...), 1, false},
+		{"two concatenated certificates", append(slices.Clone(first), second...), 2, false},
+		{"two certificates and trailing newline", append(append(slices.Clone(first), second...), '\n'), 2, false},
+		{"trailing garbage", append(slices.Clone(first), 0x00), 0, true},
+		{"trailing garbage after whitespace", append(append(slices.Clone(first), '\n'), 'x'), 0, true},
+		{"truncated", first[:len(first)-1], 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			certs, _, err := ParseCertificatesDER(tt.in, "")
+			if (err != nil) != tt.wantErr || len(certs) != tt.want {
+				t.Errorf("ParseCertificatesDER() = %d certs, error %v; want %d certs, error %t", len(certs), err, tt.want, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestParseCSRDERTrailingBytes(t *testing.T) {
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{Subject: pkix.Name{CommonName: "test"}}, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := ParseCSR(append(append([]byte("\n"), der...), " \n"...)); err != nil {
+		t.Errorf("ParseCSR(DER with surrounding whitespace) error = %v", err)
+	}
+	if _, _, err := ParseCSR(append(slices.Clone(der), 0x00)); err == nil {
+		t.Error("ParseCSR(DER with trailing garbage) succeeded, want error")
 	}
 }

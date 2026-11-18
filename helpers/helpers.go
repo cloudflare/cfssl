@@ -29,6 +29,8 @@ import (
 	ct "github.com/google/certificate-transparency-go"
 	cttls "github.com/google/certificate-transparency-go/tls"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
+	"golang.org/x/crypto/cryptobyte"
+	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
 	"golang.org/x/crypto/ocsp"
 	"golang.org/x/crypto/pkcs12"
 )
@@ -272,8 +274,15 @@ func ParseCertificatesPEM(certsPEM []byte) ([]*x509.Certificate, error) {
 
 // ParseCertificatesDER parses a DER encoding of a certificate object and possibly private key,
 // either PKCS #7, PKCS #12, or raw x509.
+//
+// Whitespace after the outermost DER element is ignored. Surrounding bytes are
+// not trimmed blindly, because the last byte of the encoding can equal a
+// whitespace character.
 func ParseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certificate, key crypto.Signer, err error) {
-	certsDER = bytes.TrimSpace(certsDER)
+	return parseCertificatesDER(trimAfterDER(certsDER), password)
+}
+
+func parseCertificatesDER(certsDER []byte, password string) (certs []*x509.Certificate, key crypto.Signer, err error) {
 	pkcs7data, err := pkcs7.ParsePKCS7(certsDER)
 	if err != nil {
 		var pkcs12data interface{}
@@ -433,10 +442,35 @@ func GetKeyDERFromPEM(in []byte, password []byte) ([]byte, error) {
 	return nil, cferr.New(cferr.PrivateKeyError, cferr.DecodeFailed)
 }
 
+// trimAfterDER returns in without leading whitespace and without trailing
+// whitespace that follows a sequence of complete DER elements. Trailing
+// whitespace is not trimmed blindly, because the last byte of a DER encoding
+// can equal a whitespace character. If the input is not a sequence of DER
+// elements, it is trimmed on both sides.
+func trimAfterDER(in []byte) []byte {
+	in = bytes.TrimLeft(in, asciiSpace)
+	input := cryptobyte.String(in)
+	for !input.Empty() {
+		var element cryptobyte.String
+		if !input.ReadAnyASN1Element(&element, new(cbasn1.Tag)) {
+			if len(bytes.TrimLeft(input, asciiSpace)) == 0 {
+				return in[:len(in)-len(input)]
+			}
+			return bytes.TrimRight(in, asciiSpace)
+		}
+	}
+	return in
+}
+
+const asciiSpace = " \t\n\v\f\r"
+
 // ParseCSR parses a PEM- or DER-encoded PKCS #10 certificate signing request.
+//
+// Surrounding whitespace is ignored. For DER input, whitespace is removed only
+// after the outermost DER element, because the last byte of the encoding can
+// equal a whitespace character.
 func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) {
-	in = bytes.TrimSpace(in)
-	p, rest := pem.Decode(in)
+	p, rest := pem.Decode(bytes.TrimSpace(in))
 	if p != nil {
 		if p.Type != "NEW CERTIFICATE REQUEST" && p.Type != "CERTIFICATE REQUEST" {
 			return nil, rest, cferr.New(cferr.CSRError, cferr.BadRequest)
@@ -444,7 +478,7 @@ func ParseCSR(in []byte) (csr *x509.CertificateRequest, rest []byte, err error) 
 
 		csr, err = x509.ParseCertificateRequest(p.Bytes)
 	} else {
-		csr, err = x509.ParseCertificateRequest(in)
+		csr, err = x509.ParseCertificateRequest(trimAfterDER(in))
 	}
 
 	if err != nil {
