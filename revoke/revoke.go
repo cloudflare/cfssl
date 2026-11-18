@@ -148,22 +148,23 @@ func certIsRevokedCRL(cert *x509.Certificate, url string) (revoked, ok bool, err
 	issuer := getIssuer(cert)
 
 	if shouldFetchCRL {
-		var err error
 		crl, err = fetchCRL(url)
 		if err != nil {
 			log.Warningf("failed to fetch CRL: %v", err)
 			return false, false, err
 		}
+	}
 
-		// check CRL signature
-		if issuer != nil {
-			err = issuer.CheckCRLSignature(crl)
-			if err != nil {
-				log.Warningf("failed to verify CRL: %v", err)
-				return false, false, err
-			}
+	// A cached CRL still needs to be verified against this certificate's issuer.
+	if issuer != nil {
+		err = issuer.CheckCRLSignature(crl)
+		if err != nil {
+			log.Warningf("failed to verify CRL: %v", err)
+			return false, false, err
 		}
+	}
 
+	if shouldFetchCRL {
 		crlLock.Lock()
 		CRLSet[url] = crl
 		crlLock.Unlock()
