@@ -80,6 +80,58 @@ func TestNewCRLFromFileWithoutRevocations(t *testing.T) {
 	}
 }
 
+func TestNewCRLFromFileInvalidSerial(t *testing.T) {
+	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tryTwoCertBytes, err := os.ReadFile(tryTwoCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, serial := range []string{"1a2b", "0x10", "28:35:69:0a", "abc", "12 34"} {
+		t.Run(serial, func(t *testing.T) {
+			_, err := NewCRLFromFile([]byte("1\n"+serial+"\n"), tryTwoCertBytes, tryTwoKeyBytes, "0")
+			if err == nil {
+				t.Fatalf("expected an error for serial number %q", serial)
+			}
+		})
+	}
+}
+
+func TestNewCRLFromFileTrimsWhitespace(t *testing.T) {
+	tryTwoKeyBytes, err := os.ReadFile(tryTwoKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tryTwoCertBytes, err := os.ReadFile(tryTwoCert)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	crlDER, err := NewCRLFromFile([]byte("1\r\n 2 \r\n\t3\n"), tryTwoCertBytes, tryTwoKeyBytes, "0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsedCRL, err := x509.ParseRevocationList(crlDER)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(parsedCRL.RevokedCertificateEntries) != 3 {
+		t.Fatalf("revoked certificate count = %d, want 3", len(parsedCRL.RevokedCertificateEntries))
+	}
+	for i, entry := range parsedCRL.RevokedCertificateEntries {
+		if want := int64(i + 1); entry.SerialNumber.Int64() != want {
+			t.Errorf("revoked serial number %d = %s, want %d", i, entry.SerialNumber, want)
+		}
+	}
+}
+
 func TestNewCRLFromFileMLDSA(t *testing.T) {
 	tests := []struct {
 		algo   string
