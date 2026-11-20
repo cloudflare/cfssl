@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -38,13 +38,15 @@ The keyIdentifier field of the authorityKeyIdentifier extension MUST
 ***********************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_authority_key_identifier_no_key_identifier",
-		Description:   "CAs must include keyIdentifer field of AKI in all non-self-issued certificates",
-		Citation:      "RFC 5280: 4.2.1.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewAuthorityKeyIdNoKeyIdField,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_authority_key_identifier_no_key_identifier",
+			Description:   "CAs must include keyIdentifer field of AKI in all non-self-issued certificates",
+			Citation:      "RFC 5280: 4.2.1.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewAuthorityKeyIdNoKeyIdField,
 	})
 }
 
@@ -57,9 +59,9 @@ func (l *authorityKeyIdNoKeyIdField) CheckApplies(c *x509.Certificate) bool {
 }
 
 func (l *authorityKeyIdNoKeyIdField) Execute(c *x509.Certificate) *lint.LintResult {
-	if c.AuthorityKeyId == nil && !util.IsSelfSigned(c) { //will be nil by default if not found in x509.parseCert
-		return &lint.LintResult{Status: lint.Error}
-	} else {
+	if c.AuthorityKeyId != nil || util.IsCACert(c) && util.IsSelfSigned(c) {
 		return &lint.LintResult{Status: lint.Pass}
+	} else {
+		return &lint.LintResult{Status: lint.Error}
 	}
 }

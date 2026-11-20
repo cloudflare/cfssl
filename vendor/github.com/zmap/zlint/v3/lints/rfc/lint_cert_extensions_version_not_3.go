@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -42,13 +42,15 @@ type CertExtensionsVersonNot3 struct{}
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_cert_extensions_version_not_3",
-		Description:   "The extensions field MUST only appear in version 3 certificates",
-		Citation:      "RFC 5280: 4.1.2.9",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewCertExtensionsVersonNot3,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_cert_extensions_version_not_3",
+			Description:   "The extensions field MUST only appear in version 3 certificates",
+			Citation:      "RFC 5280: 4.1.2.9",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewCertExtensionsVersonNot3,
 	})
 }
 

@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -27,13 +27,15 @@ import (
 type sctPolicyCount struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_ct_sct_policy_count_unsatisfied",
-		Description:   "Check if certificate has enough embedded SCTs to meet Apple CT Policy",
-		Citation:      "https://support.apple.com/en-us/HT205280",
-		Source:        lint.AppleRootStorePolicy,
-		EffectiveDate: util.AppleCTPolicyDate,
-		Lint:          NewSctPolicyCount,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_ct_sct_policy_count_unsatisfied",
+			Description:   "Check if certificate has enough embedded SCTs to meet Apple CT Policy",
+			Citation:      "https://support.apple.com/en-us/HT205280",
+			Source:        lint.AppleRootStorePolicy,
+			EffectiveDate: util.AppleCTPolicyDate,
+		},
+		Lint: NewSctPolicyCount,
 	})
 }
 

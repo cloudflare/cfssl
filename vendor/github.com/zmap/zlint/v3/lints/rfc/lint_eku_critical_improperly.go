@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -36,13 +36,15 @@ If a CA includes extended key usages to satisfy such applications,
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_eku_critical_improperly",
-		Description:   "Conforming CAs SHOULD NOT mark extended key usage extension as critical if the anyExtendedKeyUsage KeyPurposedID is present",
-		Citation:      "RFC 5280: 4.2.1.12",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC3280Date,
-		Lint:          NewEkuBadCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_eku_critical_improperly",
+			Description:   "Conforming CAs SHOULD NOT mark extended key usage extension as critical if the anyExtendedKeyUsage KeyPurposedID is present",
+			Citation:      "RFC 5280: 4.2.1.12",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC3280Date,
+		},
+		Lint: NewEkuBadCritical,
 	})
 }
 

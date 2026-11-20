@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -29,13 +29,15 @@ This extension MUST be present and SHOULD NOT be marked critical.
 ******************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_cert_certificate_policies_marked_critical",
-		Description:   "Subscriber Certificate: certificatePolicies MUST be present and SHOULD NOT be marked critical.",
-		Citation:      "BRs: 7.1.2.3",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewSubCertPolicyCrit,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_cert_certificate_policies_marked_critical",
+			Description:   "Subscriber Certificate: certificatePolicies MUST be present and SHOULD NOT be marked critical.",
+			Citation:      "BRs: 7.1.2.3",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewSubCertPolicyCrit,
 	})
 }
 

@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -27,13 +27,15 @@ import (
 type ecdsaInvalidKU struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "n_ecdsa_ee_invalid_ku",
-		Description:   "ECDSA end-entity certificates MAY have key usages: digitalSignature, nonRepudiation and keyAgreement",
-		Citation:      "RFC 5480 Section 3",
-		Source:        lint.RFC5480,
-		EffectiveDate: util.CABEffectiveDate,
-		Lint:          NewEcdsaInvalidKU,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "n_ecdsa_ee_invalid_ku",
+			Description:   "ECDSA end-entity certificates MAY have key usages: digitalSignature, nonRepudiation and keyAgreement",
+			Citation:      "RFC 5480 Section 3",
+			Source:        lint.RFC5480,
+			EffectiveDate: util.CABEffectiveDate,
+		},
+		Lint: NewEcdsaInvalidKU,
 	})
 }
 
@@ -46,7 +48,7 @@ func NewEcdsaInvalidKU() lint.LintInterface {
 // CheckApplies returns true when the certificate is a subscriber cert using an
 // ECDSA public key algorithm.
 func (l *ecdsaInvalidKU) CheckApplies(c *x509.Certificate) bool {
-	return util.IsSubscriberCert(c) && c.PublicKeyAlgorithm == x509.ECDSA
+	return util.IsSubscriberCert(c) && c.PublicKeyAlgorithm == x509.ECDSA && util.HasKeyUsageOID(c)
 }
 
 // Execute returns a Notice level lint.LintResult if the ECDSA end entity certificate

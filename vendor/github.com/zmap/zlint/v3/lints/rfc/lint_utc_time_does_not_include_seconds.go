@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -41,13 +41,15 @@ systems MUST interpret the year field (YY) as follows:
 ************************************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_utc_time_does_not_include_seconds",
-		Description:   "UTCTime values MUST include seconds",
-		Citation:      "RFC 5280: 4.1.2.5.1",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewUtcNoSecond,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_utc_time_does_not_include_seconds",
+			Description:   "UTCTime values MUST include seconds",
+			Citation:      "RFC 5280: 4.1.2.5.1",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewUtcNoSecond,
 	})
 }
 

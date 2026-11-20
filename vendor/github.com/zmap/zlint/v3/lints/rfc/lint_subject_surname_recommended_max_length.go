@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -30,14 +30,16 @@ RFC 5280: A.1
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name: "w_subject_surname_recommended_max_length",
-		Description: "X.411 (1988) describes ub-common-name-length to be 64 bytes long. As systems may have " +
-			"targeted this length, for compatibility purposes it may be prudent to limit surnames to this length.",
-		Citation:      "ITU-T Rec. X.411 (11/1988), Annex B Reference Definition of MTS Parameter Upper Bounds",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectSurnameRecommendedMaxLength,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name: "w_subject_surname_recommended_max_length",
+			Description: "X.411 (1988) describes ub-common-name-length to be 64 bytes long. As systems may have " +
+				"targeted this length, for compatibility purposes it may be prudent to limit surnames to this length.",
+			Citation:      "ITU-T Rec. X.411 (11/1988), Annex B Reference Definition of MTS Parameter Upper Bounds",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectSurnameRecommendedMaxLength,
 	})
 }
 
@@ -48,7 +50,7 @@ func NewSubjectSurnameRecommendedMaxLength() lint.LintInterface {
 type SubjectSurnameRecommendedMaxLength struct{}
 
 func (l *SubjectSurnameRecommendedMaxLength) CheckApplies(c *x509.Certificate) bool {
-	return true
+	return len(c.Subject.Surname) > 0
 }
 
 func (l *SubjectSurnameRecommendedMaxLength) Execute(c *x509.Certificate) *lint.LintResult {

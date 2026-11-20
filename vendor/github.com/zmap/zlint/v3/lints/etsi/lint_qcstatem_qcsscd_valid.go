@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -24,13 +24,15 @@ import (
 type qcStatemQcSscdValid struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_qcstatem_qcsscd_valid",
-		Description:   "Checks that a QC Statement of the type id-etsi-qcs-QcSSCD has the correct form",
-		Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.2",
-		Source:        lint.EtsiEsi,
-		EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
-		Lint:          NewQcStatemQcSscdValid,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_qcstatem_qcsscd_valid",
+			Description:   "Checks that a QC Statement of the type id-etsi-qcs-QcSSCD has the correct form",
+			Citation:      "ETSI EN 319 412 - 5 V2.2.1 (2017 - 11) / Section 4.2.2",
+			Source:        lint.EtsiEsi,
+			EffectiveDate: util.EtsiEn319_412_5_V2_2_1_Date,
+		},
+		Lint: NewQcStatemQcSscdValid,
 	})
 }
 

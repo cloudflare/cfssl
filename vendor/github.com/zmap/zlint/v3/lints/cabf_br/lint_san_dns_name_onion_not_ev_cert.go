@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -25,13 +25,15 @@ import (
 type onionNotEV struct{}
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_san_dns_name_onion_not_ev_cert",
-		Description:   "certificates with a .onion subject name must be issued in accordance with EV Guidelines",
-		Citation:      "CABF Ballot 144",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.OnionOnlyEVDate,
-		Lint:          NewOnionNotEV,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_san_dns_name_onion_not_ev_cert",
+			Description:   "certificates with a .onion subject name must be issued in accordance with EV Guidelines",
+			Citation:      "CABF Ballot 144",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.OnionOnlyEVDate,
+		},
+		Lint: NewOnionNotEV,
 	})
 }
 

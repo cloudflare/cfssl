@@ -1,7 +1,7 @@
 package cabf_br
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -31,13 +31,15 @@ It SHOULD contain the HTTP URL of the Issuing CA’s certificate (accessMethod =
 ************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "w_sub_ca_aia_missing",
-		Description:   "Subordinate CA Certificate: authorityInformationAccess SHOULD be present.",
-		Citation:      "BRs: 7.1.2.2",
-		Source:        lint.CABFBaselineRequirements,
-		EffectiveDate: util.CABFBRs_1_7_1_Date,
-		Lint:          NewCaAiaShouldNotBeMissing,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "w_sub_ca_aia_missing",
+			Description:   "Subordinate CA Certificate: authorityInformationAccess SHOULD be present.",
+			Citation:      "BRs: 7.1.2.2",
+			Source:        lint.CABFBaselineRequirements,
+			EffectiveDate: util.CABFBRs_1_7_1_Date,
+		},
+		Lint: NewCaAiaShouldNotBeMissing,
 	})
 }
 

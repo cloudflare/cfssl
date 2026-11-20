@@ -1,7 +1,7 @@
 package rfc
 
 /*
- * ZLint Copyright 2023 Regents of the University of Michigan
+ * ZLint Copyright 2024 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -28,13 +28,15 @@ RFC 5280: 4.2.1.2
 **********************************************************/
 
 func init() {
-	lint.RegisterLint(&lint.Lint{
-		Name:          "e_ext_subject_key_identifier_critical",
-		Description:   "The subject key identifier extension MUST be non-critical",
-		Citation:      "RFC 5280: 4.2.1.2",
-		Source:        lint.RFC5280,
-		EffectiveDate: util.RFC2459Date,
-		Lint:          NewSubjectKeyIdCritical,
+	lint.RegisterCertificateLint(&lint.CertificateLint{
+		LintMetadata: lint.LintMetadata{
+			Name:          "e_ext_subject_key_identifier_critical",
+			Description:   "The subject key identifier extension MUST be non-critical",
+			Citation:      "RFC 5280: 4.2.1.2",
+			Source:        lint.RFC5280,
+			EffectiveDate: util.RFC2459Date,
+		},
+		Lint: NewSubjectKeyIdCritical,
 	})
 }
 
