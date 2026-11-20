@@ -89,5 +89,15 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	// Check if a raw/binary format CRL is requested
+	// This allows CFSSL to be used as a CRL Distribution Point
+	isRaw := r.URL.Query().Get("raw") == "true"
+	if isRaw {
+		w.Header().Set("Content-Type", "application/pkix-crl")
+		//w.Header().Set("Content-Disposition", "attachment; filename=revoked.crl")
+		_, err = w.Write(result)
+		return err
+	}
+
 	return api.SendResponse(w, result)
 }
