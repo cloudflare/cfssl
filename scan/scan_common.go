@@ -19,7 +19,10 @@ var (
 	// Dialer is the default dialer to use, with a 1s timeout.
 	Dialer = &net.Dialer{Timeout: time.Second}
 	// Client is the default HTTP Client.
-	Client = &http.Client{Transport: &http.Transport{Dial: Dialer.Dial}}
+	Client = &http.Client{Transport: &http.Transport{
+		Proxy:       http.ProxyFromEnvironment,
+		DialContext: Dialer.DialContext,
+	}}
 	// RootCAs defines the default root certificate authorities to be used for scan.
 	RootCAs *x509.CertPool
 )

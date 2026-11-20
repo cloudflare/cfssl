@@ -19,7 +19,7 @@ func sessionResumeScan(addr, hostname string) (grade Grade, output Output, err e
 	config := defaultTLSConfig(hostname)
 	config.ClientSessionCache = tls.NewLRUClientSessionCache(1)
 
-	conn, err := tls.DialWithDialer(Dialer, Network, addr, config)
+	conn, err := dialTLS(Network, addr, config)
 	if err != nil {
 		return
 	}
@@ -29,7 +29,7 @@ func sessionResumeScan(addr, hostname string) (grade Grade, output Output, err e
 
 	return multiscan(addr, func(addrport string) (g Grade, o Output, e error) {
 		var conn *tls.Conn
-		if conn, e = tls.DialWithDialer(Dialer, Network, addrport, config); e != nil {
+		if conn, e = dialTLS(Network, addrport, config); e != nil {
 			return
 		}
 		conn.Close()
