@@ -621,3 +621,20 @@ func TestDontWantCopyExtension(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestNotAfterBeforeNotBefore(t *testing.T) {
+	invalidConfig := `{
+	"signing": {
+		"default": {
+			"usages": ["digital signature"],
+			"expiry": "8760h",
+			"not_before": "2030-01-01T00:00:00Z",
+			"not_after": "2020-01-01T00:00:00Z"
+		}
+	}
+}`
+	_, err := LoadConfig([]byte(invalidConfig))
+	if err == nil {
+		t.Fatal("expected an error when not_after is before not_before")
+	}
+}
