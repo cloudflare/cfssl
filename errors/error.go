@@ -210,6 +210,9 @@ const (
 	// RecordNotFound occurs when a SQL query targeting on one unique
 	// record failes to update the specified row in the table.
 	RecordNotFound
+	// DuplicateEntry occurs when SQL query tries to insert or update
+	// using key that must be unique in db table but already exists there.
+	DuplicateEntry
 )
 
 // The error interface implementation, which formats to a JSON object string.
