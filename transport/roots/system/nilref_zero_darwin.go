@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build cgo && !arm && !arm64 && !ios && go1.10
-// +build cgo,!arm,!arm64,!ios,go1.10
+//go:build cgo && !ios && go1.10
+// +build cgo,!ios,go1.10
 
 package system
 

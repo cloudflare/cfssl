@@ -6,16 +6,10 @@ package system
 
 import (
 	"crypto/x509"
-	"runtime"
 	"testing"
 )
 
 func TestSystemRoots(t *testing.T) {
-	switch runtime.GOARCH {
-	case "arm", "arm64":
-		t.Skipf("skipping on %s/%s, no system root", runtime.GOOS, runtime.GOARCH)
-	}
-
 	sysRoots := initSystemRoots()         // actual system roots
 	execRoots, err := execSecurityRoots() // non-cgo roots
 
