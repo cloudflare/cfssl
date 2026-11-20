@@ -50,20 +50,35 @@ func New(key string, ad []byte) (*Standard, error) {
 		switch splitKey[0] {
 		case "env":
 			key = os.Getenv(splitKey[1])
+			if key == "" {
+				return nil, fmt.Errorf("auth key environment variable %q is unset or empty", splitKey[1])
+			}
 		case "file":
 			data, err := os.ReadFile(splitKey[1])
 			if err != nil {
 				return nil, err
 			}
 			key = strings.TrimSpace(string(data))
+			if key == "" {
+				return nil, fmt.Errorf("auth key file %q is empty", splitKey[1])
+			}
 		default:
 			return nil, fmt.Errorf("unknown key prefix: %s", splitKey[0])
 		}
 	}
 
+	if key == "" {
+		return nil, fmt.Errorf("auth key must not be empty")
+	}
+
 	keyBytes, err := hex.DecodeString(key)
 	if err != nil {
 		return nil, err
+	}
+	if len(keyBytes) == 0 {
+		// hex.DecodeString("") succeeds with a zero-length key; reject so HMAC
+		// auth cannot fail open when a secret is missing/misconfigured.
+		return nil, fmt.Errorf("auth key must not be empty")
 	}
 
 	return &Standard{keyBytes, ad}, nil
