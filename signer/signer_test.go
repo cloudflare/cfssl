@@ -55,6 +55,16 @@ func TestSplitHosts(t *testing.T) {
 	if list[0] != "comma" || list[1] != "separated" || list[2] != "values" {
 		t.Fatal("SplitHost fails to split multiple domains")
 	}
+
+	list = SplitHosts("example.com, 10.0.0.1 ,,www.example.com,")
+	if len(list) != 3 || list[0] != "example.com" || list[1] != "10.0.0.1" || list[2] != "www.example.com" {
+		t.Fatalf("SplitHost should trim spaces and drop empty entries, got %q", list)
+	}
+
+	list = SplitHosts(" , ")
+	if list != nil {
+		t.Fatalf("SplitHost should return nil when there are no hosts, got %q", list)
+	}
 }
 
 func TestAddPolicies(t *testing.T) {
