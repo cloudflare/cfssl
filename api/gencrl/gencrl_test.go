@@ -106,3 +106,10 @@ func TestCRL(t *testing.T) {
 		t.Fatal(resp.Status, tester.ExpectedHTTPStatus, message)
 	}
 }
+
+func TestCRLInvalidSerial(t *testing.T) {
+	resp, body := testCRLCreation(t, tester.PrivateKey, tester.Certificate, tester.ExpiryTime, []string{"1", "not-a-serial"})
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected status %d, have %d: %s", http.StatusBadRequest, resp.StatusCode, body)
+	}
+}

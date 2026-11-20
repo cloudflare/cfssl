@@ -70,8 +70,10 @@ func gencrlHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	for _, value := range req.SerialNumber {
-		tempBigInt := new(big.Int)
-		tempBigInt.SetString(value, 10)
+		tempBigInt, ok := new(big.Int).SetString(strings.TrimSpace(value), 10)
+		if !ok {
+			return errors.NewBadRequestString("invalid serial number")
+		}
 		tempCert := pkix.RevokedCertificate{
 			SerialNumber:   tempBigInt,
 			RevocationTime: time.Now(),
