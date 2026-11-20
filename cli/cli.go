@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 
 	"github.com/cloudflare/cfssl/config"
 )
@@ -89,7 +90,12 @@ func Start(cmds map[string]*Command) error {
 	if flag.Usage == nil {
 		flag.Usage = func() {
 			fmt.Fprintf(os.Stderr, usage)
+			names := make([]string, 0, len(cmds))
 			for name := range cmds {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
 				fmt.Fprintf(os.Stderr, "\t%s\n", name)
 			}
 			fmt.Fprintf(os.Stderr, "Top-level flags:\n")
