@@ -470,11 +470,12 @@ func trimAfterDER(in []byte) []byte {
 	in = bytes.TrimLeft(in, asciiSpace)
 	input := cryptobyte.String(in)
 	for !input.Empty() {
+		// A whitespace-only suffix can have a valid ASN.1 tag and length.
+		if len(bytes.TrimLeft(input, asciiSpace)) == 0 {
+			return in[:len(in)-len(input)]
+		}
 		var element cryptobyte.String
 		if !input.ReadAnyASN1Element(&element, new(cbasn1.Tag)) {
-			if len(bytes.TrimLeft(input, asciiSpace)) == 0 {
-				return in[:len(in)-len(input)]
-			}
 			return bytes.TrimRight(in, asciiSpace)
 		}
 	}

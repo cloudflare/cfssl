@@ -884,6 +884,7 @@ func TestParseDERTrailingBytes(t *testing.T) {
 		{"leading and trailing whitespace", append(append([]byte("\n "), first...), " \n"...), 1, false},
 		{"two concatenated certificates", append(slices.Clone(first), second...), 2, false},
 		{"two certificates and trailing newline", append(append(slices.Clone(first), second...), '\n'), 2, false},
+		{"two certificates and trailing whitespace with a DER header", append(append(slices.Clone(first), second...), bytes.Repeat([]byte("\r\n"), 6)...), 2, false},
 		{"trailing garbage", append(slices.Clone(first), 0x00), 0, true},
 		{"trailing garbage after whitespace", append(append(slices.Clone(first), '\n'), 'x'), 0, true},
 		{"truncated", first[:len(first)-1], 0, true},
@@ -909,6 +910,9 @@ func TestParseCSRDERTrailingBytes(t *testing.T) {
 	}
 	if _, _, err := ParseCSR(append(append([]byte("\n"), der...), " \n"...)); err != nil {
 		t.Errorf("ParseCSR(DER with surrounding whitespace) error = %v", err)
+	}
+	if _, _, err := ParseCSR(append(slices.Clone(der), bytes.Repeat([]byte{'\n'}, 12)...)); err != nil {
+		t.Errorf("ParseCSR(DER with twelve trailing newlines) error = %v", err)
 	}
 	if _, _, err := ParseCSR(append(slices.Clone(der), 0x00)); err == nil {
 		t.Error("ParseCSR(DER with trailing garbage) succeeded, want error")
